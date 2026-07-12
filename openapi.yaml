@@ -111,11 +111,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidDateFormatExample:
+                InvalidRequestExample:
                   value:
-                    detail: Invalid date format.
-                  summary: Invalid date format example
-                  description: Invalid date format example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -140,12 +140,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingEvents:
+                InternalServerErrorExample:
                   value:
-                    detail: Error occurred while fetching events.
-                    errors: ''
-                  summary: Error while fetching events example
-                  description: Error while fetching events example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/calendar/update/:
     post:
@@ -246,11 +245,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -275,12 +274,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                HistoryRecordNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: History record not found
-                    errors: HistoricalTV matching query does not exist.
-                  summary: History record not found example
-                  description: History record not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -288,12 +286,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingHistoryRecordExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the history record.
-                    errors: ''
-                  summary: Error while fetching history record example
-                  description: Error while fetching history record example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     delete:
       operationId: changes_history_entry_delete
@@ -337,11 +334,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -366,12 +363,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                HistoryRecordNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: History record not found
-                    errors: HistoricalTV matching query does not exist.
-                  summary: History record not found example
-                  description: History record not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -379,12 +375,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileDeletingHistoryRecordExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while deleting the history record.
-                    errors: ''
-                  summary: Error while deleting history record example
-                  description: Error while deleting history record example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/health/:
     get:
@@ -421,31 +416,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                UnhealthyAPIExample:
+                InternalServerErrorExample:
                   value:
-                    status: unavailable
-                    timestamp: '2026-04-28T08:49:33.826808+00:00'
-                    checks:
-                      Cache(alias='default'):
-                        status: ok
-                        error: null
-                      Database(alias='default'):
-                        status: ok
-                        error: null
-                      DNS(hostname='laptop'):
-                        status: error
-                        error: OK
-                      Mail(backend='django.core.mail.backends.smtp.EmailBackend'):
-                        status: error
-                        error: OK
-                      Storage(alias='default'):
-                        status: ok
-                        error: null
-                  summary: Unhealthy API example
-                  description: Unhealthy API example
-          description: API is unhealthy
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/info/:
     get:
       operationId: info_get
@@ -561,11 +539,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidPaginationExample:
+                InvalidRequestExample:
                   value:
-                    detail: Invalid limit parameter.
-                  summary: Invalid pagination example
-                  description: Invalid pagination example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -590,12 +568,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingHistoryRecordExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the history record.
-                    errors: ''
-                  summary: Error while fetching history record example
-                  description: Error while fetching history record example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     post:
       operationId: lists_post
@@ -688,11 +665,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MissingBodyExample:
+                InvalidRequestExample:
                   value:
-                    detail: Missing body.
-                  summary: Missing body example
-                  description: Missing body example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -717,12 +694,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingHistoryRecordExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the history record.
-                    errors: ''
-                  summary: Error while fetching history record example
-                  description: Error while fetching history record example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/lists/{list_id}/:
     get:
@@ -828,11 +804,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidPaginationExample:
+                InvalidRequestExample:
                   value:
-                    detail: Invalid limit parameter.
-                  summary: Invalid pagination example
-                  description: Invalid pagination example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -857,11 +833,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -869,12 +845,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingListExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the list.
-                    errors: ''
-                  summary: Error while fetching list example
-                  description: Error while fetching list example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     patch:
       operationId: list_detail_patch
@@ -933,11 +908,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidCollaboratorsExample:
+                InvalidRequestExample:
                   value:
-                    detail: Field 'collaborators' must be an array of user IDs.
-                  summary: Invalid collaborators example
-                  description: Invalid collaborators example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -962,11 +937,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -974,12 +949,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingListExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the list.
-                    errors: ''
-                  summary: Error while fetching list example
-                  description: Error while fetching list example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     delete:
       operationId: list_detail_delete
@@ -1023,11 +997,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -1035,12 +1009,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileDeletingListExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while deleting the list.
-                    errors: ''
-                  summary: Error while deleting list example
-                  description: Error while deleting list example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/lists/{list_id}/items/:
     get:
@@ -1159,11 +1132,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidPaginationExample:
+                InvalidRequestExample:
                   value:
-                    detail: Invalid limit parameter.
-                  summary: Invalid pagination example
-                  description: Invalid pagination example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -1188,24 +1161,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-          description: List not found
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
         '500':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingListItemsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the list items.
-                    errors: ''
-                  summary: Error while fetching list items example
-                  description: Error while fetching list items example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/lists/{list_id}/items/{item_id}/:
     get:
@@ -1314,11 +1286,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidItemIDExample:
+                InvalidRequestExample:
                   value:
-                    detail: Invalid item ID.
-                  summary: Invalid item ID example
-                  description: Invalid item ID example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -1343,16 +1315,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                ItemNotFoundInTheListExample:
-                  value:
-                    detail: Item not found in the list.
-                  summary: Item not found in the list example
-                  description: Item not found in the list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -1360,12 +1327,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     delete:
       operationId: list_item_delete
@@ -1398,11 +1364,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidItemIDExample:
+                InvalidRequestExample:
                   value:
-                    detail: Invalid item ID.
-                  summary: Invalid item ID example
-                  description: Invalid item ID example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -1427,16 +1393,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                ItemNotFoundInTheListExample:
-                  value:
-                    detail: Item not found in the list.
-                  summary: Item not found in the list example
-                  description: Item not found in the list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -1444,12 +1405,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileDeletingItemFromListExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while deleting the item from the list.
-                    errors: ''
-                  summary: Error while deleting item from list example
-                  description: Error while deleting item from list example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/media/:
     get:
@@ -1607,26 +1567,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidStatusExample:
-                  value:
-                    detail: Invalid status.
-                  summary: Invalid status example
-                  description: Invalid status example
-                InvalidSortingExample:
-                  value:
-                    detail: Invalid sorting.
-                  summary: Invalid sorting example
-                  description: Invalid sorting example
-                InvalidPaginationExample:
-                  value:
-                    detail: Invalid limit parameter.
-                  summary: Invalid pagination example
-                  description: Invalid pagination example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -1651,12 +1596,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/media/{media_type}/:
     get:
@@ -1798,26 +1742,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidStatusExample:
-                  value:
-                    detail: Invalid status.
-                  summary: Invalid status example
-                  description: Invalid status example
-                InvalidSortingExample:
-                  value:
-                    detail: Invalid sorting.
-                  summary: Invalid sorting example
-                  description: Invalid sorting example
-                InvalidPaginationExample:
-                  value:
-                    detail: Invalid limit parameter.
-                  summary: Invalid pagination example
-                  description: Invalid pagination example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -1842,12 +1771,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     post:
       operationId: media_type_list_post
@@ -1942,11 +1870,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -1971,11 +1899,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -1983,12 +1911,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/:
     get:
@@ -2123,11 +2050,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -2152,11 +2079,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -2164,12 +2091,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     patch:
       operationId: media_detail_patch
@@ -2308,11 +2234,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -2337,11 +2263,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -2349,12 +2275,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     delete:
       operationId: media_detail_delete
@@ -2412,11 +2337,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -2441,11 +2366,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -2453,12 +2378,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/:
     get:
@@ -2599,11 +2523,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -2628,11 +2552,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -2640,12 +2564,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     patch:
       operationId: season_detail_patch
@@ -2790,11 +2713,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -2819,11 +2742,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -2831,12 +2754,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     delete:
       operationId: season_detail_delete
@@ -2900,11 +2822,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -2929,11 +2851,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -2941,12 +2863,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/:
     get:
@@ -3093,11 +3014,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -3122,11 +3043,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -3134,12 +3055,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     patch:
       operationId: episode_detail_patch
@@ -3290,11 +3210,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -3319,11 +3239,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -3331,12 +3251,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
     delete:
       operationId: episode_detail_delete
@@ -3406,11 +3325,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -3435,11 +3354,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found.
-                  summary: Media not found example
-                  description: Media not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -3447,12 +3366,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingItemDetailsExample:
+                InternalServerErrorExample:
                   value:
-                    detail: An error occurred while fetching the item details.
-                    errors: ''
-                  summary: Error while fetching item details example
-                  description: Error while fetching item details example
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/changes_history/:
     get:
@@ -3566,11 +3484,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -3595,11 +3513,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                EpisodeNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Episode not found or not tracked.
-                  summary: Episode not found example
-                  description: Episode not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -3609,10 +3527,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/history/:
     get:
       operationId: episode_consumption_history_get
@@ -3720,11 +3638,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -3749,11 +3667,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                SeasonNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Season not found or not tracked.
-                  summary: Season not found example
-                  description: Season not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -3763,10 +3681,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/history/{consumption_id}/:
     get:
       operationId: episode_consumption_entry_get
@@ -3860,16 +3778,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -3894,16 +3807,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
-                ConsumptionEntryNotFoundExample:
-                  value:
-                    detail: Consumption entry not found
-                  summary: Consumption entry not found example
-                  description: Consumption entry not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -3913,10 +3821,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     patch:
       operationId: episode_consumption_entry_patch
       description: Update a specific consumption history entry for a specific episode.
@@ -4014,16 +3922,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -4048,11 +3951,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -4062,10 +3965,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     delete:
       operationId: episode_consumption_entry_delete
       description: Delete a specific consumption history entry for a specific episode.
@@ -4140,16 +4043,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -4174,16 +4072,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
-                ConsumptionEntryNotFoundExample:
-                  value:
-                    detail: Consumption entry not found.
-                  summary: Consumption entry not found example
-                  description: Consumption entry not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -4193,10 +4086,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/lists/:
     get:
       operationId: episode_lists_get
@@ -4298,11 +4191,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -4327,11 +4220,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -4341,10 +4234,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/lists/{list_id}/:
     put:
       operationId: episode_list_detail_put
@@ -4431,11 +4324,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -4460,16 +4353,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                MediaNotInListExample:
-                  value:
-                    detail: Media not found in the list.
-                  summary: Media not in list example
-                  description: Media not in list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -4479,10 +4367,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     delete:
       operationId: episode_list_detail_delete
       description: Remove a specific episode from a specific list.
@@ -4557,11 +4445,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -4586,16 +4474,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                MediaNotInListExample:
-                  value:
-                    detail: Media not found in the list.
-                  summary: Media not in list example
-                  description: Media not in list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -4605,10 +4488,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/sync/:
     post:
       operationId: episode_sync_post
@@ -4688,21 +4571,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot sync `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
-                ManualSourceSyncAttemptExample:
-                  value:
-                    detail: Manual items cannot be synced.
-                  summary: Manual source sync attempt example
-                  description: Manual source sync attempt example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -4727,11 +4600,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '429':
           content:
@@ -4753,10 +4626,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/changes_history/:
     get:
       operationId: season_changes_history_get
@@ -4883,11 +4756,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -4912,11 +4785,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                SeasonNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Season not found or not tracked.
-                  summary: Season not found example
-                  description: Season not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -4926,10 +4799,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/episodes/:
     get:
       operationId: season_episodes_get
@@ -5044,16 +4917,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot sync `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -5078,11 +4946,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -5092,10 +4960,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/history/:
     get:
       operationId: season_consumption_history_get
@@ -5197,11 +5065,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -5226,11 +5094,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                SeasonNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Season not found or not tracked.
-                  summary: Season not found example
-                  description: Season not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -5240,10 +5108,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/history/{consumption_id}/:
     get:
       operationId: season_consumption_entry_get
@@ -5331,16 +5199,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -5365,16 +5228,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
-                ConsumptionEntryNotFoundExample:
-                  value:
-                    detail: Consumption entry not found
-                  summary: Consumption entry not found example
-                  description: Consumption entry not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -5384,10 +5242,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     patch:
       operationId: season_consumption_entry_patch
       description: Update a specific consumption history entry for a specific season.
@@ -5479,16 +5337,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -5513,11 +5366,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -5527,10 +5380,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     delete:
       operationId: season_consumption_entry_delete
       description: Delete a specific consumption history entry for a specific season.
@@ -5599,16 +5452,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -5633,16 +5481,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
-                ConsumptionEntryNotFoundExample:
-                  value:
-                    detail: Consumption entry not found.
-                  summary: Consumption entry not found example
-                  description: Consumption entry not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -5652,10 +5495,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/lists/:
     get:
       operationId: season_lists_get
@@ -5751,11 +5594,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -5780,11 +5623,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -5794,10 +5637,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/lists/{list_id}/:
     put:
       operationId: season_list_detail_put
@@ -5878,11 +5721,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -5907,16 +5750,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                MediaNotInListExample:
-                  value:
-                    detail: Media not found in the list.
-                  summary: Media not in list example
-                  description: Media not in list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -5926,10 +5764,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     delete:
       operationId: season_list_detail_delete
       description: Remove a specific season from a specific list.
@@ -5998,11 +5836,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -6027,16 +5865,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                MediaNotInListExample:
-                  value:
-                    detail: Media not found in the list.
-                  summary: Media not in list example
-                  description: Media not in list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -6046,10 +5879,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/sync/:
     post:
       operationId: season_sync_post
@@ -6123,21 +5956,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot sync `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
-                ManualSourceSyncAttemptExample:
-                  value:
-                    detail: Manual items cannot be synced.
-                  summary: Manual source sync attempt example
-                  description: Manual source sync attempt example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -6162,11 +5985,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '429':
           content:
@@ -6188,10 +6011,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/changes_history/:
     get:
       operationId: media_changes_history_get
@@ -6298,11 +6121,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -6327,11 +6150,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -6341,10 +6164,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/history/:
     get:
       operationId: media_consumption_history_get
@@ -6441,11 +6264,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -6470,11 +6293,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                SeasonNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Season not found or not tracked.
-                  summary: Season not found example
-                  description: Season not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -6484,10 +6307,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/history/{consumption_id}/:
     get:
       operationId: media_consumption_entry_get
@@ -6569,16 +6392,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -6603,16 +6421,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
-                ConsumptionEntryNotFoundExample:
-                  value:
-                    detail: Consumption entry not found
-                  summary: Consumption entry not found example
-                  description: Consumption entry not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -6622,10 +6435,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     patch:
       operationId: media_consumption_entry_patch
       description: Update a specific consumption history entry for a specific media.
@@ -6711,16 +6524,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -6745,11 +6553,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -6759,10 +6567,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     delete:
       operationId: media_consumption_entry_delete
       description: Delete a specific consumption history entry for a specific media.
@@ -6825,16 +6633,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -6859,16 +6662,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
-                ConsumptionEntryNotFoundExample:
-                  value:
-                    detail: Consumption entry not found.
-                  summary: Consumption entry not found example
-                  description: Consumption entry not found example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -6878,10 +6676,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/lists/:
     get:
       operationId: media_lists_get
@@ -6971,11 +6769,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -7000,11 +6798,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -7014,10 +6812,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}/:
     put:
       operationId: media_list_detail_put
@@ -7092,16 +6890,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -7126,16 +6919,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                MediaNotFoundInListExample:
-                  value:
-                    detail: Media not found in the list.
-                  summary: Media not found in list example
-                  description: Media not found in list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -7145,10 +6933,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     delete:
       operationId: media_list_detail_delete
       description: Remove a specific media from a specific list.
@@ -7211,16 +6999,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -7245,16 +7028,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                MediaNotFoundInListExample:
-                  value:
-                    detail: Media not found in the list.
-                  summary: Media not found in list example
-                  description: Media not found in list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -7264,10 +7042,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/recommendations/:
     get:
       operationId: media_recommendations_get
@@ -7346,16 +7124,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot query `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -7380,16 +7153,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ListNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: List not found.
-                  summary: List not found example
-                  description: List not found example
-                MediaNotFoundInListExample:
-                  value:
-                    detail: Media not found in the list.
-                  summary: Media not found in list example
-                  description: Media not found in list example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -7399,10 +7167,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/seasons/:
     get:
       operationId: media_seasons_get
@@ -7514,16 +7282,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot sync `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -7548,11 +7311,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '500':
           content:
@@ -7562,10 +7325,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/sync/:
     post:
       operationId: media_sync_post
@@ -7633,21 +7396,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Invalid media type example
-                  description: Invalid media type example
-                InvalidSourceExample:
-                  value:
-                    detail: Cannot sync `invalid_source` for `tv` media type
-                  summary: Invalid source example
-                  description: Invalid source example
-                ManualSourceSyncAttemptExample:
-                  value:
-                    detail: Manual items cannot be synced.
-                  summary: Manual source sync attempt example
-                  description: Manual source sync attempt example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -7672,11 +7425,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                MediaNotFoundExample:
+                NotFoundExample:
                   value:
-                    detail: Media not found or not tracked.
-                  summary: Media not found example
-                  description: Media not found or not tracked example
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
           description: Not found
         '429':
           content:
@@ -7698,10 +7451,10 @@ paths:
               examples:
                 InternalServerErrorExample:
                   value:
-                    detail: Internal Server Error.
-                  summary: Internal server error example
-                  description: Internal server error example
-          description: Internal Server Error
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/schema/:
     get:
       operationId: schema_retrieve
@@ -7920,11 +7673,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                UnsupportedMediaTypeExample:
+                InvalidRequestExample:
                   value:
-                    detail: Unsupported media type.
-                  summary: Unsupported media type example
-                  description: Unsupported media type example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -7949,11 +7702,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingResults:
+                InternalServerErrorExample:
                   value:
                     detail: Internal server error.
-                  summary: Error while fetching results example
-                  description: Error while fetching results example
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
   /api/v1/statistics/:
     get:
@@ -7991,11 +7744,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                InvalidDateFormatExample:
+                InvalidRequestExample:
                   value:
-                    detail: Invalid date format.
-                  summary: Invalid date format example
-                  description: Invalid date format example
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
           description: Bad request
         '403':
           content:
@@ -8020,11 +7773,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
               examples:
-                ErrorWhileFetchingStatistics:
+                InternalServerErrorExample:
                   value:
                     detail: Internal server error.
-                  summary: Error while fetching statistics example
-                  description: Error while fetching statistics example
+                  summary: Internal server error
+                  description: Internal server error
           description: Internal server error
 components:
   schemas:
@@ -9164,7 +8917,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateBoardGameRequest:
       type: object
       description: Serializer for updating board game media items.
@@ -9191,7 +8943,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateBookRequest:
       type: object
       description: Serializer for updating book media items.
@@ -9218,7 +8969,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateComicRequest:
       type: object
       description: Serializer for updating comic media items.
@@ -9245,7 +8995,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateEpisodeRequest:
       type: object
       description: Serializer for updating episode media items.
@@ -9280,7 +9029,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateMangaRequest:
       type: object
       description: Serializer for updating manga media items.
@@ -9307,7 +9055,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateMovieRequest:
       type: object
       description: Serializer for updating movie media items.
@@ -9331,7 +9078,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateSeasonRequest:
       type: object
       description: Serializer for updating season media items.
@@ -9347,7 +9093,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     PatchedUpdateTVRequest:
       type: object
       description: Serializer for updating TV media items.
@@ -9363,7 +9108,6 @@ components:
         notes:
           type: string
           nullable: true
-          minLength: 1
     RelatedResponse:
       type: object
       description: Serializer for related media endpoint.

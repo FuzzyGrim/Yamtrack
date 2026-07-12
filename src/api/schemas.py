@@ -45,7 +45,20 @@ class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
         }
 
 
-forbidden_response = OpenApiResponse(
+BadRequestResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Bad request",
+    examples=[
+        OpenApiExample(
+            "Invalid request example",
+            description="Invalid request example",
+            summary="Invalid request example",
+            value={"detail": "Invalid request."},
+        )
+    ],
+)
+
+ForbiddenResponse = OpenApiResponse(
     ApiErrorResponseSerializer,
     description="Forbidden",
     examples=[
@@ -61,6 +74,47 @@ forbidden_response = OpenApiResponse(
             summary="Invalid token example",
             value={"detail": "Invalid token"},
         ),
+    ],
+)
+
+InternalServerErrorResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Internal server error",
+    examples=[
+        OpenApiExample(
+            "Internal server error example",
+            description="Internal server error",
+            summary="Internal server error",
+            value={"detail": "Internal server error."},
+        )
+    ],
+)
+
+NotFoundResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Not found",
+    examples=[
+        OpenApiExample(
+            "Not found example",
+            description="Not found example",
+            summary="Not found example",
+            value={"detail": "Not found."},
+        )
+    ],
+)
+
+TooManyRequestsResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Too Many Requests",
+    examples=[
+        OpenApiExample(
+            "Sync too soon example",
+            description="Sync too soon example",
+            summary="Sync too soon example",
+            value={
+                "detail": ("The data was recently synced, please wait a few seconds.")
+            },
+        )
     ],
 )
 

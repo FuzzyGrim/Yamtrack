@@ -64,21 +64,24 @@ from .helpers import (
     try_parse_date,
 )
 from .schemas import (
+    BadRequestResponse,
     EpisodeNumberParam,
+    ForbiddenResponse,
+    InternalServerErrorResponse,
     ListSearchParam,
     ListSortParam,
     MediaIdParam,
     MediaTypeCompleteParam,
     MediaTypeCompleteQueryParam,
     MediaTypeParam,
+    NotFoundResponse,
     PaginationLimitParam,
     PaginationOffsetParam,
     SeasonNumberParam,
     SourceCompleteParam,
-    forbidden_response,
+    TooManyRequestsResponse,
 )
 from .serializers import (
-    ApiErrorResponseSerializer,
     ApiMessageResponseSerializer,
     ChangesHistoryEntrySerializer,
     CompleteEpisodeSerializer,
@@ -243,34 +246,9 @@ class CalendarView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid date format example",
-                        description="Invalid date format example",
-                        summary="Invalid date format example",
-                        value={"detail": "Invalid date format."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching events",
-                        description="Error while fetching events example",
-                        summary="Error while fetching events example",
-                        value={
-                            "detail": "Error occurred while fetching events.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):
@@ -342,7 +320,7 @@ class CalendarUpdateView(drf_views.APIView):
                     )
                 ],
             ),
-            403: forbidden_response,
+            403: ForbiddenResponse,
         },
     )
     def post(self, request):
@@ -394,49 +372,10 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "History record not found example",
-                        description="History record not found example",
-                        summary="History record not found example",
-                        value={
-                            "detail": "History record not found",
-                            "errors": "HistoricalTV matching query does not exist.",
-                        },
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching history record example",
-                        description="Error while fetching history record example",
-                        summary="Error while fetching history record example",
-                        value={
-                            "detail": "An error occurred while fetching the history record.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, history_id):
@@ -479,49 +418,10 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
             204: OpenApiResponse(
                 description="History record deleted successfully",
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "History record not found example",
-                        description="History record not found example",
-                        summary="History record not found example",
-                        value={
-                            "detail": "History record not found",
-                            "errors": "HistoricalTV matching query does not exist.",
-                        },
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while deleting history record example",
-                        description="Error while deleting history record example",
-                        summary="Error while deleting history record example",
-                        value={
-                            "detail": "An error occurred while deleting the history record.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, media_type, history_id):
@@ -603,43 +503,7 @@ class HealthView(drf_views.APIView):
                     )
                 ],
             ),
-            500: OpenApiResponse(
-                HealthResponseSerializer,
-                description="API is unhealthy",
-                examples=[
-                    OpenApiExample(
-                        "Unhealthy API example",
-                        description="Unhealthy API example",
-                        summary="Unhealthy API example",
-                        value={
-                            "status": "unavailable",
-                            "timestamp": "2026-04-28T08:49:33.826808+00:00",
-                            "checks": {
-                                "Cache(alias='default')": {
-                                    "status": "ok",
-                                    "error": None,
-                                },
-                                "Database(alias='default')": {
-                                    "status": "ok",
-                                    "error": None,
-                                },
-                                "DNS(hostname='laptop')": {
-                                    "status": "error",
-                                    "error": "OK",
-                                },
-                                "Mail(backend='django.core.mail.backends.smtp.EmailBackend')": {
-                                    "status": "error",
-                                    "error": "OK",
-                                },
-                                "Storage(alias='default')": {
-                                    "status": "ok",
-                                    "error": None,
-                                },
-                            },
-                        },
-                    )
-                ],
-            ),
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):  # noqa: ARG002
@@ -761,34 +625,9 @@ class ListsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid pagination example",
-                        description="Invalid pagination example",
-                        summary="Invalid pagination example",
-                        value={"detail": "Invalid limit parameter."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching history record example",
-                        description="Error while fetching history record example",
-                        summary="Error while fetching history record example",
-                        value={
-                            "detail": "An error occurred while fetching the history record.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):
@@ -884,34 +723,9 @@ class ListsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Missing body example",
-                        description="Missing body example",
-                        summary="Missing body example",
-                        value={"detail": "Missing body."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching history record example",
-                        description="Error while fetching history record example",
-                        summary="Error while fetching history record example",
-                        value={
-                            "detail": "An error occurred while fetching the history record.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def post(self, request):
@@ -992,34 +806,9 @@ class ListDetailView(drf_views.APIView):
         ],
         responses={
             204: OpenApiResponse(description="List deleted successfully"),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while deleting list example",
-                        description="Error while deleting list example",
-                        summary="Error while deleting list example",
-                        value={
-                            "detail": "An error occurred while deleting the list.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, list_id):
@@ -1109,46 +898,10 @@ class ListDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid pagination example",
-                        description="Invalid pagination example",
-                        summary="Invalid pagination example",
-                        value={"detail": "Invalid limit parameter."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching list example",
-                        description="Error while fetching list example",
-                        summary="Error while fetching list example",
-                        value={
-                            "detail": "An error occurred while fetching the list.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, list_id):
@@ -1271,48 +1024,10 @@ class ListDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid collaborators example",
-                        description="Invalid collaborators example",
-                        summary="Invalid collaborators example",
-                        value={
-                            "detail": "Field 'collaborators' must be an array of user IDs."
-                        },
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching list example",
-                        description="Error while fetching list example",
-                        summary="Error while fetching list example",
-                        value={
-                            "detail": "An error occurred while fetching the list.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def patch(self, request, list_id):
@@ -1459,46 +1174,10 @@ class ListItemsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid pagination example",
-                        description="Invalid pagination example",
-                        summary="Invalid pagination example",
-                        value={"detail": "Invalid limit parameter."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="List not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching list items example",
-                        description="Error while fetching list items example",
-                        summary="Error while fetching list items example",
-                        value={
-                            "detail": "An error occurred while fetching the list items.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, list_id):
@@ -1608,52 +1287,10 @@ class ListItemView(drf_views.APIView):
         ],
         responses={
             204: OpenApiResponse(description="Item deleted successfully"),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid item ID example",
-                        description="Invalid item ID example",
-                        summary="Invalid item ID example",
-                        value={"detail": "Invalid item ID."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Item not found in the list example",
-                        description="Item not found in the list example",
-                        summary="Item not found in the list example",
-                        value={"detail": "Item not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while deleting item from list example",
-                        description="Error while deleting item from list example",
-                        summary="Error while deleting item from list example",
-                        value={
-                            "detail": "An error occurred while deleting the item from the list.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, list_id, item_id):
@@ -1797,52 +1434,10 @@ class ListItemView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid item ID example",
-                        description="Invalid item ID example",
-                        summary="Invalid item ID example",
-                        value={"detail": "Invalid item ID."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Item not found in the list example",
-                        description="Item not found in the list example",
-                        summary="Item not found in the list example",
-                        value={"detail": "Item not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, list_id, item_id):
@@ -2007,52 +1602,9 @@ class MediaListView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid status example",
-                        description="Invalid status example",
-                        summary="Invalid status example",
-                        value={"detail": "Invalid status."},
-                    ),
-                    OpenApiExample(
-                        "Invalid sorting example",
-                        description="Invalid sorting example",
-                        summary="Invalid sorting example",
-                        value={"detail": "Invalid sorting."},
-                    ),
-                    OpenApiExample(
-                        "Invalid pagination example",
-                        description="Invalid pagination example",
-                        summary="Invalid pagination example",
-                        value={"detail": "Invalid limit parameter."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):
@@ -2222,52 +1774,9 @@ class MediaTypeListView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid status example",
-                        description="Invalid status example",
-                        summary="Invalid status example",
-                        value={"detail": "Invalid status."},
-                    ),
-                    OpenApiExample(
-                        "Invalid sorting example",
-                        description="Invalid sorting example",
-                        summary="Invalid sorting example",
-                        value={"detail": "Invalid sorting."},
-                    ),
-                    OpenApiExample(
-                        "Invalid pagination example",
-                        description="Invalid pagination example",
-                        summary="Invalid pagination example",
-                        value={"detail": "Invalid limit parameter."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type):
@@ -2373,46 +1882,10 @@ class MediaTypeListView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def post(self, request, media_type):
@@ -2585,46 +2058,10 @@ class MediaDetailView(drf_views.APIView):
         ],
         responses={
             204: OpenApiResponse(description="Media item deleted successfully"),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, media_type, source, media_id):
@@ -2770,46 +2207,10 @@ class MediaDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id):
@@ -3015,46 +2416,10 @@ class MediaDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def patch(self, request, media_type, source, media_id):
@@ -3128,7 +2493,7 @@ class MediaDetailView(drf_views.APIView):
         data = serializer.validated_data
 
         for field, value in data.items():
-            if hasattr(media, field):
+            if hasattr(media, field) and value is not None:
                 setattr(media, field, value)
 
         try:
@@ -3249,43 +2614,10 @@ class MediaChangesHistoryView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id):
@@ -3389,43 +2721,10 @@ class MediaConsumptionHistoryView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Season not found example",
-                        description="Season not found or not tracked example",
-                        summary="Season not found example",
-                        value={"detail": "Season not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id):
@@ -3519,57 +2818,10 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                    OpenApiExample(
-                        "Consumption entry not found example",
-                        description="Consumption entry not found example",
-                        summary="Consumption entry not found example",
-                        value={"detail": "Consumption entry not found."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, media_type, source, media_id, consumption_id):
@@ -3652,57 +2904,10 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                    OpenApiExample(
-                        "Consumption entry not found example",
-                        description="Consumption entry not found example",
-                        summary="Consumption entry not found example",
-                        value={"detail": "Consumption entry not found"},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, consumption_id):
@@ -3800,51 +3005,10 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def patch(self, request, media_type, source, media_id, consumption_id):
@@ -3974,43 +3138,10 @@ class MediaListsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id):
@@ -4075,57 +3206,10 @@ class MediaListDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Media not found in list example",
-                        description="Media not found in list example",
-                        summary="Media not found in list example",
-                        value={"detail": "Media not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, media_type, source, media_id, list_id):
@@ -4207,57 +3291,10 @@ class MediaListDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Media not found in list example",
-                        description="Media not found in list example",
-                        summary="Media not found in list example",
-                        value={"detail": "Media not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def put(self, request, media_type, source, media_id, list_id):
@@ -4365,57 +3402,10 @@ class MediaRecommendationsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Media not found in list example",
-                        description="Media not found in list example",
-                        summary="Media not found in list example",
-                        value={"detail": "Media not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, _, media_type, source, media_id):
@@ -4522,51 +3512,10 @@ class MediaSeasonsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot sync `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id):
@@ -4747,73 +3696,11 @@ class MediaSyncView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot sync `invalid_source` for `tv` media type"
-                        },
-                    ),
-                    OpenApiExample(
-                        "Manual source sync attempt example",
-                        description="Manual source sync attempt example",
-                        summary="Manual source sync attempt example",
-                        value={"detail": "Manual items cannot be synced."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            429: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Too Many Requests",
-                examples=[
-                    OpenApiExample(
-                        "Sync too soon example",
-                        description="Sync too soon example",
-                        summary="Sync too soon example",
-                        value={
-                            "detail": (
-                                "The data was recently synced, please wait a few seconds."
-                            )
-                        },
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            429: TooManyRequestsResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def post(self, _, media_type, source, media_id):
@@ -4908,46 +3795,10 @@ class MediaSeasonDetailView(drf_views.APIView):
         ],
         responses={
             204: OpenApiResponse(description="Media item deleted successfully"),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, media_type, source, media_id, season_number):
@@ -5103,46 +3954,10 @@ class MediaSeasonDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number):
@@ -5352,46 +4167,10 @@ class MediaSeasonDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def patch(self, request, media_type, source, media_id, season_number):
@@ -5597,43 +4376,10 @@ class MediaSeasonChangesHistoryView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Season not found example",
-                        description="Season not found or not tracked example",
-                        summary="Season not found example",
-                        value={"detail": "Season not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number):
@@ -5759,51 +4505,10 @@ class MediaSeasonEpisodesView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot sync `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number):
@@ -5961,43 +4666,10 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Season not found example",
-                        description="Season not found or not tracked example",
-                        summary="Season not found example",
-                        value={"detail": "Season not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number):
@@ -6095,57 +4767,10 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                    OpenApiExample(
-                        "Consumption entry not found example",
-                        description="Consumption entry not found example",
-                        summary="Consumption entry not found example",
-                        value={"detail": "Consumption entry not found."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(
@@ -6246,57 +4871,10 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                    OpenApiExample(
-                        "Consumption entry not found example",
-                        description="Consumption entry not found example",
-                        summary="Consumption entry not found example",
-                        value={"detail": "Consumption entry not found"},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, consumption_id):
@@ -6391,51 +4969,10 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def patch(
@@ -6557,43 +5094,10 @@ class MediaSeasonListsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number):
@@ -6665,49 +5169,10 @@ class MediaSeasonListDetailView(drf_views.APIView):
             204: OpenApiResponse(
                 description="Season removed from list successfully",
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Media not in list example",
-                        description="Media not in list example",
-                        summary="Media not in list example",
-                        value={"detail": "Media not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, media_type, source, media_id, season_number, list_id):
@@ -6799,49 +5264,10 @@ class MediaSeasonListDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Media not in list example",
-                        description="Media not in list example",
-                        summary="Media not in list example",
-                        value={"detail": "Media not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def put(self, request, media_type, source, media_id, season_number, list_id):
@@ -6951,73 +5377,11 @@ class MediaSeasonSyncView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot sync `invalid_source` for `tv` media type"
-                        },
-                    ),
-                    OpenApiExample(
-                        "Manual source sync attempt example",
-                        description="Manual source sync attempt example",
-                        summary="Manual source sync attempt example",
-                        value={"detail": "Manual items cannot be synced."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            429: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Too Many Requests",
-                examples=[
-                    OpenApiExample(
-                        "Sync too soon example",
-                        description="Sync too soon example",
-                        summary="Sync too soon example",
-                        value={
-                            "detail": (
-                                "The data was recently synced, please wait a few seconds."
-                            )
-                        },
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            429: TooManyRequestsResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def post(self, _, media_type, source, media_id, season_number):
@@ -7155,46 +5519,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
         ],
         responses={
             204: OpenApiResponse(description="Media item deleted successfully"),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(
@@ -7362,46 +5690,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -7608,46 +5900,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching item details example",
-                        description="Error while fetching item details example",
-                        summary="Error while fetching item details example",
-                        value={
-                            "detail": "An error occurred while fetching the item details.",
-                            "errors": "",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def patch(
@@ -7715,7 +5971,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
 
         serializer = UpdateEpisodeSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        data =  serializer.validated_data
+        data = serializer.validated_data
 
         for field, value in data.items():
             if hasattr(media, field):
@@ -7854,43 +6110,10 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Episode not found example",
-                        description="Episode not found or not tracked example",
-                        summary="Episode not found example",
-                        value={"detail": "Episode not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -8004,43 +6227,10 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Season not found example",
-                        description="Season not found or not tracked example",
-                        summary="Season not found example",
-                        value={"detail": "Season not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -8140,57 +6330,10 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                    OpenApiExample(
-                        "Consumption entry not found example",
-                        description="Consumption entry not found example",
-                        summary="Consumption entry not found example",
-                        value={"detail": "Consumption entry not found."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(
@@ -8291,57 +6434,10 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                    OpenApiExample(
-                        "Consumption entry not found example",
-                        description="Consumption entry not found example",
-                        summary="Consumption entry not found example",
-                        value={"detail": "Consumption entry not found"},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(
@@ -8444,51 +6540,10 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot query `invalid_source` for `tv` media type"
-                        },
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def patch(
@@ -8612,43 +6667,10 @@ class MediaEpisodeListsView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -8722,49 +6744,10 @@ class MediaEpisodeListDetailView(drf_views.APIView):
             204: OpenApiResponse(
                 description="Episode removed from the list successfully.",
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Media not in list example",
-                        description="Media not in list example",
-                        summary="Media not in list example",
-                        value={"detail": "Media not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def delete(
@@ -8867,49 +6850,10 @@ class MediaEpisodeListDetailView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "List not found example",
-                        description="List not found example",
-                        summary="List not found example",
-                        value={"detail": "List not found."},
-                    ),
-                    OpenApiExample(
-                        "Media not in list example",
-                        description="Media not in list example",
-                        summary="Media not in list example",
-                        value={"detail": "Media not found in the list."},
-                    ),
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def put(
@@ -9031,73 +6975,11 @@ class MediaEpisodeSyncView(drf_views.APIView):
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid media type example",
-                        description="Invalid media type example",
-                        summary="Invalid media type example",
-                        value={"detail": "Unsupported media type."},
-                    ),
-                    OpenApiExample(
-                        "Invalid source example",
-                        description="Invalid source example",
-                        summary="Invalid source example",
-                        value={
-                            "detail": "Cannot sync `invalid_source` for `tv` media type"
-                        },
-                    ),
-                    OpenApiExample(
-                        "Manual source sync attempt example",
-                        description="Manual source sync attempt example",
-                        summary="Manual source sync attempt example",
-                        value={"detail": "Manual items cannot be synced."},
-                    ),
-                ],
-            ),
-            403: forbidden_response,
-            404: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Not found",
-                examples=[
-                    OpenApiExample(
-                        "Media not found example",
-                        description="Media not found or not tracked example",
-                        summary="Media not found example",
-                        value={"detail": "Media not found or not tracked."},
-                    )
-                ],
-            ),
-            429: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Too Many Requests",
-                examples=[
-                    OpenApiExample(
-                        "Sync too soon example",
-                        description="Sync too soon example",
-                        summary="Sync too soon example",
-                        value={
-                            "detail": (
-                                "The data was recently synced, please wait a few seconds."
-                            )
-                        },
-                    )
-                ],
-            ),
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal Server Error",
-                examples=[
-                    OpenApiExample(
-                        "Internal server error example",
-                        description="Internal server error example",
-                        summary="Internal server error example",
-                        value={"detail": "Internal Server Error."},
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            429: TooManyRequestsResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def post(
@@ -9153,33 +7035,9 @@ class SearchProviderView(drf_views.APIView):
             200: OpenApiResponse(
                 SearchResponseSerializer,
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Unsupported media type example",
-                        description="Unsupported media type example",
-                        summary="Unsupported media type example",
-                        value={"detail": "Unsupported media type."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching results",
-                        description="Error while fetching results example",
-                        summary="Error while fetching results example",
-                        value={
-                            "detail": "Internal server error.",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type):
@@ -9291,33 +7149,9 @@ class StatisticsView(drf_views.APIView):
                 StatisticsResponseSerializer,
                 description="Successful response",
             ),
-            400: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Bad request",
-                examples=[
-                    OpenApiExample(
-                        "Invalid date format example",
-                        description="Invalid date format example",
-                        summary="Invalid date format example",
-                        value={"detail": "Invalid date format."},
-                    )
-                ],
-            ),
-            403: forbidden_response,
-            500: OpenApiResponse(
-                ApiErrorResponseSerializer,
-                description="Internal server error",
-                examples=[
-                    OpenApiExample(
-                        "Error while fetching statistics",
-                        description="Error while fetching statistics example",
-                        summary="Error while fetching statistics example",
-                        value={
-                            "detail": "Internal server error.",
-                        },
-                    )
-                ],
-            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):
