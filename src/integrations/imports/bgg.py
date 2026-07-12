@@ -79,7 +79,7 @@ class BGGImporter:
                 if message_elem is not None and message_elem.text:
                     message_text = message_elem.text.lower()
                     if (
-                        "Please try again later" in message_text
+                        "please try again later" in message_text
                         and attempt < max_retries - 1
                     ):
                         delay = base_delay * (2**attempt)
