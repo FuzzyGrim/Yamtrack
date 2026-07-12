@@ -156,7 +156,7 @@ def import_goodreads(file, user_id, mode):
     return import_media(goodreads.importer, file, user_id, mode)
 
 
-@shared_task(name="Import from Bgg")
+@shared_task(name="Import from BGG")
 def import_bgg(username, user_id, mode):
     """Celery task for importing game data from BoardGameGeek."""
     return import_media(bgg.importer, username, user_id, mode)
