@@ -463,6 +463,33 @@ def import_goodreads(request):
     return redirect("import_data")
 
 
+@require_POST
+def import_bgg(request):
+    """View for importing game data from BGG."""
+    username = request.POST.get("username")
+    if not username:
+        messages.error(request, "BGG username is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+
+    if frequency == "once":
+        tasks.import_bgg.delay(username=username, user_id=request.user.id, mode=mode)
+        messages.info(request, "The task to import media from BGG has been queued.")
+    else:
+        import_time = request.POST["time"]
+        helpers.create_import_schedule(
+            username,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "BGG",
+        )
+    return redirect("import_data")
+
+
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
