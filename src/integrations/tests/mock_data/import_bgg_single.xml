@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items totalitems="1">
+  <item objecttype="thing" objectid="1" subtype="boardgame" collid="1">
+    <name sortindex="1">Catan</name>
+    <image>http://example.com/catan.jpg</image>
+    <stats>
+      <rating value="8" />
+    </stats>
+    <status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0"
+            wanttobuy="0" wishlist="0" preordered="0"
+            lastmodified="2026-07-10 10:30:00" />
+    <numplays>5</numplays>
+  </item>
+</items>
