@@ -17,7 +17,7 @@
            src="{{ media.image }}">
 
       <div x-data="{ trackOpen: false }">
-        <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
+        <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer relative overflow-hidden {% if user_medias %}bg-gray-700 hover:bg-gray-600{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
                 hx-get="{% media_view_url 'track_modal' media %}"
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
                 hx-target="#{% component_id 'track' media current_instance.id %}"
@@ -33,6 +33,17 @@
 
           <div class="h-5 mx-2 border-l border-white/30"></div>
           {% include "app/icons/edit.svg" with classes="w-5 h-5 shrink-0" %}
+
+          {% if user_medias and current_instance.status and user.progress_bar %}
+            <div class="absolute bottom-0 left-0 w-full h-[5px]" style="background: rgba(255,255,255,0.12);"></div>
+            {% if current_instance.status == 'In progress' and current_instance.max_progress and current_instance.max_progress > 0 %}
+              {% widthratio current_instance.progress current_instance.max_progress 100 as progress_width %}
+              <div class="absolute bottom-0 left-0 h-[5px] {{ current_instance.status|status_background_color }}"
+                   style="width: {{ progress_width }}%"></div>
+            {% else %}
+              <div class="absolute bottom-0 left-0 w-full h-[5px] {{ current_instance.status|status_background_color }}"></div>
+            {% endif %}
+          {% endif %}
         </button>
 
         {# Track Modal #}
