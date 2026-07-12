@@ -179,7 +179,10 @@ class BGGImporter:
         updated_at = (
             timezone.now()
             if status_elem is None or status_elem.get("lastmodified") is None
-            else timezone.datetime.fromisoformat(status_elem.get("lastmodified"))
+            else timezone.make_aware(
+                timezone.datetime.fromisoformat(status_elem.get("lastmodified")),
+                timezone=timezone.utc,
+            )
         )
         boardgame._history_date = updated_at
 
