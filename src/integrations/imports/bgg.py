@@ -89,13 +89,8 @@ class BGGImporter:
                 break
 
             except requests.exceptions.RequestException as error:
-                if attempt < max_retries - 1:
-                    delay = base_delay * (2**attempt)
-                    time.sleep(delay)
-                    continue
                 msg = (
-                    "Hit max retries while fetching BGG collection for user "
-                    f"{self.username}"
+                    f"Failed to fetch BGG collection for user {self.username}: {error}"
                 )
                 raise MediaImportError(msg) from error
 
@@ -144,7 +139,6 @@ class BGGImporter:
 
         status_elem = boardgame_data.find("status")
         num_plays_elem = boardgame_data.find("numplays")
-        status_elem = boardgame_data.find("status")
         thumbnail_elem = boardgame_data.find("thumbnail")
         image_elem = boardgame_data.find("image")
 
