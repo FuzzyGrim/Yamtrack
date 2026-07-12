@@ -58,6 +58,7 @@ class BGGImporter:
 
         max_retries = 5
         base_delay = 15
+        response = None
         for attempt in range(max_retries):
             try:
                 response = app.providers.services.api_request(
@@ -72,8 +73,22 @@ class BGGImporter:
                     headers={"Authorization": f"Bearer {settings.BGG_API_TOKEN}"},
                     response_format="xml",
                 )
-                if response.status_code == requests.codes.ok:
-                    break
+
+                # BGG may return an accepted/queued XML message before data is ready.
+                message_elem = response.find("message")
+                if message_elem is not None and message_elem.text:
+                    message_text = message_elem.text.lower()
+                    if (
+                        "Please try again later" in message_text
+                        and attempt < max_retries - 1
+                    ):
+                        delay = base_delay * (2**attempt)
+                        time.sleep(delay)
+                        continue
+
+                break
+
+            except requests.exceptions.RequestException as error:
                 if attempt < max_retries - 1:
                     delay = base_delay * (2**attempt)
                     time.sleep(delay)
@@ -82,10 +97,11 @@ class BGGImporter:
                     "Hit max retries while fetching BGG collection for user "
                     f"{self.username}"
                 )
-                raise MediaImportError(msg)
-            except requests.exceptions.HTTPError as error:
-                msg = f"Error fetching BGG collection for user {self.username}: {error}"
                 raise MediaImportError(msg) from error
+
+        if response is None:
+            msg = f"Failed to fetch BGG collection for user {self.username}"
+            raise MediaImportError(msg)
 
         for item in response.findall(".//item"):
             self._process_boardgame(item)
@@ -120,7 +136,7 @@ class BGGImporter:
         ):
             return
 
-        name = name_elem.get("value")
+        name = name_elem.text
         rating_elem = boardgame_data.find("stats/rating")
         rating = rating_elem.get("value") if rating_elem is not None else None
         if rating == "N/A":
@@ -132,10 +148,10 @@ class BGGImporter:
         thumbnail_elem = boardgame_data.find("thumbnail")
         image_elem = boardgame_data.find("image")
 
-        if thumbnail_elem is not None and thumbnail_elem.text:
-            image = thumbnail_elem.text
-        elif image_elem is not None and image_elem.text:
+        if image_elem is not None and image_elem.text:
             image = image_elem.text
+        elif thumbnail_elem is not None and thumbnail_elem.text:
+            image = thumbnail_elem.text
         else:
             image = None
 
@@ -150,7 +166,7 @@ class BGGImporter:
                 "image": image,
             },
         )
-        boardgame = app.models.Boardgame(
+        boardgame = app.models.BoardGame(
             item=item,
             user=self.user,
             status=status,
@@ -172,7 +188,7 @@ class BGGImporter:
     def _determine_status(self, status_elem):
         """Determine the status of the boardgame based on BGG data."""
         if status_elem is None:
-            return Status.PLANNED.value
+            return Status.PLANNING.value
         if status_elem.get("own") == "1":
             return Status.IN_PROGRESS.value
         if status_elem.get("prevowned") == "1" or status_elem.get("fortrade") == "1":
@@ -184,5 +200,5 @@ class BGGImporter:
             or status_elem.get("wishlist") == "1"
             or status_elem.get("preordered") == "1"
         ):
-            return Status.PLANNED.value
-        return Status.PLANNED.value
+            return Status.PLANNING.value
+        return Status.PLANNING.value
