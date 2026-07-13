@@ -434,9 +434,9 @@ def get_companies(response):
     # when no companies, involved_companies is not present in the response
     # e.g game: 238417
     try:
-        return ", ".join(
+        return [
             company["company"]["name"] for company in response["involved_companies"]
-        )
+        ]
     except KeyError:
         return None
 
