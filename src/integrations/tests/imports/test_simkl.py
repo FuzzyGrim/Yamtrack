@@ -140,6 +140,13 @@ class ImportSimkl(TestCase):
         )
         self.assertIsNone(self.importer._get_date(None))
 
+    def test_get_date_strips_seconds(self):
+        """SIMKL timestamps with seconds should be truncated to the minute."""
+        self.assertEqual(
+            self.importer._get_date("2023-01-01T10:04:54Z"),
+            datetime(2023, 1, 1, 10, 4, 0, tzinfo=UTC),
+        )
+
     @patch("integrations.imports.simkl.SimklImporter._get_user_list")
     @patch("app.providers.tmdb.tv_with_seasons")
     def test_season_status_logic_with_completed_seasons(

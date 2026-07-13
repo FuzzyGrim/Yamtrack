@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 import requests
 from django.core.cache import cache
@@ -13,7 +12,7 @@ from app.models import TV, Item, MediaTypes, Season, Status
 from app.providers import services, tmdb
 from events.models import Event
 
-from .helpers import date_parser
+from .helpers import date_parser, resolve_episode_datetimes
 
 logger = logging.getLogger(__name__)
 
@@ -273,17 +272,22 @@ def process_season_episodes(item, metadata, events_bulk):
         logger.warning("%s - No episodes found in metadata", item)
         return
 
-    for episode in metadata["episodes"]:
-        episode_number = episode["episode_number"]
-        season_number = metadata["season_number"]
-
-        episode_datetime = get_episode_datetime(
+    season_number = metadata["season_number"]
+    episode_datetimes = {
+        episode["episode_number"]: get_episode_datetime(
             episode,
             season_number,
-            episode_number,
+            episode["episode_number"],
             tvmaze_map,
         )
+        for episode in metadata["episodes"]
+    }
+    resolved_datetimes = resolve_episode_datetimes(
+        episode_datetimes,
+        timezone.now(),
+    )
 
+    for episode_number, episode_datetime in resolved_datetimes.items():
         events_bulk.append(
             Event(
                 item=item,
@@ -294,7 +298,7 @@ def process_season_episodes(item, metadata, events_bulk):
 
 
 def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
-    """Determine the most accurate air datetime for an episode."""
+    """Return the known air datetime for an episode, or None when unknown."""
     tvmaze_key = f"{season_number}_{episode_number}"
     tvmaze_airstamp = tvmaze_map.get(tvmaze_key)
 
@@ -312,7 +316,7 @@ def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
                 episode["air_date"],
             )
 
-    return datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+    return None
 
 
 def get_tvmaze_episode_map(tvdb_id):

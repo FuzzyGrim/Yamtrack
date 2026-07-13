@@ -86,18 +86,21 @@ class ProviderAPIError(Exception):
     def __init__(self, provider, error, details=None):
         """Initialize the exception with the provider name."""
         self.provider = provider
-        self.status_code = error.response.status_code
+        response = getattr(error, "response", None)
+        self.status_code = getattr(response, "status_code", None)
         try:
-            provider = Sources(provider).label
+            provider_label = Sources(provider).label
         except ValueError:
-            provider = provider.title()
+            provider_label = provider.title()
 
-        logger.error("%s error: %s", provider, error.response.text)
+        error_text = getattr(response, "text", str(error))
+        logger.error("%s error: %s", provider_label, error_text)
 
-        message = (
-            f"There was an error contacting the {provider} API "
-            f"(HTTP {self.status_code})"
-        )
+        message = f"There was an error contacting the {provider_label} API"
+        if self.status_code is None:
+            message += " (network error)"
+        else:
+            message += f" (HTTP {self.status_code})"
         if details:
             message += f": {details}"
         message += ". Check the logs for more details."

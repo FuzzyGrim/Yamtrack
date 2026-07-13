@@ -35,6 +35,20 @@ class SentinelDatetime:
     MINUTE = 59
     SECOND = 59
     MICROSECOND = 999999
+    MAX_HOUR = 23
+
+    @classmethod
+    def max_datetime(cls):
+        """Return the far-future sentinel used for unknown release dates."""
+        return datetime(
+            cls.YEAR,
+            cls.MONTH,
+            cls.DAY,
+            cls.MAX_HOUR,
+            cls.MINUTE,
+            cls.SECOND,
+            tzinfo=UTC,
+        )
 
 
 class EventManager(models.Manager):
@@ -230,13 +244,5 @@ class Event(models.Model):
 
     @property
     def is_max_datetime(self):
-        """Check if the event datetime is sentinel datetime."""
-        max_hour = 23
-        return (
-            self.datetime.year == SentinelDatetime.YEAR
-            and self.datetime.month == SentinelDatetime.MONTH
-            and self.datetime.day == SentinelDatetime.DAY
-            and self.datetime.hour == max_hour
-            and self.datetime.minute == SentinelDatetime.MINUTE
-            and self.datetime.second == SentinelDatetime.SECOND
-        )
+        """Check if the event datetime is the unknown-release sentinel."""
+        return self.datetime.replace(microsecond=0) == SentinelDatetime.max_datetime()

@@ -414,7 +414,7 @@ class MediaManager(models.Manager):
         user,
         status,
         sort_by,
-        items_limit,
+        items_limit=None,
         specific_media_type=None,
     ):
         """Get a home media list for a specific status grouped by media type."""
@@ -442,7 +442,9 @@ class MediaManager(models.Manager):
 
             # Apply pagination
             total_count = len(sorted_list)
-            if specific_media_type:
+            if items_limit is None:
+                paginated_list = sorted_list
+            elif specific_media_type:
                 paginated_list = sorted_list[items_limit:]
             else:
                 paginated_list = sorted_list[:items_limit]
@@ -668,9 +670,10 @@ class MediaManager(models.Manager):
         queryset = model.objects.filter(**params)
 
         queryset = self._apply_prefetch_related(queryset, media_type)
-        self.annotate_max_progress(queryset, media_type)
+        media = queryset.get()
+        self.annotate_max_progress([media], media_type)
 
-        return queryset.get()
+        return media
 
     def _get_media_params(
         self,
@@ -1850,7 +1853,7 @@ class Episode(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
     related_season = models.ForeignKey(
         Season,
         on_delete=models.CASCADE,
@@ -1924,6 +1927,45 @@ class Episode(models.Model):
                 [self.related_season.related_tv],
                 TV,
                 fields=["status"],
+            )
+
+    def delete(self, *args, **kwargs):
+        """Delete the episode instance and update parent statuses if needed."""
+        season = self.related_season
+        tv = season.related_tv
+        deleted_episode_number = self.item.episode_number
+
+        super().delete(*args, **kwargs)
+
+        self._update_parent_statuses_after_delete(season, tv, deleted_episode_number)
+
+    def _update_parent_statuses_after_delete(self, season, tv, deleted_episode_number):
+        """Move completed parents back to in progress after unwatching progress."""
+        season.refresh_from_db()
+        tv.refresh_from_db()
+
+        if (
+            season.status == Status.COMPLETED.value
+            and season.progress < deleted_episode_number
+        ):
+            season.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [season],
+                Season,
+                fields=["status"],
+                default_user=season.user,
+            )
+
+        if (
+            season.status != Status.COMPLETED.value
+            and tv.status == Status.COMPLETED.value
+        ):
+            tv.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [tv],
+                TV,
+                fields=["status"],
+                default_user=season.user,
             )
 
 
