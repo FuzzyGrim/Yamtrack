@@ -64,6 +64,9 @@ class MediaDetailsViewTests(TestCase):
     @patch("app.providers.tmdb.process_episodes")
     def test_season_details_view(self, mock_process_episodes, mock_get_metadata):
         """Test the season details view."""
+        self.user.obfuscate_unseen_episodes = True
+        self.user.save(update_fields=["obfuscate_unseen_episodes"])
+
         mock_get_metadata.return_value = {
             "title": "Test TV Show",
             "media_id": "1668",
@@ -87,6 +90,7 @@ class MediaDetailsViewTests(TestCase):
                 "media_type": MediaTypes.EPISODE.value,
                 "season_number": 1,
                 "episode_number": 1,
+                "title": "Episode 1",
                 "name": "Episode 1",
                 "air_date": "2023-01-01",
                 "watched": False,
@@ -111,6 +115,7 @@ class MediaDetailsViewTests(TestCase):
         self.assertIn("media", response.context)
         self.assertEqual(response.context["media"]["title"], "Season 1")
         self.assertEqual(len(response.context["media"]["episodes"]), 1)
+        self.assertContains(response, "line-clamp-1 blur cursor-pointer")
 
         mock_get_metadata.assert_called_once_with(
             "tv_with_seasons",

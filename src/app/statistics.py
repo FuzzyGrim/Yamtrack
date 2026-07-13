@@ -1,7 +1,5 @@
 import calendar
 import datetime
-import heapq
-import itertools
 import logging
 from collections import defaultdict
 
@@ -218,15 +216,24 @@ def get_status_pie_chart_data(status_distribution):
     return chart_data
 
 
+def _top_rated_group_key(media_type, media):
+    """Return the key used to dedupe repeated entries of the same item.
+
+    A single item (e.g. a rewatched movie) can have multiple scored rows, so
+    without this they'd surface as separate "duplicate" entries for what a
+    user perceives as a single item. Seasons and their parent TV show are
+    kept separate since they represent distinct ratings.
+    """
+    return (media_type, media.item_id)
+
+
 def get_score_distribution(user_media):
     """Get score distribution for each media type within date range."""
     distribution = {}
     total_scored = 0
     total_score_sum = 0
 
-    top_rated = []
-    top_rated_count = 14
-    counter = itertools.count()  # Ensures stable sorting for equal scores
+    top_rated_by_key = {}
     score_range = range(11)
 
     for media_type, media_list in user_media.items():
@@ -234,16 +241,12 @@ def get_score_distribution(user_media):
         scored_media = media_list.exclude(score__isnull=True).select_related("item")
 
         for media in scored_media:
-            if len(top_rated) < top_rated_count:
-                heapq.heappush(
-                    top_rated,
-                    (float(media.score), next(counter), media),
-                )
-            else:
-                heapq.heappushpop(
-                    top_rated,
-                    (float(media.score), next(counter), media),
-                )
+            key = _top_rated_group_key(media_type, media)
+            existing = top_rated_by_key.get(key)
+            # Keep the score from the most recently created entry so repeated
+            # or imported ratings for the same item aren't all listed.
+            if existing is None or media.created_at > existing.created_at:
+                top_rated_by_key[key] = media
 
             binned_score = int(media.score)
             score_counts[binned_score] += 1
@@ -256,9 +259,11 @@ def get_score_distribution(user_media):
         round(total_score_sum / total_scored, 2) if total_scored > 0 else None
     )
 
-    top_rated_media = [
-        media for _, _, media in sorted(top_rated, key=lambda x: (-x[0], x[1]))
-    ]
+    top_rated_count = 14
+    top_rated_media = sorted(
+        top_rated_by_key.values(),
+        key=lambda media: (-float(media.score), -media.created_at.timestamp()),
+    )[:top_rated_count]
 
     top_rated_media = _annotate_top_rated_media(top_rated_media)
 

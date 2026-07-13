@@ -370,6 +370,26 @@ def update_plex_usernames(request):
 
 
 @require_POST
+def update_jellyfin_webhook_events(request):
+    """Update optional Jellyfin webhook event handling for the user."""
+    request.user.jellyfin_mark_played_enabled = (
+        "jellyfin_mark_played_enabled" in request.POST
+    )
+    request.user.jellyfin_mark_unplayed_enabled = (
+        "jellyfin_mark_unplayed_enabled" in request.POST
+    )
+    request.user.save(
+        update_fields=[
+            "jellyfin_mark_played_enabled",
+            "jellyfin_mark_unplayed_enabled",
+        ],
+    )
+    messages.success(request, "Jellyfin webhook settings updated successfully")
+
+    return redirect("integrations")
+
+
+@require_POST
 def clear_search_cache(request):
     """Clear all cached search entries."""
     deleted = cache.delete_pattern("search_*")

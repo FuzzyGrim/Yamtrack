@@ -496,9 +496,9 @@ class SimklImporter:
         return status_mapping.get(status, Status.IN_PROGRESS.value)
 
     def _get_date(self, date_str):
-        """Convert the date from Simkl to a date object."""
+        """Convert the date from Simkl to a date object, stripping seconds."""
         if date_str:
-            return parse_datetime(date_str)
+            return parse_datetime(date_str).replace(second=0, microsecond=0)
         return None
 
     def _get_start_date(self, anime):

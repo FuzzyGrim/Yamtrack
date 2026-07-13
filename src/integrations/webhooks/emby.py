@@ -1,11 +1,19 @@
 import json
 import logging
+from enum import StrEnum
 
 from app.models import MediaTypes
 
 from .base import BaseWebhookProcessor
 
 logger = logging.getLogger(__name__)
+
+
+class EmbyEvent(StrEnum):
+    """Emby webhook event names."""
+
+    PLAYBACK_START = "playback.start"
+    PLAYBACK_STOP = "playback.stop"
 
 
 class EmbyWebhookProcessor(BaseWebhookProcessor):
@@ -33,7 +41,7 @@ class EmbyWebhookProcessor(BaseWebhookProcessor):
         self._process_media(payload, user, ids)
 
     def _is_supported_event(self, event_type):
-        return event_type in ("playback.start", "playback.stop")
+        return event_type in {EmbyEvent.PLAYBACK_START, EmbyEvent.PLAYBACK_STOP}
 
     def _is_played(self, payload):
         return payload.get("PlaybackInfo", {}).get("PlayedToCompletion", False) is True

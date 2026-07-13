@@ -346,6 +346,12 @@ class Metadata(TestCase):
             response["details"]["themes"],
             ["Action", "Fantasy", "Open world"],
         )
+        self.assertIsNotNone(response["time_to_beat"])
+        self.assertIn("normally", response["time_to_beat"])
+        self.assertEqual(
+            list(response["time_to_beat"].keys()),
+            ["hastily", "normally", "completely"],
+        )
 
     def test_external_game_steam(self):
         """Test the external_game method for Steam games."""
@@ -364,6 +370,11 @@ class Metadata(TestCase):
         response = openlibrary.book("OL21733390M")
         self.assertEqual(response["title"], "Nineteen Eighty-Four")
         self.assertEqual(response["details"]["author"], ["George Orwell"])
+
+    def test_openlibrary_publish_date_with_abbreviated_month(self):
+        """Test Open Library publish dates with abbreviated month names."""
+        response = openlibrary.get_publish_date({"publish_date": "Oct 01, 2017"})
+        self.assertEqual(response, "2017-10-01")
 
     def test_comic(self):
         """Test the metadata method for comics."""

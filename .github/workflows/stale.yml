@@ -1,0 +1,71 @@
+name: Stale
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark and close stale issues and pull requests
+        uses: actions/stale@v10
+        with:
+          days-before-issue-stale: 180
+          days-before-issue-close: 180
+          days-before-pr-stale: 90
+          days-before-pr-close: 30
+
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: pinned,security,roadmap,blocked,never stale,pending answer
+          exempt-pr-labels: pinned,security,blocked,never stale,pending answer
+          exempt-draft-pr: true
+
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has
+            not had recent activity. It will be closed in 180 days if there
+            is no further activity.
+          stale-pr-message: >
+            This pull request has been automatically marked as stale because it
+            has not had recent activity. It will be closed in 30 days if there
+            is no further activity.
+          close-issue-message: >
+            This issue was closed because it remained inactive after being
+            marked stale. Feel free to open a new issue if this
+            is still relevant.
+          close-pr-message: >
+            This pull request was closed because it remained inactive after
+            being marked stale. Feel free to open a new pull
+            request if you want to continue the work.
+
+          remove-stale-when-updated: true
+          operations-per-run: 30
+
+      - name: Close issues and pull requests pending an answer
+        uses: actions/stale@v10
+        with:
+          days-before-stale: -1
+          days-before-close: 15
+
+          stale-issue-label: pending answer
+          stale-pr-label: pending answer
+          only-labels: pending answer
+
+          close-issue-message: >
+            This issue was closed because it was waiting for more information
+            for 15 days without a response. Feel free to open a
+            new issue if you can provide the requested details.
+          close-pr-message: >
+            This pull request was closed because it was waiting for more
+            information for 15 days without a response. Feel free to 
+            open a new pull request if you want to continue the work.
+
+          remove-stale-when-updated: true
+          operations-per-run: 30

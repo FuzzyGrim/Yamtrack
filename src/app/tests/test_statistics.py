@@ -716,6 +716,47 @@ class StatisticsTests(TestCase):
             7.5,
         )  # Movie should be second
 
+    def test_get_score_distribution_dedupes_repeated_media(self):
+        """A rewatched/repeated item should only appear once, using the latest score."""
+        Movie.objects.filter(pk=self.movie.pk).update(
+            created_at=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+        )
+
+        newer_movie = Movie.objects.create(
+            user=self.user,
+            item=self.movie_item,
+            status=Status.COMPLETED.value,
+            score=9.5,
+        )
+        Movie.objects.filter(pk=newer_movie.pk).update(
+            created_at=datetime.datetime(2025, 6, 1, tzinfo=datetime.UTC),
+        )
+
+        user_media = {
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+        }
+
+        _, top_rated = statistics.get_score_distribution(user_media)
+
+        self.assertEqual(len(top_rated), 1)
+        self.assertEqual(top_rated[0].score, 9.5)  # The more recent watch
+
+    def test_get_score_distribution_keeps_tv_and_season_separate(self):
+        """A show and a scored season of that same show are distinct ratings."""
+        tv = TV.objects.get(user=self.user, item__media_id="1668")
+        TV.objects.filter(pk=tv.pk).update(score=6.0)
+
+        user_media = {
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.SEASON.value: Season.objects.filter(user=self.user),
+        }
+
+        _, top_rated = statistics.get_score_distribution(user_media)
+
+        self.assertEqual(len(top_rated), 2)
+        scores = sorted(media.score for media in top_rated)
+        self.assertEqual(scores, [6.0, self.season.score])
+
     def test_get_status_color(self):
         """Test the get_status_color function."""
         # Test all status colors

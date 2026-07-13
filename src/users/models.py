@@ -134,6 +134,10 @@ class User(AbstractUser):
         default=HomeSortChoices.UPCOMING,
         choices=HomeSortChoices,
     )
+    home_hide_unreleased = models.BooleanField(
+        default=False,
+        help_text="Hide unreleased media from the home page",
+    )
 
     # Media type preferences: TV Shows
     tv_enabled = models.BooleanField(default=True)
@@ -415,6 +419,14 @@ class User(AbstractUser):
     plex_usernames = models.TextField(
         blank=True,
         help_text="Comma-separated list of Plex usernames for webhook matching",
+    )
+    jellyfin_mark_played_enabled = models.BooleanField(
+        default=False,
+        help_text="Process Jellyfin MarkPlayed webhook events",
+    )
+    jellyfin_mark_unplayed_enabled = models.BooleanField(
+        default=False,
+        help_text="Process Jellyfin MarkUnplayed webhook events",
     )
 
     class Meta:

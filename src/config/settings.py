@@ -18,6 +18,7 @@ from decouple import (
     undefined,
 )
 from django.core.cache import CacheKeyWarning
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
@@ -444,6 +445,10 @@ HARDCOVER_API = config(
         "j4MVAEi_-w2N7DuiMgAxkfVc6RuKd88AHrOyzF5xLyU",
     ),
 )
+HARDCOVER_API = HARDCOVER_API.strip()
+if not HARDCOVER_API.startswith("Bearer "):
+    msg = "HARDCOVER_API must start with 'Bearer '."
+    raise ImproperlyConfigured(msg)
 
 COMICVINE_API = config(
     "COMICVINE_API",
