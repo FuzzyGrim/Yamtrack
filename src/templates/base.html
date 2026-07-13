@@ -236,10 +236,12 @@
           {# Top bar #}
           <div class="sticky top-0 z-10 bg-[#1a1d20] border-b border-[#2c3136] shadow-md">
             <div class="container mx-auto px-4">
-              <div class="flex items-center justify-between lg:justify-center h-16">
+              <div class="flex min-h-16 items-center justify-between lg:justify-center">
                 {# Mobile: sidebar toggle button #}
                 <button @click="isMobileMenuOpen = !isMobileMenuOpen"
-                        class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
+                        class="flex min-h-11 min-w-11 items-center justify-center pe-3 text-gray-400 transition-colors duration-200 hover:text-white lg:hidden"
+                        type="button"
+                        aria-label="Open navigation menu">
                   {% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}
 
                 </button>
@@ -265,7 +267,7 @@
                                  name="q"
                                  value="{{ request.GET.q }}"
                                  :placeholder="getPlaceholder()"
-                                 class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
+                                 class="min-h-11 w-full rounded-l-md bg-[#272c31] py-2 pl-10 pr-4 text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset">
                           <button type="submit"
                                   class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
                             {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
@@ -279,7 +281,7 @@
                         <button type="button"
                                 @click="isOpen = !isOpen"
                                 @click.away="isOpen = false"
-                                class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
+                                class="flex min-h-11 max-w-[110px] cursor-pointer items-center justify-between rounded-r-md bg-[#272c31] px-2 py-2 text-sm text-gray-300 transition-colors duration-200 hover:bg-[#2a2e33] focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset sm:w-32 sm:max-w-none sm:px-4">
                           <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
                           {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
 
@@ -309,7 +311,7 @@
           </div>
 
           <main class="flex-1 relative bg-[#212529]">
-            <div class="container mx-auto px-8 py-12">
+            <div class="container mx-auto px-4 py-6 sm:px-8 sm:py-8 lg:py-12">
               {% block content %}
               {% endblock content %}
             </div>
