@@ -30,7 +30,7 @@ class ImportBGGUpdate(TestCase):
         with Path(mock_path / "import_bgg_queued.xml").open() as file:
             queued_xml = ElementTree.fromstring(file.read())
 
-        with Path(mock_path / "import_bgg_single.xml").open() as file:
+        with Path(mock_path / "import_bgg.xml").open() as file:
             collection_xml = ElementTree.fromstring(file.read())
 
         mock_api_request.side_effect = [queued_xml, collection_xml]
@@ -40,7 +40,7 @@ class ImportBGGUpdate(TestCase):
         self.assertEqual(mock_api_request.call_count, 2)
         mock_sleep.assert_called_once_with(15)
 
-        self.assertEqual(imported_counts[MediaTypes.BOARDGAME.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.BOARDGAME.value], 3)
 
         catan = BoardGame.objects.get(user=self.user, item__title="Catan")
         self.assertEqual(catan.status, Status.IN_PROGRESS.value)
