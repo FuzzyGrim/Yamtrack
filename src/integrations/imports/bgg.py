@@ -188,6 +188,8 @@ class BGGImporter:
         if status_elem is None:
             return Status.PLANNING.value
         if status_elem.get("own") == "1":
+            return Status.COMPLETED.value
+        if status_elem.get("preordered"):
             return Status.IN_PROGRESS.value
         if status_elem.get("prevowned") == "1" or status_elem.get("fortrade") == "1":
             return Status.DROPPED.value
@@ -196,7 +198,6 @@ class BGGImporter:
             or status_elem.get("wanttoplay") == "1"
             or status_elem.get("wanttobuy") == "1"
             or status_elem.get("wishlist") == "1"
-            or status_elem.get("preordered") == "1"
         ):
             return Status.PLANNING.value
         return Status.PLANNING.value
