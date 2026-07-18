@@ -431,6 +431,18 @@ class User(AbstractUser):
         default=False,
         help_text="Process Jellyfin MarkUnplayed webhook events",
     )
+    # Seerr integration (Overseerr/Jellyseerr)
+    seerr_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="URL of your Seerr instance (Overseerr/Jellyseerr)",
+    )
+    seerr_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="API key for your Seerr instance",
+    )
 
     class Meta:
         """Meta options for the model."""
