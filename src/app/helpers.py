@@ -41,8 +41,14 @@ def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
 
 
 def get_user_or_404(request, username):
-    """Return user or raise 404."""
-    if request.user.is_authenticated and username == "~":
+    """Return user or raise 404.
+
+    Special username '~' returns logged user.
+    '~' redirects to login page if no user logged in.
+    """
+    if username == "~":
+        if not request.user.is_authenticated:
+            return redirect(f"/accounts/login/?next={request.path}")
         return request.user
 
     return get_object_or_404(User, username=username)

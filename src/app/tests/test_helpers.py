@@ -2,7 +2,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
-from django.http import HttpRequest
+from django.http import Http404, HttpRequest
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -11,6 +11,7 @@ from app.helpers import (
     enrich_items_with_user_data,
     form_error_messages,
     get_configured_app_url,
+    get_user_or_404,
     minutes_to_hhmm,
     redirect_back,
 )
@@ -318,3 +319,43 @@ class EnrichItemsWithUserDataTest(TestCase):
             self.request, raw_items, "recommendations"
         )
         self.assertEqual(len(enriched_items), 2)
+
+
+class GetUserOr404Test(TestCase):
+    """Test the get_user_or_404 function."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.credentials = {"username": "test", "password": "testpass"}
+        self.request = MagicMock()
+
+    def test_username_tilde_authenticated(self):
+        """If username is '~' and user authenticated, return logged user."""
+        self.request.user = get_user_model().objects.create_user(**self.credentials)
+        result = get_user_or_404(self.request, "~")
+
+        self.assertEqual(result, self.request.user)
+
+    @patch("app.helpers.redirect")
+    def test_username_tilde_unauthenticated(self, mock_redirect):
+        """If username is '~' and user is not authenticated, redirects to login page."""
+        self.request.user = MagicMock(is_authenticated=False)
+        self.request.path = "/~/tv"
+        mock_redirect.return_value = "redirect_to_login"
+
+        result = get_user_or_404(self.request, "~")
+
+        mock_redirect.assert_called_once_with("/accounts/login/?next=/~/tv")
+        self.assertEqual(result, "redirect_to_login")
+
+    def test_existing_username(self):
+        """Return the user if it exists."""
+        self.request.user = get_user_model().objects.create_user(**self.credentials)
+        result = get_user_or_404(self.request, "test")
+
+        self.assertEqual(result, self.request.user)
+
+    def test_non_existent_username_raises_404(self):
+        """Raises Http404 if the user does not exists."""
+        with self.assertRaises(Http404):
+            get_user_or_404(self.request, "foo")
