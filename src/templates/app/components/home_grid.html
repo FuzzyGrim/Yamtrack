@@ -31,11 +31,11 @@
         </div>
       {% endif %}
 
-      <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover-tap:opacity-100{% if user.clickable_media_cards %} pointer-coarse:hidden{% endif %}">
+      <div class="media-card-action-overlay absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover-tap:opacity-100">
         <a href="{{ media.item|media_url }}" class="absolute inset-0 z-0"></a>
 
-        <div class="relative z-10 flex items-center justify-center space-x-2.5">
-          <button class="cursor-pointer rounded-full bg-indigo-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+        <div class="media-card-actions relative z-10 flex items-center justify-center space-x-2.5">
+          <button class="media-card-action-button cursor-pointer rounded-full bg-indigo-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)]"
                   title="Add to tracker"
                   hx-get="{% media_view_url 'track_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
@@ -43,7 +43,7 @@
                   hx-trigger="click once"
                   @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
 
-          <button class="cursor-pointer rounded-full bg-emerald-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+          <button class="media-card-action-button cursor-pointer rounded-full bg-emerald-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]"
                   title="Add to custom lists"
                   hx-get="{% media_view_url 'lists_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
@@ -51,7 +51,7 @@
                   hx-trigger="click once"
                   @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
 
-          <button class="cursor-pointer rounded-full bg-amber-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+          <button class="media-card-action-button cursor-pointer rounded-full bg-amber-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
                   title="View your activity history"
                   hx-get="{% media_view_url 'history_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
@@ -79,7 +79,7 @@
     <div x-show="trackOpen"
          @keydown.escape.window="trackOpen = false"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="relative z-60 max-h-[90vh] w-152 px-4 md:px-0"
+      <div class="relative z-60 max-h-[90vh] w-[min(100%,calc(100svw-1.5rem))] px-4 md:w-152 md:px-0"
            @click.outside="trackOpen = false">
         <div id="{{ track_component_id }}"></div>
       </div>
@@ -88,7 +88,7 @@
     <div x-show="listsOpen"
          @keydown.escape.window="listsOpen = false"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
+      <div class="relative z-60 max-h-[90vh] w-[min(100%,calc(100svw-1.5rem))] px-4 md:w-96 md:px-0"
            @click.outside="listsOpen = false">
         <div id="{{ lists_component_id }}"></div>
       </div>
@@ -97,7 +97,7 @@
     <div x-show="historyOpen"
          @keydown.escape.window="historyOpen = false"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
+      <div class="relative z-60 max-h-[90vh] w-[min(100%,calc(100svw-1.5rem))] px-4 md:w-96 md:px-0"
            @click.outside="historyOpen = false">
         <div id="{{ history_component_id }}"></div>
       </div>

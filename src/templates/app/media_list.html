@@ -8,7 +8,7 @@
 {% endblock title %}
 
 {% block content %}
-  <h1 class="text-3xl font-bold mb-6">
+  <h1 class="mb-6 text-2xl font-bold sm:text-3xl">
     {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
     {{ media_type|media_type_readable_plural }}
   </h1>
@@ -35,11 +35,11 @@
       <input type="hidden" name="layout" x-model="layout">
     </form>
 
-    <div class="flex flex-col md:flex-row gap-4 mb-6">
+    <div class="mb-6 flex flex-col gap-4 md:flex-row">
       <!-- Search -->
       <div class="relative grow">
         <input placeholder="Search {{ media_type_plural }} in {% if target_user != request.user %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
-               class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+               class="min-h-11 w-full rounded-md bg-[#39404b] py-2 pl-10 pr-4 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-[#4a9eff]"
                type="text"
                x-model="search"
                hx-get="{% url 'medialist' target_user.username media_type %}"
@@ -54,10 +54,10 @@
         </div>
       </div>
 
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex w-full flex-wrap gap-2 sm:w-auto">
         <!-- Filter by Status -->
-        <div class="relative" x-data="{ open: false }">
-          <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+        <div class="relative flex-1 sm:flex-none" x-data="{ open: false }">
+          <button class="flex min-h-11 w-full items-center justify-center rounded-md bg-[#39404b] px-4 py-2 transition-colors hover:bg-[#454d5a] cursor-pointer"
                   @click="open = !open"
                   type="button">
             {% include "app/icons/funnel.svg" with classes="w-4 h-4 mr-2" %}
@@ -89,8 +89,8 @@
         </div>
 
         <!-- Sort by -->
-        <div class="relative" x-data="{ open: false }">
-          <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+        <div class="relative flex-1 sm:flex-none" x-data="{ open: false }">
+          <button class="flex min-h-11 w-full items-center justify-center rounded-md bg-[#39404b] px-4 py-2 transition-colors hover:bg-[#454d5a] cursor-pointer"
                   @click="open = !open"
                   type="button">
             {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4 mr-2" %}
@@ -122,14 +122,14 @@
         </div>
 
         <!-- Layout Toggle -->
-        <div class="flex rounded-md overflow-hidden border border-gray-700">
+        <div class="flex w-full rounded-md overflow-hidden border border-gray-700 sm:w-auto">
           <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
-             class="p-2 cursor-pointer"
+             class="inline-flex min-h-11 flex-1 items-center justify-center p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Grid View"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
           <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
-             class="p-2 cursor-pointer"
+             class="inline-flex min-h-11 flex-1 items-center justify-center p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Table View"
              @click="layout = 'table'">{% include "app/icons/table.svg" with classes="w-5 h-5" %}</a>
@@ -159,7 +159,7 @@
     {% elif current_layout == "grid" %}
       <div class="media-grid">{% include "app/components/media_grid_items.html" %}</div>
     {% else %}
-      <div class="bg-[#2a2f35] p-4 rounded-lg overflow-hidden max-w-[calc(100svw-4rem)] overflow-x-scroll">
+      <div class="max-w-[calc(100svw-2rem)] overflow-x-scroll rounded-lg bg-[#2a2f35] p-4 sm:max-w-[calc(100svw-4rem)]">
         <table class="w-full bg-[#2a2f35]">
           <thead class="text-left text-gray-400 text-sm">
             <tr>

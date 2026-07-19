@@ -7,12 +7,12 @@
 
 {% block content %}
   <div class="mb-8">
-    <h1 class="text-3xl font-bold mb-2">Calendar</h1>
+    <h1 class="mb-2 text-2xl font-bold sm:text-3xl">Calendar</h1>
     <p class="text-gray-400">Track upcoming releases from your list.</p>
   </div>
 
-  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
-    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+  <div class="mb-6 rounded-lg bg-[#2a2f35] p-4 sm:p-6">
+    <div class="mb-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
       <div class="flex items-center gap-4">
         <div class="flex items-center bg-[#39404b] rounded-md p-1">
           <a class="p-2 hover:bg-[#454d5a] rounded-md transition-colors"
@@ -27,20 +27,22 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <a class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
+      <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <a class="inline-flex min-h-11 flex-1 items-center justify-center rounded-md bg-[#39404b] px-4 py-2 text-sm transition-colors hover:bg-[#454d5a] sm:flex-none"
            href="{% url 'calendar' %}?month={{ today.month }}&year={{ today.year }}&view={{ view_type }}">Today</a>
 
-        <form method="post" action="{% url 'reload_calendar' %}">
+        <form method="post"
+              action="{% url 'reload_calendar' %}"
+              class="flex-1 sm:flex-none">
           {% csrf_token %}
-          <button class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 cursor-pointer">
+          <button class="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#39404b] px-4 py-2 text-sm transition-colors hover:bg-[#454d5a] cursor-pointer">
             {% include "app/icons/circle-spinning-clockwise.svg" with classes="w-4 h-4" %}
             <span>Fetch New Releases</span>
           </button>
         </form>
 
-        <div class="bg-[#39404b] rounded-md p-1 space-x-0.5 flex">
-          <a class="p-2 rounded-md transition-colors cursor-pointer {% if view_type == 'grid' %}bg-indigo-600 text-white{% else %}hover:bg-[#454d5a]{% endif %}"
+        <div class="flex rounded-md bg-[#39404b] p-1 space-x-0.5">
+          <a class="hidden rounded-md p-2 transition-colors cursor-pointer xs:block {% if view_type == 'grid' %}bg-indigo-600 text-white{% else %}hover:bg-[#454d5a]{% endif %}"
              href="{% url 'calendar' %}?month={{ month }}&year={{ year }}&view=grid">
             {% include "app/icons/grid.svg" with classes="w-4 h-4" %}
           </a>
@@ -50,18 +52,21 @@
           </a>
         </div>
 
-        <a class="p-3 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
+        <a class="inline-flex min-h-11 flex-none items-center justify-center rounded-md bg-[#39404b] p-3 text-sm transition-colors hover:bg-[#454d5a]"
            href="{% url 'download_calendar' token=user.token %}">
           {% include "app/icons/download.svg" with classes="w-4 h-4" %}
         </a>
       </div>
     </div>
 
-    {% if view_type == 'grid' %}
-      {% include "events/components/calendar_grid.html" %}
-    {% else %}
-      {% include "events/components/calendar_list.html" %}
-    {% endif %}
+    <div class="{% if view_type == 'grid' %}calendar-grid-view{% endif %}">
+      {% if view_type == 'grid' %}
+        <div class="hidden xs:block">{% include "events/components/calendar_grid.html" %}</div>
+        <div class="xs:hidden">{% include "events/components/calendar_list.html" %}</div>
+      {% else %}
+        {% include "events/components/calendar_list.html" %}
+      {% endif %}
+    </div>
   </div>
 
   <div class="bg-[#2a2f35] p-5 rounded-lg mb-6">
