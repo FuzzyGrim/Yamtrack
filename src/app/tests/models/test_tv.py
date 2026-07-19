@@ -358,6 +358,16 @@ class TVStatusTests(TestCase):
             1,
         )
 
+    def test_paused_status_marks_in_progress_seasons_paused(self):
+        """Test setting status to PAUSED marks in-progress seasons as paused."""
+        self.tv.status = Status.PAUSED.value
+        self.tv.save()
+
+        self.season1.refresh_from_db()
+        self.season2.refresh_from_db()
+        self.assertEqual(self.season1.status, Status.PAUSED.value)
+        self.assertEqual(self.season2.status, Status.PLANNING.value)
+
     @patch("app.models.providers.services.get_media_metadata")
     def test_in_progress_status_activates_next_season(self, mock_get_metadata):
         """Test setting status to IN_PROGRESS activates next available season."""

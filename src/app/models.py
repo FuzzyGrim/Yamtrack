@@ -992,6 +992,9 @@ class TV(Media):
             elif self.status == Status.DROPPED.value:
                 self._mark_in_progress_seasons_as_dropped()
 
+            elif self.status == Status.PAUSED.value:
+                self._mark_in_progress_seasons_as_paused()
+
             elif (
                 self.status == Status.IN_PROGRESS.value
                 and not self.seasons.filter(status=Status.IN_PROGRESS.value).exists()
@@ -1186,6 +1189,22 @@ class TV(Media):
 
         for season in in_progress_seasons:
             season.status = Status.DROPPED.value
+
+        if in_progress_seasons:
+            bulk_update_with_history(
+                in_progress_seasons,
+                Season,
+                fields=["status"],
+            )
+
+    def _mark_in_progress_seasons_as_paused(self):
+        """Mark all in-progress seasons as paused."""
+        in_progress_seasons = list(
+            self.seasons.filter(status=Status.IN_PROGRESS.value),
+        )
+
+        for season in in_progress_seasons:
+            season.status = Status.PAUSED.value
 
         if in_progress_seasons:
             bulk_update_with_history(
@@ -1433,6 +1452,17 @@ class Season(Media):
                 and self.related_tv.status != Status.DROPPED.value
             ):
                 self.related_tv.status = Status.DROPPED.value
+                bulk_update_with_history(
+                    [self.related_tv],
+                    TV,
+                    fields=["status"],
+                )
+
+            elif (
+                self.status == Status.PAUSED.value
+                and self.related_tv.status != Status.PAUSED.value
+            ):
+                self.related_tv.status = Status.PAUSED.value
                 bulk_update_with_history(
                     [self.related_tv],
                     TV,
