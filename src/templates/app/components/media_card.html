@@ -12,29 +12,9 @@
     {% with user=target_user|default:user %}
       {% if media.status %}
         <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
-          {% if media.status == Status.COMPLETED.value %}
-            <div class="w-4 h-4 {{ Status.COMPLETED.value|status_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-              {% include "app/icons/states/completed.svg" %}
-            </div>
-
-          {% elif media.status == Status.IN_PROGRESS.value %}
-            <div class="w-4 h-4 {{ Status.IN_PROGRESS.value|status_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-              {% include "app/icons/states/in-progress.svg" %}
-            </div>
-
-          {% elif media.status == Status.PAUSED.value %}
-            <div class="w-4 h-4 {{ Status.PAUSED.value|status_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-              {% include "app/icons/states/paused.svg" %}
-            </div>
-
-          {% elif media.status == Status.PLANNING.value %}
-            <div class="w-4 h-4 {{ Status.PLANNING.value|status_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-              {% include "app/icons/states/planning.svg" %}
-            </div>
-
-          {% elif media.status == Status.DROPPED.value %}
-            <div class="w-4 h-4 {{ Status.DROPPED.value|status_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-              {% include "app/icons/states/dropped.svg" %}
+          {% if media.status|status_config %}
+            <div class="w-4 h-4 {{ media.status|status_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
+              {% include media.status|status_icon %}
             </div>
           {% endif %}
 

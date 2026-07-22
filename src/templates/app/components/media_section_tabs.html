@@ -1,0 +1,69 @@
+{% load app_tags %}
+{% media_section_count media user_medias watch_providers watch_provider_region as section_count %}
+{% if section_count > 1 %}
+  <nav class="flex gap-x-6 overflow-x-auto scrollbar-hide border-b border-[#2c3136] {{ extra_classes }}">
+    <button @click="tab = 'overview'"
+            class="pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 cursor-pointer"
+            :class="tab === 'overview' ? 'text-white border-indigo-500' : 'text-gray-400 border-transparent hover:text-white'">
+      Overview
+    </button>
+
+    {% if media.cast %}
+      <button @click="tab = 'cast'"
+              class="pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 cursor-pointer"
+              :class="tab === 'cast' ? 'text-white border-indigo-500' : 'text-gray-400 border-transparent hover:text-white'">
+        Cast
+      </button>
+    {% endif %}
+
+    {% if media.related %}
+      {% for name, related_items in media.related.items %}
+        {% if related_items %}
+          <button @click="tab = 'related-{{ forloop.counter }}'"
+                  class="pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 cursor-pointer"
+                  :class="tab === 'related-{{ forloop.counter }}' ? 'text-white border-indigo-500' : 'text-gray-400 border-transparent hover:text-white'">
+            {% if name == "dlcs" %}
+              DLCs
+            {% else %}
+              {{ name|no_underscore|title }}
+            {% endif %}
+          </button>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if user_medias|length > 1 %}
+      <button @click="tab = 'repeats'"
+              class="pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 cursor-pointer"
+              :class="tab === 'repeats' ? 'text-white border-indigo-500' : 'text-gray-400 border-transparent hover:text-white'">
+        Repeats
+      </button>
+    {% endif %}
+
+    {% if media.episodes %}
+      <button @click="tab = 'episodes'"
+              class="pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 cursor-pointer"
+              :class="tab === 'episodes' ? 'text-white border-indigo-500' : 'text-gray-400 border-transparent hover:text-white'">
+        Episodes
+      </button>
+    {% endif %}
+
+    {% if media_type == MediaTypes.MOVIE.value or media_type == MediaTypes.TV.value %}
+      {% if watch_provider_region == "UNSET" or watch_providers %}
+        <button @click="tab = 'streaming'"
+                class="pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 cursor-pointer"
+                :class="tab === 'streaming' ? 'text-white border-indigo-500' : 'text-gray-400 border-transparent hover:text-white'">
+          Streaming
+        </button>
+      {% endif %}
+    {% endif %}
+
+    {% if media.time_to_beat %}
+      <button @click="tab = 'ttb'"
+              class="pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 cursor-pointer"
+              :class="tab === 'ttb' ? 'text-white border-indigo-500' : 'text-gray-400 border-transparent hover:text-white'">
+        Time to Beat
+      </button>
+    {% endif %}
+  </nav>
+{% endif %}

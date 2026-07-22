@@ -9,29 +9,35 @@
   <div class="space-y-8">
     <div class="flex flex-col gap-4 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
       <h1 class="text-3xl font-bold text-center sm:col-start-2 sm:justify-self-center">Home</h1>
-      <div class="relative sm:col-start-3 sm:justify-self-end"
-           x-data="{ open: false }">
-        <button @click="open = !open"
-                @click.outside="open = false"
-                class="flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer">
-          {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
-          <span>{{ current_sort|no_underscore|title }}</span>
-          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
-        </button>
-        <div x-show="open"
-             x-transition:enter="transition ease-out duration-100"
-             x-transition:enter-start="transform opacity-0 scale-95"
-             x-transition:enter-end="transform opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-75"
-             x-transition:leave-start="transform opacity-100 scale-100"
-             x-transition:leave-end="transform opacity-0 scale-95"
-             class="absolute right-0 z-10 mt-2 w-52 overflow-hidden rounded-md border border-gray-700 bg-[#39404b] py-1 shadow-lg">
-          {% for value, label in sort_choices %}
-            <a href="{% url 'home' %}?sort={{ value }}"
-               class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-              {{ label }}
-            </a>
-          {% endfor %}
+      <div class="flex flex-wrap items-center justify-center gap-3 sm:col-start-3 sm:justify-self-end">
+        <a href="{% url 'home' %}?sort={{ current_sort }}{% if hide_unreleased %}&hide_unreleased=false{% else %}&hide_unreleased=true{% endif %}"
+           class="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors {% if hide_unreleased %}border-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700{% else %}border-gray-700 bg-[#39404b] text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+          {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
+          <span>Hide unreleased</span>
+        </a>
+        <div class="relative" x-data="{ open: false }">
+          <button @click="open = !open"
+                  @click.outside="open = false"
+                  class="flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer">
+            {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
+            <span>{{ current_sort|no_underscore|title }}</span>
+            {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
+          </button>
+          <div x-show="open"
+               x-transition:enter="transition ease-out duration-100"
+               x-transition:enter-start="transform opacity-0 scale-95"
+               x-transition:enter-end="transform opacity-100 scale-100"
+               x-transition:leave="transition ease-in duration-75"
+               x-transition:leave-start="transform opacity-100 scale-100"
+               x-transition:leave-end="transform opacity-0 scale-95"
+               class="absolute right-0 z-10 mt-2 w-52 overflow-hidden rounded-md border border-gray-700 bg-[#39404b] py-1 shadow-lg">
+            {% for value, label in sort_choices %}
+              <a href="{% url 'home' %}?sort={{ value }}{% if hide_unreleased %}&hide_unreleased=true{% endif %}"
+                 class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+                {{ label }}
+              </a>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>

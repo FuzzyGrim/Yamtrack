@@ -16,6 +16,7 @@ from app.models import Item, MediaTypes
 from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import (
+    WATCH_PROVIDER_REGION_UNSET,
     DateFormatChoices,
     QuickWatchDateChoices,
     TimeFormatChoices,
@@ -269,7 +270,7 @@ def preferences(request):
     if provider_region in [region[0] for region in watch_provider_regions]:
         request.user.watch_provider_region = provider_region
     else:
-        request.user.watch_provider_region = "UNSET"
+        request.user.watch_provider_region = WATCH_PROVIDER_REGION_UNSET
 
     # Update user preferences for each media type
     for media_type in media_types:

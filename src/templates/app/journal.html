@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_tags %}
+
+{% block title %}
+  Journal - Yamtrack
+{% endblock title %}
+
+{% block content %}
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold mb-2">Journal</h1>
+    <p class="text-gray-400">A feed of everything you've done in Yamtrack</p>
+  </div>
+
+  <div x-data="dateRangePicker()" x-init="init()" class="relative mb-8">
+    <!-- Trigger Button -->
+    <button @click="toggleDropdown()"
+            class="flex items-center gap-2 px-4 py-2.5 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
+      {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400" %}
+      <span class="font-medium" x-text="selectedRange"></span>
+      <div class="w-4 h-4 ml-1 transition-transform duration-200"
+           :class="{'rotate-180': isOpen}">{% include "app/icons/chevron-down.svg" %}</div>
+    </button>
+
+    <!-- Dropdown -->
+    <div x-cloak
+         x-show="isOpen"
+         x-transition
+         @click.outside="isOpen = false"
+         class="absolute z-20 mt-2 w-[340px] bg-[#2a2f35] rounded-lg shadow-lg border border-gray-700 overflow-hidden transition-all duration-200 animate-in fade-in-50 slide-in-from-top-5">
+
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-700">
+        <button @click="activeTab = 'predefined'"
+                :class="{'text-white border-b-2 border-indigo-500': activeTab === 'predefined', 'text-gray-400 hover:text-gray-200': activeTab !== 'predefined'}"
+                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Predefined Ranges</button>
+        <button @click="activeTab = 'custom'"
+                :class="{'text-white border-b-2 border-indigo-500': activeTab === 'custom', 'text-gray-400 hover:text-gray-200': activeTab !== 'custom'}"
+                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Custom Range</button>
+      </div>
+
+      <!-- Predefined Ranges Tab -->
+      <div x-show="activeTab === 'predefined'"
+           class="p-2 max-h-80 overflow-y-auto">
+        <div class="grid grid-cols-2 gap-2">
+          <template x-for="range in predefinedRanges" :key="range.name">
+            <button @click="selectPredefinedRange(range.name)"
+                    :class="{'bg-indigo-600 text-white': selectedRange === range.name, 'hover:bg-[#39404b] text-gray-200': selectedRange !== range.name}"
+                    class="flex items-center justify-between p-3 rounded-md text-left text-sm transition-all cursor-pointer">
+              <span x-text="range.name"></span>
+              <div x-show="selectedRange === range.name">{% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}</div>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Custom Range Tab -->
+      <div x-show="activeTab === 'custom'" class="p-4">
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
+              <input x-model="startDate"
+                     @change="updateDateRange()"
+                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
+                     type="date">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
+              <input x-model="endDate"
+                     @change="updateDateRange()"
+                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
+                     type="date">
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button @click="isOpen = false"
+                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
+              Cancel
+            </button>
+            <button @click="applyCustomRange()"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
+              {% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}
+              Apply Range
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity stat cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="bg-[#2a2f35] rounded-xl p-6 flex items-center ring-1 ring-white/5">
+      <div class="bg-indigo-600/20 p-4 rounded-full mr-4">
+        {% include "app/icons/history.svg" with classes="w-8 h-8 text-indigo-400" %}
+      </div>
+      <div>
+        <h3 class="text-sm font-medium text-gray-400">Tracked Activities</h3>
+        {% if activity_total %}
+          <p class="text-2xl font-bold">{{ activity_total }}</p>
+        {% else %}
+          <p class="text-2xl font-bold text-gray-500">--</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="bg-[#2a2f35] rounded-xl p-6 flex items-center ring-1 ring-white/5">
+      <div class="bg-emerald-600/20 p-4 rounded-full mr-4">
+        {% include "app/icons/calendar.svg" with classes="w-8 h-8 text-emerald-400" %}
+      </div>
+      <div>
+        <h3 class="text-sm font-medium text-gray-400">Most Active Day</h3>
+        {% if activity_data.stats.most_active_day %}
+          <p class="text-2xl font-bold">{{ activity_data.stats.most_active_day }}</p>
+          <p class="text-sm text-gray-500">{{ activity_data.stats.most_active_day_percentage }}% of activity</p>
+        {% else %}
+          <p class="text-2xl font-bold text-gray-500">--</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="bg-[#2a2f35] rounded-xl p-6 flex items-center ring-1 ring-white/5">
+      <div class="bg-red-600/20 p-4 rounded-full mr-4">
+        {% include "app/icons/flame.svg" with classes="w-8 h-8 text-red-400" %}
+      </div>
+      <div>
+        <h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
+        {% if activity_data.stats.most_active_day %}
+          <p class="text-2xl font-bold">
+            {{ activity_data.stats.current_streak }} day{{ activity_data.stats.current_streak|pluralize }}
+          </p>
+          <p class="text-sm text-gray-500">
+            Longest: {{ activity_data.stats.longest_streak }} day{{ activity_data.stats.longest_streak|pluralize }}
+          </p>
+        {% else %}
+          <p class="text-2xl font-bold text-gray-500">--</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity History Section -->
+  <div class="bg-[#2a2f35] rounded-xl p-6 max-w-[calc(100svw-4rem)] mb-8 ring-1 ring-white/5">
+    <h2 class="text-xl font-semibold mb-4 text-center">Activity History</h2>
+    <div class="overflow-x-auto flex flex-col justify-center"
+         x-data="{ graphTooWide: false }"
+         x-init="$nextTick(() => { const graphWidth = $refs.graphContainer.scrollWidth; const parentWidth = $el.clientWidth; graphTooWide = graphWidth > parentWidth; })"
+         :class="graphTooWide ? 'items-start' : 'items-center'">
+
+      <div class="p-4" x-ref="graphContainer">
+        <!-- Months row -->
+        <div class="flex mb-2 pl-[36.68px]">
+          {% for month, week_count in activity_data.months %}
+            <div class="text-xs text-gray-400"
+                 style="width: calc({{ week_count }} * 1rem + ({{ week_count }} * 0.25rem))">{{ month }}</div>
+          {% endfor %}
+        </div>
+
+        <!-- Graph wrapper -->
+        <div class="flex">
+          <!-- Weekday labels -->
+          <div class="flex flex-col justify-between pr-2 text-sm text-gray-400">
+            {% for label in activity_data.weekday_labels %}
+              {% if forloop.counter|divisibleby:2 %}
+                <div class="h-4"></div>
+              {% else %}
+                <div class="h-4 flex items-center">{{ label }}</div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <!-- Weeks grid -->
+          <div class="flex gap-1">
+            {% for week in activity_data.calendar_weeks %}
+              <div class="flex flex-col gap-1">
+                {% for day in week %}
+                  <div class="w-4 h-4 rounded-sm transition-colors duration-200 hover:ring-2 hover:ring-white {% if day.level == 0 %}bg-[#3a414c]{% elif day.level == 1 %}bg-indigo-600{% elif day.level == 2 %}bg-indigo-500{% elif day.level == 3 %}bg-indigo-400{% elif day.level == 4 %}bg-indigo-300{% endif %}"
+                       title="{{ day.date }}: {{ day.count }} activit{{ day.count|pluralize:"y,ies" }}"></div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="flex items-center gap-2 pl-6 text-xs text-gray-400"
+           :class="graphTooWide ? 'mb-5 mt-2' : 'mt-4'">
+        <span>Less</span>
+        <div class="w-4 h-4 rounded-sm bg-[#3a414c]"></div>
+        <div class="w-4 h-4 rounded-sm bg-indigo-600"></div>
+        <div class="w-4 h-4 rounded-sm bg-indigo-500"></div>
+        <div class="w-4 h-4 rounded-sm bg-indigo-400"></div>
+        <div class="w-4 h-4 rounded-sm bg-indigo-300"></div>
+        <span>More</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity feed -->
+  {% if activity_total %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-3">
+      {% include "app/components/journal_items.html" %}
+    </div>
+
+    <div id="loading-indicator" class="htmx-indicator text-center pt-8">
+      <div class="inline-flex justify-center items-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      </div>
+    </div>
+  {% else %}
+    <div class="bg-[#2a2f35] rounded-lg p-8 text-center text-gray-400">
+      <p>No tracking activity in this date range.</p>
+    </div>
+  {% endif %}
+{% endblock content %}
+
+{% block js %}
+  {{ date_format_values|json_script:"date_format_values" }}
+  <script src="{% static 'js/date-range.js' %}{% get_static_file_mtime 'js/date-range.js' %}"
+          data-date-format="{{ user.date_format }}"></script>
+  <script>
+    // Drop a day separator once its last entry is deleted from the feed.
+    function pruneEmptyJournalDays() {
+      document.querySelectorAll("[data-journal-day]").forEach((header) => {
+        const day = header.getAttribute("data-journal-day");
+        if (!document.querySelector('[data-journal-entry-day="' + day + '"]')) {
+          header.remove();
+        }
+      });
+    }
+    document.body.addEventListener("htmx:afterSwap", pruneEmptyJournalDays);
+  </script>
+{% endblock js %}

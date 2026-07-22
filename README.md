@@ -73,11 +73,11 @@ Download the default `docker-compose.yml` file from the repository, update the e
 docker compose up -d
 ```
 
-The default Compose file uses SQLite, which is enough for most personal installs. For full SQLite, PostgreSQL, and reverse proxy setup instructions, see the [Setup documentation](https://fuzzygrim.github.io/Yamtrack/setup/).
+The default Compose file uses SQLite, which is enough for most personal installs. For full SQLite, PostgreSQL, and reverse proxy setup instructions, see the [Setup documentation](https://fuzzygrim.github.io/Yamtrack/release/setup/).
 
 ## 💻 Development
 
-Development instructions are available in the [Development documentation](https://fuzzygrim.github.io/Yamtrack/development/).
+Development instructions are available in the [Development documentation](https://fuzzygrim.github.io/Yamtrack/release/development/).
 
 ## 💪 Support the Project
 

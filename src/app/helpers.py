@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 
@@ -6,8 +7,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -77,7 +79,13 @@ def minutes_to_hhmm(total_minutes):
 
 
 def redirect_back(request):
-    """Redirect to the previous page, removing the 'page' parameter if present."""
+    """Redirect to the previous page, removing the 'page' parameter if present.
+
+    For HTMX requests, respond with an ``HX-Location`` header so htmx re-renders
+    the target page in place via an AJAX body swap instead of doing a full
+    browser reload. The ``X-Soft-Navigation`` marker tells partial-returning
+    views (e.g. the media list) to serve the full page for these navigations.
+    """
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
         next_url = request.GET["next"]
 
@@ -89,14 +97,26 @@ def redirect_back(request):
         query_params.pop("page", None)
         query_params.pop("load_media_type", None)
 
-        # Reconstruct the URL
+        # Reconstruct the URL without the removed params
         new_query = urlencode(query_params)
-        new_parts = list(parsed_url)
-        new_parts[4] = new_query  # index 4 is the query part
-
-        # Convert back to a URL string
         clean_url = iri_to_uri(parsed_url._replace(query=new_query).geturl())
+    else:
+        clean_url = None
 
+    if request.headers.get("HX-Request"):
+        response = HttpResponse(status=204)
+        response["HX-Location"] = json.dumps(
+            {
+                "path": clean_url or reverse("home"),
+                "target": "body",
+                # show:none keeps the current scroll position after the swap
+                "swap": "innerHTML show:none",
+                "headers": {"X-Soft-Navigation": "true"},
+            },
+        )
+        return response
+
+    if clean_url:
         return HttpResponseRedirect(clean_url)
 
     return redirect("home")

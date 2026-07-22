@@ -9,4 +9,4 @@ coverage:
         - "src/integrations"
         - "src/users"
         - "src/lists"
-        threshold: 5.0
+        threshold: "5.0"

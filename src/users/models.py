@@ -14,6 +14,9 @@ VALID_SEARCH_TYPES = [
     value for value in MediaTypes.values if value not in EXCLUDED_SEARCH_TYPES
 ]
 
+# Sentinel for an unconfigured watch provider region.
+WATCH_PROVIDER_REGION_UNSET = "UNSET"
+
 
 def generate_token():
     """Generate a user token."""
@@ -133,6 +136,10 @@ class User(AbstractUser):
         max_length=20,
         default=HomeSortChoices.UPCOMING,
         choices=HomeSortChoices,
+    )
+    home_hide_unreleased = models.BooleanField(
+        default=False,
+        help_text="Hide unreleased media from the home page",
     )
 
     # Media type preferences: TV Shows
@@ -357,7 +364,7 @@ class User(AbstractUser):
     # Watch provider region
     watch_provider_region = models.CharField(
         max_length=5,
-        default="UNSET",
+        default=WATCH_PROVIDER_REGION_UNSET,
         help_text="Region to show watch providers for",
     )
 
