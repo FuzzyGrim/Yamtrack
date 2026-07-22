@@ -6172,7 +6172,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
 
         try:
             metadata = services.get_media_metadata(
-                "episode", media_id, source, [season_number, episode_number],
+                "episode", media_id, source, [season_number], episode_number,
             )
         except Exception as e:  # noqa: BLE001
             return Response(
