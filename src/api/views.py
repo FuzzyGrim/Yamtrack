@@ -1890,6 +1890,11 @@ class MediaTypeListView(drf_views.APIView):
     )
     def post(self, request, media_type):
         """Track a new media item of a specific media type."""
+        if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
+            return Response(
+                {"detail": "Not found."},
+                status=HTTP.NOT_FOUND,
+            )
         if not check_valid_type(media_type, complete=True):
             return Response(
                 {"detail": "Unsupported media type."},
@@ -4278,6 +4283,91 @@ class MediaSeasonDetailView(drf_views.APIView):
         return Response(serialized, status=HTTP.OK)
 
 
+
+    def post(self, request, media_type, source, media_id, season_number):
+        """Track a season of a tv serie for the authenticated user."""
+        user = request.user
+
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+        if media_type != MediaTypes.TV.value:
+            return Response(
+                {"detail": "Seasons are supported only for 'tv' media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+        if not check_source_type(media_type, source):
+            return Response(
+                {"detail": f"Cannot query `{source}` for `{media_type}` media type"},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        tv_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.TV.value]
+        parent_tv = tv_model.objects.filter(
+            item__media_id=media_id,
+            item__source=source,
+            item__media_type=MediaTypes.TV.value,
+            user=user,
+        ).first()
+        if parent_tv is None:
+            return Response(
+                {"detail": "Parent TV serie is not tracked yet."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            metadata = services.get_media_metadata(
+                "season", media_id, source, [season_number],
+            )
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {"detail": "Internal Server Error.", "errors": str(e)},
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=MediaTypes.SEASON.value,
+            season_number=season_number,
+            defaults={
+                "title": metadata.get("title"),
+                "image": metadata.get("image"),
+            },
+        )
+
+        body = dict(request.data or {})
+        body["media_type"] = MediaTypes.SEASON.value
+        body["source"] = item.source
+        body["media_id"] = item.media_id
+        if "status" in body:
+            body["status"] = get_media_status(body["status"], reverse=True)
+        else:
+            body["status"] = MediaStatusChoices.PLANNING
+
+        season_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.SEASON.value]
+        instance = season_model(item=item, user=user, related_tv=parent_tv)
+        form_class = get_form_class(MediaTypes.SEASON.value)
+        media_form = form_class(body, instance=instance)
+        if not media_form.is_valid():
+            return Response(
+                {"detail": "Invalid media data.", "errors": media_form.errors},
+                status=HTTP.BAD_REQUEST,
+            )
+        try:
+            media_form.save()
+        except IntegrityError:
+            return Response(
+                {"detail": "Season is already tracked."},
+                status=HTTP.CONFLICT,
+            )
+
+        serialized = MediaSerializer(media_form.instance).data
+        return Response(serialized, status=HTTP.CREATED)
+
+
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/changes_history/
 class MediaSeasonChangesHistoryView(drf_views.APIView):
     """Changes history season view."""
@@ -6043,6 +6133,99 @@ class MediaEpisodeDetailView(drf_views.APIView):
 
         serialized = CompleteEpisodeSerializer(data).data
         return Response(serialized, status=HTTP.OK)
+
+
+
+    def post(self, request, media_type, source, media_id, season_number, episode_number):
+        """Track an episode of a tv serie for the authenticated user."""
+        user = request.user
+
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+        if media_type != MediaTypes.TV.value:
+            return Response(
+                {"detail": "Episodes are supported only for 'tv' media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+        if not check_source_type(media_type, source):
+            return Response(
+                {"detail": f"Cannot query `{source}` for `{media_type}` media type"},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        season_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.SEASON.value]
+        parent_season = season_model.objects.filter(
+            item__media_id=media_id,
+            item__source=source,
+            item__media_type=MediaTypes.SEASON.value,
+            item__season_number=season_number,
+            user=user,
+        ).first()
+        if parent_season is None:
+            return Response(
+                {"detail": "Parent season is not tracked yet."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            metadata = services.get_media_metadata(
+                "episode", media_id, source, [season_number, episode_number],
+            )
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {"detail": "Internal Server Error.", "errors": str(e)},
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=MediaTypes.EPISODE.value,
+            season_number=season_number,
+            episode_number=episode_number,
+            defaults={
+                "title": metadata.get("title"),
+                "image": metadata.get("image"),
+            },
+        )
+
+        body = dict(request.data or {})
+        body.setdefault("end_date", localdate().isoformat())
+
+        episode_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.EPISODE.value]
+        instance = episode_model(item=item, related_season=parent_season)
+        form_class = get_form_class(MediaTypes.EPISODE.value)
+        media_form = form_class(body, instance=instance)
+        if not media_form.is_valid():
+            return Response(
+                {"detail": "Invalid media data.", "errors": media_form.errors},
+                status=HTTP.BAD_REQUEST,
+            )
+        try:
+            media_form.save()
+        except IntegrityError:
+            return Response(
+                {"detail": "Episode is already tracked."},
+                status=HTTP.CONFLICT,
+            )
+
+        lists = get_item_lists(
+            user, media_id, source, "episode",
+            season_number=season_number, episode_number=episode_number,
+        )
+        data = {
+            "media_metadata": metadata,
+            "user_medias": [media_form.instance],
+            "lists": lists,
+        }
+        serialized = serialize_data(
+            data,
+            serializer_class=CompleteEpisodeSerializer,
+        )
+        return Response(serialized, status=HTTP.CREATED)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/[episode_number]/changes_history/  # noqa: E501, W505
