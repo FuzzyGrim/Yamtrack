@@ -6221,10 +6221,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
             "user_medias": [media_form.instance],
             "lists": lists,
         }
-        serialized = serialize_data(
-            data,
-            serializer_class=CompleteEpisodeSerializer,
-        )
+        serialized = CompleteEpisodeSerializer(data).data
         return Response(serialized, status=HTTP.CREATED)
 
 
