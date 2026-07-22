@@ -973,7 +973,9 @@ class CompleteEpisodeSerializer(serializers.Serializer):
             "image": image,
             "synopsis": episode.get("overview"),
             "genres": media_metadata.get("genres", []),
-            "score": float(episode.get("vote_average")),
+            "score": float(episode.get("vote_average"))
+            if episode.get("vote_average") is not None
+            else None,
             "score_count": episode.get("vote_count"),
             "details": {
                 "air_date": episode.get("air_date"),
