@@ -188,6 +188,21 @@
                       <span>Calendar</span>
                     </a>
                   </li>
+
+                  {% url 'user_directory' as users_url %}
+                  <li>
+                    <a href="{{ users_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == users_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:users_url %}
+                        {% include "app/icons/persons.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/persons.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>People</span>
+                    </a>
+                  </li>
                 </ul>
               </div>
             {% endblock sidebar_utilities %}
@@ -202,6 +217,18 @@
                 {% url 'integrations' as integrations_url %}
                 {% url 'import_data' as import_url %}
                 {% url 'export_data' as export_url %}
+                {% url 'public_profile' username=user.username as profile_url %}
+                <a href="{{ profile_url }}"
+                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == profile_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                  {% if request.path|str_equals:profile_url %}
+                    {% include "app/icons/person.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                  {% else %}
+                    {% include "app/icons/person.svg" with classes="w-5 h-5" %}
+
+                  {% endif %}
+                  <span>My Profile</span>
+                </a>
                 <a href="{{ account_url }}"
                    class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                   {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
@@ -342,6 +369,40 @@
             });
         });
       }
+
+      document.addEventListener('htmx:beforeSwap', function(evt) {
+        var xhr = evt.detail.xhr;
+        if (xhr.status === 204) {
+          var hxLocation = xhr.getResponseHeader('HX-Location');
+          if (hxLocation) {
+            evt.detail.shouldSwap = false;
+            evt.detail.isError = false;
+            try {
+              var config = JSON.parse(hxLocation);
+              var path = config.path || '/';
+              var target = config.target || 'body';
+              var swapStyle = config.swap || 'innerHTML';
+              var extraHeaders = config.headers || {};
+              var reqHeaders = Object.assign({'X-Soft-Navigation': 'true'}, extraHeaders);
+              fetch(path, {headers: reqHeaders}).then(function(response) {
+                return response.text();
+              }).then(function(html) {
+                var targetEl = document.querySelector(target);
+                if (targetEl) {
+                  if (swapStyle.indexOf('show:none') !== -1) {
+                    targetEl.innerHTML = html;
+                  } else {
+                    targetEl.innerHTML = html;
+                  }
+                  htmx.process(targetEl);
+                }
+              });
+            } catch(e) {
+              window.location.reload();
+            }
+          }
+        }
+      });
     </script>
 
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>

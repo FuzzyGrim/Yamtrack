@@ -225,6 +225,12 @@ def media_list(request, username, media_type):
         search=search_query,
     )
 
+    if request.user != target_user:
+        from lists.models import CustomList
+        private_item_ids = list(CustomList.objects.get_private_item_ids(target_user))
+        if private_item_ids:
+            media_queryset = media_queryset.exclude(item_id__in=private_item_ids)
+
     # Paginate results
     items_per_page = 32
     paginator = Paginator(media_queryset, items_per_page)
@@ -342,6 +348,28 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     else:
         watch_providers = None
 
+    # Handle profile context - show another user's tracking as read-only
+    profile_user = None
+    profile_medias = None
+    is_profile_view = False
+    from_profile = request.GET.get("from_profile")
+    if from_profile:
+        from users.models import User as UserModel
+
+        try:
+            profile_user = UserModel.objects.get(username=from_profile)
+            is_profile_view = (
+                request.user.is_authenticated and profile_user != request.user
+            )
+            profile_medias = BasicMedia.objects.filter_media_prefetch(
+                profile_user,
+                media_id,
+                media_type,
+                source,
+            )
+        except UserModel.DoesNotExist:
+            profile_user = None
+
     context = {
         "media": media_metadata,
         "media_type": media_type,
@@ -349,6 +377,9 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "current_instance": current_instance,
         "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
+        "profile_user": profile_user,
+        "profile_medias": profile_medias,
+        "is_profile_view": is_profile_view,
     }
     return render(request, "app/media_details.html", context)
 
@@ -403,6 +434,29 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     )
                 )
 
+    # Handle profile context - show another user's tracking as read-only
+    profile_user = None
+    profile_medias = None
+    is_profile_view = False
+    from_profile = request.GET.get("from_profile")
+    if from_profile:
+        from users.models import User as UserModel
+
+        try:
+            profile_user = UserModel.objects.get(username=from_profile)
+            is_profile_view = (
+                request.user.is_authenticated and profile_user != request.user
+            )
+            profile_medias = BasicMedia.objects.filter_media_prefetch(
+                profile_user,
+                media_id,
+                MediaTypes.SEASON.value,
+                source,
+                season_number=season_number,
+            )
+        except UserModel.DoesNotExist:
+            profile_user = None
+
     context = {
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
@@ -413,6 +467,9 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata.get("providers"), request.user.watch_provider_region
         ),
         "watch_provider_region": request.user.watch_provider_region,
+        "profile_user": profile_user,
+        "profile_medias": profile_medias,
+        "is_profile_view": is_profile_view,
     }
     return render(request, "app/media_details.html", context)
 

@@ -10,6 +10,44 @@
 
 {% block content %}
   <div x-data="{ tab: 'overview' }">
+    {# Profile context banner - show the other user's tracking as read-only #}
+    {% if profile_user and profile_medias %}
+      <div class="bg-[#2a2f35] border border-amber-700/50 rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-8 h-8 rounded-full bg-[#4f46e5] flex items-center justify-center text-sm font-bold text-white shrink-0">
+            {{ profile_user.username.0|upper }}
+          </div>
+          <div>
+            <p class="text-sm text-gray-300">
+              <a href="{% url 'public_profile' username=profile_user.username %}" class="text-indigo-400 hover:text-indigo-300">{{ profile_user.username }}</a>'s tracking
+            </p>
+          </div>
+        </div>
+        {% for pm in profile_medias %}
+          <div class="flex items-center gap-3 mt-2 text-sm">
+            {% if pm.score %}
+              <span class="text-yellow-400">{{ pm.score }}/10</span>
+            {% endif %}
+            <span class="text-gray-400">{{ pm.status|media_status_readable }}</span>
+            {% if pm.progress and media_type != MediaTypes.MOVIE.value %}
+              <span class="text-gray-500">|</span>
+              <span class="text-gray-400">{{ pm.formatted_progress }}{% if pm.max_progress %}/ {{ pm.max_progress }}{% endif %}</span>
+            {% endif %}
+            {% if pm.start_date %}
+              <span class="text-gray-500">|</span>
+              <span class="text-gray-400">Started {{ pm.start_date }}</span>
+            {% endif %}
+            {% if pm.end_date %}
+              <span class="text-gray-500">|</span>
+              <span class="text-gray-400">Ended {{ pm.end_date }}</span>
+            {% endif %}
+          </div>
+          {% if pm.notes %}
+            <p class="text-xs text-gray-500 italic mt-1">"{{ pm.notes|truncatechars:100 }}"</p>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
     {# Top section #}
     <div class="flex flex-col md:flex-row gap-8 md:gap-10 mb-12 md:mb-8">
       {# Poster #}
@@ -18,72 +56,103 @@
              class="w-full rounded-lg shadow-lg bg-[#2a2f35] object-cover"
              src="{{ media.image }}">
 
-        <div class="mt-4 relative flex items-stretch"
-             x-data="{ trackOpen: false, createOpen: false, menuOpen: false }"
-             @click.away="menuOpen = false"
-             @keydown.escape.window="trackOpen = false; createOpen = false; menuOpen = false">
-          <button class="p-3 flex-1 text-center font-medium text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}rounded-l-lg{% else %}rounded-lg{% endif %}"
-                  hx-get="{% media_view_url 'track_modal' media %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
-                  hx-target="#{% component_id 'track' media current_instance.id %}"
-                  hx-trigger="click"
-                  @click="trackOpen = true">
+        {% if is_profile_view %}
+          {# Profile view - show Add to My Library button #}
+          <div class="mt-4">
             {% if user_medias %}
-              {{ current_instance.status|media_status_readable }}
+              <a href="{{ request.path }}"
+                 class="block p-3 flex-1 text-center font-medium text-white transition duration-300 bg-indigo-600 hover:bg-indigo-700 rounded-lg">
+                View in My Library
+              </a>
             {% else %}
-              Add to tracker
+              <div x-data="{ trackOpen: false }">
+                <button class="w-full p-3 flex-1 text-center font-medium text-white transition duration-300 bg-gray-600 hover:bg-gray-700 rounded-lg cursor-pointer"
+                        hx-get="{% media_view_url 'track_modal' media %}"
+                        hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "is_create": true}'
+                        hx-target="#{% component_id 'track' media %}"
+                        hx-trigger="click"
+                        @click="trackOpen = true">
+                  Add to My Library
+                </button>
+                <div x-show="trackOpen"
+                     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
+                       @click.outside="trackOpen = false">
+                    <div id="{% component_id 'track' media %}"></div>
+                  </div>
+                </div>
+              </div>
             {% endif %}
-          </button>
-
-          {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
-            {# Dropdown with more tracking options #}
-            <button class="px-3 rounded-r-lg bg-indigo-600 hover:bg-indigo-700 border-l border-white/30 text-white transition duration-300 cursor-pointer"
-                    title="More tracking options"
-                    @click="menuOpen = !menuOpen">
-              <div class="w-4 h-4 transition-transform"
-                   :class="{ 'rotate-180': menuOpen }">{% include "app/icons/chevron-down.svg" %}</div>
+          </div>
+        {% else %}
+          {# Normal view - show tracking controls #}
+          <div class="mt-4 relative flex items-stretch"
+               x-data="{ trackOpen: false, createOpen: false, menuOpen: false }"
+               @click.away="menuOpen = false"
+               @keydown.escape.window="trackOpen = false; createOpen = false; menuOpen = false">
+            <button class="p-3 flex-1 text-center font-medium text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}rounded-l-lg{% else %}rounded-lg{% endif %}"
+                    hx-get="{% media_view_url 'track_modal' media %}"
+                    hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
+                    hx-target="#{% component_id 'track' media current_instance.id %}"
+                    hx-trigger="click"
+                    @click="trackOpen = true">
+              {% if user_medias %}
+                {{ current_instance.status|media_status_readable }}
+              {% else %}
+                Add to tracker
+              {% endif %}
             </button>
 
-            <div x-show="menuOpen"
-                 x-transition:enter="transition ease-out duration-200"
-                 x-transition:enter-start="opacity-0 transform scale-95"
-                 x-transition:enter-end="opacity-100 transform scale-100"
-                 x-transition:leave="transition ease-in duration-150"
-                 x-transition:leave-start="opacity-100 transform scale-100"
-                 x-transition:leave-end="opacity-0 transform scale-95"
-                 class="absolute left-0 right-0 top-full mt-2 bg-[#2a2f35] rounded-md shadow-lg overflow-hidden z-20">
-              <button class="w-full px-4 py-3 flex items-center gap-x-3 text-sm text-gray-200 hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                      hx-get="{% media_view_url 'track_modal' media %}"
-                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "is_create": true}'
-                      hx-target="#{% component_id 'track' media %}"
-                      hx-trigger="click once"
-                      @click="menuOpen = false; createOpen = true">
-                {% include "app/icons/plus.svg" with classes="w-4 h-4 shrink-0" %}
-                <span class="font-medium">Add new entry</span>
+            {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
+              {# Dropdown with more tracking options #}
+              <button class="px-3 rounded-r-lg bg-indigo-600 hover:bg-indigo-700 border-l border-white/30 text-white transition duration-300 cursor-pointer"
+                      title="More tracking options"
+                      @click="menuOpen = !menuOpen">
+                <div class="w-4 h-4 transition-transform"
+                     :class="{ 'rotate-180': menuOpen }">{% include "app/icons/chevron-down.svg" %}</div>
               </button>
-            </div>
 
-            {# Create Track Modal #}
-            <div x-show="createOpen"
+              <div x-show="menuOpen"
+                   x-transition:enter="transition ease-out duration-200"
+                   x-transition:enter-start="opacity-0 transform scale-95"
+                   x-transition:enter-end="opacity-100 transform scale-100"
+                   x-transition:leave="transition ease-in duration-150"
+                   x-transition:leave-start="opacity-100 transform scale-100"
+                   x-transition:leave-end="opacity-0 transform scale-95"
+                   class="absolute left-0 right-0 top-full mt-2 bg-[#2a2f35] rounded-md shadow-lg overflow-hidden z-20">
+                <button class="w-full px-4 py-3 flex items-center gap-x-3 text-sm text-gray-200 hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                        hx-get="{% media_view_url 'track_modal' media %}"
+                        hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "is_create": true}'
+                        hx-target="#{% component_id 'track' media %}"
+                        hx-trigger="click once"
+                        @click="menuOpen = false; createOpen = true">
+                  {% include "app/icons/plus.svg" with classes="w-4 h-4 shrink-0" %}
+                  <span class="font-medium">Add new entry</span>
+                </button>
+              </div>
+
+              {# Create Track Modal #}
+              <div x-show="createOpen"
+                   class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
+                     @click.outside="createOpen = false">
+                  <div id="{% component_id 'track' media %}"></div>
+                </div>
+              </div>
+            {% endif %}
+
+            {# Track Modal #}
+            <div x-show="trackOpen"
                  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
-                   @click.outside="createOpen = false">
-                <div id="{% component_id 'track' media %}"></div>
+                   @click.outside="trackOpen = false"
+                   @click.stop>
+                {# stop click propagation to avoid resetting the modal because this one doesn't have click once #}
+                <div id="{% component_id 'track' media current_instance.id %}"></div>
               </div>
             </div>
-          {% endif %}
-
-          {# Track Modal #}
-          <div x-show="trackOpen"
-               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
-                 @click.outside="trackOpen = false"
-                 @click.stop>
-              {# stop click propagation to avoid resetting the modal because this one doesn't have click once #}
-              <div id="{% component_id 'track' media current_instance.id %}"></div>
-            </div>
           </div>
-        </div>
+        {% endif %}
 
       </div>
 
@@ -181,8 +250,8 @@
             </div>
           {% endif %}
 
-          {# User score #}
-          {% if user_medias %}
+          {# User score - only show in normal view, not profile view #}
+          {% if user_medias and not is_profile_view %}
             <div x-data="{ showRatingPopup: false, rating: {{ current_instance.score|default:'null' }}, hoverRating: null, isHovering: false }"
                  class="relative">
               <!-- Rating display -->
@@ -245,7 +314,7 @@
       {# Sidebar #}
       <div class="w-full md:w-1/4 md:max-w-[250px] mx-auto lg:mx-0">
         {# Your History #}
-        {% if current_instance.start_date or current_instance.end_date or current_instance.notes or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
+        {% if not is_profile_view and current_instance.start_date or current_instance.end_date or current_instance.notes or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
           <h2 class="text-xl font-bold mb-4">Your History</h2>
 
           <div class="bg-[#2a2f35] p-4 rounded-lg mb-6 text-center md:text-start">
@@ -298,6 +367,7 @@
         {% endif %}
 
         {# Actions #}
+        {% if not is_profile_view %}
         <h2 class="text-xl font-bold mb-4">Actions</h2>
         <div class="bg-[#2a2f35] rounded-lg overflow-hidden divide-y divide-white/5 mb-6">
           {# Custom Lists #}
@@ -370,6 +440,7 @@
             <span class="font-medium">Sync metadata</span>
           </button>
         </div>
+        {% endif %}
 
         {# Media Details #}
         <h2 class="text-xl font-bold mb-4">Details</h2>
@@ -591,6 +662,7 @@
                             </p>
                           </div>
                           <div class="flex space-x-2">
+                            {% if not is_profile_view %}
                             {# Track Episode #}
                             <div x-data="{ trackOpen: false }">
                               <button @click="trackOpen = true"
@@ -649,6 +721,7 @@
                                 </div>
                               </div>
                             </div>
+                          {% endif %}
                           </div>
                         </div>
                         <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">

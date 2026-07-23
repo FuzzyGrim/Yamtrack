@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_tags %}
+
+{% block title %}
+  {{ target_user.username }}'s Profile - Yamtrack
+{% endblock title %}
+
+{% block content %}
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-8">
+      <div class="w-20 h-20 rounded-full bg-[#4f46e5] flex items-center justify-center text-3xl font-bold text-white overflow-hidden shrink-0">
+        {% if target_user.avatar %}
+          <img src="{{ target_user.avatar.url }}" alt="{{ target_user.username }}" class="w-full h-full object-cover">
+        {% else %}
+          {{ target_user.username.0|upper }}
+        {% endif %}
+      </div>
+      <div class="flex-1">
+        <h1 class="text-3xl font-bold mb-1">{{ target_user.username }}</h1>
+        {% if target_user.bio %}
+          <p class="text-gray-400 mb-2">{{ target_user.bio }}</p>
+        {% endif %}
+        <p class="text-sm text-gray-500">Joined {{ target_user.date_joined|date:"M j, Y" }}</p>
+      </div>
+      {% if is_owner %}
+        <a href="{% url 'account' %}"
+           class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors text-sm">
+          Edit Profile
+        </a>
+      {% endif %}
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div class="bg-[#2a2f35] rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">{{ total_movies }}</div>
+        <div class="text-sm text-gray-400">Movies</div>
+      </div>
+      <div class="bg-[#2a2f35] rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">{{ total_tv }}</div>
+        <div class="text-sm text-gray-400">TV Shows</div>
+      </div>
+      <div class="bg-[#2a2f35] rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">{{ total_seasons }}</div>
+        <div class="text-sm text-gray-400">Seasons</div>
+      </div>
+      <div class="bg-[#2a2f35] rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">{{ list_count }}</div>
+        <div class="text-sm text-gray-400">Lists</div>
+      </div>
+    </div>
+
+    {% if currently_watching %}
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Currently Watching</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for entry in currently_watching %}
+            <div class="bg-[#2a2f35] rounded-lg p-4 flex gap-4">
+              <img src="{{ entry.media.item.image }}"
+                   alt="{{ entry.media.item.title }}"
+                   class="w-16 h-24 object-cover rounded-md shrink-0">
+              <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-white truncate">{{ entry.media.item.title }}</h3>
+                <p class="text-sm text-gray-400 mt-1">{{ entry.media_type|media_type_readable }}</p>
+                <p class="text-sm text-gray-400">Status: {{ entry.media.status }}</p>
+                {% if entry.media.progress %}
+                  <p class="text-sm text-gray-400">Progress: {{ entry.media.progress }}</p>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if recently_watched %}
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Recently Watched</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {% for entry in recently_watched %}
+            <a href="{{ entry.media.item|media_url }}?from_profile={{ target_user.username }}"
+               class="bg-[#2a2f35] rounded-lg overflow-hidden hover:shadow-lg transition-shadow group">
+              <div class="aspect-[2/3] bg-[#39404b]">
+                <img src="{{ entry.media.item.image }}"
+                     alt="{{ entry.media.item.title }}"
+                     class="w-full h-full object-cover group-hover:opacity-80 transition-opacity">
+              </div>
+              <div class="p-2">
+                <h3 class="text-sm font-medium text-white truncate">{{ entry.media.item.title }}</h3>
+                <p class="text-xs text-gray-400">{{ entry.media_type|media_type_readable }}</p>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if public_lists %}
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold">Public Lists</h2>
+          <a href="{% url 'user_directory' %}" class="text-sm text-indigo-400 hover:text-indigo-300">View All</a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for custom_list in public_lists %}
+            <a href="{% url 'public_list_detail' list_id=custom_list.id %}"
+               class="bg-[#2a2f35] rounded-lg p-4 hover:shadow-lg transition-shadow">
+              <h3 class="font-medium text-white mb-1">{{ custom_list.name }}</h3>
+              {% if custom_list.description %}
+                <p class="text-sm text-gray-400 line-clamp-2">{{ custom_list.description }}</p>
+              {% endif %}
+              <div class="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                <span>{{ custom_list.items.count }} items</span>
+                <span>{{ custom_list.created_at|date:"M j, Y" }}</span>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if not currently_watching and not recently_watched and not public_lists %}
+      <div class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
+        <div class="text-center max-w-md mx-auto p-6">
+          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            {% include "app/icons/person.svg" with classes="w-8 h-8 text-gray-400" %}
+          </div>
+          <h3 class="text-xl font-semibold mb-2">No public activity yet</h3>
+          <p class="text-gray-400">This user hasn't shared any media activity yet.</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_tags %}
+
+{% block title %}
+  Users - Yamtrack
+{% endblock title %}
+
+{% block content %}
+  <div class="max-w-6xl mx-auto">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-2">Users</h1>
+      <p class="text-gray-400">Discover other media enthusiasts</p>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-4 mb-8">
+      <div class="relative flex-1">
+        <form method="get" action="{% url 'user_directory' %}" class="relative">
+          <input type="search"
+                 name="q"
+                 value="{{ search_query }}"
+                 placeholder="Search users..."
+                 class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none">
+          {% include "app/icons/magnifying-glass.svg" with classes="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" %}
+        </form>
+      </div>
+      <div class="relative" x-data="{ open: false }">
+        <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+                @click="open = !open"
+                type="button">
+          {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
+          <span class="text-sm">{{ current_sort|title }}</span>
+          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
+        </button>
+        <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
+             x-cloak
+             x-show="open"
+             @click.outside="open = false"
+             x-transition:enter="transition ease-out duration-100"
+             x-transition:enter-start="transform opacity-0 scale-95"
+             x-transition:enter-end="transform opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-75"
+             x-transition:leave-start="transform opacity-100 scale-100"
+             x-transition:leave-end="transform opacity-0 scale-95">
+          <a href="{% url 'user_directory' %}?sort=username&q={{ search_query }}"
+             class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer {% if current_sort == 'username' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">Username</a>
+          <a href="{% url 'user_directory' %}?sort=newest&q={{ search_query }}"
+             class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer {% if current_sort == 'newest' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">Newest</a>
+        </div>
+      </div>
+    </div>
+
+    {% if users_page %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {% for user in users_page %}
+          <a href="{% url 'public_profile' username=user.username %}"
+             class="bg-[#2a2f35] rounded-lg p-4 hover:shadow-lg transition-shadow">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 rounded-full bg-[#4f46e5] flex items-center justify-center text-lg font-bold text-white overflow-hidden shrink-0">
+                {% if user.avatar %}
+                  <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="w-full h-full object-cover">
+                {% else %}
+                  {{ user.username.0|upper }}
+                {% endif %}
+              </div>
+              <div class="min-w-0">
+                <h3 class="font-medium text-white truncate">{{ user.username }}</h3>
+                <p class="text-xs text-gray-500">Joined {{ user.date_joined|date:"M j, Y" }}</p>
+              </div>
+            </div>
+            {% if user.bio %}
+              <p class="text-sm text-gray-400 line-clamp-2 mb-3">{{ user.bio }}</p>
+            {% endif %}
+            <div class="flex items-center gap-4 text-xs text-gray-500">
+              <span>{{ user.list_count }} list{{ user.list_count|pluralize }}</span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if users_page.has_other_pages %}
+        <div class="flex justify-center gap-2 mt-8">
+          {% if users_page.has_previous %}
+            <a href="{% url 'user_directory' %}?page={{ users_page.previous_page_number }}&sort={{ current_sort }}&q={{ search_query }}"
+               class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors text-sm">
+              Previous
+            </a>
+          {% endif %}
+          <span class="px-4 py-2 text-sm text-gray-400">
+            Page {{ users_page.number }} of {{ users_page.paginator.num_pages }}
+          </span>
+          {% if users_page.has_next %}
+            <a href="{% url 'user_directory' %}?page={{ users_page.next_page_number }}&sort={{ current_sort }}&q={{ search_query }}"
+               class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors text-sm">
+              Next
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
+        <div class="text-center max-w-md mx-auto p-6">
+          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            {% include "app/icons/person.svg" with classes="w-8 h-8 text-gray-400" %}
+          </div>
+          <h3 class="text-xl font-semibold mb-2">No users found</h3>
+          <p class="text-gray-400">
+            {% if search_query %}
+              No users match your search. Try a different query.
+            {% else %}
+              No public profiles available yet.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}

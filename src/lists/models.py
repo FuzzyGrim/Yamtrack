@@ -27,6 +27,31 @@ class CustomListManager(models.Manager):
             .distinct()
         )
 
+    def get_public_lists_for_user(self, user):
+        """Return public lists owned by the given user."""
+        return (
+            self.filter(owner=user, is_public=True)
+            .select_related("owner")
+            .prefetch_related(
+                Prefetch(
+                    "items",
+                    queryset=Item.objects.order_by("-customlistitem__date_added"),
+                ),
+            )
+            .order_by("-id")
+        )
+
+    def get_private_item_ids(self, user):
+        """Return Item IDs that are in any private list owned by the user.
+
+        Items in private lists are considered private and should not appear
+        on public profiles or public pages for other users.
+        """
+        return CustomListItem.objects.filter(
+            custom_list__owner=user,
+            custom_list__is_public=False,
+        ).values_list("item_id", flat=True)
+
     def get_user_lists_with_item(self, user, item):
         """Return user lists with item membership status."""
         return (
@@ -62,6 +87,10 @@ class CustomList(models.Model):
         blank=True,
         through="CustomListItem",
     )
+    is_public = models.BooleanField(
+        default=True,
+        help_text="Public lists are visible to all users",
+    )
 
     objects = CustomListManager()
 
@@ -76,6 +105,8 @@ class CustomList(models.Model):
 
     def user_can_view(self, user):
         """Check if the user can view the list."""
+        if self.is_public:
+            return True
         return self.owner == user or user in self.collaborators.all()
 
     def user_can_edit(self, user):
@@ -85,6 +116,10 @@ class CustomList(models.Model):
     def user_can_delete(self, user):
         """Check if the user can delete the list."""
         return self.owner == user
+
+    def user_is_owner_or_collaborator(self, user):
+        """Check if the user is the owner or a collaborator."""
+        return self.owner == user or user in self.collaborators.all()
 
     @property
     def image(self):

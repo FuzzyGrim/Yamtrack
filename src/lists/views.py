@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
 from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.http import Http404
@@ -99,6 +100,9 @@ def list_detail(request, list_id):
         msg = "List not found"
         raise Http404(msg)
 
+    can_edit = custom_list.user_can_edit(request.user)
+    can_delete = custom_list.user_can_delete(request.user)
+
     # Get and process request parameters
     params = {
         "sort_by": request.user.update_preference(
@@ -182,6 +186,8 @@ def list_detail(request, list_id):
         "current_status": params["status_filter"] or MediaStatusChoices.ALL,
         "sort_choices": ListDetailSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
+        "can_edit": can_edit,
+        "can_delete": can_delete,
     }
 
     # Additional context for full page render. Soft-navigation body swaps (e.g.
@@ -321,3 +327,82 @@ def list_item_toggle(request):
         "lists/components/list_item_button.html",
         {"custom_list": custom_list, "item": item, "has_item": has_item},
     )
+
+
+@login_not_required
+@require_GET
+def public_list_detail(request, list_id):
+    """Display a public list detail page for any authenticated user."""
+    custom_list = get_object_or_404(
+        CustomList.objects.select_related("owner").prefetch_related("collaborators"),
+        id=list_id,
+    )
+
+    if not custom_list.is_public:
+        raise Http404("List not found")
+
+    params = {
+        "sort_by": request.GET.get("sort", "date_added"),
+        "media_type": request.GET.get("type", "all"),
+        "page": int(request.GET.get("page", 1)),
+        "search_query": request.GET.get("q", ""),
+    }
+
+    items = custom_list.items.all()
+    if params["search_query"]:
+        items = items.filter(title__icontains=params["search_query"])
+    if params["media_type"] != "all":
+        items = items.filter(media_type=params["media_type"])
+
+    media_types = items.values_list("media_type", flat=True).distinct()
+    media_manager = MediaManager()
+    media_by_item_id = {}
+
+    sort_mapping = {
+        "date_added": ["-customlistitem__date_added"],
+        "title": [
+            F("title").asc(nulls_last=True),
+            F("season_number").asc(nulls_first=True),
+            F("episode_number").asc(nulls_first=True),
+        ],
+        "media_type": ["media_type"],
+    }
+    items = items.order_by(
+        *sort_mapping.get(params["sort_by"], ["-customlistitem__date_added"]),
+    )
+
+    paginator = Paginator(items, 16)
+    items_page = paginator.get_page(params["page"])
+
+    media_types_in_page = {item.media_type for item in items_page}
+    page_item_ids = [item.id for item in items_page]
+    media_by_item_id = media_manager.fetch_media_for_items(
+        media_types_in_page,
+        page_item_ids,
+        request.user if request.user.is_authenticated else None,
+    )
+
+    for item in items_page:
+        item.media = media_by_item_id.get(item.id)
+
+    context = {
+        "custom_list": custom_list,
+        "items": items_page,
+        "has_next": items_page.has_next(),
+        "next_page_number": items_page.next_page_number()
+        if items_page.has_next()
+        else None,
+        "current_sort": params["sort_by"],
+        "sort_choices": ListDetailSortChoices.choices,
+        "media_types": MediaTypes.values,
+        "items_count": paginator.count,
+        "collaborators_count": custom_list.collaborators.count() + 1,
+        "is_public_view": True,
+    }
+
+    if not request.headers.get("HX-Request") or request.headers.get(
+        "X-Soft-Navigation"
+    ):
+        return render(request, "lists/public_list_detail.html", context)
+
+    return render(request, "lists/components/media_grid_public.html", context)

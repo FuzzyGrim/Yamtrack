@@ -40,4 +40,6 @@ urlpatterns = [
         views.update_jellyfin_webhook_events,
         name="update_jellyfin_webhook_events",
     ),
+    path("users", views.user_directory, name="user_directory"),
+    path("profile/<str:username>", views.public_profile, name="public_profile"),
 ]

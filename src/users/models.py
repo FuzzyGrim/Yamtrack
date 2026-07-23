@@ -126,6 +126,20 @@ class User(AbstractUser):
         default=True, help_text="Toggle profile visibility to anonymous users"
     )
 
+    bio = models.TextField(
+        blank=True,
+        default="",
+        max_length=500,
+        help_text="A short bio displayed on your public profile",
+    )
+
+    avatar = models.ImageField(
+        upload_to="avatars/",
+        blank=True,
+        null=True,
+        help_text="Profile picture displayed on your public profile",
+    )
+
     last_search_type = models.CharField(
         max_length=10,
         default=MediaTypes.TV.value,
