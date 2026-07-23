@@ -440,6 +440,32 @@ def update_media_score(request, media_type, instance_id):
 
 
 @require_POST
+def update_episode_score(request, instance_id):
+    """Update the user's score for an episode."""
+    episode = get_object_or_404(
+        Episode,
+        id=instance_id,
+        related_season__user=request.user,
+    )
+
+    score = float(request.POST.get("score"))
+    episode.score = score
+    episode.save()
+    logger.info(
+        "%s score updated to %s",
+        episode,
+        score,
+    )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "score": score,
+        },
+    )
+
+
+@require_POST
 def sync_metadata(request, source, media_type, media_id, season_number=None):
     """Refresh the metadata for a media item."""
     if source == Sources.MANUAL.value:
@@ -745,7 +771,11 @@ def episode_save(request):
 
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    related_season.watch(episode_number, form.cleaned_data["end_date"])
+    related_season.watch(
+        episode_number,
+        form.cleaned_data["end_date"],
+        form.cleaned_data["score"],
+    )
 
     return helpers.redirect_back(request)
 

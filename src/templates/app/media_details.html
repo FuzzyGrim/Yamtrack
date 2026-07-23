@@ -591,6 +591,48 @@
                             </p>
                           </div>
                           <div class="flex space-x-2">
+                            {# Episode score; watched episodes only #}
+                            {% if episode.history %}
+                              <div x-data="{ showRatingPopup: false, rating: {{ episode.history.0.score|default:'null' }}, hoverRating: null, isHovering: false }"
+                                   class="relative">
+                                <button @click="showRatingPopup = !showRatingPopup"
+                                        class="p-2 bg-[#2a2f35] hover:bg-[#343a40] text-white rounded-full transition duration-300 cursor-pointer flex items-center">
+                                  <div :class="rating ? 'text-yellow-400' : 'text-gray-500'">
+                                    {% include "app/icons/star.svg" with classes="w-4 h-4" %}
+                                  </div>
+                                  <template x-if="rating">
+                                    <span class="text-xs ml-1" x-text="rating"></span>
+                                  </template>
+                                </button>
+
+                                <div x-show="showRatingPopup"
+                                     @click.outside="showRatingPopup = false; isHovering = false"
+                                     class="absolute right-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-[250px] border border-gray-700"
+                                     @mouseenter="isHovering = true"
+                                     @mouseleave="isHovering = false; hoverRating = null">
+                                  <div class="flex justify-between mb-1">
+                                    {% with rating_range=10|get_range %}
+                                      {% for rating_value in rating_range %}
+                                        <button @click="rating = {{ rating_value }}; showRatingPopup = false; isHovering = false"
+                                                @mouseenter="hoverRating = {{ rating_value }}"
+                                                hx-post="{% url 'update_episode_score' episode.history.0.id %}"
+                                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                                hx-vals='{"score": {{ rating_value }} }'
+                                                hx-trigger="click"
+                                                hx-swap="none"
+                                                class="focus:outline-none flex flex-col items-center cursor-pointer">
+                                          <div :class="{ 'text-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
+                                            {% include "app/icons/star.svg" with classes="w-5 h-5 hover:scale-110 transition-transform" %}
+                                          </div>
+                                          <span class="text-xs mt-1 text-gray-400">{{ rating_value }}</span>
+                                        </button>
+                                      {% endfor %}
+                                    {% endwith %}
+                                  </div>
+                                </div>
+                              </div>
+                            {% endif %}
+
                             {# Track Episode #}
                             <div x-data="{ trackOpen: false }">
                               <button @click="trackOpen = true"

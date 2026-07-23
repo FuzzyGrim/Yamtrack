@@ -364,8 +364,11 @@ class EpisodeForm(forms.ModelForm):
         """Bind form to model."""
 
         model = Episode
-        fields = ("end_date",)
+        fields = ("score", "end_date")
         widgets = {
+            "score": forms.NumberInput(
+                attrs={"min": 0, "max": 10, "step": 0.1, "placeholder": "0-10"},
+            ),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
 
