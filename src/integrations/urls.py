@@ -34,6 +34,11 @@ urlpatterns = [
     path("import/steam", views.import_steam, name="import_steam"),
     path("import/imdb", views.import_imdb, name="import_imdb"),
     path("import/goodreads", views.import_goodreads, name="import_goodreads"),
+    path(
+        "import/calibre-web-nextgen",
+        views.import_calibre_web_nextgen,
+        name="import_calibre_web_nextgen",
+    ),
     path("export/csv", views.export_csv, name="export_csv"),
     path(
         "webhook/jellyfin/<str:token>",

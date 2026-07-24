@@ -9,6 +9,7 @@ from app.models import MediaTypes
 from app.templatetags import app_tags
 from integrations.imports import (
     anilist,
+    calibre_web_nextgen,
     goodreads,
     helpers,
     hltb,
@@ -153,3 +154,16 @@ def import_imdb(file, user_id, mode):
 def import_goodreads(file, user_id, mode):
     """Celery task for importing media data from GoodReads."""
     return import_media(goodreads.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from Calibre-Web-NextGen")
+def import_calibre_web_nextgen(user_id, url, username, encrypted_password, mode):
+    """Celery task for importing books and progress data from Calibre-Web-NextGen."""
+    return import_media(
+        calibre_web_nextgen.importer,
+        username,
+        user_id,
+        mode,
+        url=url,
+        encrypted_password=encrypted_password,
+    )
