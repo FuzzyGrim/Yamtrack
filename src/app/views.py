@@ -1059,6 +1059,10 @@ def delete_history_record(request, media_type, history_id):
 @require_GET
 def statistics(request):
     """Return the statistics page."""
+    statistics_view = request.GET.get("view", "timeline")
+    if statistics_view not in {"timeline", "summary", "titles"}:
+        statistics_view = "timeline"
+
     # Set default date range to last year
     timeformat = "%Y-%m-%d"
     today = timezone.localdate()
@@ -1102,9 +1106,23 @@ def statistics(request):
     status_pie_chart_data = stats.get_status_pie_chart_data(
         status_distribution,
     )
-    timeline = stats.get_timeline(user_media)
+    timeline = {}
+    summary_groups = []
+    if statistics_view == "timeline":
+        timeline = stats.get_timeline(user_media)
+    else:
+        summary_groups = stats.get_summary_groups(
+            user_media,
+            collapse_tv_titles=statistics_view == "titles",
+        )
 
     activity_data = stats.get_activity_data(request.user, start_date, end_date)
+
+    view_urls = {}
+    for view_name in ("timeline", "summary", "titles"):
+        query_params = request.GET.copy()
+        query_params["view"] = view_name
+        view_urls[view_name] = f"?{query_params.urlencode()}"
 
     context = {
         "start_date": start_date,
@@ -1117,6 +1135,9 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
+        "summary_groups": summary_groups,
+        "statistics_view": statistics_view,
+        "view_urls": view_urls,
         "date_format_values": DateFormatChoices.values,
     }
 

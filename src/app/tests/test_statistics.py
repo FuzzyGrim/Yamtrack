@@ -8,8 +8,14 @@ from app import statistics
 from app.models import (
     TV,
     Anime,
+    BoardGame,
+    Book,
+    Comic,
     Episode,
+    Experience,
+    Game,
     Item,
+    Manga,
     MediaTypes,
     Movie,
     Season,
@@ -451,6 +457,250 @@ class StatisticsDateFilteringTests(TestCase):
 
         # Should include the spanning movie
         self.assertIn(spanning_item.id, movie_ids)
+
+
+class StatisticsSummaryTests(TestCase):
+    """Test period summaries and their stable deduplication identities."""
+
+    def setUp(self):
+        """Create related TV seasons and repeated non-TV media."""
+        self.user = User.objects.create_user(username="summary-user")
+        self.other_user = User.objects.create_user(username="other-user")
+
+        self.tv_item = Item.objects.create(
+            media_id="show-1",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Shared Name",
+        )
+        self.tv = TV(user=self.user, item=self.tv_item)
+        TV.save_base(self.tv)
+
+        self.season_one = self._create_season(self.tv, 1)
+        self.season_two = self._create_season(self.tv, 2)
+        self._create_episode(
+            self.season_one,
+            1,
+            datetime.datetime(2025, 1, 5, tzinfo=datetime.UTC),
+        )
+        self._create_episode(
+            self.season_one,
+            2,
+            datetime.datetime(2025, 5, 5, tzinfo=datetime.UTC),
+        )
+        self._create_episode(
+            self.season_two,
+            1,
+            datetime.datetime(2025, 3, 5, tzinfo=datetime.UTC),
+        )
+
+        similarly_named_tv_item = Item.objects.create(
+            media_id="show-2",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Shared Name",
+        )
+        self.similarly_named_tv = TV(
+            user=self.user,
+            item=similarly_named_tv_item,
+        )
+        TV.save_base(self.similarly_named_tv)
+        similarly_named_season = self._create_season(self.similarly_named_tv, 1)
+        self._create_episode(
+            similarly_named_season,
+            1,
+            datetime.datetime(2025, 4, 5, tzinfo=datetime.UTC),
+        )
+
+        self.movie_item = Item.objects.create(
+            media_id="movie-1",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Repeated Movie",
+        )
+        for activity_date in (
+            datetime.datetime(2025, 2, 1, tzinfo=datetime.UTC),
+            datetime.datetime(2025, 2, 2, tzinfo=datetime.UTC),
+        ):
+            Movie.objects.create(
+                user=self.user,
+                item=self.movie_item,
+                start_date=activity_date,
+                end_date=activity_date,
+            )
+
+        self.outside_movie_item = Item.objects.create(
+            media_id="outside-movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Outside Movie",
+        )
+        Movie.objects.create(
+            user=self.user,
+            item=self.outside_movie_item,
+            start_date=datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC),
+        )
+
+        other_user_movie_item = Item.objects.create(
+            media_id="other-user-movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Other User Movie",
+        )
+        Movie.objects.create(
+            user=self.other_user,
+            item=other_user_movie_item,
+            start_date=datetime.datetime(2025, 2, 1, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 2, 1, tzinfo=datetime.UTC),
+        )
+
+    def _create_season(self, tv, season_number):
+        item = Item.objects.create(
+            media_id=tv.item.media_id,
+            source=tv.item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=tv.item.title,
+            season_number=season_number,
+        )
+        season = Season(
+            user=tv.user,
+            item=item,
+            related_tv=tv,
+        )
+        Season.save_base(season)
+        return season
+
+    def _create_episode(self, season, episode_number, watched_at):
+        item = Item.objects.create(
+            media_id=season.item.media_id,
+            source=season.item.source,
+            media_type=MediaTypes.EPISODE.value,
+            title=season.item.title,
+            season_number=season.item.season_number,
+            episode_number=episode_number,
+        )
+        episode = Episode(
+            item=item,
+            related_season=season,
+            end_date=watched_at,
+        )
+        Episode.save_base(episode)
+        return episode
+
+    def _period_media(self):
+        start_date = datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 5, 31, 23, 59, tzinfo=datetime.UTC)
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+        return user_media
+
+    def test_timeline_keeps_a_season_in_each_spanned_month(self):
+        """The existing monthly timeline behavior remains unchanged."""
+        timeline = statistics.get_timeline(self._period_media())
+
+        for month in ("January", "February", "March", "April", "May"):
+            season_ids = {
+                media.id
+                for media in timeline[f"{month} 2025"]
+                if isinstance(media, Season)
+            }
+            self.assertIn(self.season_one.id, season_ids)
+
+    def test_summary_keeps_seasons_separate_and_deduplicates_repeats(self):
+        """Summary has one stable item entry per season or non-TV item."""
+        groups = statistics.get_summary_groups(self._period_media())
+        groups_by_type = {group["media_type"]: group for group in groups}
+
+        season_ids = {
+            media.item_id
+            for media in groups_by_type[MediaTypes.SEASON.value]["media_list"]
+        }
+        self.assertIn(self.season_one.item_id, season_ids)
+        self.assertIn(self.season_two.item_id, season_ids)
+        self.assertEqual(len(season_ids), 3)
+
+        movie_group = groups_by_type[MediaTypes.MOVIE.value]
+        self.assertEqual(movie_group["count"], 1)
+        self.assertEqual(movie_group["media_list"][0].item_id, self.movie_item.id)
+        self.assertEqual(movie_group["media_list"][0].repeats, 2)
+
+    def test_title_summary_collapses_only_related_tv_seasons(self):
+        """Title Summary uses TV parents and never title similarity."""
+        groups = statistics.get_summary_groups(
+            self._period_media(),
+            collapse_tv_titles=True,
+        )
+        groups_by_type = {group["media_type"]: group for group in groups}
+
+        tv_group = groups_by_type[MediaTypes.TV.value]
+        tv_ids = {media.id for media in tv_group["media_list"]}
+        self.assertEqual(tv_ids, {self.tv.id, self.similarly_named_tv.id})
+        self.assertEqual(tv_group["count"], 2)
+        self.assertNotIn(MediaTypes.SEASON.value, groups_by_type)
+
+    def test_period_summary_excludes_other_dates_and_users(self):
+        """Only qualifying activity owned by the selected user is summarized."""
+        groups = statistics.get_summary_groups(self._period_media())
+        movie_group = next(
+            group
+            for group in groups
+            if group["media_type"] == MediaTypes.MOVIE.value
+        )
+        item_ids = {media.item_id for media in movie_group["media_list"]}
+
+        self.assertEqual(item_ids, {self.movie_item.id})
+        self.assertNotIn(self.outside_movie_item.id, item_ids)
+
+    def test_non_tv_types_use_item_identity_without_title_merging(self):
+        """Every non-TV type deduplicates item rows, not displayed titles."""
+        media_models = (
+            Movie,
+            Anime,
+            Manga,
+            Book,
+            Game,
+            Comic,
+            BoardGame,
+            Experience,
+        )
+        user_media = {}
+
+        for model in media_models:
+            media_type = model.__name__.lower()
+            first_item = Item.objects.create(
+                media_id=f"{media_type}-1",
+                source=Sources.MANUAL.value,
+                media_type=media_type,
+                title="Same Displayed Title",
+            )
+            second_item = Item.objects.create(
+                media_id=f"{media_type}-2",
+                source=Sources.MANUAL.value,
+                media_type=media_type,
+                title="Same Displayed Title",
+            )
+            model.objects.create(user=self.user, item=first_item)
+            model.objects.create(user=self.user, item=first_item)
+            model.objects.create(user=self.user, item=second_item)
+            user_media[media_type] = model.objects.filter(
+                user=self.user,
+                item_id__in=(first_item.id, second_item.id),
+            )
+
+        summary_groups = statistics.get_summary_groups(user_media)
+        title_groups = statistics.get_summary_groups(
+            user_media,
+            collapse_tv_titles=True,
+        )
+
+        for groups in (summary_groups, title_groups):
+            self.assertEqual(len(groups), len(media_models))
+            for group in groups:
+                self.assertEqual(group["count"], 2)
 
 
 class StatisticsTests(TestCase):

@@ -381,6 +381,64 @@ def get_timeline(user_media):
     return result
 
 
+def get_summary_groups(user_media, *, collapse_tv_titles=False):
+    """Return unique period media grouped by type.
+
+    Summary mode keeps TV seasons as separate items. Title Summary replaces those
+    season groups with their qualifying parent TV records. All other media types
+    remain keyed by their stable Item row because they do not have a reliable
+    parent-series relationship.
+    """
+    groups = []
+
+    for media_type, queryset in user_media.items():
+        if media_type == MediaTypes.SEASON.value and collapse_tv_titles:
+            continue
+        if media_type == MediaTypes.TV.value and not collapse_tv_titles:
+            continue
+
+        unique_media = {}
+        repeat_counts = defaultdict(int)
+
+        for media in queryset:
+            identity = media.item_id
+            repeat_counts[identity] += 1
+
+            current = unique_media.get(identity)
+            if current is None or (media.created_at, media.pk) > (
+                current.created_at,
+                current.pk,
+            ):
+                unique_media[identity] = media
+
+        media_list = list(unique_media.values())
+        for media in media_list:
+            media.repeats = repeat_counts[media.item_id]
+
+        media_list.sort(key=_summary_sort_key, reverse=True)
+
+        if media_list:
+            groups.append(
+                {
+                    "media_type": media_type,
+                    "media_list": media_list,
+                    "count": len(media_list),
+                },
+            )
+
+    return groups
+
+
+def _summary_sort_key(media):
+    """Sort summary media by qualifying activity, then stable item identity."""
+    activity_date = media.end_date or media.start_date
+    return (
+        activity_date is not None,
+        activity_date or datetime.datetime.min.replace(tzinfo=datetime.UTC),
+        media.item_id,
+    )
+
+
 def time_line_sort_key(media):
     """Sort media items in the timeline."""
     if media.end_date is not None:

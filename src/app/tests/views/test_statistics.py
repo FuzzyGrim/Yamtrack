@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs, urlparse
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -27,6 +29,7 @@ class StatisticsViewTests(TestCase):
         self.assertIn("status_distribution", response.context)
         self.assertIn("status_pie_chart_data", response.context)
         self.assertIn("timeline", response.context)
+        self.assertEqual(response.context["statistics_view"], "timeline")
 
     def test_statistics_view_custom_date_range(self):
         """Test the statistics view with custom date range."""
@@ -66,3 +69,48 @@ class StatisticsViewTests(TestCase):
         )
 
         self.assertTrue(date_is_none)
+
+    def test_statistics_summary_modes(self):
+        """Summary modes render without building monthly timeline data."""
+        for view_name in ("summary", "titles"):
+            with self.subTest(view=view_name):
+                response = self.client.get(
+                    reverse("statistics"),
+                    {"view": view_name},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["statistics_view"], view_name)
+                self.assertEqual(response.context["timeline"], {})
+                self.assertIn("summary_groups", response.context)
+                self.assertContains(response, 'aria-current="page"')
+                self.assertContains(response, "No activity in this period")
+
+    def test_statistics_view_links_preserve_query_parameters(self):
+        """Changing modes keeps dates and other Statistics options."""
+        response = self.client.get(
+            reverse("statistics"),
+            {
+                "start-date": "2025-01-01",
+                "end-date": "2025-05-31",
+                "view": "summary",
+                "future-filter": "kept",
+            },
+        )
+
+        for view_name, view_url in response.context["view_urls"].items():
+            query = parse_qs(urlparse(view_url).query)
+            self.assertEqual(query["start-date"], ["2025-01-01"])
+            self.assertEqual(query["end-date"], ["2025-05-31"])
+            self.assertEqual(query["future-filter"], ["kept"])
+            self.assertEqual(query["view"], [view_name])
+
+    def test_invalid_statistics_view_falls_back_to_timeline(self):
+        """Unknown view parameters retain the bookmarked default behavior."""
+        response = self.client.get(
+            reverse("statistics"),
+            {"view": "unknown"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["statistics_view"], "timeline")
