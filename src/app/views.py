@@ -1059,36 +1059,17 @@ def delete_history_record(request, media_type, history_id):
 @require_GET
 def statistics(request):
     """Return the statistics page."""
-    statistics_view = request.GET.get("view", "timeline")
-    if statistics_view not in {"timeline", "summary", "titles"}:
-        statistics_view = "timeline"
+    legacy_summary_view = request.GET.get("view")
+    if legacy_summary_view in {"summary", "titles"}:
+        return redirect(
+            _url_with_query(
+                request,
+                "statistics_summary",
+                view=legacy_summary_view,
+            ),
+        )
 
-    # Set default date range to last year
-    timeformat = "%Y-%m-%d"
-    today = timezone.localdate()
-    one_year_ago = today.replace(year=today.year - 1)
-
-    # Get date parameters with defaults
-    start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
-    end_date_str = request.GET.get("end-date") or today.strftime(timeformat)
-
-    if start_date_str == "all" and end_date_str == "all":
-        start_date = None
-        end_date = None
-    else:
-        start_date = parse_date(start_date_str)
-        end_date = parse_date(end_date_str)
-
-        if start_date and end_date:
-            # Convert to datetime with timezone awareness
-            start_date = timezone.make_aware(
-                datetime.combine(start_date, datetime.min.time()),
-            )
-
-            # End date should be end of day
-            end_date = timezone.make_aware(
-                datetime.combine(end_date, datetime.max.time()),
-            )
+    start_date, end_date = _get_statistics_date_range(request)
 
     # Get all user media data in a single operation
     user_media, media_count = stats.get_user_media(
@@ -1106,23 +1087,9 @@ def statistics(request):
     status_pie_chart_data = stats.get_status_pie_chart_data(
         status_distribution,
     )
-    timeline = {}
-    summary_groups = []
-    if statistics_view == "timeline":
-        timeline = stats.get_timeline(user_media)
-    else:
-        summary_groups = stats.get_summary_groups(
-            user_media,
-            collapse_tv_titles=statistics_view == "titles",
-        )
+    timeline = stats.get_timeline(user_media)
 
     activity_data = stats.get_activity_data(request.user, start_date, end_date)
-
-    view_urls = {}
-    for view_name in ("timeline", "summary", "titles"):
-        query_params = request.GET.copy()
-        query_params["view"] = view_name
-        view_urls[view_name] = f"?{query_params.urlencode()}"
 
     context = {
         "start_date": start_date,
@@ -1135,13 +1102,109 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
-        "summary_groups": summary_groups,
-        "statistics_view": statistics_view,
-        "view_urls": view_urls,
+        "statistics_page": "statistics",
+        "statistics_page_url": _url_with_query(
+            request,
+            "statistics",
+            view=None,
+        ),
+        "statistics_summary_page_url": _url_with_query(
+            request,
+            "statistics_summary",
+            view="summary",
+        ),
         "date_format_values": DateFormatChoices.values,
     }
 
     return render(request, "app/statistics.html", context)
+
+
+@require_GET
+def statistics_summary(request):
+    """Return period media grouped by item or reliable parent title."""
+    summary_view = request.GET.get("view", "summary")
+    if summary_view not in {"summary", "titles"}:
+        summary_view = "summary"
+
+    start_date, end_date = _get_statistics_date_range(request)
+    user_media, _ = stats.get_user_media(
+        request.user,
+        start_date,
+        end_date,
+    )
+    summary_groups = stats.get_summary_groups(
+        user_media,
+        collapse_tv_titles=summary_view == "titles",
+    )
+
+    context = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "summary_groups": summary_groups,
+        "summary_view": summary_view,
+        "summary_view_urls": {
+            view_name: _url_with_query(
+                request,
+                "statistics_summary",
+                view=view_name,
+            )
+            for view_name in ("summary", "titles")
+        },
+        "statistics_page": "summary",
+        "statistics_page_url": _url_with_query(
+            request,
+            "statistics",
+            view=None,
+        ),
+        "statistics_summary_page_url": _url_with_query(
+            request,
+            "statistics_summary",
+            view=summary_view,
+        ),
+        "date_format_values": DateFormatChoices.values,
+    }
+
+    return render(request, "app/statistics_summary.html", context)
+
+
+def _get_statistics_date_range(request):
+    """Return the selected Statistics date range as aware datetimes."""
+    timeformat = "%Y-%m-%d"
+    today = timezone.localdate()
+    one_year_ago = today.replace(year=today.year - 1)
+
+    start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
+    end_date_str = request.GET.get("end-date") or today.strftime(timeformat)
+
+    if start_date_str == "all" and end_date_str == "all":
+        return None, None
+
+    start_date = parse_date(start_date_str)
+    end_date = parse_date(end_date_str)
+
+    if start_date and end_date:
+        start_date = timezone.make_aware(
+            datetime.combine(start_date, datetime.min.time()),
+        )
+        end_date = timezone.make_aware(
+            datetime.combine(end_date, datetime.max.time()),
+        )
+
+    return start_date, end_date
+
+
+def _url_with_query(request, url_name, **updates):
+    """Build a named URL while preserving and selectively updating its query."""
+    query_params = request.GET.copy()
+    for key, value in updates.items():
+        if value is None:
+            query_params.pop(key, None)
+        else:
+            query_params[key] = value
+
+    encoded_query = query_params.urlencode()
+    url = reverse(url_name)
+    return f"{url}?{encoded_query}" if encoded_query else url
 
 
 @require_GET

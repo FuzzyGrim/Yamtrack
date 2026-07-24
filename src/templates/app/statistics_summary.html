@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_tags %}
+
+{% block title %}
+  Statistics Summary - Yamtrack
+{% endblock title %}
+
+{% block content %}
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold mb-2">Statistics Summary</h1>
+    <p class="text-gray-400">Review unique media activity across a selected period</p>
+  </div>
+
+  {% include "app/components/statistics_navigation.html" %}
+  {% include "app/components/statistics_date_range.html" %}
+
+  <div class="bg-[#2a2f35] rounded-lg p-4 sm:p-6 max-w-[calc(100svw-2rem)]">
+    <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+      <h2 class="text-xl font-semibold">
+        {% if summary_view == "titles" %}
+          Title Summary
+        {% else %}
+          Summary
+        {% endif %}
+      </h2>
+
+      <nav aria-label="Summary view"
+           class="flex max-w-full overflow-x-auto rounded-lg border border-gray-700 bg-[#23272b] p-1">
+        <a href="{{ summary_view_urls.summary }}"
+           {% if summary_view == "summary" %}aria-current="page"{% endif %}
+           class="shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors {% if summary_view == 'summary' %}bg-indigo-600 text-white shadow-sm{% else %}text-gray-400 hover:bg-[#39404b] hover:text-white{% endif %}">Summary</a>
+        <a href="{{ summary_view_urls.titles }}"
+           {% if summary_view == "titles" %}aria-current="page"{% endif %}
+           class="shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors {% if summary_view == 'titles' %}bg-indigo-600 text-white shadow-sm{% else %}text-gray-400 hover:bg-[#39404b] hover:text-white{% endif %}">Title Summary</a>
+      </nav>
+    </div>
+
+    {% if summary_groups %}
+      <div class="space-y-10">
+        {% for group in summary_groups %}
+          <section aria-labelledby="statistics-group-{{ group.media_type }}">
+            <div class="mb-4 flex items-center gap-2">
+              <h3 id="statistics-group-{{ group.media_type }}"
+                  class="text-lg font-semibold">
+                {% if group.media_type == MediaTypes.SEASON.value or group.media_type == MediaTypes.TV.value %}
+                  TV Shows
+                {% else %}
+                  {{ group.media_type|media_type_readable_plural }}
+                {% endif %}
+              </h3>
+              <span class="rounded-full bg-indigo-600/20 px-2.5 py-0.5 text-sm font-medium text-indigo-300">{{ group.count }}</span>
+            </div>
+
+            <div class="media-grid">
+              {% for media in group.media_list %}
+                {% include "app/components/media_card.html" with media=media item=media.item title=media.item media_type=group.media_type from_grid=True secondary_color=True %}
+              {% endfor %}
+            </div>
+          </section>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="flex flex-col items-center justify-center py-16">
+        <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          {% include "app/icons/clock.svg" with classes="w-8 h-8 text-gray-400" %}
+        </div>
+        <h3 class="text-lg font-medium mb-2">No activity in this period</h3>
+        <p class="text-gray-400 text-center max-w-md">Choose another date range or track some activity to see a summary.</p>
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}
+
+{% block js %}
+  {{ date_format_values|json_script:"date_format_values" }}
+  <script src="{% static 'js/date-range.js' %}{% get_static_file_mtime 'js/date-range.js' %}"
+          data-date-format="{{ user.date_format }}"></script>
+{% endblock js %}

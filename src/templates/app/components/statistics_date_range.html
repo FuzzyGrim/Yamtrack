@@ -1,0 +1,77 @@
+<div x-data="dateRangePicker()" x-init="init()" class="relative mb-8">
+  <!-- Trigger Button -->
+  <button @click="toggleDropdown()"
+          class="flex items-center gap-2 px-4 py-2.5 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
+    {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400" %}
+    <span class="font-medium" x-text="selectedRange"></span>
+    <div class="w-4 h-4 ml-1 transition-transform duration-200"
+         :class="{'rotate-180': isOpen}">{% include "app/icons/chevron-down.svg" %}</div>
+  </button>
+
+  <!-- Dropdown -->
+  <div x-cloak
+       x-show="isOpen"
+       x-transition
+       @click.outside="isOpen = false"
+       class="absolute z-20 mt-2 w-[340px] max-w-[calc(100vw-2rem)] bg-[#2a2f35] rounded-lg shadow-lg border border-gray-700 overflow-hidden transition-all duration-200 animate-in fade-in-50 slide-in-from-top-5">
+
+    <!-- Tabs -->
+    <div class="flex border-b border-gray-700">
+      <button @click="activeTab = 'predefined'"
+              :class="{'text-white border-b-2 border-indigo-500': activeTab === 'predefined', 'text-gray-400 hover:text-gray-200': activeTab !== 'predefined'}"
+              class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Predefined Ranges</button>
+      <button @click="activeTab = 'custom'"
+              :class="{'text-white border-b-2 border-indigo-500': activeTab === 'custom', 'text-gray-400 hover:text-gray-200': activeTab !== 'custom'}"
+              class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Custom Range</button>
+    </div>
+
+    <!-- Predefined Ranges Tab -->
+    <div x-show="activeTab === 'predefined'"
+         class="p-2 max-h-80 overflow-y-auto">
+      <div class="grid grid-cols-2 gap-2">
+        <template x-for="range in predefinedRanges" :key="range.name">
+          <button @click="selectPredefinedRange(range.name)"
+                  :class="{'bg-indigo-600 text-white': selectedRange === range.name, 'hover:bg-[#39404b] text-gray-200': selectedRange !== range.name}"
+                  class="flex items-center justify-between p-3 rounded-md text-left text-sm transition-all cursor-pointer">
+            <span x-text="range.name"></span>
+            <div x-show="selectedRange === range.name">{% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}</div>
+          </button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Custom Range Tab -->
+    <div x-show="activeTab === 'custom'" class="p-4">
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
+            <input x-model="startDate"
+                   @change="updateDateRange()"
+                   class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
+                   type="date">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
+            <input x-model="endDate"
+                   @change="updateDateRange()"
+                   class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
+                   type="date">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button @click="isOpen = false"
+                  class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
+            Cancel
+          </button>
+          <button @click="applyCustomRange()"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
+            {% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}
+            Apply Range
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

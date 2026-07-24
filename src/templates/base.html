@@ -130,10 +130,11 @@
                   </li>
 
                   {% url 'statistics' as statistics_url %}
+                  {% url 'statistics_summary' as statistics_summary_url %}
                   <li>
                     <a href="{{ statistics_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:statistics_url %}
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url or request.path == statistics_summary_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path == statistics_url or request.path == statistics_summary_url %}
                         {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
                       {% else %}
