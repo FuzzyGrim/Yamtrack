@@ -6,7 +6,7 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
-### Added
+### Added (Social Sharing)
 
 - Public user profiles with avatar and bio support
 - User directory to browse and discover other users
@@ -33,6 +33,12 @@ All notable changes to this project should be documented here.
 
 - Login/signup crash when Redis is not running (graceful fallback to LocMemCache)
 - Static files 404 when DEBUG=False (created .env with DEBUG=True)
+- Privacy logic redesigned: tracked items in private lists are now properly hidden from other users (single source of truth in `get_private_item_ids`)
+- TV show privacy cascades to all seasons and episodes (same media_id/source)
+- Avatar display on People page: explicit 48x48 dimensions prevent image distortion
+- Moving an item to a private list no longer requires removing tracking records to maintain privacy
+- Changing tracking status/score no longer exposes previously hidden items
+- `get_private_item_ids` returns a list (not queryset) to avoid ORM evaluation issues downstream
 - public_profile view FieldError on `progressed_at` for Season model (property vs DB field conflict)
 - Removed unused `total_episodes` calculation from public_profile view
 - AnonymousUser crash in base template when accessing public pages (get_sidebar_media_types, get_search_media_types, media_type_readable filters)
@@ -45,6 +51,8 @@ All notable changes to this project should be documented here.
 - `media_details.html` Alpine.js x-data typo (`{ tab: 'overview' } }` extra `}`) that broke all tab switching
 - Orphaned `{% endwith %}` tag in media_details.html causing TemplateSyntaxError
 - `season_details` view missing profile context support (profile_user, profile_medias, is_profile_view)
+- Private list items leaking to public profiles via get_private_item_ids (now excludes items also in public lists)
+- Avatar uploads succeed but images not displayed (nginx missing `/media/` location block)
 
 ---
 

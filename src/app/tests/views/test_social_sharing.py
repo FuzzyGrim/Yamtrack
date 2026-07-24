@@ -1,7 +1,9 @@
+import tempfile
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from app.models import (
@@ -563,3 +565,189 @@ class ProfileAddToMyLibraryTests(TestCase):
         self.assertEqual(owner_movie.score, 9)
         self.assertEqual(owner_movie.notes, "Original notes")
         self.assertEqual(owner_movie.status, Status.COMPLETED.value)
+
+
+class PrivateItemExclusivityTests(TestCase):
+    """Test that items EXCLUSIVELY in private lists are hidden from public profiles.
+
+    Rules:
+    - Item in private list only → hidden from other users
+    - Item in both private and public lists → visible (public takes precedence)
+    - Tracking status does NOT affect privacy
+    """
+
+    def setUp(self):
+        """Create owner, viewer, items, lists, and tracking records."""
+        self.owner = get_user_model().objects.create_user(
+            username="owner", password="12345",
+        )
+        self.viewer = get_user_model().objects.create_user(
+            username="viewer", password="12345",
+        )
+
+        self.private_list = CustomList.objects.create(
+            name="Private List", owner=self.owner, is_public=False,
+        )
+        self.public_list = CustomList.objects.create(
+            name="Public List", owner=self.owner, is_public=True,
+        )
+
+        self.private_only_item = Item.objects.create(
+            media_id="100", source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value, title="Private Only Movie",
+            image="http://example.com/100.jpg",
+        )
+        self.private_and_public_item = Item.objects.create(
+            media_id="200", source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value, title="Private and Public Movie",
+            image="http://example.com/200.jpg",
+        )
+        self.private_and_tracked_item = Item.objects.create(
+            media_id="300", source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value, title="Private and Tracked Movie",
+            image="http://example.com/300.jpg",
+        )
+
+        CustomListItem.objects.create(
+            custom_list=self.private_list, item=self.private_only_item,
+        )
+        CustomListItem.objects.create(
+            custom_list=self.private_list, item=self.private_and_public_item,
+        )
+        CustomListItem.objects.create(
+            custom_list=self.public_list, item=self.private_and_public_item,
+        )
+        CustomListItem.objects.create(
+            custom_list=self.private_list, item=self.private_and_tracked_item,
+        )
+        Movie.objects.create(
+            item=self.private_and_tracked_item, user=self.owner,
+            status=Status.COMPLETED.value,
+        )
+        Movie.objects.create(
+            item=self.private_and_public_item, user=self.owner,
+            status=Status.COMPLETED.value,
+        )
+
+    def test_private_only_item_hidden_from_public_profile(self):
+        """Item only in private lists is hidden from public profile."""
+        self.owner.profile_private = False
+        self.owner.save()
+        self.client.login(username="viewer", password="12345")
+
+        response = self.client.get(
+            reverse("public_profile", args=[self.owner.username]),
+        )
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode()
+        self.assertNotIn("Private Only Movie", content)
+        self.assertEqual(response.context["media_count"]["movie"], 1)
+
+    def test_item_in_private_and_public_list_is_visible(self):
+        """Item in both private and public lists is visible on public profile."""
+        self.owner.profile_private = False
+        self.owner.save()
+        self.client.login(username="viewer", password="12345")
+
+        response = self.client.get(
+            reverse("public_profile", args=[self.owner.username]),
+        )
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode()
+        self.assertIn("Private and Public Movie", content)
+
+    def test_item_in_private_list_and_tracked_is_hidden(self):
+        """Item in private list but also tracked is hidden (tracking doesn't affect privacy)."""
+        self.owner.profile_private = False
+        self.owner.save()
+        self.client.login(username="viewer", password="12345")
+
+        response = self.client.get(
+            reverse("public_profile", args=[self.owner.username]),
+        )
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode()
+        self.assertNotIn("Private and Tracked Movie", content)
+        self.assertEqual(response.context["media_count"]["movie"], 1)
+
+    def test_get_private_item_ids_includes_tracked(self):
+        """get_private_item_ids includes tracked items (tracking doesn't affect privacy)."""
+        private_ids = list(
+            CustomList.objects.get_private_item_ids(self.owner),
+        )
+        self.assertNotIn(self.private_and_public_item.id, private_ids)
+        self.assertIn(self.private_and_tracked_item.id, private_ids)
+        self.assertIn(self.private_only_item.id, private_ids)
+
+
+class AvatarUploadTests(TestCase):
+    """Test avatar upload and URL accessibility."""
+
+    def setUp(self):
+        """Create a test user."""
+        self.user = get_user_model().objects.create_user(
+            username="testuser", password="12345",
+        )
+        self.client.login(username="testuser", password="12345")
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_avatar_upload_saves_file(self):
+        """Avatar upload saves the file to disk."""
+        from io import BytesIO
+
+        from PIL import Image
+
+        img = Image.new("RGB", (100, 100), color="red")
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        avatar_file = SimpleUploadedFile(
+            "test_avatar.png", buf.read(), content_type="image/png",
+        )
+
+        response = self.client.post(
+            reverse("account"),
+            {
+                "username": "testuser",
+                "profile_private": "",
+                "bio": "",
+                "avatar": avatar_file,
+            },
+        )
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.avatar)
+        self.assertIn("avatars/", self.user.avatar.name)
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_avatar_url_is_accessible(self):
+        """Avatar URL is correctly generated after upload."""
+        from io import BytesIO
+
+        from PIL import Image
+
+        img = Image.new("RGB", (100, 100), color="blue")
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        avatar_file = SimpleUploadedFile(
+            "test_avatar2.png", buf.read(), content_type="image/png",
+        )
+
+        self.client.post(
+            reverse("account"),
+            {
+                "username": "testuser",
+                "profile_private": "",
+                "bio": "",
+                "avatar": avatar_file,
+            },
+        )
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.avatar.name)
+        url = self.user.avatar.url
+        self.assertIn("/media/avatars/", url)

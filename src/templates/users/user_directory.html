@@ -58,7 +58,7 @@
             <div class="flex items-center gap-3 mb-3">
               <div class="w-12 h-12 rounded-full bg-[#4f46e5] flex items-center justify-center text-lg font-bold text-white overflow-hidden shrink-0">
                 {% if user.avatar %}
-                  <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="w-full h-full object-cover">
+                  <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="w-12 h-12 rounded-full object-cover" width="48" height="48">
                 {% else %}
                   {{ user.username.0|upper }}
                 {% endif %}

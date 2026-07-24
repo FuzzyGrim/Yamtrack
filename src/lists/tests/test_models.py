@@ -26,6 +26,7 @@ class CustomListModelTest(TestCase):
             name="Test List",
             description="Test Description",
             owner=self.user,
+            is_public=False,
         )
         self.custom_list.collaborators.add(self.collaborator)
 
