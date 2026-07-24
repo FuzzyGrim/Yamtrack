@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -281,6 +281,8 @@ class ImportTrakt(TestCase):
         self.assertEqual(importer.username, "testuser")
         self.assertEqual(importer.refresh_token, encrypted_token)
         self.assertEqual(importer.mode, "new")
+        self.assertTrue(importer.is_oauth_import)
+        self.assertEqual(importer.user_base_url, "https://api.trakt.tv/users/me")
 
     def test_trakt_importer_without_refresh_token(self):
         """Test TraktImporter initialization without refresh token (public)."""
@@ -289,6 +291,60 @@ class ImportTrakt(TestCase):
         self.assertEqual(importer.username, "testuser")
         self.assertIsNone(importer.refresh_token)
         self.assertEqual(importer.mode, "new")
+        self.assertFalse(importer.is_oauth_import)
+        self.assertEqual(importer.user_base_url, "https://api.trakt.tv/users/testuser")
+
+    @patch("integrations.imports.trakt.TraktImporter.process_watched_movie")
+    @patch("integrations.imports.trakt.TraktImporter._get_paginated_data")
+    def test_process_history_oauth_falls_back_to_sync_when_empty(
+        self,
+        mock_get_paginated,
+        mock_process_movie,
+    ):
+        """OAuth history import retries against sync endpoint if user history is empty."""
+        encrypted_token = helpers.encrypt("test_refresh_token")
+        history_entry = {
+            "type": "movie",
+            "movie": {"title": "Fallback Movie", "ids": {"tmdb": 123}},
+            "watched_at": "2023-01-02T00:00:00.000Z",
+        }
+        mock_get_paginated.side_effect = [[], [history_entry]]
+
+        trakt_importer = TraktImporter(
+            "testuser",
+            self.user,
+            "new",
+            refresh_token=encrypted_token,
+        )
+        trakt_importer.process_history()
+
+        self.assertEqual(
+            mock_get_paginated.call_args_list,
+            [
+                call(
+                    "https://api.trakt.tv/users/me/history",
+                    "history entries",
+                ),
+                call(
+                    "https://api.trakt.tv/sync/history",
+                    "history entries",
+                ),
+            ],
+        )
+        mock_process_movie.assert_called_once_with(history_entry)
+
+    @patch("integrations.imports.trakt.TraktImporter._get_paginated_data")
+    def test_process_history_public_does_not_fallback(self, mock_get_paginated):
+        """Public history import does not retry sync endpoint when empty."""
+        mock_get_paginated.return_value = []
+
+        trakt_importer = TraktImporter("testuser", self.user, "new", refresh_token=None)
+        trakt_importer.process_history()
+
+        mock_get_paginated.assert_called_once_with(
+            "https://api.trakt.tv/users/testuser/history",
+            "history entries",
+        )
 
     @patch("integrations.imports.trakt.update_refresh_token")
     @patch("app.providers.services.api_request")
