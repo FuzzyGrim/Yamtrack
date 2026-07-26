@@ -4,6 +4,7 @@ import apprise
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Q
@@ -20,6 +21,7 @@ from users.models import (
     DateFormatChoices,
     QuickWatchDateChoices,
     TimeFormatChoices,
+    User,
     WeekStartDayChoices,
 )
 
@@ -35,7 +37,9 @@ def account(request):
     if request.method == "POST":
         # Handle username update
         if "username" in request.POST:
-            user_form = UserUpdateForm(request.POST, instance=request.user)
+            user_form = UserUpdateForm(
+                request.POST, request.FILES, instance=request.user,
+            )
 
             if user_form.is_valid():
                 user_form.save()
@@ -405,3 +409,120 @@ def clear_search_cache(request):
     )
 
     return redirect("advanced")
+
+
+@login_not_required
+@require_GET
+def public_profile(request, username):
+    """Display a user's public profile page."""
+    target_user = get_object_or_404(User, username=username)
+
+    is_owner = request.user.is_authenticated and request.user == target_user
+    is_admin = request.user.is_authenticated and request.user.is_staff
+
+    if target_user.profile_private and not is_owner and not is_admin:
+        messages.error(request, "This profile is private.")
+        return redirect("home")
+
+    from app.models import BasicMedia, MediaTypes as MT
+    from app.statistics import get_user_media, get_media_type_distribution
+    from lists.models import CustomList
+
+    private_item_ids = list(CustomList.objects.get_private_item_ids(target_user)) if not is_owner else []
+
+    media_types = target_user.get_enabled_media_types()
+    user_media, media_count = get_user_media(target_user, None, None)
+
+    if private_item_ids:
+        for media_type_key, queryset in user_media.items():
+            user_media[media_type_key] = queryset.exclude(item_id__in=private_item_ids)
+            media_count[media_type_key] = user_media[media_type_key].count()
+        media_count["total"] = sum(
+            v for k, v in media_count.items() if k != "total"
+        )
+
+    recently_watched = []
+    currently_watching = []
+    for mt in media_types:
+        if mt == MT.TV.value:
+            continue
+        from django.apps import apps as django_apps
+        model_class = django_apps.get_model("app", mt)
+        qs = model_class.objects.filter(
+            user=target_user,
+        ).select_related("item").order_by("-created_at")
+
+        if private_item_ids:
+            qs = qs.exclude(item_id__in=private_item_ids)
+
+        for item in qs[:10]:
+            if item.status == "In progress":
+                currently_watching.append({"media": item, "media_type": mt})
+            if item.end_date or item.created_at:
+                recently_watched.append({"media": item, "media_type": mt})
+
+    recently_watched.sort(
+        key=lambda x: x["media"].end_date or x["media"].created_at,
+        reverse=True,
+    )
+    recently_watched = recently_watched[:12]
+
+    public_lists = CustomList.objects.get_public_lists_for_user(target_user)[:6]
+    list_count = CustomList.objects.filter(owner=target_user, is_public=True).count()
+
+    total_movies = media_count.get("movie", 0)
+    total_tv = media_count.get("tv", 0)
+    total_seasons = media_count.get("season", 0)
+
+    context = {
+        "target_user": target_user,
+        "is_owner": is_owner,
+        "recently_watched": recently_watched,
+        "currently_watching": currently_watching[:10],
+        "public_lists": public_lists,
+        "list_count": list_count,
+        "total_movies": total_movies,
+        "total_tv": total_tv,
+        "total_seasons": total_seasons,
+        "media_count": media_count,
+        "media_types": media_types,
+    }
+
+    return render(request, "users/public_profile.html", context)
+
+
+@require_GET
+def user_directory(request):
+    """Display all users with public profiles."""
+    from django.core.paginator import Paginator
+    from lists.models import CustomList
+
+    search_query = request.GET.get("q", "")
+    sort_by = request.GET.get("sort", "username")
+    page = request.GET.get("page", 1)
+
+    users = User.objects.filter(profile_private=False, is_active=True)
+
+    if search_query:
+        users = users.filter(username__icontains=search_query)
+
+    if sort_by == "newest":
+        users = users.order_by("-date_joined")
+    else:
+        users = users.order_by("username")
+
+    paginator = Paginator(users, 20)
+    users_page = paginator.get_page(page)
+
+    for user in users_page:
+        user.list_count = CustomList.objects.filter(
+            owner=user, is_public=True,
+        ).count()
+
+    context = {
+        "users_page": users_page,
+        "search_query": search_query,
+        "current_sort": sort_by,
+    }
+
+    return render(request, "users/user_directory.html", context)

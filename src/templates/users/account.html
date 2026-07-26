@@ -21,8 +21,29 @@
         </div>
       {% endif %}
 
-      <form method="post" class="space-y-4">
+      <form method="post" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}
+
+        <div>
+          <label class="block text-sm font-medium mb-2 text-gray-300">Avatar</label>
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-[#4f46e5] flex items-center justify-center text-2xl font-bold text-white overflow-hidden">
+              {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="Avatar" class="w-full h-full object-cover">
+              {% else %}
+                {{ user.username.0|upper }}
+              {% endif %}
+            </div>
+            <div class="flex-1">
+              <input type="file"
+                     name="avatar"
+                     accept="image/*"
+                     class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:cursor-pointer cursor-pointer">
+              <p class="text-xs text-gray-400 mt-1">JPG, PNG or GIF. Max 5MB.</p>
+            </div>
+          </div>
+        </div>
+
         <div>
           <label for="{{ user_form.username.id_for_label }}"
                  class="block text-sm font-medium mb-2 text-gray-300">Username</label>
@@ -37,6 +58,18 @@
         </div>
 
         <div>
+          <label for="id_bio"
+                 class="block text-sm font-medium mb-2 text-gray-300">Bio</label>
+          <textarea id="id_bio"
+                    name="bio"
+                    rows="3"
+                    maxlength="500"
+                    class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 resize-none"
+                    placeholder="Tell others about yourself...">{{ user.bio|default:"" }}</textarea>
+          <p class="text-xs text-gray-400 mt-1">{{ user.bio|length }}/500 characters</p>
+        </div>
+
+        <div>
           <label for="{{ user_form.profile_private.id_for_label }}"
                  class="block text-sm font-medium mb-2 text-gray-300">Profile visibility</label>
           <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
@@ -45,7 +78,7 @@
                 {% include "app/icons/hat-glasses.svg" with classes="w-5 h-5 mr-2" %}
                 <span class="text-sm font-medium">Private profile</span>
               </div>
-              <p class="text-xs text-gray-400 ml-7">Hide your profile and media lists from anonymous visitors.</p>
+              <p class="text-xs text-gray-400 ml-7">Hide your profile and media lists from other users.</p>
             </div>
             <label for="{{ user_form.profile_private.id_for_label }}"
                    class="relative inline-flex items-center cursor-pointer ml-4">

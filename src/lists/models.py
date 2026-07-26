@@ -27,6 +27,65 @@ class CustomListManager(models.Manager):
             .distinct()
         )
 
+    def get_public_lists_for_user(self, user):
+        """Return public lists owned by the given user."""
+        return (
+            self.filter(owner=user, is_public=True)
+            .select_related("owner")
+            .prefetch_related(
+                Prefetch(
+                    "items",
+                    queryset=Item.objects.order_by("-customlistitem__date_added"),
+                ),
+            )
+            .order_by("-id")
+        )
+
+    def get_private_item_ids(self, user):
+        """Return Item IDs that should be hidden from other users.
+
+        An item is private if it exists exclusively in private lists
+        (not in any public list). Tracking status does not affect privacy.
+
+        For TV shows in private lists, all related season and episode
+        items are also included to ensure full show privacy.
+        """
+        from app.models import MediaTypes
+
+        private_item_ids = CustomListItem.objects.filter(
+            custom_list__owner=user,
+            custom_list__is_public=False,
+        ).values_list("item_id", flat=True)
+
+        public_item_ids = CustomListItem.objects.filter(
+            custom_list__owner=user,
+            custom_list__is_public=True,
+        ).values_list("item_id", flat=True)
+
+        exclusively_private = set(private_item_ids) - set(public_item_ids)
+
+        if not exclusively_private:
+            return []
+
+        tv_item_ids = Item.objects.filter(
+            id__in=exclusively_private,
+            media_type=MediaTypes.TV.value,
+        ).values_list("id", flat=True)
+
+        if tv_item_ids:
+            tv_items = Item.objects.filter(id__in=tv_item_ids)
+            related_ids = Item.objects.filter(
+                media_id__in=tv_items.values_list("media_id", flat=True),
+                source__in=tv_items.values_list("source", flat=True),
+                media_type__in=[
+                    MediaTypes.SEASON.value,
+                    MediaTypes.EPISODE.value,
+                ],
+            ).values_list("id", flat=True)
+            exclusively_private.update(related_ids)
+
+        return list(exclusively_private)
+
     def get_user_lists_with_item(self, user, item):
         """Return user lists with item membership status."""
         return (
@@ -62,6 +121,10 @@ class CustomList(models.Model):
         blank=True,
         through="CustomListItem",
     )
+    is_public = models.BooleanField(
+        default=True,
+        help_text="Public lists are visible to all users",
+    )
 
     objects = CustomListManager()
 
@@ -76,6 +139,8 @@ class CustomList(models.Model):
 
     def user_can_view(self, user):
         """Check if the user can view the list."""
+        if self.is_public:
+            return True
         return self.owner == user or user in self.collaborators.all()
 
     def user_can_edit(self, user):
@@ -85,6 +150,10 @@ class CustomList(models.Model):
     def user_can_delete(self, user):
         """Check if the user can delete the list."""
         return self.owner == user
+
+    def user_is_owner_or_collaborator(self, user):
+        """Check if the user is the owner or a collaborator."""
+        return self.owner == user or user in self.collaborators.all()
 
     @property
     def image(self):

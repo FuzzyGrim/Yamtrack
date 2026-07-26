@@ -135,12 +135,16 @@ def source_readable(source):
 @register.filter
 def media_type_readable(media_type):
     """Return the readable media type."""
+    if not media_type:
+        return ""
     return MediaTypes(media_type).label
 
 
 @register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
+    if not media_type:
+        return ""
     singular = MediaTypes(media_type).label
 
     # Special cases that don't change in plural form
@@ -195,6 +199,8 @@ def sources(media_type):
 @register.simple_tag
 def get_search_media_types(user):
     """Return available media types for search based on user preferences."""
+    if not user.is_authenticated:
+        return []
     enabled_types = user.get_enabled_media_types()
 
     # Filter and format the types for search
@@ -211,6 +217,8 @@ def get_search_media_types(user):
 @register.simple_tag
 def get_sidebar_media_types(user):
     """Return available media types for sidebar navigation based on user preferences."""
+    if not user.is_authenticated:
+        return []
     enabled_types = user.get_enabled_media_types()
 
     # Format the types for sidebar

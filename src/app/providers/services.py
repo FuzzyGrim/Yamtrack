@@ -4,7 +4,7 @@ import time
 import requests
 from defusedxml import ElementTree
 from django.conf import settings
-from pyrate_limiter import RedisBucket
+from pyrate_limiter import InMemoryBucket, RedisBucket
 from redis import Redis
 from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
@@ -31,17 +31,29 @@ def get_redis_client():
         import fakeredis  # noqa: PLC0415
 
         return fakeredis.FakeRedis()
-    return Redis.from_url(settings.REDIS_URL)
+    try:
+        client = Redis.from_url(settings.REDIS_URL, socket_timeout=2)
+        client.ping()
+        return client
+    except Exception:  # noqa: BLE001
+        logger.warning("Redis not available, using in-memory rate limiter.")
+        return None
 
 
 redis_db = get_redis_client()
 bucket_key = f"{settings.REDIS_PREFIX}_api" if settings.REDIS_PREFIX else "api"
 
-session = LimiterSession(
-    per_second=5,
-    bucket_class=RedisBucket,
-    bucket_kwargs={"redis": redis_db, "bucket_key": bucket_key},
-)
+if redis_db is not None:
+    session = LimiterSession(
+        per_second=5,
+        bucket_class=RedisBucket,
+        bucket_kwargs={"redis": redis_db, "bucket_key": bucket_key},
+    )
+else:
+    session = LimiterSession(
+        per_second=5,
+        bucket_class=InMemoryBucket,
+    )
 
 session.mount("http://", HTTPAdapter(max_retries=3))
 session.mount("https://", HTTPAdapter(max_retries=3))

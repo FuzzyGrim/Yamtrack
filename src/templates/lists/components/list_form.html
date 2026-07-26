@@ -22,14 +22,34 @@
       {% csrf_token %}
       <input type="hidden" name="list_id" value="{{ custom_list.id }}">
       {% for field in form %}
-        <div>
-          <label class="block text text-sm font-medium mb-2 text-gray-300">{{ field.label }}</label>
-          {% if field.name != 'collaborators' %}
+        {% if field.name == 'is_public' %}
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="block text-sm font-medium text-gray-300">{{ field.label }}</label>
+              {% if field.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
+              {% endif %}
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer ml-4">
+              <input type="checkbox"
+                     name="{{ field.html_name }}"
+                     class="sr-only peer"
+                     {% if field.value %}checked{% endif %}>
+              <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+              </div>
+            </label>
+          </div>
+        {% elif field.name != 'collaborators' %}
+          <div>
+            <label class="block text text-sm font-medium mb-2 text-gray-300">{{ field.label }}</label>
             {{ field|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none" }}
-          {% else %}
+          </div>
+        {% else %}
+          <div>
+            <label class="block text text-sm font-medium mb-2 text-gray-300">{{ field.label }}</label>
             {{ field }}
-          {% endif %}
-        </div>
+          </div>
+        {% endif %}
       {% endfor %}
 
       {% if form.instance.pk %}
@@ -39,10 +59,13 @@
                   class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
             Save
           </button>
+          {% if can_delete %}
           <button type="submit"
                   formaction="{% url 'list_delete' %}?next={{ request.path }}"
-                  class="px-4 py-2 rounded-md transition duration-300 {% if request.user == custom_list.owner %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}"
-                  {% if not request.user == custom_list.owner %}disabled{% endif %}>Delete</button>
+                  class="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 cursor-pointer">
+            Delete
+          </button>
+          {% endif %}
         </div>
       {% else %}
         <div class="flex justify-end pt-4">

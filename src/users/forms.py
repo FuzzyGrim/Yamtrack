@@ -36,7 +36,7 @@ class CustomSignupForm(SignupForm):
 
 
 class UserUpdateForm(forms.ModelForm):
-    """Custom form for updating username."""
+    """Custom form for updating username and profile."""
 
     def clean(self):
         """Check if the user is demo before changing the password."""
@@ -52,10 +52,10 @@ class UserUpdateForm(forms.ModelForm):
         self.fields["username"].help_text = None
 
     class Meta:
-        """Only allow updating username."""
+        """Allow updating username, profile visibility, bio, and avatar."""
 
         model = User
-        fields = ["username", "profile_private"]
+        fields = ["username", "profile_private", "bio", "avatar"]
 
 
 class PasswordChangeForm(PasswordChangeForm):

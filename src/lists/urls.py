@@ -24,4 +24,9 @@ urlpatterns = [
     path("list/edit", views.edit, name="list_edit"),
     path("list/delete", views.delete, name="list_delete"),
     path("list_item_toggle", views.list_item_toggle, name="list_item_toggle"),
+    path(
+        "public_list/<int:list_id>",
+        views.public_list_detail,
+        name="public_list_detail",
+    ),
 ]

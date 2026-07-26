@@ -17,7 +17,7 @@ class CustomListForm(forms.ModelForm):
         """Bind form to model."""
 
         model = CustomList
-        fields = ["name", "description", "collaborators"]
+        fields = ["name", "description", "is_public", "collaborators"]
         widgets = {
             "collaborators": CollaboratorsWidget(
                 attrs={

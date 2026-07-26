@@ -237,18 +237,46 @@ else:
 CACHE_TIMEOUT = 86400  # 24 hours
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
 KEY_PREFIX = f"{REDIS_PREFIX}" if REDIS_PREFIX else ""
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 17,
-        "KEY_PREFIX": KEY_PREFIX,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+
+
+def _redis_available(url):
+    """Check if a Redis server is reachable at the given URL."""
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 6379
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+if _redis_available(REDIS_URL):
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "TIMEOUT": CACHE_TIMEOUT,
+            "VERSION": 17,
+            "KEY_PREFIX": KEY_PREFIX,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
         },
-    },
-}
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "yamtrack-locmem",
+            "TIMEOUT": CACHE_TIMEOUT,
+            "VERSION": 17,
+            "KEY_PREFIX": KEY_PREFIX,
+        },
+    }
 
 # not using Memcached, ignore CacheKeyWarning
 # https://docs.djangoproject.com/en/stable/topics/cache/#cache-key-warnings
@@ -322,6 +350,9 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 if BASE_URL:
     STATIC_URL = f"{BASE_URL}/static/"
