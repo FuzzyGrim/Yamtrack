@@ -13,7 +13,7 @@
     {# Top section #}
     <div class="flex flex-col md:flex-row gap-8 md:gap-10 mb-12 md:mb-8">
       {# Poster #}
-      <div class="w-full md:w-1/4 max-w-[250px] mx-auto md:mx-0">
+      <div class="w-full md:w-1/4 max-w-62.5 mx-auto md:mx-0">
         <img alt="{{ media.title }}"
              class="w-full rounded-lg shadow-lg bg-[#2a2f35] object-cover"
              src="{{ media.image }}">
@@ -115,7 +115,7 @@
                    x-transition:leave-start="opacity-100 transform scale-100"
                    x-transition:leave-end="opacity-0 transform scale-95"
                    class="absolute right-1/2 md:right-0 translate-x-1/2 md:translate-x-0 mt-2 w-64 bg-[#2a2f35] rounded-md shadow-lg overflow-hidden z-10">
-                <div class="max-h-[300px] overflow-y-auto">
+                <div class="max-h-75 overflow-y-auto">
                   {% for tv_season in tv.related.seasons %}
                     <a href="{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=tv_season.season_number %}"
                        class="w-full px-4 py-3 flex items-center space-x-3 hover:bg-gray-700 transition-colors duration-200 cursor-pointer {% if tv_season.season_number == media.season_number %}bg-[#343a40]{% endif %}">
@@ -165,7 +165,7 @@
         {# Source score #}
         <div class="flex flex-wrap gap-4">
           {% if media.score_count is not None %}
-            <div class="bg-[#2a2f35] p-3 rounded-lg w-[120px]">
+            <div class="bg-[#2a2f35] p-3 rounded-lg w-30">
               <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{{ media.source|upper }} SCORE</h3>
               <div class="flex items-center justify-center">
                 {% include "app/icons/star.svg" with classes="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400" %}
@@ -187,7 +187,7 @@
                  class="relative">
               <!-- Rating display -->
               <div @click="showRatingPopup = !showRatingPopup"
-                   class="bg-[#2a2f35] p-3 rounded-lg w-[120px] cursor-pointer">
+                   class="bg-[#2a2f35] p-3 rounded-lg w-30 cursor-pointer">
                 <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">YOUR SCORE</h3>
                 <div class="flex items-center justify-center">
                   {% include "app/icons/star.svg" with classes="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400" %}
@@ -207,7 +207,7 @@
               <!-- Rating popup -->
               <div x-show="showRatingPopup"
                    @click.outside="showRatingPopup = false; isHovering = false"
-                   class="absolute left-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-[250px] border border-gray-700"
+                   class="absolute left-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-62.5 border border-gray-700"
                    @mouseenter="isHovering = true"
                    @mouseleave="isHovering = false; hoverRating = null">
                 <div class="flex justify-between mb-1">
@@ -243,7 +243,7 @@
     {# Bottom section #}
     <div class="flex flex-col md:flex-row gap-12 md:gap-10">
       {# Sidebar #}
-      <div class="w-full md:w-1/4 md:max-w-[250px] mx-auto lg:mx-0">
+      <div class="w-full md:w-1/4 md:max-w-62.5 mx-auto lg:mx-0">
         {# Your History #}
         {% if current_instance.start_date or current_instance.end_date or current_instance.notes or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
           <h2 class="text-xl font-bold mb-4">Your History</h2>
