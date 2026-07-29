@@ -1141,3 +1141,43 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.services.get_media_metadata")
+    def test_season_episode_list_marks_watched_episode_as_tracked(
+        self,
+        mock_metadata,
+    ):
+        """A watched episode in a season listing should be marked as tracked."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+
+        mock_metadata.return_value = self.build_episode_metadata(
+            tv_item=tv_item,
+            season_number=season_item.season_number,
+            episode_number=episode_item.episode_number,
+            title=episode_item.title,
+            image=episode_item.image,
+        )
+
+        response = self.call_api(
+            "get",
+            "api_media_season_episodes",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+            ),
+            params={"limit": 200},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        result = response.json()["results"][0]
+        self.assertTrue(result["tracked"])
+        self.assertEqual(
+            result["consumption_id"],
+            self.episode_medias[0].id,
+        )
