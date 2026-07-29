@@ -5,12 +5,14 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import IntegrityError
-from django.utils.timezone import datetime, localdate, make_aware
+from django.utils.timezone import datetime, localdate, make_aware, now
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from health_check.views import HealthCheckView
 from rest_framework import permissions
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
+from app.episode_operations import EpisodeNotFoundError, watch_episode
 from app.forms import ManualItemForm, get_form_class
 from app.models import BasicMedia, Item, MediaTypes, Sources
 from app.providers import services, tmdb
@@ -59,6 +61,7 @@ from .serializers import (
     CompleteEpisodeSerializer,
     CompleteMediaSerializer,
     EpisodeSerializer,
+    EpisodeWatchSerializer,
     HealthResponseSerializer,
     HistorySerializer,
     InfoSerializer,
@@ -3423,6 +3426,113 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
 
     serializer_class = HistorySerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @staticmethod
+    def _validate_post_path(media_type, source):
+        """Validate media type and source for episode creation."""
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if media_type != MediaTypes.TV.value:
+            return Response(
+                {
+                    "detail": "Episodes are supported only for 'tv' media type.",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if not check_source_type(media_type, source):
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        return None
+
+    @extend_schema(
+        request=EpisodeWatchSerializer,
+        responses={
+            HTTP.CREATED: HistorySerializer,
+            HTTP.BAD_REQUEST: OpenApiResponse(description="Validation error."),
+            HTTP.FORBIDDEN: OpenApiResponse(description="Authentication required."),
+            HTTP.NOT_FOUND: OpenApiResponse(description="Episode not found."),
+            HTTP.INTERNAL_SERVER_ERROR: OpenApiResponse(
+                description="Provider or server error.",
+            ),
+        },
+        description=(
+            "Create another viewing of an episode. The request body is optional; "
+            "end_date defaults to the current time."
+        ),
+        summary="Create an episode watch history record",
+    )
+    def post(
+        self,
+        request,
+        media_type,
+        source,
+        media_id,
+        season_number,
+        episode_number,
+    ):
+        """Create a new consumption for a specific episode of a TV series."""
+        path_error = self._validate_post_path(media_type, source)
+        if path_error is not None:
+            return path_error
+
+        request_serializer = EpisodeWatchSerializer(data=request.data or {})
+        if not request_serializer.is_valid():
+            return Response(
+                {
+                    "detail": HTTP.BAD_REQUEST.phrase,
+                    "errors": request_serializer.errors,
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        end_date = request_serializer.validated_data.get(
+            "end_date",
+            now().replace(second=0, microsecond=0),
+        )
+
+        try:
+            episode = watch_episode(
+                user=request.user,
+                media_id=media_id,
+                source=source,
+                season_number=season_number,
+                episode_number=episode_number,
+                end_date=end_date,
+            )
+        except EpisodeNotFoundError:
+            return Response(
+                {"detail": "Episode not found."},
+                status=HTTP.NOT_FOUND,
+            )
+        except services.ProviderAPIError as error:
+            if error.status_code == HTTP.NOT_FOUND:
+                return Response(
+                    {"detail": "Episode not found."},
+                    status=HTTP.NOT_FOUND,
+                )
+            return Response(
+                {
+                    "detail": "Failed to create episode consumption.",
+                    "errors": str(error),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        serialized = serialize_data(
+            episode,
+            serializer_class=HistorySerializer,
+        )
+        return Response(serialized, status=HTTP.CREATED)
 
     def get(self, request, media_type, source, media_id, season_number, episode_number):
         """Retrieve the history timeline for a specific episode of a tv serie."""

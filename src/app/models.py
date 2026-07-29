@@ -1669,9 +1669,9 @@ class Season(Media):
         else:
             logger.info("No more episodes to watch.")
 
-    def watch(self, episode_number, end_date):
+    def watch(self, episode_number, end_date, season_metadata=None):
         """Create or add a repeat to an episode of the season."""
-        item = self.get_episode_item(episode_number)
+        item = self.get_episode_item(episode_number, season_metadata)
 
         episode = Episode.objects.create(
             related_season=self,
@@ -1682,6 +1682,7 @@ class Season(Media):
             "%s created successfully.",
             episode,
         )
+        return episode
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
@@ -1745,7 +1746,7 @@ class Season(Media):
 
             item, _ = Item.objects.get_or_create(
                 media_id=self.item.media_id,
-                source=Sources.TMDB.value,
+                source=self.item.source,
                 media_type=MediaTypes.TV.value,
                 defaults={
                     "title": tv_metadata["title"],
