@@ -151,6 +151,95 @@ class Metadata(TestCase):
         self.assertEqual(result, {"10", "20", "30"})
         self.assertEqual(mock_api_request.call_count, 2)
 
+    def test_tmdb_season_image_falls_back_to_tv_poster(self):
+        """Test seasons without a poster reuse the show poster."""
+        tv_data = {
+            "title": "Breaking Bad",
+            "tvdb_id": 81189,
+            "external_links": [],
+            "genres": ["Drama"],
+            "synopsis": "A high school chemistry teacher.",
+            "image": "https://image.tmdb.org/t/p/w500/tv.jpg",
+        }
+
+        without_poster = tmdb.enrich_season_with_tv_data(
+            {"image": settings.IMG_NONE, "synopsis": "Season synopsis."},
+            tv_data,
+            "1396",
+            1,
+        )
+        self.assertEqual(without_poster["image"], tv_data["image"])
+
+        with_poster = tmdb.enrich_season_with_tv_data(
+            {
+                "image": "https://image.tmdb.org/t/p/w500/season.jpg",
+                "synopsis": "Season synopsis.",
+            },
+            tv_data,
+            "1396",
+            2,
+        )
+        self.assertEqual(
+            with_poster["image"],
+            "https://image.tmdb.org/t/p/w500/season.jpg",
+        )
+
+    def test_tmdb_related_season_image_falls_back_to_tv_poster(self):
+        """Test related seasons without a poster reuse the show poster."""
+        parent_response = {
+            "id": 1396,
+            "name": "Breaking Bad",
+            "poster_path": "/tv.jpg",
+        }
+        seasons = [
+            {
+                "season_number": 1,
+                "name": "Season 1",
+                "poster_path": "/season1.jpg",
+                "air_date": "2008-01-20",
+                "episode_count": 7,
+            },
+            {
+                "season_number": 2,
+                "name": "Season 2",
+                "poster_path": None,
+                "air_date": "2009-03-08",
+                "episode_count": 13,
+            },
+        ]
+
+        related = tmdb.get_related(
+            seasons,
+            MediaTypes.SEASON.value,
+            parent_response,
+        )
+
+        self.assertEqual(related[0]["image"], tmdb.get_image_url("/season1.jpg"))
+        self.assertEqual(related[1]["image"], tmdb.get_image_url("/tv.jpg"))
+
+    def test_manual_season_image_falls_back_to_tv_poster(self):
+        """Test manual seasons without an image reuse the show image."""
+        Item.objects.create(
+            media_id="9",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value,
+            title="Imageless Seasons",
+            image="http://example.com/imageless.jpg",
+        )
+
+        Item.objects.create(
+            media_id="9",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Imageless Seasons",
+            image=settings.IMG_NONE,
+            season_number=1,
+        )
+
+        response = manual.season("9", 1)
+
+        self.assertEqual(response["image"], "http://example.com/imageless.jpg")
+
     def test_tmdb_process_episodes(self):
         """Test the process_episodes function for TMDB episodes."""
         Item.objects.create(

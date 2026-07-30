@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from app import models
 from app.models import MediaTypes, Sources
 
@@ -69,6 +71,9 @@ def process_seasons(season_items, response):
         response[f"season/{season.season_number}"] = season_response
 
         season_response["title"] = response["title"]
+        # seasons often have no poster of their own, use the show's instead
+        if season_response["image"] == settings.IMG_NONE:
+            season_response["image"] = response["image"]
         response["related"]["seasons"].append(season_response)
         num_episodes += season_episodes.count()
 
