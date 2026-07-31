@@ -1,7 +1,7 @@
 import logging
 from base64 import b64encode
 from collections import defaultdict
-from datetime import UTC
+from datetime import UTC, timedelta
 
 import requests
 from django.utils import timezone
@@ -382,16 +382,30 @@ class CalibreWebNextGenImporter:
 
     def _queue_existing_book_update(self, existing_book, book_metadata, book_progress):
         """Check for updated metadata and eventually queue book for update."""
+        # Early return if last_modified is earlier than latest update
+        # Defensive against regressing state after manual update
+        export_ts = self._parse_datetime(book_progress.get("last_modified"))
+        last_change = existing_book.history.first()
+        if (
+            export_ts
+            and last_change
+            and export_ts <= last_change.history_date + timedelta(minutes=1)
+        ):
+            return
+
         changed = False
 
         progress, status, last_updated, start_date, end_date = (
             self._get_book_progress_status(book_metadata, book_progress)
         )
 
-        prevent_progress_regression = (
-            existing_book.status == Status.COMPLETED
-            and status
-            in (Status.PLANNING.value, Status.PAUSED.value, Status.DROPPED.value)
+        prevent_progress_regression = existing_book.status in (
+            Status.COMPLETED.value,
+            Status.DROPPED.value,
+        ) and status in (
+            Status.PLANNING.value,
+            Status.PAUSED.value,
+            Status.DROPPED.value,
         )
 
         if existing_book.progress != progress and not prevent_progress_regression:

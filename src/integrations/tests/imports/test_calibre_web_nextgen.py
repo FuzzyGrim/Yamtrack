@@ -527,6 +527,9 @@ class ImportCalibreWebNextGenExisting(TestCase):
             progress=10,
             notes="Imported from Calibre-Web-NextGen",
         )
+        # Backdate the last local change so the mocked exports below (dated 2024)
+        # count as newer and reach the update logic instead of the staleness gate.
+        self.book.history.all().update(history_date=datetime(2024, 1, 1, tzinfo=UTC))
 
     def _setup_mocks(self, mock_metadata, mock_search, mock_api):
         mock_api.return_value = [book_progress("Existing", 100, 1, "isbn-existing")]
@@ -644,6 +647,34 @@ class ImportCalibreWebNextGenExisting(TestCase):
                 self.assertEqual(self.book.start_date, kept_start)
                 self.assertEqual(self.book.end_date, kept_end)
                 self.assertEqual(self.book.history.count(), 1)
+
+    def test_stale_export_does_not_regress_manual_edit(
+        self,
+        mock_metadata,
+        mock_search,
+        mock_api,
+    ):
+        """Test an export older than the last manual edit is ignored."""
+        self._setup_mocks(mock_metadata, mock_search, mock_api)
+        # user just manually completed the book
+        Book.objects.filter(pk=self.book.pk).update(
+            status=Status.COMPLETED.value,
+            progress=300,
+        )
+        self.book.history.all().update(history_date=datetime.now(UTC))
+        # reading activity from just before the manual completion
+        stale = (datetime.now(UTC) - timedelta(minutes=5)).isoformat()
+        mock_api.return_value = [
+            book_progress("Existing", 50, 1, "isbn-existing", last_modified=stale),
+        ]
+
+        imported_counts, _ = self._import("overwrite")
+
+        self.book.refresh_from_db()
+        # export predates the manual edit, so nothing is touched
+        self.assertEqual(imported_counts, {})
+        self.assertEqual(self.book.status, Status.COMPLETED.value)
+        self.assertEqual(self.book.progress, 300)
 
     def test_completed_reread_recent_progress_updates(
         self,
