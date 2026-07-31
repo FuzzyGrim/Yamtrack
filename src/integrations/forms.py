@@ -26,10 +26,7 @@ class CalibreWebNextGenImportDataForm(forms.Form):
     password = forms.CharField()
     frequency = forms.ChoiceField(choices=ImportFrequency)
     mode = forms.ChoiceField(choices=ImportMode)
-    time = forms.TimeField(
-        required=False,
-        widget=forms.TimeInput(attrs={"type": "time"}),
-    )
+    time = forms.TimeField(required=False)
 
     def clean(self):
         """Make time required if frequency is not 'once'."""
