@@ -547,25 +547,44 @@ class ImportCalibreWebNextGenExisting(TestCase):
             self.password_token,
         )
 
-    def test_new_mode_updates_existing_and_keeps_history(
+    def test_new_mode_skips_existing(
         self,
         mock_metadata,
         mock_search,
         mock_api,
     ):
-        """Test new mode updates the existing book in place, preserving history."""
+        """Test new mode leaves an existing book untouched (add-only)."""
         self._setup_mocks(mock_metadata, mock_search, mock_api)
 
         imported_counts, _ = self._import("new")
 
         self.book.refresh_from_db()
+        self.assertEqual(imported_counts, {})
+        self.assertEqual(self.book.status, Status.IN_PROGRESS.value)
+        self.assertEqual(self.book.progress, 10)
+        self.assertEqual(self.book.history.count(), 1)
+
+    def test_overwrite_mode_updates_existing_in_place(
+        self,
+        mock_metadata,
+        mock_search,
+        mock_api,
+    ):
+        """Test overwrite updates the existing row in place, keeping its history."""
+        self._setup_mocks(mock_metadata, mock_search, mock_api)
+
+        imported_counts, _ = self._import("overwrite")
+
+        self.book.refresh_from_db()
         self.assertEqual(imported_counts[MediaTypes.BOOK.value], 1)
         self.assertEqual(Book.objects.filter(user=self.user).count(), 1)
+        # same row, not a delete+recreate
+        self.assertEqual(self.book.pk, Book.objects.get(user=self.user).pk)
         self.assertEqual(self.book.status, Status.COMPLETED.value)
         self.assertEqual(self.book.progress, 300)
         self.assertEqual(self.book.history.count(), 2)
 
-    def test_new_mode_no_change_is_not_requeued(
+    def test_overwrite_mode_no_change_is_not_requeued(
         self,
         mock_metadata,
         mock_search,
@@ -582,28 +601,11 @@ class ImportCalibreWebNextGenExisting(TestCase):
             end_date=datetime(2024, 6, 1, 9, tzinfo=UTC),
         )
 
-        imported_counts, _ = self._import("new")
+        imported_counts, _ = self._import("overwrite")
 
         self.book.refresh_from_db()
         self.assertEqual(imported_counts, {})
         self.assertEqual(self.book.history.count(), 1)
-
-    def test_overwrite_mode_recreates_book(
-        self,
-        mock_metadata,
-        mock_search,
-        mock_api,
-    ):
-        """Test overwrite mode replaces the existing book."""
-        self._setup_mocks(mock_metadata, mock_search, mock_api)
-
-        imported_counts, _ = self._import("overwrite")
-
-        self.assertEqual(imported_counts[MediaTypes.BOOK.value], 1)
-        self.assertEqual(Book.objects.filter(user=self.user).count(), 1)
-        book = Book.objects.get(user=self.user)
-        self.assertEqual(book.status, Status.COMPLETED.value)
-        self.assertEqual(book.progress, 300)
 
     def test_completed_frozen_on_stale_or_reset_export(
         self,
@@ -632,7 +634,7 @@ class ImportCalibreWebNextGenExisting(TestCase):
                     ),
                 ]
 
-                imported_counts, _ = self._import("new")
+                imported_counts, _ = self._import("overwrite")
 
                 self.book.refresh_from_db()
                 # nothing changes: status, progress and dates are all held
@@ -661,7 +663,7 @@ class ImportCalibreWebNextGenExisting(TestCase):
             book_progress("Existing", 50, 1, "isbn-existing", last_modified=recent),
         ]
 
-        imported_counts, _ = self._import("new")
+        imported_counts, _ = self._import("overwrite")
 
         self.book.refresh_from_db()
         # recent in-progress export isn't a regression, so it syncs through
@@ -688,7 +690,7 @@ class ImportCalibreWebNextGenExisting(TestCase):
             book_progress("Existing", 100, 1, "isbn-existing", created_at=None),
         ]
 
-        self._import("new")
+        self._import("overwrite")
 
         self.book.refresh_from_db()
         # missing created_at keeps the old start_date; end_date still updates

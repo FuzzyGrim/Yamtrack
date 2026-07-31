@@ -186,6 +186,15 @@ class CalibreWebNextGenImporter:
                 source.value,
             )
 
+            existing_book = self.existing_media[MediaTypes.BOOK.value][
+                source.value
+            ].get(str(book_metadata.get("media_id")))
+            if existing_book and self.mode == "overwrite":
+                self._queue_existing_book_update(
+                    existing_book, book_metadata, book_progress
+                )
+                return
+
             should_process = helpers.should_process_media(
                 self.existing_media,
                 self.to_delete,
@@ -194,11 +203,8 @@ class CalibreWebNextGenImporter:
                 str(book_metadata.get("media_id")),
                 self.mode,
             )
-
             if should_process:
                 self._queue_create_book(book_metadata, book_progress, source)
-            else:
-                self._queue_existing_book_update(book_metadata, book_progress, source)
 
         except (BookNotFoundError, services.ProviderAPIError) as error:
             title = book_progress.get("title")
@@ -374,16 +380,12 @@ class CalibreWebNextGenImporter:
 
         self.bulk_media[MediaTypes.BOOK.value].append(book)
 
-    def _queue_existing_book_update(self, book_metadata, book_progress, source):
+    def _queue_existing_book_update(self, existing_book, book_metadata, book_progress):
         """Check for updated metadata and eventually queue book for update."""
         changed = False
 
         progress, status, last_updated, start_date, end_date = (
             self._get_book_progress_status(book_metadata, book_progress)
-        )
-
-        existing_book = self.existing_media[MediaTypes.BOOK.value][source.value].get(
-            str(book_metadata.get("media_id"))
         )
 
         prevent_progress_regression = (
