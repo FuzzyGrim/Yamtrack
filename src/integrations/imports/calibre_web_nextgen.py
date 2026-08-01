@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 DAYS_UNTIL_PAUSED = 60
-DAYS_UNTIL_DROPPED = 90
 MIN_COMPLETED_PERCENTAGE = 99
 MIN_IN_PROGRESS_PERCENTAGE = 1
 SOURCES = [Sources.HARDCOVER, Sources.OPENLIBRARY]
@@ -405,15 +404,14 @@ class CalibreWebNextGenImporter:
         ) and status in (
             Status.PLANNING.value,
             Status.PAUSED.value,
-            Status.DROPPED.value,
         )
 
         if existing_book.progress != progress and not prevent_progress_regression:
             existing_book.progress = progress
             changed = True
 
-        # Check for updated status but prevent setting PLANNED/PAUSED/DROPPED
-        # on a (manually or otherwise) completed book.
+        # Check for updated status but prevent setting PLANNED/PAUSED
+        # on a (manually or otherwise) COMPLETED/DROPPED book.
         # IN_PROGRESS change is kept to handle re-reads.
         if existing_book.status != status and not prevent_progress_regression:
             existing_book.status = status
@@ -474,9 +472,6 @@ class CalibreWebNextGenImporter:
     def _get_progress_status(last_updated):
         """Determine book status from last updated date."""
         last_updated_delta = timezone.now() - last_updated
-
-        if last_updated_delta.days >= DAYS_UNTIL_DROPPED:
-            return Status.DROPPED.value
 
         if last_updated_delta.days >= DAYS_UNTIL_PAUSED:
             return Status.PAUSED.value

@@ -484,11 +484,11 @@ class ProgressStatusFromDate(TestCase):
     """Test status derived from the last update date."""
 
     def test_status_thresholds(self):
-        """Test recent stays in progress, 60d pauses, 90d drops."""
+        """Test recent stays in progress, 60d pauses."""
         cases = [
             (5, Status.IN_PROGRESS.value),
             (70, Status.PAUSED.value),
-            (100, Status.DROPPED.value),
+            (100, Status.PAUSED.value),
         ]
         importer_cls = calibre_web_nextgen.CalibreWebNextGenImporter
         for days_ago, expected in cases:
@@ -627,7 +627,7 @@ class ImportCalibreWebNextGenExisting(TestCase):
             end_date=kept_end,
         )
         stale = (datetime.now(UTC) - timedelta(days=100)).isoformat()
-        # would-be status once stale (>=90d) or reset (0%): dropped, planning
+        # would-be status once stale (>=60d) or reset (0%): paused, planning
         cases = [50, 0]
         for percentage in cases:
             with self.subTest(percentage=percentage):
