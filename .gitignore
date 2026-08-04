@@ -17,3 +17,5 @@ requests.http
 TODO.txt
 .codex
 .cache
+src/app/.DS_Store
+.DS_Store
