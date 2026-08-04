@@ -20,6 +20,10 @@ SOURCES_CONFIG = {
         "name": "Trakt",
         "logo": static("img/trakt-logo.svg"),
     },
+    "wutch": {
+        "name": "Wutch",
+        "logo": static("img/wutch-logo.png"),
+    },
     "myanimelist": {
         "name": "MyAnimeList",
         "logo": static("img/mal-logo.ico"),
