@@ -82,6 +82,10 @@ class WutchImporter:
         # Track bulk creation lists for each media type
         self.bulk_media = defaultdict(list)
 
+        # Track bulk update lists for each media type (used for status
+        # changes on media that already exists, e.g. Hidden -> Dropped)
+        self.bulk_update = defaultdict(list)
+
         # Track media instances being created
         self.media_instances = defaultdict(lambda: defaultdict(list))
 
@@ -103,9 +107,18 @@ class WutchImporter:
         """Import all user data from Wutch."""
         self.process_history()
         self.process_watchlist()
+        self.process_dropped()
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.bulk_update,
+            {
+                MediaTypes.TV.value: ["status"],
+                MediaTypes.SEASON.value: ["status"],
+            },
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -577,3 +590,118 @@ class WutchImporter:
             # acceptable to fall back to today's date via model defaults.
             self.bulk_media[media_type].append(media_obj)
             self.media_instances[media_type][key] = [media_obj]
+
+    # ------------------------------------------------------------------
+    # Hidden (dropped) shows
+    # ------------------------------------------------------------------
+
+    def process_dropped(self):
+        """Process the Hidden list from Wutch, marking shows as Dropped.
+
+        Wutch's "Hidden" list only ever contains shows that already appear
+        in the watch history, so this must run after process_history() (and
+        after process_watchlist()), so the corresponding TV instances
+        already exist (in self.media_instances or self.existing_media) by
+        the time we get here.
+        """
+        logger.info("Importing hidden (dropped) shows for user %s", self.username)
+        hidden_endpoint = f"{self.user_base_url}/list/Hidden"
+        hidden_data = self._make_api_request(hidden_endpoint)
+        entries = hidden_data.get("items", [])
+
+        for entry in entries:
+            try:
+                self._process_dropped_entry(entry)
+            except Exception as e:
+                msg = f"Error processing hidden entry: {entry}"
+                raise MediaImportUnexpectedError(msg) from e
+
+    def _process_dropped_entry(self, entry):
+        """Mark a single Hidden-list show as Dropped."""
+        if entry.get("type") != "tv_show":
+            return
+
+        content = entry.get("content") or {}
+        slug = content.get("slug")
+        title = content.get("name")
+        if not slug:
+            return
+
+        tmdb_id = self._resolve_tmdb_id(MediaTypes.TV.value, slug, title)
+        if not tmdb_id:
+            return
+
+        if self.mode == "overwrite":
+            self._mark_dropped_overwrite(tmdb_id, title, slug)
+        else:
+            self._mark_dropped_new(tmdb_id, title, slug)
+
+    def _mark_dropped_overwrite(self, tmdb_id, title, slug):
+        """Mark a show as Dropped in overwrite mode.
+
+        The show should already have been queued for deletion/recreation by
+        process_history()/process_watchlist(); we just flip the status on
+        the instance that's already staged for (re)creation.
+        """
+        helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            MediaTypes.TV.value,
+            Sources.TMDB.value,
+            tmdb_id,
+            self.mode,
+        )
+
+        key = f"{tmdb_id}"
+        if key in self.media_instances[MediaTypes.TV.value]:
+            for media_obj in self.media_instances[MediaTypes.TV.value][key]:
+                media_obj.status = Status.DROPPED.value
+        else:
+            # Shouldn't normally happen: a hidden show is expected to
+            # already have been created via history/watchlist processing.
+            self.warnings.append(
+                f"{title or slug}: found in Wutch's Hidden list but not "
+                "in watch history or watchlist, skipping.",
+            )
+            return
+
+        # Also drop any in-progress seasons staged for (re)creation.
+        prefix = f"{tmdb_id}:"
+        for season_key, season_instances in self.media_instances[MediaTypes.SEASON.value].items():
+            if season_key.startswith(prefix):
+                for season_obj in season_instances:
+                    if season_obj.status == Status.IN_PROGRESS.value:
+                        season_obj.status = Status.DROPPED.value
+
+    def _mark_dropped_new(self, tmdb_id, title, slug):
+        """Mark a show as Dropped in new mode.
+
+        Bypasses should_process_media on purpose: a hidden show is by
+        definition already tracked, so the usual "new" skip-if-exists rule
+        would otherwise prevent the status update entirely. The existing TV
+        instance is updated in place and queued for bulk_update_media
+        instead of bulk_create_media.
+        """
+        existing_tv = self.existing_media[MediaTypes.TV.value][Sources.TMDB.value].get(
+            tmdb_id,
+        )
+        if not existing_tv:
+            self.warnings.append(
+                f"{title or slug}: found in Wutch's Hidden list but not "
+                "already tracked in Yamtrack, skipping.",
+            )
+            return
+
+        existing_tv.status = Status.DROPPED.value
+        self.bulk_update[MediaTypes.TV.value].append(existing_tv)
+
+        # Also drop any in-progress seasons that already exist in the db.
+        in_progress_seasons = app.models.Season.objects.filter(
+            related_tv__item__media_id=tmdb_id,
+            related_tv__item__source=Sources.TMDB.value,
+            related_tv__user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        for season_obj in in_progress_seasons:
+            season_obj.status = Status.DROPPED.value
+            self.bulk_update[MediaTypes.SEASON.value].append(season_obj)
