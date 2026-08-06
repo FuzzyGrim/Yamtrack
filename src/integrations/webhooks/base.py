@@ -50,6 +50,19 @@ class BaseWebhookProcessor(TVWebhookMixin, MovieWebhookMixin, AnimeWebhookMixin)
         """Get episode number from payload."""
         raise NotImplementedError
 
+    def _get_show_title(self, _payload):
+        """Get the parent show title from payload.
+
+        Optional. Processors that cannot supply it fall back to None, which
+        disables TMDB episode ID resolution for that source.
+        """
+
+    def _get_season_number(self, _payload):
+        """Get the season number from payload.
+
+        Optional, see _get_show_title.
+        """
+
     def _process_media(self, payload, user, ids):
         """Route processing based on media type."""
         media_type = self._get_media_type(payload)

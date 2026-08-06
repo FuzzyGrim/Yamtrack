@@ -90,6 +90,12 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
     def _get_episode_number(self, payload):
         return payload["Metadata"].get("index")
 
+    def _get_show_title(self, payload):
+        return payload["Metadata"].get("grandparentTitle")
+
+    def _get_season_number(self, payload):
+        return payload["Metadata"].get("parentIndex")
+
     def _extract_external_ids(self, payload):
         guids = payload["Metadata"].get("Guid", [])
         guid = payload["Metadata"].get("guid", None)

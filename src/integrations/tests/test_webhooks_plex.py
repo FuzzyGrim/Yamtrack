@@ -87,6 +87,102 @@ class PlexWebhookTests(TestCase):
         )
         self.assertIsNotNone(episode.end_date)
 
+    def test_tv_episode_tmdb_only_guid_mark_played(self):
+        """Test webhook handles a TV episode with only a TMDB episode GUID.
+
+        Plex's tv.plex.agents.series agent frequently matches an episode
+        against TMDB without a TVDB or IMDB cross-reference, leaving a single
+        episode-level ``tmdb://`` GUID.
+        """
+        payload = {
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
+            "Metadata": {
+                "type": "episode",
+                "grandparentTitle": "Below Deck Mediterranean",
+                "index": 14,
+                "parentIndex": 2,
+                "Guid": [
+                    {
+                        # TMDB episode ID for S02E14, "Con-Text is Everything"
+                        "id": "tmdb://1347510",
+                    },
+                ],
+            },
+        }
+
+        data = {
+            "payload": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        tv_item = Item.objects.get(media_type=MediaTypes.TV.value, media_id="66902")
+        self.assertEqual(tv_item.title, "Below Deck Mediterranean")
+
+        tv = TV.objects.get(item=tv_item, user=self.user)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+
+        season = Season.objects.get(
+            item__media_id="66902",
+            item__season_number=2,
+        )
+        self.assertEqual(season.status, Status.IN_PROGRESS.value)
+
+        episode = Episode.objects.get(
+            item__media_id="66902",
+            item__season_number=2,
+            item__episode_number=14,
+        )
+        self.assertIsNotNone(episode.end_date)
+
+    def test_tv_episode_tmdb_only_guid_wrong_show_not_tracked(self):
+        """Test a TMDB-only episode GUID that no search candidate confirms.
+
+        The episode ID must round-trip against the season metadata of a show
+        found by title, otherwise nothing is tracked.
+        """
+        payload = {
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
+            "Metadata": {
+                "type": "episode",
+                "grandparentTitle": "Below Deck Mediterranean",
+                "index": 14,
+                "parentIndex": 2,
+                "Guid": [
+                    {
+                        # Not an episode ID belonging to this show
+                        "id": "tmdb://999999999",
+                    },
+                ],
+            },
+        }
+
+        data = {
+            "payload": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Episode.objects.count(), 0)
+        self.assertEqual(TV.objects.count(), 0)
+
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
