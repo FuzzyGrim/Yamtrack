@@ -177,7 +177,9 @@ class TraktImporter:
         self.mode = mode
         self.refresh_token = refresh_token
         self.redirect_uri = redirect_uri
-        self.user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
+        self.is_oauth_import = bool(refresh_token)
+        user_identifier = "me" if self.is_oauth_import else username
+        self.user_base_url = f"{TRAKT_API_BASE_URL}/users/{user_identifier}"
         self.warnings = []
 
         # Track existing media to handle "new" mode correctly
@@ -220,6 +222,7 @@ class TraktImporter:
         """Make a request to the Trakt API with proper headers."""
         headers = {
             "Content-Type": "application/json",
+            "User-Agent": f"Yamtrack/{settings.VERSION}",
             "trakt-api-version": "2",
             "trakt-api-key": settings.TRAKT_API,
         }
@@ -290,6 +293,27 @@ class TraktImporter:
         logger.info("Importing watch history for user %s", self.username)
         history_endpoint = f"{self.user_base_url}/history"
         full_history = self._get_paginated_data(history_endpoint, "history entries")
+
+        # Some private profiles can return empty user history with OAuth.
+        # Fallback to the authenticated sync endpoint in that case.
+        if self.is_oauth_import and not full_history:
+            fallback_endpoint = f"{TRAKT_API_BASE_URL}/sync/history"
+            logger.warning(
+                "Empty Trakt history for OAuth user %s at %s. Trying %s",
+                self.username,
+                history_endpoint,
+                fallback_endpoint,
+            )
+            try:
+                full_history = self._get_paginated_data(
+                    fallback_endpoint,
+                    "history entries",
+                )
+            except Exception:
+                logger.exception(
+                    "Fallback Trakt history endpoint failed for user %s",
+                    self.username,
+                )
 
         # Process in chronological order (oldest first)
         for entry in reversed(full_history):
