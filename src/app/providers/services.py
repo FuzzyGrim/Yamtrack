@@ -137,6 +137,7 @@ def api_request(
     provider,
     method,
     url,
+    *,
     params=None,
     data=None,
     headers=None,

@@ -96,8 +96,7 @@ def import_trakt_private(request):
             frequency,
             import_time,
             "Trakt",
-            token=enc_token,
-            task_kwargs={"redirect_uri": redirect_uri},
+            task_kwargs={"token": enc_token, "redirect_uri": redirect_uri},
         )
     request.session.pop(state_token, None)
     return redirect("import_data")
@@ -187,7 +186,7 @@ def import_simkl_private(request):
             frequency,
             import_time,
             "SIMKL",
-            token=enc_token,
+            task_kwargs={"token": enc_token},
         )
 
     return redirect("import_data")
@@ -286,7 +285,7 @@ def import_anilist_private(request):
             frequency=frequency,
             import_time=import_time,
             source="AniList",
-            token=enc_token,
+            task_kwargs={"token": enc_token},
         )
     return redirect("import_data")
 

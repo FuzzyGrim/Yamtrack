@@ -72,10 +72,14 @@ force-exclude = true
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "PLR0913", "SLF001", "COM812", "CPY001"]
+ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "SLF001", "COM812", "CPY001"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 88
+
+[tool.ruff.lint.pylint]
+max-args = 7
+max-positional-args = 6
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

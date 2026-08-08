@@ -226,7 +226,7 @@ def create_import_schedule(
     frequency,
     import_time,
     source,
-    token=None,
+    *,
     task_kwargs=None,
 ):
     """Create an import schedule."""
@@ -263,8 +263,6 @@ def create_import_schedule(
         "mode": mode,
     }
 
-    if token:
-        kwargs["token"] = token
     if task_kwargs:
         kwargs.update(task_kwargs)
 
