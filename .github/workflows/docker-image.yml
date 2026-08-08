@@ -16,7 +16,88 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Single platform, loaded locally so the image can actually be run
+      - name: Build image for testing
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: yamtrack:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          platforms: linux/amd64
+          build-args: |
+            VERSION=test
+
+      - name: Start container
+        run: |
+          docker network create yamtrack-test
+          docker run -d --name yamtrack-redis --network yamtrack-test redis:8-alpine
+          docker run -d --name yamtrack --network yamtrack-test \
+            -e TZ=UTC \
+            -e SECRET=github-actions-testing-secret \
+            -e REDIS_URL=redis://yamtrack-redis:6379 \
+            -p 8000:8000 \
+            yamtrack:test
+
+      # The image HEALTHCHECK covers database, cache, redis and celery
+      - name: Wait for container to become healthy
+        run: |
+          for _ in $(seq 1 60); do
+            STATUS=$(docker inspect --format '{{.State.Health.Status}}' yamtrack)
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Container is healthy"
+              exit 0
+            fi
+            if [ "$(docker inspect --format '{{.State.Running}}' yamtrack)" != "true" ]; then
+              echo "::error::Container exited before becoming healthy"
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "::error::Container did not become healthy in time"
+          exit 1
+
+      - name: Check health endpoint
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:8000/health/
+
+      - name: Check login page is served
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:8000/accounts/login/ \
+            | grep -q "Yamtrack"
+
+      - name: Check static files are served
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            http://127.0.0.1:8000/static/css/main.css
+
+      - name: Check version was baked into the image
+        run: |
+          test "$(docker exec yamtrack printenv VERSION)" = "test"
+
+      - name: Dump container logs
+        if: failure()
+        run: |
+          docker logs yamtrack
+          docker logs yamtrack-redis
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]'
     permissions:
