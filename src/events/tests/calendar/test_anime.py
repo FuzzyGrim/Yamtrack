@@ -9,6 +9,7 @@ from events.calendar.anime import (
     get_anime_schedule_bulk,
     process_anime_bulk,
 )
+from events.models import Event
 from events.tests.calendar.utils import CalendarFixturesMixin
 
 
@@ -299,6 +300,14 @@ class CalendarAnimeTests(CalendarFixturesMixin, TestCase):
         missing_year = {"year": None, "month": 3, "day": 28}
         result = anilist_date_parser(missing_year)
         self.assertIsNone(result)
+
+    def test_anilist_date_parser_uses_sentinel_time(self):
+        """A date with no known time of day gets the sentinel time."""
+        result = anilist_date_parser({"year": 2024, "month": 3, "day": 28})
+
+        dt = datetime.datetime.fromtimestamp(result, tz=ZoneInfo("UTC"))
+
+        self.assertTrue(Event(datetime=dt).is_sentinel_time)
 
     @patch("events.calendar.anime.services.api_request")
     def test_process_anime_bulk(self, mock_api_request):
