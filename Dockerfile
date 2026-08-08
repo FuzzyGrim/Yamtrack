@@ -16,7 +16,7 @@ COPY ./uv.lock ./uv.lock
 RUN uv sync --locked
 
 # --- Final stage: minimal runtime image ---
-FROM python:3.12-alpine3.23
+FROM python:3.14-alpine3.23
 
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
