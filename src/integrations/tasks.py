@@ -86,7 +86,9 @@ def import_media(
 
 
 @shared_task(name="Import from Trakt")
-def import_trakt(user_id, mode, token=None, username=None, redirect_uri=None):
+def import_trakt(
+    user_id, mode, token=None, file=None, username=None, redirect_uri=None
+):
     """Celery task for importing media data from Trakt.
 
     Can import using either OAuth (token provided) or public username.
@@ -98,6 +100,7 @@ def import_trakt(user_id, mode, token=None, username=None, redirect_uri=None):
         mode,
         username,
         redirect_uri=redirect_uri,
+        file=file,
     )
 
 

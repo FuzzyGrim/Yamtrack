@@ -135,6 +135,28 @@ def import_trakt_public(request):
 
 
 @require_POST
+def import_trakt_export(request):
+    """View for importing Trakt data from an exported zip file."""
+    file = request.FILES.get("trakt_export_zip")
+
+    if not file:
+        messages.error(request, "Trakt export zip file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_trakt.delay(
+        user_id=request.user.id,
+        mode=mode,
+        file=request.FILES["trakt_export_zip"],
+    )
+    messages.info(
+        request,
+        "The task to import media from Trakt export file has been queued.",
+    )
+    return redirect("import_data")
+
+
+@require_POST
 def simkl_oauth(request):
     """View for initiating the SIMKL OAuth2 authorization flow."""
     redirect_uri = app_helpers.build_absolute_app_url(
