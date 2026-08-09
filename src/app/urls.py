@@ -50,6 +50,16 @@ urlpatterns = [
         views.progress_edit,
         name="progress_edit",
     ),
+    path(
+        "rewatch_modal/<int:instance_id>",
+        views.rewatch_modal,
+        name="rewatch_modal",
+    ),
+    path(
+        "rewatch_save/<int:instance_id>",
+        views.rewatch_save,
+        name="rewatch_save",
+    ),
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
     path(

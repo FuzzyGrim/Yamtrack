@@ -1,0 +1,54 @@
+{% load widget_tweaks %}
+
+<div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto"
+     x-data="{ mode: '{% if media.rewatch_since %}date{% else %}now{% endif %}' }">
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="text-2xl font-bold text-white line-clamp-1">Rewatch {{ media.item.title }}</h2>
+    <button class="text-gray-400 hover:text-white cursor-pointer"
+            @click="rewatchOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
+  </div>
+
+  <p class="text-sm text-gray-400 mb-6">
+    Only plays from the chosen moment on count towards progress. Everything you
+    watched before stays in your history and statistics.
+  </p>
+
+  <form hx-post="{% url 'rewatch_save' instance_id=media.id %}?next={{ return_url }}"
+        hx-swap="none">
+    {% csrf_token %}
+    <input type="hidden" name="mode" x-model="mode">
+
+    <div class="grid grid-cols-2 gap-3 mb-5">
+      <button type="button"
+              class="p-3 rounded-md text-sm font-medium border transition duration-300 cursor-pointer"
+              :class="mode === 'now' ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-gray-600 bg-[#39404b] text-gray-300 hover:bg-[#454d5a]'"
+              @click="mode = 'now'">Right now</button>
+      <button type="button"
+              class="p-3 rounded-md text-sm font-medium border transition duration-300 cursor-pointer"
+              :class="mode === 'date' ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-gray-600 bg-[#39404b] text-gray-300 hover:bg-[#454d5a]'"
+              @click="mode = 'date'">Specific date</button>
+    </div>
+
+    <div class="mb-5" x-show="mode === 'date'" x-cloak>
+      <label class="block text-sm font-medium mb-1 text-gray-300"
+             for="{{ form.rewatch_since.id_for_label }}">Rewatching since</label>
+      {{ form.rewatch_since|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]" }}
+    </div>
+
+    <div class="flex flex-row-reverse justify-between mt-6">
+      <button type="submit"
+              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
+        {% if media.rewatch_since %}
+          Update
+        {% else %}
+          Start rewatch
+        {% endif %}
+      </button>
+      {% if media.rewatch_since %}
+        <button type="submit"
+                class="px-4 py-2 rounded-md bg-red-700 text-white hover:bg-red-800 transition duration-300 cursor-pointer"
+                @click="mode = 'end'">End rewatch</button>
+      {% endif %}
+    </div>
+  </form>
+</div>
