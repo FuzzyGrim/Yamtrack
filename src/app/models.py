@@ -34,6 +34,9 @@ from app.mixins import CalendarTriggerMixin
 
 logger = logging.getLogger(__name__)
 
+# Season number used by providers for specials
+SPECIALS_SEASON_NUMBER = 0
+
 
 class Sources(models.TextChoices):
     """Choices for the source of the item."""
@@ -227,6 +230,10 @@ class MediaManager(models.Manager):
         """Get media list based on filters, sorting and search."""
         model = apps.get_model(app_label="app", model_name=media_type)
         queryset = model.objects.filter(user=user.id)
+
+        # Excluded specials stay tracked, but only from the show details page
+        if media_type == MediaTypes.SEASON.value and not user.include_specials:
+            queryset = queryset.exclude(item__season_number=SPECIALS_SEASON_NUMBER)
 
         if status_filter != users.models.MediaStatusChoices.ALL:
             queryset = queryset.filter(status=status_filter)
@@ -1405,9 +1412,10 @@ class Season(Media):
                     )
 
                 if target_status == Status.COMPLETED.value:
-                    self.related_tv._handle_completed_season(
-                        self.item.season_number,
-                    )
+                    if self.counts_towards_show:
+                        self.related_tv._handle_completed_season(
+                            self.item.season_number,
+                        )
                 else:
                     self.status = target_status
                     bulk_update_with_history(
@@ -1420,7 +1428,10 @@ class Season(Media):
                         level=UserMessageLevel.WARNING,
                     )
 
-                    if self.related_tv.status != Status.IN_PROGRESS.value:
+                    if (
+                        self.counts_towards_show
+                        and self.related_tv.status != Status.IN_PROGRESS.value
+                    ):
                         self.related_tv.status = Status.IN_PROGRESS.value
                         bulk_update_with_history(
                             [self.related_tv],
@@ -1429,7 +1440,8 @@ class Season(Media):
                         )
 
             elif (
-                self.status == Status.DROPPED.value
+                self.counts_towards_show
+                and self.status == Status.DROPPED.value
                 and self.related_tv.status != Status.DROPPED.value
             ):
                 self.related_tv.status = Status.DROPPED.value
@@ -1440,7 +1452,8 @@ class Season(Media):
                 )
 
             elif (
-                self.status == Status.IN_PROGRESS.value
+                self.counts_towards_show
+                and self.status == Status.IN_PROGRESS.value
                 and self.related_tv.status != Status.IN_PROGRESS.value
             ):
                 self.related_tv.status = Status.IN_PROGRESS.value
@@ -1451,6 +1464,20 @@ class Season(Media):
                 )
 
             self.item.fetch_releases(delay=True)
+
+    @property
+    def is_special(self):
+        """Return True when the season holds specials."""
+        return self.item.season_number == SPECIALS_SEASON_NUMBER
+
+    @property
+    def counts_towards_show(self):
+        """Return True when the season status can change the status of its show.
+
+        Users who exclude specials treat them as extra content, so watching
+        them never reopens or completes the show.
+        """
+        return not self.is_special or self.user.include_specials
 
     def _get_latest_watched_episode_number(self):
         """Return the highest watched episode number for the season."""
@@ -1821,6 +1848,9 @@ class Episode(models.Model):
                 fields=["status"],
             )
 
+        if not self.related_season.counts_towards_show:
+            return
+
         if season_just_completed:
             self.related_season.related_tv._handle_completed_season(season_number)
         elif (
@@ -1862,7 +1892,8 @@ class Episode(models.Model):
             )
 
         if (
-            season.status != Status.COMPLETED.value
+            season.counts_towards_show
+            and season.status != Status.COMPLETED.value
             and tv.status == Status.COMPLETED.value
         ):
             tv.status = Status.IN_PROGRESS.value

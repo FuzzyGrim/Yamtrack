@@ -316,6 +316,11 @@ class User(AbstractUser):
     )
 
     # Tracking settings
+    include_specials = models.BooleanField(
+        default=True,
+        help_text="Count specials towards TV show status and list them as seasons",
+    )
+
     quick_watch_date = models.CharField(
         max_length=20,
         default=QuickWatchDateChoices.CURRENT_DATE,

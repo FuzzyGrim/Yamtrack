@@ -3,9 +3,11 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
+    TV,
     Item,
     MediaTypes,
     Movie,
+    Season,
     Sources,
     Status,
 )
@@ -193,3 +195,89 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("media_list", response.context)
+
+
+class SeasonListSpecialsTests(TestCase):
+    """Test specials visibility on the season list and home page."""
+
+    def setUp(self):
+        """Create a show with a regular season and a special."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        self.tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(self.tv)
+
+        for season_number in (0, 1):
+            season_item = Item.objects.create(
+                media_id="1668",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
+                title="Friends",
+                image="http://example.com/image.jpg",
+                season_number=season_number,
+            )
+            Season.save_base(
+                Season(
+                    item=season_item,
+                    user=self.user,
+                    related_tv=self.tv,
+                    status=Status.IN_PROGRESS.value,
+                ),
+            )
+
+    def _listed_season_numbers(self, response):
+        """Return the season numbers shown in the response."""
+        return {media.item.season_number for media in response.context["media_list"]}
+
+    def test_season_list_includes_specials_by_default(self):
+        """Specials are listed as seasons for users that include them."""
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.SEASON.value])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._listed_season_numbers(response), {0, 1})
+
+    def test_season_list_hides_excluded_specials(self):
+        """Specials are hidden from the season list when excluded."""
+        self.user.include_specials = False
+        self.user.save(update_fields=["include_specials"])
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.SEASON.value])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._listed_season_numbers(response), {1})
+
+    def test_home_hides_excluded_specials(self):
+        """Specials are hidden from the home page when excluded."""
+        self.user.include_specials = False
+        self.user.save(update_fields=["include_specials"])
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        in_progress_section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.IN_PROGRESS.value
+        )
+        seasons = in_progress_section["media_types"][MediaTypes.SEASON.value]["items"]
+        self.assertEqual(
+            {media.item.season_number for media in seasons},
+            {1},
+        )
