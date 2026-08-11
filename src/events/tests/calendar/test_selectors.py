@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from app.models import TV, Anime, Item, MediaTypes, Sources, Status
 from app.providers import services
+from events.calendar.main import fetch_releases
 from events.calendar.selectors import (
     get_changed_tmdb_movie_ids,
     get_changed_tmdb_tv_ids,
@@ -17,6 +18,77 @@ from events.tests.calendar.utils import CalendarFixturesMixin
 
 class CalendarSelectorTests(CalendarFixturesMixin, TestCase):
     """Test calendar item selection rules."""
+
+    @patch("events.calendar.selectors.tmdb.movie_changes")
+    @patch("events.calendar.selectors.tmdb.tv_changes")
+    @patch("events.calendar.anime.services.api_request")
+    def test_past_only_anime_is_refreshed_and_saves_future_episode(
+        self,
+        mock_api_request,
+        mock_tv_changes,
+        mock_movie_changes,
+    ):
+        """Stale anime events must not prevent AniList schedule refreshes."""
+        mock_tv_changes.return_value = set()
+        mock_movie_changes.return_value = set()
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=17,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+        future_datetime = (timezone.now() + timezone.timedelta(days=7)).replace(
+            microsecond=0,
+        )
+        future_timestamp = int(future_datetime.timestamp())
+        mock_api_request.return_value = {
+            "data": {
+                "Page": {
+                    "pageInfo": {"hasNextPage": False},
+                    "media": [
+                        {
+                            "idMal": int(self.anime_item.media_id),
+                            "endDate": {"year": None, "month": None, "day": None},
+                            "episodes": 18,
+                            "airingSchedule": {
+                                "nodes": [
+                                    {"episode": 18, "airingAt": future_timestamp},
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        }
+
+        items = get_items_to_process(self.user)
+
+        self.assertIn(self.anime_item, items)
+        fetch_releases(items_to_process=[self.anime_item])
+
+        mock_api_request.assert_called_once()
+        saved_event = Event.objects.get(item=self.anime_item, content_number=18)
+        self.assertEqual(saved_event.datetime, future_datetime)
+        self.assertGreater(saved_event.datetime, timezone.now())
+
+    @patch("events.calendar.selectors.tmdb.movie_changes")
+    @patch("events.calendar.selectors.tmdb.tv_changes")
+    def test_anime_with_future_event_continues_to_be_selected(
+        self,
+        mock_tv_changes,
+        mock_movie_changes,
+    ):
+        """Existing future anime events remain eligible for schedule refreshes."""
+        mock_tv_changes.return_value = set()
+        mock_movie_changes.return_value = set()
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=17,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        items = get_items_to_process(self.user)
+
+        self.assertIn(self.anime_item, items)
 
     @patch("events.calendar.selectors.tmdb.movie_changes")
     @patch("events.calendar.selectors.tmdb.tv_changes")

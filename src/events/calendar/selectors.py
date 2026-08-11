@@ -70,17 +70,28 @@ def filter_items_to_fetch(items):
     tv_q = Q(id__in=tv_items_to_include)
     movie_q = Q(id__in=movie_items_to_include)
 
+    anime_q = Q(
+        media_type=MediaTypes.ANIME.value,
+        source=Sources.MAL.value,
+    )
+
     comic_q = Q(media_type=MediaTypes.COMIC.value) & (
         Q(event__isnull=True) | Q(latest_comic_event_datetime__gte=one_year_ago)
     )
 
     other_q = (
-        ~Q(media_type__in=[MediaTypes.TV.value, MediaTypes.COMIC.value])
+        ~Q(
+            media_type__in=[
+                MediaTypes.TV.value,
+                MediaTypes.ANIME.value,
+                MediaTypes.COMIC.value,
+            ],
+        )
         & ~Q(media_type=MediaTypes.MOVIE.value, source=Sources.TMDB.value)
         & (Q(event__isnull=True) | Q(has_future_events=True))
     )
 
-    return annotated.filter(tv_q | movie_q | comic_q | other_q).distinct()
+    return annotated.filter(tv_q | movie_q | anime_q | comic_q | other_q).distinct()
 
 
 def get_tv_items_to_include(tv_items):
