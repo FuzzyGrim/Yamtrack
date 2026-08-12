@@ -59,7 +59,6 @@ class AnimeSequelTests(TestCase):
         self,
         media_id,
         relation_type="sequel",
-        media_format="tv",
         title="Sequel Anime",
     ):
         """Build a related anime entry in the provider's metadata shape."""
@@ -70,17 +69,13 @@ class AnimeSequelTests(TestCase):
             "media_type": MediaTypes.ANIME.value,
             "image": "http://example.com/sequel.jpg",
             "relation_type": relation_type,
-            "media_format": media_format,
         }
 
     def test_is_trackable_anime_sequel_accepts_sequel(self):
-        """Only sequels in a trackable format are accepted."""
+        """Sequel relations are accepted regardless of media format."""
         self.assertTrue(is_trackable_anime_sequel(self._related("3")))
         self.assertTrue(
-            is_trackable_anime_sequel(self._related("3", media_format="movie")),
-        )
-        self.assertTrue(
-            is_trackable_anime_sequel(self._related("3", media_format="ona")),
+            is_trackable_anime_sequel(self._related("3", relation_type="sequel")),
         )
 
     def test_is_trackable_anime_sequel_rejects_non_sequels(self):
@@ -102,16 +97,6 @@ class AnimeSequelTests(TestCase):
                     self._related("3", relation_type=relation_type),
                 ),
                 relation_type,
-            )
-
-    def test_is_trackable_anime_sequel_rejects_ignored_formats(self):
-        """OVAs, specials and music videos are not tracked even as sequels."""
-        for media_format in ("ova", "special", "music"):
-            self.assertFalse(
-                is_trackable_anime_sequel(
-                    self._related("3", media_format=media_format),
-                ),
-                media_format,
             )
 
     def test_is_trackable_anime_sequel_rejects_missing_data(self):

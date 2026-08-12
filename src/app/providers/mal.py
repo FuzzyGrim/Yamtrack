@@ -394,8 +394,6 @@ def get_related(related_medias, media_type):
                 "image": get_image_url(media["node"]),
                 # raw MAL relation type, e.g. "sequel", "prequel"
                 "relation_type": media.get("relation_type"),
-                # node format, e.g. "tv", "ova", "movie"
-                "media_format": media["node"].get("media_type"),
             }
             for media in related_medias
         ]

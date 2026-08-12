@@ -7,25 +7,18 @@ logger = logging.getLogger(__name__)
 
 # Raw MAL v2 relation type for sequels, e.g. "sequel", "prequel", "spin_off"
 SEQUEL_RELATION_TYPE = "sequel"
-# Node formats that count as trackable anime sequels. OVAs, specials and
-# music videos are excluded even when MAL lists them as sequels.
-TRACKABLE_MEDIA_FORMATS = frozenset({"tv", "movie", "ona"})
 
 
 def is_trackable_anime_sequel(related):
     """Return whether a related anime entry should be auto-tracked.
 
-    Only MAL "sequel" relations in a trackable format are considered.
-    Prequels, side stories, alternative versions, spin-offs, summaries and
-    OVAs are explicitly ignored. Kept isolated so it is easy to review and
-    extend (e.g. user-configurable relation types) without touching the
-    polling or creation logic.
+    Only MAL "sequel" relations are considered; prequels, side stories,
+    alternative versions, spin-offs, summaries and OVAs are explicitly
+    ignored. Kept isolated so it is easy to review and extend (e.g.
+    user-configurable relation types) without touching the polling or
+    creation logic.
     """
-    if not related:
-        return False
-    if related.get("relation_type") != SEQUEL_RELATION_TYPE:
-        return False
-    return related.get("media_format") in TRACKABLE_MEDIA_FORMATS
+    return bool(related) and related.get("relation_type") == SEQUEL_RELATION_TYPE
 
 
 def get_related_anime(item):
@@ -54,25 +47,21 @@ def create_sequel_entries(item, user_ids):
     """Create planning anime entries for sequels of ``item`` for each user.
 
     Sequels are created idempotently: an item already tracked by a user is
-    left untouched.
+    left untouched, and the related data is fetched once per run regardless
+    of how many users track the prequel.
     """
-    sequels = [
-        related
-        for related in get_related_anime(item)
-        if is_trackable_anime_sequel(related)
-    ]
-    if not sequels:
-        return 0
-
     created_count = 0
-    for sequel in sequels:
+    for related in get_related_anime(item):
+        if not is_trackable_anime_sequel(related):
+            continue
+
         sequel_item, _ = Item.objects.get_or_create(
-            media_id=str(sequel["media_id"]),
-            source=sequel["source"],
+            media_id=str(related["media_id"]),
+            source=related["source"],
             media_type=MediaTypes.ANIME.value,
             defaults={
-                "title": sequel["title"],
-                "image": sequel.get("image"),
+                "title": related["title"],
+                "image": related.get("image"),
             },
         )
         for user_id in user_ids:
