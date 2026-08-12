@@ -70,7 +70,7 @@ def get_external_links(external_ids, tmdb_id=None):
     return links
 
 
-def search(media_type, query, page):
+def search(media_type, query, page, primary_release_year=None):
     """Search for media on TMDB."""
     cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}_{page}"
     data = cache.get(cache_key)
@@ -83,6 +83,9 @@ def search(media_type, query, page):
             "query": query,
             "page": page,
         }
+
+        if primary_release_year:
+            params["primary_release_year"] = primary_release_year
 
         if settings.TMDB_NSFW:
             params["include_adult"] = "true"

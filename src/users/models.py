@@ -665,6 +665,7 @@ class User(AbstractUser):
             "hltb": "Import from HowLongToBeat",
             "steam": "Import from Steam",
             "imdb": "Import from IMDB",
+            "letterboxd": "Import from Letterboxd",
             "goodreads": "Import from GoodReads",
         }
 

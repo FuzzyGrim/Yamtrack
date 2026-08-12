@@ -3,7 +3,6 @@
 import json
 import logging
 import secrets
-from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -17,7 +16,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 import users
-from app import helpers as app_helpers
 from integrations import exports, tasks
 from integrations.imports import anilist, helpers, simkl, trakt
 from integrations.webhooks import emby, jellyfin, plex
@@ -28,56 +26,30 @@ logger = logging.getLogger(__name__)
 @require_POST
 def trakt_oauth(request):
     """View for initiating Trakt OAuth2 authorization flow."""
-    redirect_uri = app_helpers.build_absolute_app_url(
-        request,
-        reverse("import_trakt_private"),
-    )
+    redirect_uri = request.build_absolute_uri(reverse("import_trakt_private"))
     url = "https://trakt.tv/oauth/authorize"
     state = {
         "mode": request.POST["mode"],
         "frequency": request.POST["frequency"],
         "time": request.POST["time"],
-        "redirect_uri": redirect_uri,
     }
     state_token = secrets.token_urlsafe(32)
     request.session[state_token] = state
     return redirect(
-        f"{url}?{
-            urlencode(
-                {
-                    'client_id': settings.TRAKT_API,
-                    'redirect_uri': redirect_uri,
-                    'response_type': 'code',
-                    'state': state_token,
-                }
-            )
-        }",
+        f"{url}?client_id={settings.TRAKT_API}&redirect_uri={redirect_uri}&response_type=code&state={state_token}",
     )
 
 
 @require_GET
 def import_trakt_private(request):
     """View for handling Trakt OAuth2 callback and scheduling private import."""
-    state_token = request.GET.get("state")
-    state = request.session.get(state_token)
-    if not state:
-        messages.error(request, "Invalid or expired Trakt authorization request.")
-        return redirect("import_data")
-
-    if not request.GET.get("code"):
-        messages.error(request, "Trakt authorization failed.")
-        return redirect("import_data")
-
-    redirect_uri = state.get("redirect_uri") or app_helpers.build_absolute_app_url(
-        request,
-        reverse("import_trakt_private"),
-    )
-    oauth_callback = trakt.handle_oauth_callback(request, redirect_uri=redirect_uri)
+    oauth_callback = trakt.handle_oauth_callback(request)
     enc_token = helpers.encrypt(oauth_callback["refresh_token"])
+    state_token = request.GET["state"]
 
-    frequency = state["frequency"]
-    mode = state["mode"]
-    import_time = state["time"]
+    frequency = request.session[state_token]["frequency"]
+    mode = request.session[state_token]["mode"]
+    import_time = request.session[state_token]["time"]
 
     if frequency == "once":
         tasks.import_trakt.delay(
@@ -85,7 +57,6 @@ def import_trakt_private(request):
             user_id=request.user.id,
             mode=mode,
             username=oauth_callback["username"],
-            redirect_uri=redirect_uri,
         )
         messages.info(request, "The task to import media from Trakt has been queued.")
     else:
@@ -96,9 +67,8 @@ def import_trakt_private(request):
             frequency,
             import_time,
             "Trakt",
-            task_kwargs={"token": enc_token, "redirect_uri": redirect_uri},
+            token=enc_token,
         )
-    request.session.pop(state_token, None)
     return redirect("import_data")
 
 
@@ -136,10 +106,7 @@ def import_trakt_public(request):
 @require_POST
 def simkl_oauth(request):
     """View for initiating the SIMKL OAuth2 authorization flow."""
-    redirect_uri = app_helpers.build_absolute_app_url(
-        request,
-        reverse("import_simkl_private"),
-    )
+    redirect_uri = request.build_absolute_uri(reverse("import_simkl_private"))
     url = "https://simkl.com/oauth/authorize"
 
     state = {
@@ -151,16 +118,7 @@ def simkl_oauth(request):
     request.session[state_token] = state
 
     return redirect(
-        f"{url}?{
-            urlencode(
-                {
-                    'client_id': settings.SIMKL_ID,
-                    'redirect_uri': redirect_uri,
-                    'response_type': 'code',
-                    'state': state_token,
-                }
-            )
-        }",
+        f"{url}?client_id={settings.SIMKL_ID}&redirect_uri={redirect_uri}&response_type=code&state={state_token}",
     )
 
 
@@ -186,7 +144,7 @@ def import_simkl_private(request):
             frequency,
             import_time,
             "SIMKL",
-            task_kwargs={"token": enc_token},
+            token=enc_token,
         )
 
     return redirect("import_data")
@@ -225,10 +183,7 @@ def import_mal(request):
 @require_POST
 def anilist_oauth(request):
     """Initiate AniList OAuth flow."""
-    redirect_uri = app_helpers.build_absolute_app_url(
-        request,
-        reverse("import_anilist_private"),
-    )
+    redirect_uri = request.build_absolute_uri(reverse("import_anilist_private"))
     url = "https://anilist.co/api/v2/oauth/authorize"
     state = {
         "mode": request.POST["mode"],
@@ -240,16 +195,7 @@ def anilist_oauth(request):
     request.session[state_token] = state
 
     return redirect(
-        f"{url}?{
-            urlencode(
-                {
-                    'client_id': settings.ANILIST_ID,
-                    'redirect_uri': redirect_uri,
-                    'response_type': 'code',
-                    'state': state_token,
-                }
-            )
-        }",
+        f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={state_token}",
     )
 
 
@@ -285,7 +231,7 @@ def import_anilist_private(request):
             frequency=frequency,
             import_time=import_time,
             source="AniList",
-            task_kwargs={"token": enc_token},
+            token=enc_token,
         )
     return redirect("import_data")
 
@@ -437,6 +383,30 @@ def import_imdb(request):
         request,
         "The task to import media from IMDB CSV file has been queued.",
     )
+    return redirect("import_data")
+
+
+def import_letterboxd(request):
+    """View for importing data from Letterboxd."""
+    file = request.FILES.get("letterboxd_csv")
+    if not file:
+        messages.error(request, "Letterboxd CSV file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+
+    tasks.import_letterboxd.delay(
+        file=request.FILES["letterboxd_csv"],
+        user_id=request.user.id,
+        mode=mode,
+    )
+    messages.info(
+        request,
+        "The task to import media from IMDB CSV file has been queued.",
+    )
+
+    logger.debug("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+
     return redirect("import_data")
 
 
