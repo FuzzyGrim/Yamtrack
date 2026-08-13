@@ -50,6 +50,10 @@ class BaseWebhookProcessor(TVWebhookMixin, MovieWebhookMixin, AnimeWebhookMixin)
         """Get episode number from payload."""
         raise NotImplementedError
 
+    def _get_season_number(self, payload):
+        """Get season number from payload."""
+        raise NotImplementedError
+
     def _process_media(self, payload, user, ids):
         """Route processing based on media type."""
         media_type = self._get_media_type(payload)

@@ -93,6 +93,9 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
     def _get_episode_number(self, payload):
         return payload["Item"].get("IndexNumber")
 
+    def _get_season_number(self, payload):
+        return payload["Item"].get("ParentIndexNumber")
+
     def _extract_external_ids(self, payload):
         provider_ids = payload["Item"].get("ProviderIds", {})
         return {

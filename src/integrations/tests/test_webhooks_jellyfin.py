@@ -263,6 +263,82 @@ class JellyfinWebhookTests(TestCase):
             self.user,
         )
 
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    def test_tv_episode_uses_tmdb_when_no_episode_level_id(
+        self,
+        mock_handle_tv_episode,
+    ):
+        """Test the show's TMDB ID is used when no episode-level ID is sent."""
+        self.user.anime_enabled = False
+        self.user.save(update_fields=["anime_enabled"])
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {"Tmdb": "1396"},
+                "SeriesName": "Breaking Bad",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 3,
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_handle_tv_episode.assert_called_once_with(
+            "1396",
+            1,
+            3,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.find")
+    def test_tv_episode_falls_back_to_tmdb_when_imdb_lookup_misses(
+        self,
+        mock_tmdb_find,
+        mock_handle_tv_episode,
+    ):
+        """Test the payload TMDB ID is used after an IMDB lookup finds nothing."""
+        self.user.anime_enabled = False
+        self.user.save(update_fields=["anime_enabled"])
+        mock_tmdb_find.return_value = {"tv_episode_results": []}
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {"Tmdb": "1396", "Imdb": "tt0903747"},
+                "SeriesName": "Breaking Bad",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 3,
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tmdb_find.assert_any_call("tt0903747", "imdb_id")
+        mock_handle_tv_episode.assert_called_once_with(
+            "1396",
+            1,
+            3,
+            payload,
+            self.user,
+        )
+
     def test_mark_played_ignored_when_disabled(self):
         """Test Jellyfin MarkPlayed events are ignored by default."""
         payload = {

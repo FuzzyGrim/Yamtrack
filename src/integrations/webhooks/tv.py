@@ -42,10 +42,40 @@ class TVWebhookMixin:
         if imdb_id and self._process_imdb_episode(imdb_id, payload, user):
             return
 
+        tmdb_id = ids.get("tmdb_id")
+        if tmdb_id and self._process_tmdb_episode(tmdb_id, payload, user):
+            return
+
         if imdb_id:
             logger.warning("No matching TMDB ID found for IMDB ID: %s", imdb_id)
         else:
-            logger.warning("No TVDB or IMDB ID found for TV episode")
+            logger.warning("No TVDB, IMDB or TMDB ID found for TV episode")
+
+    def _process_tmdb_episode(self, tmdb_id, payload, user):
+        """Process a TV episode using the show's TMDB ID.
+
+        The TVDB and IMDB routes both resolve an episode-level identifier. A
+        source that only knows the show's TMDB ID has to supply the season and
+        episode numbers itself, which the payload already carries.
+        """
+        season_number = self._get_season_number(payload)
+        episode_number = self._get_episode_number(payload)
+
+        if season_number is None or episode_number is None:
+            logger.debug(
+                "TMDB ID %s found but the payload has no season or episode number",
+                tmdb_id,
+            )
+            return False
+
+        logger.info(
+            "Detected TV episode via payload TMDB ID: %s, Season: %d, Episode: %d",
+            tmdb_id,
+            season_number,
+            episode_number,
+        )
+        self._handle_tv_episode(tmdb_id, season_number, episode_number, payload, user)
+        return True
 
     def _process_anidb_episode(self, anidb_id, payload, user):
         """Process an anime episode using its AniDB ID.
