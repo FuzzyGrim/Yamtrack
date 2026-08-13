@@ -16,44 +16,12 @@ class TVWebhookMixin:
 
     def _process_tv(self, payload, user, ids):
         anidb_id = ids.get("anidb_id")
-        if user.anime_enabled and anidb_id:
-            mapping_data = anime_mappings.fetch_mapping_data()
-            episode_number = self._get_episode_number(payload)
-            mal_id = None
-            mal_episode_number = None
-
-            if not episode_number:
-                logger.warning(
-                    "No episode number found for AniDB ID: %s",
-                    anidb_id,
-                )
-            else:
-                mal_id, mal_episode_number = anime_mappings.get_mal_id_from_anidb(
-                    mapping_data,
-                    anidb_id,
-                    episode_number,
-                )
-
-            if episode_number and not mal_id:
-                logger.info(
-                    "AniDB ID %s not found in mapping, "
-                    "falling through to TV processing",
-                    anidb_id,
-                )
-            elif episode_number:
-                logger.info(
-                    "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
-                    anidb_id,
-                    mal_id,
-                    mal_episode_number,
-                )
-                self._handle_anime(
-                    mal_id,
-                    mal_episode_number,
-                    payload,
-                    user,
-                )
-                return
+        if (
+            user.anime_enabled
+            and anidb_id
+            and self._process_anidb_episode(anidb_id, payload, user)
+        ):
+            return
 
         tvdb_episode_id = ids.get("tvdb_id")
         if tvdb_episode_id:
@@ -78,6 +46,44 @@ class TVWebhookMixin:
             logger.warning("No matching TMDB ID found for IMDB ID: %s", imdb_id)
         else:
             logger.warning("No TVDB or IMDB ID found for TV episode")
+
+    def _process_anidb_episode(self, anidb_id, payload, user):
+        """Process an anime episode using its AniDB ID.
+
+        Returns False when the episode cannot be mapped, so the caller falls
+        through to the regular TV routes.
+        """
+        episode_number = self._get_episode_number(payload)
+        if not episode_number:
+            logger.warning(
+                "No episode number found for AniDB ID: %s",
+                anidb_id,
+            )
+            return False
+
+        mapping_data = anime_mappings.fetch_mapping_data()
+        mal_id, mal_episode_number = anime_mappings.get_mal_id_from_anidb(
+            mapping_data,
+            anidb_id,
+            episode_number,
+        )
+
+        if not mal_id:
+            logger.info(
+                "AniDB ID %s not found in mapping, falling through to TV processing",
+                anidb_id,
+            )
+            return False
+
+        logger.info(
+            "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
+            anidb_id,
+            mal_id,
+            mal_episode_number,
+        )
+        self._handle_anime(mal_id, mal_episode_number, payload, user)
+        return True
+
 
     def _process_tvdb_episode(self, tvdb_episode, tvdb_episode_id, payload, user):
         """Process a TV episode using TVDB metadata."""
