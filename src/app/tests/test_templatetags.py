@@ -133,6 +133,42 @@ class AppTagsTests(TestCase):
 
             self.assertEqual(app_tags.media_type_readable_plural(media_type), expected)
 
+    def test_relation_type_readable(self):
+        """Test the relation_type_readable filter."""
+        # Known relation types map to human-readable labels
+        known = {
+            "sequel": "Sequel",
+            "prequel": "Prequel",
+            "side_story": "Side Story",
+            "alternative_version": "Alternative Version",
+            "summary": "Summary",
+            "spin_off": "Spin-off",
+            "parent_story": "Parent Story",
+            "full_story": "Full Story",
+            "character": "Character",
+            "other": "Other",
+        }
+        for relation_type, expected in known.items():
+            self.assertEqual(
+                app_tags.relation_type_readable(relation_type),
+                expected,
+                relation_type,
+            )
+
+        # Unknown relation types fall back to a title-cased version
+        self.assertEqual(
+            app_tags.relation_type_readable("unexpected_relation"),
+            "Unexpected Relation",
+        )
+        self.assertEqual(
+            app_tags.relation_type_readable("brand_new"),
+            "Brand New",
+        )
+
+        # Missing values degrade gracefully to None
+        self.assertIsNone(app_tags.relation_type_readable(None))
+        self.assertIsNone(app_tags.relation_type_readable(""))
+
     def test_default_source(self):
         """Test the default_source filter."""
         # Test all media types from the MediaTypes class
