@@ -52,6 +52,14 @@ SOURCES_CONFIG = {
         "name": "GoodReads",
         "logo": static("img/logo-goodreads.svg"),
     },
+    "letterboxd_csv": {
+        "name": "Letterboxd CSV",
+        "logo": static("img/logo-letterboxd.svg"),
+    },
+    "letterboxd_rss": {
+        "name": "Letterboxd RSS",
+        "logo": static("img/logo-letterboxd.svg"),
+    },
 }
 
 

@@ -33,7 +33,16 @@ urlpatterns = [
     path("import/hltb", views.import_hltb, name="import_hltb"),
     path("import/steam", views.import_steam, name="import_steam"),
     path("import/imdb", views.import_imdb, name="import_imdb"),
-    path("import/letterboxd", views.import_letterboxd, name="import_letterboxd"),
+    path(
+        "import/letterboxd_csv",
+        views.import_letterboxd_csv,
+        name="import_letterboxd_csv",
+    ),
+    path(
+        "import/letterboxd_rss",
+        views.import_letterboxd_rss,
+        name="import_letterboxd_rss",
+    ),
     path("import/goodreads", views.import_goodreads, name="import_goodreads"),
     path("export/csv", views.export_csv, name="export_csv"),
     path(

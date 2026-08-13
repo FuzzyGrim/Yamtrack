@@ -134,10 +134,16 @@ def import_imdb(file, user_id, mode):
     return import_media(imdb.importer, file, user_id, mode)
 
 
-@shared_task(name="Import from Letterboxd")
-def import_letterboxd(file, user_id, mode):
-    """Celery task for importing media data from Letterboxd."""
-    return import_media(letterboxd.importer, file, user_id, mode)
+@shared_task(name="Import from Letterboxd CSV")
+def import_letterboxd_csv(file, user_id, mode):
+    """Celery task for importing media data from a Letterboxd CSV dump."""
+    return import_media(letterboxd.importer_csv, file, user_id, mode)
+
+
+@shared_task(name="Import from Letterboxd RSS")
+def import_letterboxd_rss(username, user_id, mode):
+    """Celery task for importing media data from a Letterboxd RSS feed."""
+    return import_media(letterboxd.importer_rss, username, user_id, mode)
 
 
 @shared_task(name="Import from GoodReads")

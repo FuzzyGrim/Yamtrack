@@ -386,7 +386,7 @@ def import_imdb(request):
     return redirect("import_data")
 
 
-def import_letterboxd(request):
+def import_letterboxd_csv(request):
     """View for importing data from Letterboxd."""
     file = request.FILES.get("letterboxd_csv")
     if not file:
@@ -395,7 +395,7 @@ def import_letterboxd(request):
 
     mode = request.POST["mode"]
 
-    tasks.import_letterboxd.delay(
+    tasks.import_letterboxd_csv.delay(
         file=request.FILES["letterboxd_csv"],
         user_id=request.user.id,
         mode=mode,
@@ -405,8 +405,34 @@ def import_letterboxd(request):
         "The task to import media from IMDB CSV file has been queued.",
     )
 
-    logger.debug("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+    return redirect("import_data")
 
+
+def import_letterboxd_rss(request):
+    """View for importing data from Letterboxd."""
+    letterboxd_username = request.POST.get("user")
+    if not letterboxd_username:
+        messages.error(request, "Letterboxd Username is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+
+    if frequency == "once":
+        tasks.import_letterboxd_rss.delay(
+            username=letterboxd_username, user_id=request.user.id, mode=mode
+        )
+        messages.info(request, "The task to import media from Steam has been queued.")
+    else:
+        import_time = request.POST["time"]
+        helpers.create_import_schedule(
+            letterboxd_username,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Letterboxd",
+        )
     return redirect("import_data")
 
 
