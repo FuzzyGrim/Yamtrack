@@ -3466,8 +3466,12 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
             ),
         },
         description=(
-            "Create another viewing of an episode. The request body is optional; "
-            "end_date defaults to the current time."
+            "Create a new consumption for the requested episode. Every successful "
+            "request creates another consumption, so repeating the same request "
+            "records a rewatch rather than updating an existing record. This "
+            "operation is not idempotent; clients should deduplicate retries if "
+            "they do not intend to record another viewing. The request body is "
+            "optional and end_date defaults to the current timezone-aware time."
         ),
         summary="Create an episode watch history record",
     )
