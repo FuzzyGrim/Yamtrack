@@ -20,6 +20,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import config, helpers, history_processor
 from app import home as home_helpers
 from app import statistics as stats
+from app.episode_operations import watch_episode
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
@@ -706,44 +707,14 @@ def episode_save(request):
         logger.error("Form validation failed: %s", form.errors)
         return HttpResponseBadRequest("Invalid form data")
 
-    try:
-        related_season = Season.objects.get(
-            item__media_id=media_id,
-            item__source=source,
-            item__season_number=season_number,
-            item__episode_number=None,
-            user=request.user,
-        )
-    except Season.DoesNotExist:
-        tv_with_seasons_metadata = services.get_media_metadata(
-            "tv_with_seasons",
-            media_id,
-            source,
-            [season_number],
-        )
-        season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
-
-        item, _ = Item.objects.get_or_create(
-            media_id=media_id,
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.SEASON.value,
-            season_number=season_number,
-            defaults={
-                "title": tv_with_seasons_metadata["title"],
-                "image": season_metadata["image"],
-            },
-        )
-        related_season = Season.objects.create(
-            item=item,
-            user=request.user,
-            score=None,
-            status=Status.IN_PROGRESS.value,
-            notes="",
-        )
-
-        logger.info("%s did not exist, it was created successfully.", related_season)
-
-    related_season.watch(episode_number, form.cleaned_data["end_date"])
+    watch_episode(
+        user=request.user,
+        media_id=media_id,
+        source=source,
+        season_number=season_number,
+        episode_number=episode_number,
+        end_date=form.cleaned_data["end_date"],
+    )
 
     return helpers.redirect_back(request)
 
