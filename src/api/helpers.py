@@ -23,6 +23,7 @@ from app.models import (
     MediaTypes,
     Movie,
     Season,
+    Sources,
 )
 from lists.models import CustomListItem
 from users.models import MediaStatusChoices
@@ -91,6 +92,8 @@ MEDIA_STATUS_MAP = {
     "Completed": 3,
     "Dropped": 4,
 }
+
+MEDIA_STATUS_CHOICES = [(value, label) for label, value in MEDIA_STATUS_MAP.items()]
 
 MEDIA_TYPE_COMPLETE_MODEL_MAP = {
     MediaTypes.TV.value: TV,
@@ -161,6 +164,19 @@ VALID_SOURCES = {
     MediaTypes.COMIC.value: ["comicvine", "manual"],
     MediaTypes.BOARDGAME.value: ["bgg", "manual"],
 }
+
+SOURCES_VALID_LIST = [
+    Sources.TMDB.value,
+    Sources.MAL.value,
+    Sources.MANGAUPDATES.value,
+    Sources.IGDB.value,
+    Sources.OPENLIBRARY.value,
+    Sources.HARDCOVER.value,
+    Sources.COMICVINE.value,
+    Sources.BGG.value,
+]
+
+SOURCES_COMPLETE_VALID_LIST = [*SOURCES_VALID_LIST, "manual"]
 
 
 def build_item_id(item):
@@ -526,78 +542,6 @@ def try_parse_datetime_input(value):
         parsed = make_aware(parsed)
 
     return parsed
-
-
-def _validate_score(filtered_body):
-    """Validate and convert score field."""
-    try:
-        score_value = float(filtered_body["score"])
-        if score_value < 0 or score_value > 10:  # noqa: PLR2004
-            return None, "Score must be between 0 and 10."
-        filtered_body["score"] = score_value
-    except (TypeError, ValueError):
-        return None, "Invalid score value."
-
-    return filtered_body, None
-
-
-def _validate_status(filtered_body):
-    """Validate and convert status field."""
-    status_value = get_media_status(filtered_body["status"], reverse=True)
-    if status_value is None:
-        return None, "Invalid status value."
-    filtered_body["status"] = status_value
-    return filtered_body, None
-
-
-def _validate_dates(filtered_body):
-    """Validate and convert date fields."""
-    if "start_date" in filtered_body:
-        start_date = filtered_body["start_date"]
-        if start_date in (None, ""):
-            filtered_body["start_date"] = None
-        else:
-            try:
-                filtered_body["start_date"] = try_parse_datetime_input(start_date)
-            except (TypeError, ValueError):
-                return None, "Invalid start_date format."
-
-    if "end_date" in filtered_body:
-        end_date = filtered_body["end_date"]
-        if end_date in (None, ""):
-            filtered_body["end_date"] = None
-        else:
-            try:
-                filtered_body["end_date"] = try_parse_datetime_input(end_date)
-            except (TypeError, ValueError):
-                return None, "Invalid end_date format."
-
-    return filtered_body, None
-
-
-def validate_body(body, media_type):
-    """Validate and filter the request body for media updates."""
-    allowed_fields = MEDIA_MODIFIABLE_FIELDS.get(media_type, set())
-    filtered_body = {k: v for k, v in body.items() if k in allowed_fields}
-
-    if not filtered_body:
-        return filtered_body, "No valid fields to update."
-
-    if "score" in filtered_body:
-        filtered_body, error = _validate_score(filtered_body)
-        if error:
-            return filtered_body, error
-
-    if "status" in filtered_body:
-        filtered_body, error = _validate_status(filtered_body)
-        if error:
-            return filtered_body, error
-
-    filtered_body, error = _validate_dates(filtered_body)
-    if error:
-        return filtered_body, error
-
-    return filtered_body, error
 
 
 # ---- Sorting ----

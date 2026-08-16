@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "api",
     "app",
     "events",
     "integrations",
@@ -132,7 +133,6 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "django.contrib.humanize",
     "rest_framework",
-    "api",
     "drf_spectacular",
 ]
 
@@ -144,10 +144,9 @@ REST_FRAMEWORK = {
         "api.authentication.BearerAuthentication",
         "api.authentication.APIKeyAuthentication",
     ],
-    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
 }
-
 
 APPEND_SLASH = True
 
@@ -358,6 +357,42 @@ VERSION = config("VERSION", default="dev")
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
 
 TRACK_TIME = config("TRACK_TIME", default=True, cast=bool)
+
+SPECTACULAR_ENABLE_SERVE = config(
+    "SPECTACULAR_ENABLE_SERVE",
+    default=DEBUG,
+    cast=bool,
+)
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Yamtrack API",
+    "DESCRIPTION": "OpenAPI schema for Yamtrack's API",
+    "VERSION": "0.1.1",
+    "LICENSE": {
+        "name": "GNU AFFERO GENERAL PUBLIC LICENSE v3.0",
+        "url": "https://github.com/FuzzyGrim/Yamtrack/blob/dev/LICENSE",
+    },
+    "SERVERS": [
+        {
+            "url": "http://localhost:8000/",
+            "description": "Local development server",
+        },
+    ],
+    "SCHEMA_PATH_PREFIX": "/api/v1",
+    "SORT_OPERATIONS": True,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "PARSER_WHITELIST": [
+        "rest_framework.parsers.JSONParser",
+    ],
+    "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
+    "ENUM_NAME_OVERRIDES": {
+        "MediaStatusEnum": "api.helpers.MEDIA_STATUS_CHOICES",
+        "SourceEnum": "api.helpers.SOURCES_VALID_LIST",
+        "SourceCompleteEnum": "api.helpers.SOURCES_COMPLETE_VALID_LIST",
+        "MediaTypeEnum": "api.helpers.MEDIA_TYPE_VALID_LIST",
+        "MediaTypeCompleteEnum": "api.helpers.MEDIA_TYPE_COMPLETE_VALID_LIST",
+    },
+}
 
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
