@@ -42,15 +42,15 @@ dependencies = [
 [dependency-groups]
 lint = [
   "django-upgrade~=1.31.1",
-  "djlint~=1.44.0",
-  "pre-commit~=4.6.1",
-  "ruff~=0.16.1",
+  "djlint~=1.44.2",
+  "pre-commit~=4.6.2",
+  "ruff~=0.16.3",
 ]
 test = [
-  "coverage~=7.15.3",
+  "coverage~=7.15.4",
   "fakeredis[lua]~=2.35.1",
-  "pytest-django~=4.12.0",
-  "pytest-playwright~=0.8.0",
+  "pytest-django~=4.14.0",
+  "pytest-playwright~=0.9.0",
   "tblib~=3.2.2",
 ]
 dev = [
@@ -58,7 +58,7 @@ dev = [
   {include-group = "test"},
 ]
 docs = [
-  "zensical==0.0.53",
+  "zensical==0.0.54",
   "mike @ git+https://github.com/squidfunk/mike.git",
 ]
 
