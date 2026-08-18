@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from csv import DictReader
 
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from django.apps import apps
@@ -88,10 +89,48 @@ the bulk create?)
 filter out exclusively films?
 """
 
+DIARY_COLUMNS = [
+    "Date",
+    "Name",
+    "Year",
+    "Letterboxd URI",
+    "Rating",
+    "Rewatch",
+    "Tags",
+    "Watched Date",
+]
 
-def importer_csv(file, user, mode):
+RATINGS_COLUMNS = [
+    "Date",
+    "Name",
+    "Year",
+    "Letterboxd URI",
+    "Rating",
+]
+
+REVIEWS_COLUMNS = [
+    "Date",
+    "Name",
+    "Year",
+    "Letterboxd URI",
+    "Rating",
+    "Rewatch",
+    "Review",
+    "Tags",
+    "Watched Date",
+]
+
+WATCHED_COLUMNS = [
+    "Date",
+    "Name",
+    "Year",
+    "Letterboxd URI",
+]
+
+
+def importer_csv(files, user, mode):
     """Letterboxd CSV importer function."""
-    letterboxd_importer = LetterboxdCSVImporter(file, user, mode)
+    letterboxd_importer = LetterboxdCSVImporter(files, user, mode)
     return letterboxd_importer.import_data()
 
 
@@ -104,20 +143,17 @@ def importer_rss(letterboxd_username, user, mode):
 class LetterboxdCSVImporter:
     """letterboxd csv importer."""
 
-    def __init__(self, file, user, mode):
+    def __init__(self, files, user, mode):
         """Letterboxd csv importer."""
-        self.file = file
+        self.files = files
         self.user = user
         self.mode = mode
         self.warnings = []
 
-        # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
-        # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
-        # Track bulk creation lists for each media type
         self.bulk_media = defaultdict(list)
 
         logger.info(
@@ -140,27 +176,109 @@ class LetterboxdCSVImporter:
         deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
         return imported_counts, deduplicated_messages if self.warnings else None
 
-    def _get_films(self):
-        try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
-        except UnicodeDecodeError as e:
-            msg = "Invalid file format. Please upload a CSV file."
-            raise MediaImportError(msg) from e
+    def _combine_files(self):
+        all_columns = list(
+            dict.fromkeys(
+                DIARY_COLUMNS + RATINGS_COLUMNS + REVIEWS_COLUMNS + WATCHED_COLUMNS
+            )
+        )
 
-        reader = DictReader(decoded_file)
+        combined = pd.DataFrame(columns=all_columns)
+
+        for file in self.files:
+            try:
+                decoded_file = file.read().decode("utf-8-sig").splitlines()
+            except UnicodeDecodeError as e:
+                msg = (
+                    "Invalid file format in uploaded CSV. "
+                    "Please upload a valid CSV file."
+                )
+                raise MediaImportError(msg) from e
+
+            reader = DictReader(decoded_file)
+            columns = set(reader.fieldnames)
+            if set(columns) not in [
+                set(DIARY_COLUMNS),
+                set(RATINGS_COLUMNS),
+                set(REVIEWS_COLUMNS),
+                set(WATCHED_COLUMNS),
+            ]:
+                msg = "Invalid columns in uploaded CSV. Please upload a valid CSV file."
+                raise MediaImportError(msg)
+
+            for row in reader:
+                name = row["Name"]
+                year = row["Year"]
+                date = row["Date"]
+                watched_date = row.get("Watched Date") or ""
+
+                same_film = combined["Name"].eq(name) & combined["Year"].eq(year)
+
+                if watched_date:
+                    exists = same_film & (
+                        combined["Watched Date"].eq(watched_date)
+                        | combined["Date"].eq(date)
+                        & (
+                            combined["Watched Date"].isna()
+                            | combined["Watched Date"].eq("")
+                        )
+                    )
+                else:
+                    exists = same_film & combined["Date"].eq(date)
+
+                if exists.any():
+                    index = combined.index[exists][0]
+
+                    for column, value in row.items():
+                        if not value or not value.strip():
+                            continue
+
+                        existing = combined.at[index, column]
+
+                        if pd.isna(existing) or not str(existing).strip():
+                            combined.at[index, column] = value
+
+                else:
+                    new_row = {
+                        column: row.get(column, "") for column in combined.columns
+                    }
+
+                    combined.loc[len(combined)] = new_row
+
+        return combined.to_csv(index=False).splitlines()
+
+    def _get_films(self):
+        combined_csvs = self._combine_files()
+        reader = DictReader(combined_csvs)
+        logger.debug("Combined CSVs: %s", combined_csvs)
 
         for row in reader:
             self._process_row(row)
 
     def _process_row(self, row):
-        date = row["Date"]
+
+        date = parse_datetime(row["Date"])
         name = row["Name"]
         year = int(row["Year"])
-        rating = float(row["Rating"]) * 2  # letterboxd is out of 5
+        reviews = row["Review"]
+        watched_date = parse_datetime(row["Watched Date"])
+        if date:
+            date = date.replace(
+                hour=0, minute=0, second=0, tzinfo=timezone.get_current_timezone()
+            )
+        rating = (
+            float(row["Rating"]) * 2 if row["Rating"] else None
+        )  # letterboxd is out of 5
 
         film = tmdb.search(MediaTypes.MOVIE, f"{name}", 1, primary_release_year=year)
         if not film["results"]:
-            return  # error or something
+            msg = (
+                f"Film {name} not found on TMDB "
+                f"(it's possible that it's actually a TV series instead)"
+            )
+            logger.debug(msg)
+            self.warnings.append(msg)
+            return
 
         film = film["results"][0]
         if not helpers.should_process_media(
@@ -185,7 +303,7 @@ class LetterboxdCSVImporter:
 
         model = apps.get_model(app_label="app", model_name=film["media_type"])
 
-        status = Status.COMPLETED.value if rating is not None else Status.PLANNING.value
+        status = Status.COMPLETED.value
 
         params = {
             "item": item,
@@ -193,15 +311,10 @@ class LetterboxdCSVImporter:
             "score": rating,
             "status": status,
             "progress": 1,
+            "notes": reviews,
+            "end_date": watched_date,
+            "start_date": watched_date,
         }
-
-        date = parse_datetime(date)
-        if date:
-            date = date.replace(
-                hour=0, minute=0, second=0, tzinfo=timezone.get_current_timezone()
-            )
-
-        params["end_date"] = date
 
         instance = model(**params)
         instance._history_date = date or timezone.now()
@@ -293,7 +406,7 @@ class LetterboxdRSSImporter:
 
     def _process_film(self, film):
         rating = (
-            film["rating"] * 2 if film["rating"] else None
+            float(film["rating"]) * 2 if film["rating"] else None
         )  # letterboxd is out of 5
         watched_date = film["watched_date"]
         tmdb_id = film["tmdb_id"]
