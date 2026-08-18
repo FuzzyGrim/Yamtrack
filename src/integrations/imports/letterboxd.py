@@ -1,8 +1,10 @@
 import logging
+import re
 from collections import defaultdict
 from csv import DictReader
 
 import requests
+from bs4 import BeautifulSoup
 from django.apps import apps
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -14,6 +16,77 @@ from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError
 
 logger = logging.getLogger(__name__)
+
+
+def text(entry, tag, namespaces, default=None):
+    """Read text from an XML entry."""
+    value = entry.findtext(tag, namespaces=namespaces)
+    return value.strip() if value and value.strip() else default
+
+
+def integer(entry, tag, namespaces, default=None):
+    """Read an integer from an XML entry."""
+    value = text(entry, tag, namespaces)
+    try:
+        return int(value) if value is not None else default
+    except (ValueError, TypeError):
+        return default
+
+
+def number(entry, tag, namespaces, default=None):
+    """Read a number from an XML entry."""
+    value = text(entry, tag, namespaces)
+    try:
+        return float(value) if value is not None else default
+    except (ValueError, TypeError):
+        return default
+
+
+def boolean(entry, tag, namespaces):
+    """Read a boolean from an XML entry."""
+    value = text(entry, tag, namespaces)
+    if value is None:
+        return False
+    return value.lower() in {"yes", "true", "1"}
+
+
+def description(entry, namespaces, default=None):
+    """Read the description from an XML entry and skip the <img> tag."""
+    value = text(entry, "description", namespaces)
+
+    if not value:
+        return default
+
+    soup = BeautifulSoup(value, "html.parser")
+    parts = []
+
+    for p in soup.find_all("p"):
+        # Skip <p> elements containing an image with no text.
+        paragraph = p.get_text(" ", strip=True)
+
+        if paragraph:
+            parts.append(paragraph)
+
+    return "\n".join(parts) or default
+
+
+"""
+TODO:
+- figure out how overwriting films works (if i want to include rewatches it
+should add a new entry but also not delete? maybe don't include those in
+the bulk create?)
+- real error handling
+    - missing ids and failed imports
+    - incorrect names
+- make tests
+    - empty csv
+    - rss feed with no films
+    - incorrect username
+    - rss feed with many films?
+    - rss feed with ids that dont work?
+- what happens with a limited series, will that count as a movie? maybe just
+filter out exclusively films?
+"""
 
 
 def importer_csv(file, user, mode):
@@ -150,7 +223,7 @@ class LetterboxdRSSImporter:
         self.warnings = []
 
         # Track existing media for "new" mode
-        self.existing_media = helpers.get_existing_media(user)
+        self.existing_media = helpers.get_existing_media_with_duplicates(user)
 
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
@@ -196,33 +269,21 @@ class LetterboxdRSSImporter:
                 "Letterboxd", "GET", self.letterboxd_rss_url, response_format="xml"
             )
 
-            logger.debug("xml found")
-
-            for item in xml.findall("./channel/item"):
-                films.extend(
-                    {
-                        "title": item.findtext(
-                            "letterboxd:filmTitle", namespaces=namespaces
-                        ),
-                        "year": int(
-                            item.findtext("letterboxd:filmYear", namespaces=namespaces)
-                        ),
-                        "rating": float(
-                            item.findtext(
-                                "letterboxd:memberRating", namespaces=namespaces
-                            )
-                        ),
-                        "watched_date": item.findtext(
-                            "letterboxd:watchedDate", namespaces=namespaces
-                        ),
-                        "rewatch": item.findtext(
-                            "letterboxd:rewatch", namespaces=namespaces
-                        )
-                        == "Yes",
-                        "tmdb_id": item.findtext("tmdb:movieId", namespaces=namespaces),
-                        "url": item.findtext("link"),
-                    }
-                )
+            films.extend(
+                {
+                    "title": re.sub(r"\s*-\s*★+$", "", text(item, "title", namespaces)),
+                    "pub_date": text(item, "pubDate", namespaces),
+                    "film_title": text(item, "letterboxd:filmTitle", namespaces),
+                    "film_year": integer(item, "letterboxd:filmYear", namespaces),
+                    "rating": number(item, "letterboxd:memberRating", namespaces),
+                    "watched_date": text(item, "letterboxd:watchedDate", namespaces),
+                    "rewatch": boolean(item, "letterboxd:rewatch", namespaces),
+                    "member_like": boolean(item, "letterboxd:memberLike", namespaces),
+                    "tmdb_id": integer(item, "tmdb:movieId", namespaces),
+                    "description": description(item, namespaces),
+                }
+                for item in xml.findall("./channel/item")
+            )
 
         except requests.HTTPError as e:
             msg = f"Letterboxd access error: {e.response.status_code}"
@@ -231,21 +292,44 @@ class LetterboxdRSSImporter:
             return films
 
     def _process_film(self, film):
-        rating = film["rating"] * 2  # letterboxd is out of 5
+        rating = (
+            film["rating"] * 2 if film["rating"] else None
+        )  # letterboxd is out of 5
         watched_date = film["watched_date"]
         tmdb_id = film["tmdb_id"]
-        if not helpers.should_process_media(
-            self.existing_media,
-            self.to_delete,
-            MediaTypes.MOVIE.value,
-            Sources.TMDB.value,
-            str(tmdb_id),
-            self.mode,
+        desc = film["description"]
+        date = parse_datetime(watched_date)
+        if date:
+            date = date.replace(
+                hour=0, minute=0, second=0, tzinfo=timezone.get_current_timezone()
+            )
+
+        if (
+            str(tmdb_id)
+            in self.existing_media[MediaTypes.MOVIE.value][Sources.TMDB.value]
         ):
+            # skip adding if the media already exists with a matching date
+            old_entries = self.existing_media[MediaTypes.MOVIE.value][
+                Sources.TMDB.value
+            ][str(tmdb_id)]
+
+            for old_entry in old_entries:
+                if date in (old_entry.end_date, old_entry.start_date):
+                    logger.debug(
+                        "%s skipped: date matches existing record", film["film_title"]
+                    )
+                    return
+
+        try:
+            film_tmdb = tmdb.movie(tmdb_id)
+        except services.ProviderAPIError:
+            msg = (
+                f"Film {film['title']} not found on TMDB "
+                f"(it's possible that it's actually a TV series instead)"
+            )
+            logger.debug(msg)
+            self.warnings.append(msg)
             return
-        logger.debug(film["title"])
-        logger.debug(film["watched_date"])
-        film_tmdb = tmdb.movie(tmdb_id)
 
         item, _ = app.models.Item.objects.update_or_create(
             media_id=film_tmdb["media_id"],
@@ -259,7 +343,7 @@ class LetterboxdRSSImporter:
 
         model = apps.get_model(app_label="app", model_name=film_tmdb["media_type"])
 
-        status = Status.COMPLETED.value if rating is not None else Status.PLANNING.value
+        status = Status.COMPLETED.value
 
         params = {
             "item": item,
@@ -267,18 +351,12 @@ class LetterboxdRSSImporter:
             "score": rating,
             "status": status,
             "progress": 1,
+            "notes": desc,
+            "end_date": date,
+            "start_date": date,
         }
 
-        date = parse_datetime(watched_date)
-        if date:
-            date = date.replace(
-                hour=0, minute=0, second=0, tzinfo=timezone.get_current_timezone()
-            )
-
-        params["end_date"] = date
-
         instance = model(**params)
-        instance._history_date = date or timezone.now()
+        instance._history_date = timezone.now()
 
-        logger.debug(film_tmdb["media_type"])
         self.bulk_media[film_tmdb["media_type"]].append(instance)
