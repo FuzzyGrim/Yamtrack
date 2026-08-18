@@ -388,21 +388,21 @@ def import_imdb(request):
 
 def import_letterboxd_csv(request):
     """View for importing data from Letterboxd."""
-    file = request.FILES.get("letterboxd_csv")
-    if not file:
-        messages.error(request, "Letterboxd CSV file is required.")
+    files = request.FILES.getlist("letterboxd_csv")
+    if not files:
+        messages.error(request, "At least one Letterboxd CSV file is required.")
         return redirect("import_data")
 
     mode = request.POST["mode"]
 
     tasks.import_letterboxd_csv.delay(
-        file=request.FILES["letterboxd_csv"],
+        file=request.FILES.getlist("letterboxd_csv"),
         user_id=request.user.id,
         mode=mode,
     )
     messages.info(
         request,
-        "The task to import media from IMDB CSV file has been queued.",
+        "The task to import media from Letterboxd CSVs file has been queued.",
     )
 
     return redirect("import_data")
