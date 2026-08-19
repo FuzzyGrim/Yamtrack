@@ -164,6 +164,10 @@ class LetterboxdCSVImporter:
 
     def import_data(self):
         """Import data."""
+        if not self.files:
+            msg = "No files uploaded"
+            raise MediaImportError(msg)
+
         self._get_films()
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
@@ -250,8 +254,6 @@ class LetterboxdCSVImporter:
     def _get_films(self):
         combined_csvs = self._combine_files()
         reader = DictReader(combined_csvs)
-        logger.debug("Combined CSVs: %s", combined_csvs)
-
         for row in reader:
             self._process_row(row)
 
@@ -276,7 +278,6 @@ class LetterboxdCSVImporter:
                 f"Film {name} not found on TMDB "
                 f"(it's possible that it's actually a TV series instead)"
             )
-            logger.debug(msg)
             self.warnings.append(msg)
             return
 
@@ -289,6 +290,7 @@ class LetterboxdCSVImporter:
             str(film["media_id"]),
             self.mode,
         ):
+            logger.info("skipping %s due to duplicate film", film["title"])
             return
 
         item, _ = app.models.Item.objects.update_or_create(
@@ -335,13 +337,10 @@ class LetterboxdRSSImporter:
         self.mode = mode
         self.warnings = []
 
-        # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media_with_duplicates(user)
 
-        # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
-        # Track bulk creation lists for each media type
         self.bulk_media = defaultdict(list)
 
         logger.info(
@@ -368,7 +367,6 @@ class LetterboxdRSSImporter:
         return imported_counts, deduplicated_messages if self.warnings else None
 
     def _get_films(self):
-        logger.debug("Getting films from Letterboxd")
         namespaces = {
             "letterboxd": "https://letterboxd.com",
             "tmdb": "https://themoviedb.org",
@@ -417,22 +415,6 @@ class LetterboxdRSSImporter:
                 hour=0, minute=0, second=0, tzinfo=timezone.get_current_timezone()
             )
 
-        if (
-            str(tmdb_id)
-            in self.existing_media[MediaTypes.MOVIE.value][Sources.TMDB.value]
-        ):
-            # skip adding if the media already exists with a matching date
-            old_entries = self.existing_media[MediaTypes.MOVIE.value][
-                Sources.TMDB.value
-            ][str(tmdb_id)]
-
-            for old_entry in old_entries:
-                if date in (old_entry.end_date, old_entry.start_date):
-                    logger.debug(
-                        "%s skipped: date matches existing record", film["film_title"]
-                    )
-                    return
-
         try:
             film_tmdb = tmdb.movie(tmdb_id)
         except services.ProviderAPIError:
@@ -440,9 +422,29 @@ class LetterboxdRSSImporter:
                 f"Film {film['title']} not found on TMDB "
                 f"(it's possible that it's actually a TV series instead)"
             )
-            logger.debug(msg)
+            logger.warning(msg)
             self.warnings.append(msg)
             return
+
+        if (
+            str(tmdb_id)
+            in self.existing_media[MediaTypes.MOVIE.value][Sources.TMDB.value]
+        ):
+            if self.mode == "overwrite":
+                self.to_delete[MediaTypes.MOVIE.value][Sources.TMDB.value].add(tmdb_id)
+            else:
+                # skip adding if the media already exists with a matching date
+                old_entries = self.existing_media[MediaTypes.MOVIE.value][
+                    Sources.TMDB.value
+                ][str(tmdb_id)]
+
+                for old_entry in old_entries:
+                    if date in (old_entry.end_date, old_entry.start_date):
+                        logger.info(
+                            "%s skipped: date matches existing record",
+                            film["film_title"],
+                        )
+                        return
 
         item, _ = app.models.Item.objects.update_or_create(
             media_id=film_tmdb["media_id"],

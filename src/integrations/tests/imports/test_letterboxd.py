@@ -6,9 +6,8 @@ import requests
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
-from django.utils import timezone
 
-from app.models import MediaTypes
+from app.models import MediaTypes, Sources
 from integrations.imports import letterboxd
 from integrations.imports.helpers import MediaImportError
 
@@ -51,7 +50,7 @@ class ImportLetterboxd(TestCase):
             file.close()
 
     def test_get_films_from_csv(self):
-        """Test getting films from combined Letterboxd CSV files."""
+        """Test getting and combining films from Letterboxd CSV files."""
         files = [
             (letterboxd_mock_path / filename).open("rb")
             for filename in (
@@ -68,10 +67,51 @@ class ImportLetterboxd(TestCase):
             "new",
         )
 
-        with patch.object(importer_instance, "_process_row") as mock_process_row:
+        with patch.object(
+            importer_instance,
+            "_process_row",
+        ) as mock_process_row:
             importer_instance._get_films()
 
-        self.assertGreater(mock_process_row.call_count, 0)
+        rows = [call.args[0] for call in mock_process_row.call_args_list]
+        rows_by_title = {row["Name"]: row for row in rows}
+
+        godfather_part_ii = rows_by_title["The Godfather Part II"]
+        self.assertEqual(godfather_part_ii["Year"], "1974")
+        self.assertEqual(godfather_part_ii["Rating"], "3")
+        self.assertEqual(godfather_part_ii["Rewatch"], "Yes")
+        self.assertEqual(godfather_part_ii["Review"], "test review")
+        self.assertEqual(godfather_part_ii["Watched Date"], "2025-02-24")
+
+        godfather_part_iii_rows = [
+            row for row in rows if row["Name"] == "The Godfather Part III"
+        ]
+
+        self.assertEqual(len(godfather_part_iii_rows), 2)
+
+        watched_dates = {row["Watched Date"] for row in godfather_part_iii_rows}
+
+        self.assertEqual(
+            watched_dates,
+            {
+                "2026-04-14",
+                "2026-08-18",
+            },
+        )
+
+        boiling_point = rows_by_title["Boiling Point"]
+        self.assertEqual(boiling_point["Year"], "2023")
+        self.assertEqual(boiling_point["Rating"], "3")
+        self.assertEqual(boiling_point["Review"], "fdsfdf")
+        self.assertEqual(boiling_point["Watched Date"], "2026-08-13")
+
+        life_aquatic = rows_by_title["The Life Aquatic with Steve Zissou"]
+        self.assertEqual(life_aquatic["Year"], "2004")
+        self.assertEqual(
+            life_aquatic["Review"],
+            "dasdasdasdasdsadasdasdsad",
+        )
+        self.assertEqual(life_aquatic["Watched Date"], "2026-08-18")
 
         for file in files:
             file.close()
@@ -310,37 +350,35 @@ class ImportLetterboxd(TestCase):
         )
 
     @patch("integrations.imports.letterboxd.tmdb.movie")
-    def test_process_rss_film_duplicate_date(self, mock_tmdb_movie):
-        """Test RSS importer skips an existing film with the same date."""
-        date = timezone.datetime(
-            2026,
-            8,
-            18,
-            tzinfo=timezone.get_current_timezone(),
-        )
+    @patch("integrations.imports.letterboxd.helpers.get_existing_media_with_duplicates")
+    def test_process_rss_film_overwrite(
+        self,
+        mock_get_existing_media,
+        mock_tmdb_movie,
+    ):
+        """Test that an existing film is marked for deletion in overwrite mode."""
+        tmdb_id = 12345
 
-        existing_entry = type(
-            "ExistingEntry",
-            (),
-            {
-                "start_date": date,
-                "end_date": date,
+        mock_tmdb_movie.return_value = {
+            "media_id": tmdb_id,
+            "media_type": MediaTypes.MOVIE.value,
+            "title": "Example Film",
+            "image": "example.jpg",
+        }
+
+        mock_get_existing_media.return_value = {
+            MediaTypes.MOVIE.value: {
+                Sources.TMDB.value: {
+                    str(tmdb_id): [MagicMock()],
+                },
             },
-        )()
+        }
 
         importer_instance = letterboxd.LetterboxdRSSImporter(
             "testuser",
             self.user,
-            "new",
+            "overwrite",
         )
-
-        importer_instance.existing_media = {
-            MediaTypes.MOVIE.value: {
-                "tmdb": {
-                    "12345": [existing_entry],
-                },
-            },
-        }
 
         film = {
             "title": "Example Film",
@@ -348,14 +386,32 @@ class ImportLetterboxd(TestCase):
             "film_year": 2026,
             "rating": 4.0,
             "watched_date": "2026-08-18",
-            "tmdb_id": 12345,
+            "rewatch": False,
+            "member_like": False,
+            "tmdb_id": tmdb_id,
             "description": "A review.",
         }
 
-        importer_instance._process_film(film)
+        with (
+            patch.object(
+                letterboxd.app.models.Item.objects,
+                "update_or_create",
+                return_value=(MagicMock(), True),
+            ),
+            patch.object(letterboxd.apps, "get_model") as mock_get_model,
+        ):
+            mock_get_model.return_value = MagicMock()
 
-        mock_tmdb_movie.assert_not_called()
+            importer_instance._process_film(film)
+
         self.assertEqual(
-            dict(importer_instance.bulk_media),
-            {},
+            importer_instance.to_delete[MediaTypes.MOVIE.value][Sources.TMDB.value],
+            {tmdb_id},
         )
+
+        self.assertEqual(
+            len(importer_instance.bulk_media[MediaTypes.MOVIE.value]),
+            1,
+        )
+
+        mock_tmdb_movie.assert_called_once_with(tmdb_id)
