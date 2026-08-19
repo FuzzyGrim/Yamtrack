@@ -193,7 +193,7 @@ class ImportLetterboxd(TestCase):
     def test_import_csv_films(self, mock_tmdb_search):
         """Test importing films from Letterboxd CSV files."""
 
-        def search_side_effect(_, name, __, ___):
+        def search_side_effect(_, name, __, primary_release_year=None):  # noqa: ARG001
             films = {
                 "The Godfather Part II": {
                     "name": "The Godfather Part II",
