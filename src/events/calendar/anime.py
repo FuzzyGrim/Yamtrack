@@ -68,13 +68,124 @@ def process_anime_bulk(items, events_bulk):
             process_other(item, events_bulk)
 
 
+def _collect_airing_schedule_pages(query, url, media_ids, page):
+    media_by_id = {}
+    airing_page = 1
+
+    while True:
+        variables = {
+            "ids": media_ids,
+            "page": page,
+            "airingPage": airing_page,
+        }
+        response = services.api_request(
+            "ANILIST",
+            "POST",
+            url,
+            params={"query": query, "variables": variables},
+        )
+
+        has_next_airing_page = False
+        for media in response["data"]["Page"]["media"]:
+            mal_id = str(media["idMal"])
+            media_data = media_by_id.setdefault(
+                mal_id,
+                {
+                    "endDate": media["endDate"],
+                    "episodes": media["episodes"],
+                    "airingSchedule": [],
+                },
+            )
+            media_data["airingSchedule"].extend(
+                media["airingSchedule"]["nodes"],
+            )
+            has_next_airing_page = has_next_airing_page or media["airingSchedule"].get(
+                "pageInfo", {}
+            ).get("hasNextPage", False)
+
+        if not has_next_airing_page:
+            break
+        airing_page += 1
+
+    return media_by_id, response["data"]["Page"]["pageInfo"]["hasNextPage"]
+
+
+def _get_mal_total_episodes(mal_id):
+    mal_metadata = services.get_media_metadata(
+        media_type=MediaTypes.ANIME.value,
+        media_id=mal_id,
+        source=Sources.MAL.value,
+    )
+    return mal_metadata["max_progress"]
+
+
+def _process_anilist_media_schedule(mal_id, media):
+    airing_schedule = media["airingSchedule"]
+    total_episodes = media["episodes"]
+
+    if not total_episodes and not airing_schedule:
+        return None
+
+    if airing_schedule and total_episodes:
+        original_length = len(airing_schedule)
+        airing_schedule = [
+            episode
+            for episode in airing_schedule
+            if episode["episode"] <= total_episodes
+        ]
+
+        if original_length > len(airing_schedule):
+            logger.info(
+                "Filtered episodes for MAL ID %s - keep only %s episodes",
+                mal_id,
+                total_episodes,
+            )
+
+    if (
+        total_episodes is None
+        or not airing_schedule
+        or airing_schedule[-1]["episode"] < total_episodes
+    ):
+        mal_total_episodes = _get_mal_total_episodes(mal_id)
+
+        if (
+            mal_total_episodes
+            and total_episodes
+            and mal_total_episodes > total_episodes
+        ):
+            logger.info(
+                "MAL ID %s - MAL has %s episodes, AniList has %s",
+                mal_id,
+                mal_total_episodes,
+                total_episodes,
+            )
+            return None
+
+        if not total_episodes or (
+            airing_schedule and airing_schedule[-1]["episode"] >= total_episodes
+        ):
+            return airing_schedule
+
+        logger.info(
+            "Adding final episode for MAL ID %s - Ep %s",
+            mal_id,
+            total_episodes,
+        )
+        end_date_timestamp = anilist_date_parser(media["endDate"])
+        airing_schedule.append(
+            {"episode": total_episodes, "airingAt": end_date_timestamp},
+        )
+
+    return airing_schedule
+
+
 def get_anime_schedule_bulk(media_ids):
     """Get the airing schedule for multiple anime items from AniList API."""
     all_data = {}
     page = 1
     url = "https://graphql.anilist.co"
     query = """
-    query ($ids: [Int], $page: Int) {
+    query ($ids: [Int], $page: Int, $airingPage: Int) {
       Page(page: $page) {
         pageInfo {
           hasNextPage
@@ -87,7 +198,10 @@ def get_anime_schedule_bulk(media_ids):
             day
           }
           episodes
-          airingSchedule {
+          airingSchedule(page: $airingPage) {
+            pageInfo {
+              hasNextPage
+            }
             nodes {
               episode
               airingAt
@@ -99,66 +213,19 @@ def get_anime_schedule_bulk(media_ids):
     """
 
     while True:
-        variables = {"ids": media_ids, "page": page}
-        response = services.api_request(
-            "ANILIST",
-            "POST",
+        media_by_id, has_next_page = _collect_airing_schedule_pages(
+            query,
             url,
-            params={"query": query, "variables": variables},
+            media_ids,
+            page,
         )
 
-        for media in response["data"]["Page"]["media"]:
-            airing_schedule = media["airingSchedule"]["nodes"]
-            total_episodes = media["episodes"]
-            mal_id = str(media["idMal"])
-
-            if not total_episodes:
-                continue
-
+        for mal_id, media in media_by_id.items():
+            airing_schedule = _process_anilist_media_schedule(mal_id, media)
             if airing_schedule:
-                original_length = len(airing_schedule)
-                airing_schedule = [
-                    episode
-                    for episode in airing_schedule
-                    if episode["episode"] <= total_episodes
-                ]
+                all_data[mal_id] = airing_schedule
 
-                if original_length > len(airing_schedule):
-                    logger.info(
-                        "Filtered episodes for MAL ID %s - keep only %s episodes",
-                        mal_id,
-                        total_episodes,
-                    )
-
-            if not airing_schedule or airing_schedule[-1]["episode"] < total_episodes:
-                mal_metadata = services.get_media_metadata(
-                    media_type=MediaTypes.ANIME.value,
-                    media_id=mal_id,
-                    source=Sources.MAL.value,
-                )
-                mal_total_episodes = mal_metadata["max_progress"]
-                if mal_total_episodes and mal_total_episodes > total_episodes:
-                    logger.info(
-                        "MAL ID %s - MAL has %s episodes, AniList has %s",
-                        mal_id,
-                        mal_total_episodes,
-                        total_episodes,
-                    )
-                    continue
-
-                logger.info(
-                    "Adding final episode for MAL ID %s - Ep %s",
-                    mal_id,
-                    total_episodes,
-                )
-                end_date_timestamp = anilist_date_parser(media["endDate"])
-                airing_schedule.append(
-                    {"episode": total_episodes, "airingAt": end_date_timestamp},
-                )
-
-            all_data[mal_id] = airing_schedule
-
-        if not response["data"]["Page"]["pageInfo"]["hasNextPage"]:
+        if not has_next_page:
             break
         page += 1
 

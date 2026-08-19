@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -28,13 +29,21 @@ class ImportTrakt(TestCase):
         credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**credentials)
 
+    def test_get_date_strips_seconds(self):
+        """Trakt watched_at timestamps with seconds get truncated to the minute."""
+        trakt_importer = TraktImporter("test", self.user, "new")
+        self.assertEqual(
+            trakt_importer._get_date("2023-01-02T10:04:54.000Z"),
+            datetime(2023, 1, 2, 10, 4, 0, tzinfo=UTC),
+        )
+
     @patch("integrations.imports.trakt.TraktImporter._get_metadata")
     def test_process_watched_movie(self, mock_get_metadata):
         """Test processing a movie entry."""
         movie_entry = {
             "type": "movie",
             "movie": {"title": "Test Movie", "ids": {"tmdb": 67890}},
-            "watched_at": "2023-01-02T00:00:00.000Z",
+            "watched_at": "2023-01-02T00:00:59.000Z",
         }
 
         mock_get_metadata.return_value = {
@@ -52,6 +61,9 @@ class ImportTrakt(TestCase):
         movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]
         self.assertEqual(movie_obj.progress, 1)
 
+        # watched_at seconds should be stripped from end_date
+        self.assertEqual(movie_obj.end_date.second, 0)
+
         # Process the same movie again to test repeat handling
         trakt_importer.process_watched_movie(movie_entry)
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value]), 2)
@@ -63,7 +75,7 @@ class ImportTrakt(TestCase):
             "type": "episode",
             "episode": {"season": 1, "number": 1, "title": "Pilot"},
             "show": {"title": "Test Show", "ids": {"tmdb": 12345}},
-            "watched_at": "2023-01-01T00:00:00.000Z",
+            "watched_at": "2023-01-01T00:00:59.000Z",
         }
 
         def mock_metadata_side_effect(media_type, _, __, ___=None):
@@ -91,6 +103,10 @@ class ImportTrakt(TestCase):
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.TV.value]), 1)
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.SEASON.value]), 1)
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.EPISODE.value]), 1)
+
+        # watched_at seconds should be stripped from end_date
+        episode_obj = trakt_importer.bulk_media[MediaTypes.EPISODE.value][0]
+        self.assertEqual(episode_obj.end_date.second, 0)
 
         # Process the same episode again to test repeat handling
         trakt_importer.process_watched_episode(episode_entry)

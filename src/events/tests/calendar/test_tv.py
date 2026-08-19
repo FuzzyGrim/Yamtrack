@@ -1,6 +1,5 @@
 import datetime
 from unittest.mock import MagicMock, patch
-from zoneinfo import ZoneInfo
 
 import requests
 from django.core.cache import cache
@@ -271,8 +270,8 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         self.assertEqual(result, date_parser("2025-01-31"))
 
-    def test_get_episode_datetime_returns_placeholder_for_invalid_date(self):
-        """Invalid or missing episode dates should produce a placeholder datetime."""
+    def test_get_episode_datetime_returns_none_for_invalid_date(self):
+        """Invalid or missing episode dates should resolve to None (unknown)."""
         result = get_episode_datetime(
             {"air_date": "not-a-date"},
             season_number=1,
@@ -280,7 +279,7 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
             tvmaze_map={},
         )
 
-        self.assertEqual(result, datetime.datetime.min.replace(tzinfo=ZoneInfo("UTC")))
+        self.assertIsNone(result)
 
     @patch("events.calendar.tv.services.api_request")
     def test_get_tvmaze_response_returns_empty_on_not_found(self, mock_api_request):
@@ -325,6 +324,48 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
         )
 
         self.assertEqual(events_bulk, [])
+
+    def test_process_season_episodes_marks_trailing_undated_as_unreleased(self):
+        """Undated episodes with no later aired episode get the sentinel (#884)."""
+        events_bulk = []
+        process_season_episodes(
+            self.season_item,
+            {
+                "season_number": 1,
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2008-01-20"},
+                    {"episode_number": 2, "air_date": "2099-01-20"},
+                    {"episode_number": 3, "air_date": ""},
+                ],
+            },
+            events_bulk,
+        )
+
+        by_number = {event.content_number: event for event in events_bulk}
+        self.assertEqual(by_number[1].datetime, date_parser("2008-01-20"))
+        self.assertEqual(by_number[2].datetime, date_parser("2099-01-20"))
+        self.assertTrue(by_number[3].is_max_datetime)
+
+    def test_process_season_episodes_assumes_undated_aired_when_later_episode_aired(
+        self,
+    ):
+        """An undated episode followed by an aired one is assumed aired (#884)."""
+        events_bulk = []
+        process_season_episodes(
+            self.season_item,
+            {
+                "season_number": 1,
+                "episodes": [
+                    {"episode_number": 1, "air_date": ""},
+                    {"episode_number": 2, "air_date": "2008-01-20"},
+                ],
+            },
+            events_bulk,
+        )
+
+        by_number = {event.content_number: event for event in events_bulk}
+        self.assertFalse(by_number[1].is_max_datetime)
+        self.assertEqual(by_number[1].datetime, date_parser("2008-01-20"))
 
     @patch("events.calendar.tv.services.api_request")
     def test_get_tvmaze_response_returns_empty_when_lookup_has_no_id(

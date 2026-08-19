@@ -12,6 +12,7 @@ from unidecode import unidecode
 
 from app import config, helpers
 from app.models import MediaTypes, Sources, Status
+from users.models import WATCH_PROVIDER_REGION_UNSET
 
 register = template.Library()
 
@@ -502,3 +503,52 @@ def show_media_score(rating, user):
         True if we should show the media score
     """
     return rating is not None and (not user.hide_zero_rating or rating > 0)
+
+
+@register.simple_tag
+def media_section_count(
+    media,
+    user_medias,
+    watch_providers=None,
+    watch_provider_region=None,
+):
+    """Return the number of content sections on the media details page."""
+    count = 0
+    if media.get("cast"):
+        count += 1
+    related = media.get("related") or {}
+    count += sum(1 for related_items in related.values() if related_items)
+    if len(user_medias) > 1:
+        count += 1
+    if media.get("episodes"):
+        count += 1
+    has_streaming = (
+        watch_provider_region == WATCH_PROVIDER_REGION_UNSET or watch_providers
+    )
+    if (
+        media.get("media_type") in (MediaTypes.MOVIE.value, MediaTypes.TV.value)
+        and has_streaming
+    ):
+        count += 1
+    if media.get("time_to_beat"):
+        count += 1
+    return count
+
+
+@register.filter
+def seconds_to_duration(seconds):
+    """Convert seconds to human-readable duration.
+
+    Under 30 min: rounds to nearest 5 min. 30 min and above: rounds to nearest 30 min.
+    """
+    if not seconds:
+        return None
+    total_minutes = seconds // 60
+    if total_minutes < 30:  # noqa: PLR2004
+        return f"{max(5, round(total_minutes / 5) * 5)}m"
+    hours, minutes = divmod(total_minutes, 60)
+    if hours == 0:
+        return "30m" if minutes < 45 else "1h"  # noqa: PLR2004
+    if minutes >= 45:  # noqa: PLR2004
+        return f"{hours + 1}h"
+    return f"{hours}h" if minutes < 15 else f"{hours}h 30m"  # noqa: PLR2004

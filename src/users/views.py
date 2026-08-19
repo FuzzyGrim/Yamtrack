@@ -17,6 +17,7 @@ from app.models import Item, MediaTypes
 from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import (
+    WATCH_PROVIDER_REGION_UNSET,
     DateFormatChoices,
     QuickWatchDateChoices,
     TimeFormatChoices,
@@ -270,7 +271,7 @@ def preferences(request):
     if provider_region in [region[0] for region in watch_provider_regions]:
         request.user.watch_provider_region = provider_region
     else:
-        request.user.watch_provider_region = "UNSET"
+        request.user.watch_provider_region = WATCH_PROVIDER_REGION_UNSET
 
     # Update user preferences for each media type
     for media_type in media_types:
@@ -366,6 +367,26 @@ def update_plex_usernames(request):
         request.user.plex_usernames = cleaned_usernames
         request.user.save(update_fields=["plex_usernames"])
         messages.success(request, _("Plex usernames updated successfully"))
+
+    return redirect("integrations")
+
+
+@require_POST
+def update_jellyfin_webhook_events(request):
+    """Update optional Jellyfin webhook event handling for the user."""
+    request.user.jellyfin_mark_played_enabled = (
+        "jellyfin_mark_played_enabled" in request.POST
+    )
+    request.user.jellyfin_mark_unplayed_enabled = (
+        "jellyfin_mark_unplayed_enabled" in request.POST
+    )
+    request.user.save(
+        update_fields=[
+            "jellyfin_mark_played_enabled",
+            "jellyfin_mark_unplayed_enabled",
+        ],
+    )
+    messages.success(request, "Jellyfin webhook settings updated successfully")
 
     return redirect("integrations")
 

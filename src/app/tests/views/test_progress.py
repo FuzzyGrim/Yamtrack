@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from app.models import (
     TV,
@@ -17,6 +18,7 @@ from app.models import (
     UserMessage,
     UserMessageLevel,
 )
+from events.models import Event
 
 
 class ProgressEditSeason(TestCase):
@@ -105,6 +107,43 @@ class ProgressEditSeason(TestCase):
             0,
         )
 
+    def test_progress_increase_deletes_card_when_hide_unreleased_active(self):
+        """Test season progress edit removes card when only unreleased remain."""
+        Event.objects.create(
+            item=self.item_season,
+            content_number=1,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=self.item_season,
+            content_number=2,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+        self.user.home_hide_unreleased = True
+        self.user.save(update_fields=["home_hide_unreleased"])
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
+            {
+                "operation": "increase",
+                "home_status": Status.IN_PROGRESS.value,
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["HX-Retarget"],
+            f"#home-media-{MediaTypes.SEASON.value}-{self.season.id}",
+        )
+        self.assertEqual(response.headers["HX-Reswap"], "delete")
+
 
 class ProgressEditAnime(TestCase):
     """Test for editing an anime progress through views."""
@@ -166,6 +205,43 @@ class ProgressEditAnime(TestCase):
         )
 
         self.assertEqual(Anime.objects.get(item__media_id="1").progress, 1)
+
+    def test_progress_increase_deletes_card_when_hide_unreleased_active(self):
+        """Test progress edit removes card when only unreleased episodes remain."""
+        Event.objects.create(
+            item=self.item,
+            content_number=3,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=self.item,
+            content_number=4,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+        self.user.home_hide_unreleased = True
+        self.user.save(update_fields=["home_hide_unreleased"])
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
+            {
+                "operation": "increase",
+                "home_status": Status.IN_PROGRESS.value,
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["HX-Retarget"],
+            f"#home-media-{MediaTypes.ANIME.value}-{self.anime.id}",
+        )
+        self.assertEqual(response.headers["HX-Reswap"], "delete")
 
     def test_cannot_edit_another_users_progress(self):
         """Test users cannot edit another user's media progress by instance ID."""

@@ -8,23 +8,24 @@ from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
-from django.db.models import prefetch_related_objects
+from django.db.models import Prefetch, prefetch_related_objects
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from django.utils.text import slugify
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import config, helpers, history_processor
+from app import home as home_helpers
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
+    Episode,
     Item,
     MediaTypes,
     Season,
@@ -34,6 +35,7 @@ from app.models import (
 )
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
+from events.models import Event
 from users.models import (
     DateFormatChoices,
     HomeSortChoices,
@@ -50,47 +52,55 @@ def home(request):
     """Home page with media items in progress and planning."""
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
-    status_to_load = request.GET.get("load_status", Status.IN_PROGRESS.value)
+    section_to_load = request.GET.get("load_status", Status.IN_PROGRESS.value)
+    hide_unreleased_param = request.GET.get("hide_unreleased")
+    hide_unreleased = request.user.update_preference(
+        "home_hide_unreleased",
+        None if hide_unreleased_param is None else hide_unreleased_param == "true",
+    )
     items_limit = 14
 
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:
-        list_by_type = BasicMedia.objects.get_home_status(
-            user=request.user,
-            status=status_to_load,
-            sort_by=sort_by,
-            items_limit=items_limit,
-            specific_media_type=media_type_to_load,
+        list_by_type = home_helpers.get_home_media_types(
+            request,
+            sort_by,
+            section_to_load,
+            items_limit,
+            media_type_to_load,
+            hide_unreleased=hide_unreleased,
         )
-        context = {
-            "media_list": list_by_type.get(media_type_to_load, []),
-            "home_status": status_to_load,
-        }
-        return render(request, "app/components/home_grid.html", context)
-
-    home_sections = []
-    for status in (Status.IN_PROGRESS.value, Status.PLANNING.value):
-        media_types = BasicMedia.objects.get_home_status(
-            user=request.user,
-            status=status,
-            sort_by=sort_by,
-            items_limit=items_limit,
-        )
-        home_sections.append(
+        return render(
+            request,
+            "app/components/home_grid.html",
             {
-                "key": status,
-                "id": slugify(status),
-                "media_types": media_types,
-                "count": sum(
-                    media_list["total"] for media_list in media_types.values()
+                "media_list": list_by_type.get(
+                    media_type_to_load,
+                    {"items": [], "total": 0},
                 ),
+                "home_status": section_to_load,
             },
         )
+
+    home_sections = [
+        home_helpers.build_home_section(
+            section_key,
+            home_helpers.get_home_media_types(
+                request,
+                sort_by,
+                section_key,
+                items_limit,
+                hide_unreleased=hide_unreleased,
+            ),
+        )
+        for section_key in (Status.IN_PROGRESS.value, Status.PLANNING.value)
+    ]
 
     context = {
         "home_sections": home_sections,
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
+        "hide_unreleased": hide_unreleased,
         "items_limit": items_limit,
     }
     return render(request, "app/home.html", context)
@@ -100,6 +110,8 @@ def home(request):
 def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
     operation = request.POST["operation"]
+    hide_unreleased = request.user.home_hide_unreleased
+    home_status = request.POST.get("home_status")
 
     media = helpers.get_owned_media_or_404(
         request, media_type, instance_id, prefetch=True
@@ -113,10 +125,33 @@ def progress_edit(request, media_type, instance_id):
     if media_type == MediaTypes.SEASON.value:
         # clear prefetch cache to get the updated episodes
         media.refresh_from_db()
-        prefetch_related_objects([media], "episodes")
+        prefetch_related_objects(
+            [media],
+            Prefetch(
+                "episodes",
+                queryset=Episode.objects.select_related("item"),
+            ),
+            Prefetch(
+                "item__event_set",
+                queryset=Event.objects.all(),
+                to_attr="prefetched_events",
+            ),
+        )
+
+    if hide_unreleased and home_status == Status.IN_PROGRESS.value:
+        if media_type == MediaTypes.SEASON.value:
+            BasicMedia.objects.annotate_max_progress([media], media_type)
+        BasicMedia.objects._annotate_next_event([media])
+
+        if not home_helpers.is_active_in_progress_media(media):
+            response = HttpResponse()
+            response["HX-Retarget"] = f"#home-media-{media.item.media_type}-{media.id}"
+            response["HX-Reswap"] = "delete"
+            return response
 
     context = {
         "media": media,
+        "home_status": home_status,
     }
     return render(
         request,

@@ -48,7 +48,7 @@
 
           {% if media_list.total > items_limit %}
             <div class="mt-5 flex justify-center">
-              <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_status={{ section.key }}&load_media_type={{ media_type }}"
+              <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_status={{ section.key }}&load_media_type={{ media_type }}{% if hide_unreleased %}&hide_unreleased=true{% endif %}"
                       hx-target="#media-grid-{{ section.id }}-{{ media_type }}"
                       hx-swap="beforeend"
                       hx-indicator="#loading-indicator-{{ section.id }}-{{ media_type }}"
@@ -92,8 +92,8 @@
         {% endif %}
       </p>
       <div class="mt-6">
-        <a href="{% if section.key == Status.IN_PROGRESS.value %}{{ MediaTypes.TV.value|sample_search }}{% else %}{{ MediaTypes.MOVIE.value|sample_search }}{% endif %}"
-           class="inline-flex items-center gap-2 rounded-md {% if section.key == Status.IN_PROGRESS.value %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-sky-600 hover:bg-sky-700{% endif %} px-4 py-2 text-sm font-medium text-white transition-colors">
+        <a href="{% if section.key == Status.PLANNING.value %}{{ MediaTypes.MOVIE.value|sample_search }}{% else %}{{ MediaTypes.TV.value|sample_search }}{% endif %}"
+           class="inline-flex items-center gap-2 rounded-md {% if section.key == Status.PLANNING.value %}bg-sky-600 hover:bg-sky-700{% else %}bg-indigo-600 hover:bg-indigo-700{% endif %} px-4 py-2 text-sm font-medium text-white transition-colors">
           {% include "app/icons/magnifying-glass.svg" with classes="h-4 w-4" %}
           Browse media
         </a>

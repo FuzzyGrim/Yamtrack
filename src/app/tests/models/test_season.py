@@ -327,6 +327,24 @@ class SeasonModel(TestCase):
                 item=episode_item,
             )
 
+    def test_delete_episode_updates_completed_parent_statuses(self):
+        """Test deleting progress reopens completed Season and TV parents."""
+        self.season.status = Status.COMPLETED.value
+        Season.save_base(self.season)
+        self.tv.status = Status.COMPLETED.value
+        TV.save_base(self.tv)
+
+        episode = Episode.objects.get(
+            related_season=self.season,
+            item__episode_number=2,
+        )
+        episode.delete()
+
+        self.season.refresh_from_db()
+        self.tv.refresh_from_db()
+        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
     @patch("app.models.Season.get_episode_item")
     def test_unwatch_with_repeats(self, mock_get_episode_item):
         """Test the unwatch method with an episode that has repeats."""

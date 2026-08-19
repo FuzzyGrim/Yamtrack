@@ -4,6 +4,7 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+import app.forms  # noqa: F401  # ensure app.forms is importable in isolation
 from app.models import (
     TV,
     Anime,
@@ -118,6 +119,48 @@ class ImportYamtrack(TestCase):
 
             self.assertNotEqual(row["title"], original_row["title"])
             self.assertNotEqual(row["image"], original_row["image"])
+
+
+class ImportYamtrackEpisodeHistoryDate(TestCase):
+    """Test that episode history dates fall back to end_date (issue #990)."""
+
+    def setUp(self):
+        """Create a user with no existing media."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    def test_episode_history_date_falls_back_to_end_date(self):
+        """Episodes have no progressed_at, so history_date should use end_date.
+
+        Real Yamtrack exports leave the progressed_at column blank for episodes
+        (the model has no such field). Without this fallback the activity
+        heatmap credits the import day instead of the day watched (issue #990).
+        """
+        importer = yamtrack.YamtrackImporter(None, self.user, "new")
+        row = {
+            "media_id": "1668",
+            "source": "tmdb",
+            "media_type": "episode",
+            "title": "Friends",
+            "image": "http://image.tmdb.org/t/p/original/friends.jpg",
+            "season_number": "1",
+            "episode_number": "1",
+            "score": "",
+            "progress": "",
+            "status": "",
+            "start_date": "",
+            "end_date": "2025-11-19 19:00:00+00:00",
+            "notes": "",
+            "progressed_at": "",
+        }
+
+        importer._process_row(row)
+
+        episode_instance = importer.bulk_media["episode"][0]
+        self.assertEqual(
+            episode_instance._history_date,
+            datetime(2025, 11, 19, 19, 0, 0, tzinfo=UTC),
+        )
 
 
 class ImportYamtrackPartials(TestCase):

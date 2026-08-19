@@ -316,6 +316,10 @@ class TraktImporter:
                 msg = _("Error processing history entry: %(entry)s") % {"entry": entry}
                 raise MediaImportUnexpectedError(msg) from e
 
+    def _get_date(self, date_str):
+        """Parse a Trakt watched_at timestamp and strip seconds/microseconds."""
+        return parse_datetime(date_str).replace(second=0, microsecond=0)
+
     def _get_tmdb_id(self, entry_data):
         """Extract TMDB ID from entry data."""
         if (
@@ -425,7 +429,7 @@ class TraktImporter:
         movie_obj = app.models.Movie(
             item=item,
             user=self.user,
-            end_date=watched_at,
+            end_date=self._get_date(watched_at),
             status=Status.COMPLETED.value,
             progress=1,
         )
@@ -556,7 +560,7 @@ class TraktImporter:
         episode_obj = app.models.Episode(
             item=episode_item,
             related_season=season_obj,
-            end_date=watched_at,
+            end_date=self._get_date(watched_at),
         )
         episode_obj._history_date = parse_datetime(watched_at)
         self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)

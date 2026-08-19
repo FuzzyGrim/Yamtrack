@@ -18,6 +18,7 @@ from decouple import (
     undefined,
 )
 from django.core.cache import CacheKeyWarning
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
@@ -231,7 +232,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 16,
+        "VERSION": 17,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -436,6 +437,10 @@ HARDCOVER_API = config(
         "j4MVAEi_-w2N7DuiMgAxkfVc6RuKd88AHrOyzF5xLyU",
     ),
 )
+HARDCOVER_API = HARDCOVER_API.strip()
+if not HARDCOVER_API.startswith("Bearer "):
+    msg = "HARDCOVER_API must start with 'Bearer '."
+    raise ImproperlyConfigured(msg)
 
 COMICVINE_API = config(
     "COMICVINE_API",
