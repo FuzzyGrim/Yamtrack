@@ -1,0 +1,7 @@
+{% load app_tags %}
+{% comment %}Small coloured activity badge overlapping a journal cover. Expects `accent`.{% endcomment %}
+{% with badge=accent|journal_accent %}
+  <span class="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center ring-2 ring-[#2a2f35] shadow-md {{ badge.background }}">
+    {% include badge.icon with classes="w-3.5 h-3.5 text-white" %}
+  </span>
+{% endwith %}

@@ -5,7 +5,7 @@
 <div x-show="trackOpen"
      @keydown.escape.window="trackOpen = false"
      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-  <div class="w-[400px] max-h-[90vh] px-4 md:px-0 relative z-60"
+  <div class="w-100 max-h-[90vh] px-4 md:px-0 relative z-60"
        @click.outside="trackOpen = false">
     <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
 
@@ -42,7 +42,7 @@
       {% if episode.history %}
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-300 mb-3">{% trans "Previous Watches" %}</label>
-          <div class="max-h-[200px] overflow-y-auto space-y-2">
+          <div class="max-h-50 overflow-y-auto space-y-2">
             {% for entry in episode.history %}
               <div class="flex items-center justify-between bg-[#343a40] rounded-md p-3 border border-gray-600">
                 <div class="text-sm text-white">
@@ -52,8 +52,8 @@
                     {% trans "No date provided" %}
                   {% endif %}
                 </div>
-                <form method="post"
-                      action="{% url 'media_delete' %}?next={{ request.path }}">
+                <form hx-post="{% url 'media_delete' %}?next={{ request.path }}"
+                      hx-swap="none">
                   {% csrf_token %}
                   <input type="hidden" name="instance_id" value="{{ entry.id }}">
                   <input type="hidden" name="media_type" value="episode">
@@ -70,17 +70,20 @@
       {% endif %}
 
       {# Episode track form #}
-      {% if episode.runtime_minutes %}
-        {% now_plus_minutes episode.runtime_minutes as finish_datetime %}
-      {% endif %}
       {# djlint:off #}
-      <form method="post"
-            action="{% url 'episode_save' %}?next={{ request.path }}"
+      <form hx-post="{% url 'episode_save' %}?next={{ request.path }}"
+            hx-swap="none"
             x-data="{
-              inputDateTime: '{% if TRACK_TIME %}{% now "Y-m-d\TH:i" %}{% else %}{% now "Y-m-d" %}{% endif %}',
+              trackTime: {% if TRACK_TIME %}true{% else %}false{% endif %},
               inputType: '{% if TRACK_TIME %}datetime-local{% else %}date{% endif %}',
+              inputDateTime: '',
               dropdownOpen: false,
-              pointerOnPickerIcon: false
+              pointerOnPickerIcon: false,
+              localNow(offsetMs = 0) {
+                const iso = new Date(Date.now() + offsetMs - new Date().getTimezoneOffset() * 60000).toISOString();
+                return this.trackTime ? iso.slice(0, 16) : iso.slice(0, 10);
+              },
+              init() { this.inputDateTime = this.localNow(); }
             }">
         {% csrf_token %}
         <input type="hidden" name="media_id" value="{{ media.media_id }}">
@@ -135,14 +138,14 @@
 
               {# Option A - Current Time #}
               <button type="button"
-                      @click="inputDateTime = '{% if TRACK_TIME %}{% now "Y-m-d\TH:i" %}{% else %}{% now "Y-m-d" %}{% endif %}'; dropdownOpen = false"
+                      @click="inputDateTime = localNow(); dropdownOpen = false"
                       class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                       title="{% trans 'Fills in the current date and time' %}">{% trans "Fill in current time" %}</button>
 
               {% if episode.runtime_minutes %}
                 {# Option B - Finish Time #}
                 <button type="button"
-                        @click="inputDateTime = '{{ finish_datetime|escapejs }}'; dropdownOpen = false"
+                        @click="inputDateTime = localNow({{ episode.runtime_minutes }} * 60000); dropdownOpen = false"
                         class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                         title="{% trans 'Fills in the date and time the episode will be finished if started now' %}">
                   {% trans "Fill in end time" %}
@@ -152,10 +155,16 @@
               {# Option C - Air Date #}
               {% if episode.air_date %}
                 <button type="button"
-                        @click="inputDateTime = '{% if TRACK_TIME %}{{ episode.air_date|escapejs }}T{% now "H:i" %}{% else %}{{ episode.air_date|escapejs }}{% endif %}'; dropdownOpen = false"
+                        @click="inputDateTime = {% if TRACK_TIME %}'{{ episode.air_date|escapejs }}T' + localNow().slice(11, 16){% else %}'{{ episode.air_date|escapejs }}'{% endif %}; dropdownOpen = false"
                         class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                         title="{% trans 'Fills in the air date of the episode, if available' %}">{% trans "Fill in air date" %}</button>
               {% endif %}
+
+              {# Option D - No Date #}
+              <button type="button"
+                      @click="inputDateTime = ''; dropdownOpen = false"
+                      class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
+                      title="Clears the watch date and time">Fill in no date</button>
             </div>
 
           </div>

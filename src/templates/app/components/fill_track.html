@@ -7,7 +7,10 @@
             @click="trackOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
   </div>
 
-  <form method="post" x-data="mediaForm" x-init="init">
+  <form hx-post="{% url 'media_save' %}?next={{ return_url }}"
+        hx-swap="none"
+        x-data="mediaForm"
+        x-init="init">
     {% csrf_token %}
     {{ form.instance_id }}
     {{ form.media_type }}
@@ -64,7 +67,6 @@
 
     <div class="flex flex-row-reverse justify-between mt-6">
       <button type="submit"
-              formaction="{% url 'media_save' %}?next={{ return_url }}"
               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
         {% if media %}
           Update
@@ -73,7 +75,9 @@
         {% endif %}
       </button>
       <button type="submit"
-              formaction="{% url 'media_delete' %}?next={{ return_url }}"
+              hx-post="{% url 'media_delete' %}?next={{ return_url }}"
+              hx-include="closest form"
+              hx-swap="none"
               class="px-4 py-2 rounded-md transition duration-300 {% if media %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}"
               {% if not media %}disabled{% endif %}>Delete</button>
     </div>

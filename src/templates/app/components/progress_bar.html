@@ -5,13 +5,13 @@
     {% if media.status == 'In progress' %}
       {% if media.max_progress and media.max_progress > 0 %}
         {% widthratio media.progress media.max_progress 100 as progress_width %}
-        <div class="{{ media.status|status_background_color }} h-[5px]"
+        <div class="{{ media.status|status_background_color }} h-1.25"
              style="width: {{ progress_width }}%"></div>
       {% else %}
-        <div class="{{ media.status|status_background_color }} h-[5px] w-full"></div>
+        <div class="{{ media.status|status_background_color }} h-1.25 w-full"></div>
       {% endif %}
     {% else %}
-      <div class="{{ media.status|status_background_color }} h-[5px] w-full"></div>
+      <div class="{{ media.status|status_background_color }} h-1.25 w-full"></div>
     {% endif %}
 
   </div>

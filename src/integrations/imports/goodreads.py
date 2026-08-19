@@ -15,6 +15,11 @@ from integrations.imports.helpers import MediaImportError, MediaImportUnexpected
 
 logger = logging.getLogger(__name__)
 
+# GoodReads uses a 1-5 star rating; Yamtrack scores on a 0-10 scale.
+GOODREADS_MIN_RATING = 1
+GOODREADS_MAX_RATING = 5
+GOODREADS_SCORE_SCALE = 2
+
 
 def importer(file, user, mode):
     """Import media from CSV file using the class-based importer."""
@@ -113,6 +118,15 @@ class GoodReadsImporter:
 
     def _process_row(self, row):
         """Process a single row from the CSV file."""
+        # Skip early (before hitting the provider) when the shelf can't be
+        # mapped to a Yamtrack status.
+        if self._determine_status(row) is None:
+            shelf = row["Exclusive Shelf"]
+            self.warnings.append(
+                f"{self._row_description(row)}: Unsupported shelf '{shelf}'.",
+            )
+            return
+
         default_source = Sources.HARDCOVER
         book = self._search_book(row, default_source)
 
@@ -188,13 +202,34 @@ class GoodReadsImporter:
         )
 
     def _determine_status(self, row):
+        """Map a Goodreads exclusive shelf to a status, or None if unmapped."""
         status_mapping = {
             "read": Status.COMPLETED,
             "currently-reading": Status.IN_PROGRESS,
             "to-read": Status.PLANNING,
+            "did-not-finish": Status.DROPPED,
         }
 
-        return status_mapping[row["Exclusive Shelf"]].value
+        status = status_mapping.get(row["Exclusive Shelf"])
+        return status.value if status else None
+
+    def _parse_rating(self, raw):
+        """Parse a GoodReads 1-5 rating into Yamtrack's 0-10 score scale.
+
+        GoodReads exports the rating as an integer ("5") in older files and as a
+        decimal ("5.0") in newer ones. Empty, "0", out-of-range or malformed
+        values map to None (no rating).
+        """
+        try:
+            value = float(raw)
+        except (ValueError, TypeError):
+            return None
+
+        if not GOODREADS_MIN_RATING <= value <= GOODREADS_MAX_RATING:
+            return None
+
+        # scale 1-5 onto 0-10, preserving half-stars (3.5 -> 7, 4.5 -> 9)
+        return round(value * GOODREADS_SCORE_SCALE, 1)
 
     def _parse_goodreads_date(self, date_str):
         """Parse GoodReads date string (YYYY/MM/DD) into datetime object."""
@@ -214,7 +249,7 @@ class GoodReadsImporter:
         book_status = self._determine_status(row)
         book_progress = (
             int(row["Number of Pages"])
-            if book_status is Status.COMPLETED.value
+            if book_status == Status.COMPLETED.value
             and row["Number of Pages"].isnumeric()
             else 0
         )
@@ -230,7 +265,7 @@ class GoodReadsImporter:
         instance = model(
             item=item,
             user=self.user,
-            score=None if row["My Rating"] == "0" else int(row["My Rating"]) * 2,
+            score=self._parse_rating(row["My Rating"]),
             progress=book_progress,
             status=book_status,
             end_date=date_rated,

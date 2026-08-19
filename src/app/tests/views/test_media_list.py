@@ -114,6 +114,15 @@ class MediaListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_table_items.html")
 
+    def test_media_list_soft_navigation_returns_full_page(self):
+        """Soft-navigation body swaps (after an edit modal) get the full page."""
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]),
+            headers={"hx-request": "true", "x-soft-navigation": "true"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/media_list.html")
+
     def test_public_media_list_ignores_invalid_filters(self):
         """Test invalid public filters fall back to the target user's preferences."""
         self.external_user.profile_private = False

@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from urllib.parse import urlencode
 
 from django.apps import apps
 from django.conf import settings
@@ -13,8 +14,6 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonRespo
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.dateparse import parse_date
-from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -250,8 +249,11 @@ def media_list(request, username, media_type):
         "target_user": target_user,
     }
 
-    # Handle HTMX requests for partial updates
-    if request.headers.get("HX-Request"):
+    # Handle HTMX requests for partial updates. Soft-navigation requests (e.g.
+    # after saving from an edit modal) need the full page for the body swap.
+    if request.headers.get("HX-Request") and not request.headers.get(
+        "X-Soft-Navigation"
+    ):
         # Filtering from empty list
         if request.headers.get("HX-Target") == "empty_list":
             # If still empty, keep user in the same page
@@ -958,32 +960,7 @@ def delete_history_record(request, media_type, history_id):
 @require_GET
 def statistics(request):
     """Return the statistics page."""
-    # Set default date range to last year
-    timeformat = "%Y-%m-%d"
-    today = timezone.localdate()
-    one_year_ago = today.replace(year=today.year - 1)
-
-    # Get date parameters with defaults
-    start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
-    end_date_str = request.GET.get("end-date") or today.strftime(timeformat)
-
-    if start_date_str == "all" and end_date_str == "all":
-        start_date = None
-        end_date = None
-    else:
-        start_date = parse_date(start_date_str)
-        end_date = parse_date(end_date_str)
-
-        if start_date and end_date:
-            # Convert to datetime with timezone awareness
-            start_date = timezone.make_aware(
-                datetime.combine(start_date, datetime.min.time()),
-            )
-
-            # End date should be end of day
-            end_date = timezone.make_aware(
-                datetime.combine(end_date, datetime.max.time()),
-            )
+    start_date, end_date = stats.parse_activity_date_range(request)
 
     # Get all user media data in a single operation
     user_media, media_count = stats.get_user_media(
@@ -1001,25 +978,112 @@ def statistics(request):
     status_pie_chart_data = stats.get_status_pie_chart_data(
         status_distribution,
     )
-    timeline = stats.get_timeline(user_media)
+    consumption_stats = stats.get_consumption_stats(user_media, media_count)
 
-    activity_data = stats.get_activity_data(request.user, start_date, end_date)
+    total = media_count["total"]
+    in_progress_count = stats.get_status_total(
+        status_distribution,
+        Status.IN_PROGRESS.value,
+    )
+    rated_percent = (
+        round(score_distribution["total_scored"] / total * 100) if total else None
+    )
 
     context = {
         "start_date": start_date,
         "end_date": end_date,
         "media_count": media_count,
-        "activity_data": activity_data,
         "media_type_distribution": media_type_distribution,
         "score_distribution": score_distribution,
         "top_rated": top_rated,
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
-        "timeline": timeline,
+        "consumption_stats": consumption_stats,
+        "in_progress_count": in_progress_count,
+        "rated_percent": rated_percent,
         "date_format_values": DateFormatChoices.values,
     }
 
     return render(request, "app/statistics.html", context)
+
+
+@require_GET
+def journal(request):
+    """Return the journal page: a global feed of the user's tracking activity."""
+    start_date, end_date = stats.parse_activity_date_range(request)
+
+    items_per_page = 20
+    # Keyset pagination: the cursor points just past the previous page's last
+    # row, so each request reads at most one page per media type regardless of
+    # scroll depth (never re-scanning everything above the current page).
+    cursor = history_processor.parse_journal_cursor(request)
+    page_rows, has_next = history_processor.get_journal_page(
+        request.user,
+        start_date,
+        end_date,
+        limit=items_per_page,
+        cursor=cursor,
+    )
+    entries = history_processor.build_journal_entries(page_rows, request.user)
+    journal_days = history_processor.build_journal_days(entries, request.user)
+
+    # Preserve the active date range when the feed paginates via HTMX.
+    date_params = {
+        key: request.GET[key]
+        for key in ("start-date", "end-date")
+        if key in request.GET
+    }
+
+    # Cursor for the next page: the last row rendered on this one.
+    next_params = dict(date_params)
+    if page_rows:
+        last_date, last_type, last_id = page_rows[-1]
+        next_params["cursor_date"] = last_date.isoformat()
+        next_params["cursor_type"] = last_type
+        next_params["cursor_id"] = last_id
+
+    prev_day = request.GET.get("last_day", "")
+
+    context = {
+        "entries": entries,
+        "journal_days": journal_days,
+        # The previous page's last day, so a day split across pages isn't
+        # relabelled; the last day on this page, forwarded to the next page.
+        # Falls back to prev_day when this page rendered no days, so a day that
+        # spans an all-filtered page isn't shown twice.
+        "prev_day": prev_day,
+        "last_day": journal_days[-1]["day_iso"] if journal_days else prev_day,
+        "has_next": has_next,
+        "next_query": urlencode(next_params),
+        "filter_query": urlencode(date_params),
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+    # The activity dashboard only appears on the full page, so skip its queries
+    # on the HTMX partial requests that load additional feed pages. Soft
+    # navigations (body swaps) still need the full page.
+    if request.headers.get("HX-Request") and not request.headers.get(
+        "X-Soft-Navigation"
+    ):
+        return render(request, "app/components/journal_items.html", context)
+
+    context.update(
+        {
+            "activity_data": stats.get_activity_data(
+                request.user,
+                start_date,
+                end_date,
+            ),
+            "activity_total": history_processor.get_journal_count(
+                request.user,
+                start_date,
+                end_date,
+            ),
+            "date_format_values": DateFormatChoices.values,
+        },
+    )
+    return render(request, "app/journal.html", context)
 
 
 @require_GET
