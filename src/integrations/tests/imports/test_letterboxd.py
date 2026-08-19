@@ -23,6 +23,7 @@ class ImportLetterboxd(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
+    # CSV
     def test_combine_csv_files(self):
         """Test combining Letterboxd CSV files."""
         files = [
@@ -188,10 +189,87 @@ class ImportLetterboxd(TestCase):
             importer_instance.warnings,
         )
 
-    # ------------------------------------------------------------------
-    # RSS
-    # ------------------------------------------------------------------
+    @patch("integrations.imports.letterboxd.tmdb.search")
+    def test_import_csv_films(self, mock_tmdb_search):
+        """Test importing films from Letterboxd CSV files."""
 
+        def search_side_effect(_, name, __, ___):
+            films = {
+                "The Godfather Part II": {
+                    "name": "The Godfather Part II",
+                    "media_id": 123123,
+                    "year": 1974,
+                    "image": "https://example.com/example.jpg",
+                },
+                "Boiling Point": {
+                    "name": "Boiling Point",
+                    "media_id": 123456,
+                    "year": 2023,
+                    "image": "https://example.com/example.jpg",
+                },
+            }
+
+            if name in films:
+                return {
+                    "results": [
+                        {
+                            "media_id": films[name]["media_id"],
+                            "media_type": MediaTypes.MOVIE.value,
+                            "title": name,
+                            "year": films[name]["year"],
+                            "image": "https://example.com/example.jpg",
+                        }
+                    ]
+                }
+
+            return {"results": []}
+
+        mock_tmdb_search.side_effect = search_side_effect
+
+        files = [
+            (letterboxd_mock_path / filename).open("rb")
+            for filename in (
+                "diary.csv",
+                "ratings.csv",
+                "reviews.csv",
+                "watched.csv",
+            )
+        ]
+
+        importer_instance = letterboxd.LetterboxdCSVImporter(
+            files,
+            self.user,
+            "new",
+        )
+
+        with (
+            patch.object(letterboxd.helpers, "bulk_create_media"),
+            patch.object(letterboxd.helpers, "cleanup_existing_media"),
+        ):
+            imported_counts, _ = importer_instance.import_data()
+
+        self.assertEqual(
+            imported_counts[MediaTypes.MOVIE.value],
+            2,
+        )
+
+        imported_titles = {
+            film.item.title
+            for film in importer_instance.bulk_media[MediaTypes.MOVIE.value]
+        }
+
+        self.assertEqual(
+            imported_titles,
+            {
+                "The Godfather Part II",
+                "Boiling Point",
+            },
+        )
+
+        for file in files:
+            file.close()
+
+    # RSS
     @patch("integrations.imports.letterboxd.services.api_request")
     def test_get_films_from_rss(self, mock_api_request):
         """Test getting films from a mocked Letterboxd RSS feed."""
