@@ -71,24 +71,6 @@ def description(entry, namespaces, default=None):
     return "\n".join(parts) or default
 
 
-"""
-TODO:
-- figure out how overwriting films works (if i want to include rewatches it
-should add a new entry but also not delete? maybe don't include those in
-the bulk create?)
-- real error handling
-    - missing ids and failed imports
-    - incorrect names
-- make tests
-    - empty csv
-    - rss feed with no films
-    - incorrect username
-    - rss feed with many films?
-    - rss feed with ids that dont work?
-- what happens with a limited series, will that count as a movie? maybe just
-filter out exclusively films?
-"""
-
 DIARY_COLUMNS = [
     "Date",
     "Name",
@@ -141,10 +123,17 @@ def importer_rss(letterboxd_username, user, mode):
 
 
 class LetterboxdCSVImporter:
-    """letterboxd csv importer."""
+    """Letterboxd CSV Importer.
+
+    Takes a number of csv files from the Letterboxd data export .zip
+    - ratings.csv
+    - reviews.csv
+    - watched.csv
+    - diary.csv
+    """
 
     def __init__(self, files, user, mode):
-        """Letterboxd csv importer."""
+        """Letterboxd CSV importer."""
         self.files = files
         self.user = user
         self.mode = mode
@@ -163,7 +152,7 @@ class LetterboxdCSVImporter:
         )
 
     def import_data(self):
-        """Import data."""
+        """Import data once parsed from the CSV."""
         if not self.files:
             msg = "No files uploaded"
             raise MediaImportError(msg)
@@ -181,6 +170,7 @@ class LetterboxdCSVImporter:
         return imported_counts, deduplicated_messages if self.warnings else None
 
     def _combine_files(self):
+        """Combine the csv files into a consistent format."""
         all_columns = list(
             dict.fromkeys(
                 DIARY_COLUMNS + RATINGS_COLUMNS + REVIEWS_COLUMNS + WATCHED_COLUMNS
@@ -252,13 +242,14 @@ class LetterboxdCSVImporter:
         return combined.to_csv(index=False).splitlines()
 
     def _get_films(self):
+        """Parse the CSV then process each film."""
         combined_csvs = self._combine_files()
         reader = DictReader(combined_csvs)
         for row in reader:
             self._process_row(row)
 
     def _process_row(self, row):
-
+        """Process each row of the CSV to find film data."""
         date = parse_datetime(row["Date"])
         name = row["Name"]
         year = int(row["Year"])
@@ -325,7 +316,10 @@ class LetterboxdCSVImporter:
 
 
 class LetterboxdRSSImporter:
-    """letterboxd RSS importer."""
+    """letterboxd RSS importer.
+
+    Takes a username and makes a request to the default letterboxd RSS feed.
+    """
 
     def __init__(self, username, user, mode):
         """Letterboxd RSS importer."""
@@ -367,6 +361,7 @@ class LetterboxdRSSImporter:
         return imported_counts, deduplicated_messages if self.warnings else None
 
     def _get_films(self):
+        """Make request to get XML and return films."""
         namespaces = {
             "letterboxd": "https://letterboxd.com",
             "tmdb": "https://themoviedb.org",
@@ -403,6 +398,7 @@ class LetterboxdRSSImporter:
             return films
 
     def _process_film(self, film):
+        """Process the XML entry of each film and request from TMDB."""
         rating = (
             float(film["rating"]) * 2 if film["rating"] else None
         )  # letterboxd is out of 5
