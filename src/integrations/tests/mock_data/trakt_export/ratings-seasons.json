@@ -1,0 +1,86 @@
+[
+  {
+    "rated_at": "2024-03-07T19:37:32.000Z",
+    "rating": 8,
+    "type": "season",
+    "season": {
+      "number": 4,
+      "ids": {
+        "trakt": 3953,
+        "tvdb": 297361,
+        "tmdb": 3576,
+        "tvrage": null
+      },
+      "aired_episodes": 13
+    },
+    "show": {
+      "title": "Breaking Bad",
+      "year": 2008,
+      "ids": {
+        "trakt": 1388,
+        "slug": "breaking-bad",
+        "tvdb": 81189,
+        "imdb": "tt0903747",
+        "tmdb": 1396,
+        "tvrage": null
+      },
+      "aired_episodes": 62
+    }
+  },
+  {
+    "rated_at": "2024-02-03T11:32:04.000Z",
+    "rating": 7,
+    "type": "season",
+    "season": {
+      "number": 4,
+      "ids": {
+        "trakt": 4978,
+        "tvdb": 16106,
+        "tmdb": 4576,
+        "tvrage": null
+      },
+      "aired_episodes": 23
+    },
+    "show": {
+      "title": "Friends",
+      "year": 1994,
+      "ids": {
+        "trakt": 1657,
+        "slug": "friends",
+        "tvdb": 79168,
+        "imdb": "tt0108778",
+        "tmdb": 1668,
+        "tvrage": null
+      },
+      "aired_episodes": 228
+    }
+  },
+  {
+    "rated_at": "2023-02-06T20:36:09.000Z",
+    "rating": 6,
+    "type": "season",
+    "season": {
+      "number": 10,
+      "ids": {
+        "trakt": 4984,
+        "tvdb": 16103,
+        "tmdb": 4582,
+        "tvrage": null
+      },
+      "aired_episodes": 17
+    },
+    "show": {
+      "title": "Friends",
+      "year": 1994,
+      "ids": {
+        "trakt": 1657,
+        "slug": "friends",
+        "tvdb": 79168,
+        "imdb": "tt0108778",
+        "tmdb": 1668,
+        "tvrage": null
+      },
+      "aired_episodes": 228
+    }
+  }
+]

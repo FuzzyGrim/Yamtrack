@@ -9,8 +9,11 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from app.models import (
+    TV,
+    Episode,
     MediaTypes,
     Movie,
+    Season,
     Status,
 )
 from integrations.imports import (
@@ -18,6 +21,7 @@ from integrations.imports import (
 )
 from integrations.imports.helpers import MediaImportError
 from integrations.imports.trakt import (
+    ENDPOINTS_TO_FILES,
     EXPORT_FALLBACK_USERNAME,
     TraktArchiveManager,
     TraktExportImporter,
@@ -30,6 +34,7 @@ mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 app_mock_path = (
     Path(__file__).resolve().parent.parent.parent.parent / "app" / "tests" / "mock_data"
 )
+trakt_export_path = mock_path / "trakt_export"
 
 
 class ImportTrakt(TestCase):
@@ -502,3 +507,168 @@ class ImportTraktExport(TestCase):
             self.assertRaises(MediaImportError),
         ):
             TraktArchiveManager(archive)
+
+
+# Enough episodes for every season in the sample export, so the fake metadata
+# never rejects an episode number the real archive contains.
+FIXTURE_SEASON_EPISODES = 140
+
+# Trakt left comments-episodes.json out of the sample export even though it wrote
+# empty comments-movies.json and comments-shows.json files.
+EXPORT_FILES_WITHOUT_SAMPLES = {"comments-episodes"}
+
+
+def build_fixture_archive():
+    """Zip the sample Trakt export checked into mock_data."""
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for path in sorted(trakt_export_path.glob("*.json")):
+            archive.writestr(path.name, path.read_text())
+    buffer.seek(0)
+    return buffer
+
+
+def fake_metadata(media_type, tmdb_id, title, season_number=None):  # noqa: ARG001
+    """Stand in for TMDB lookups when importing the sample export."""
+    metadata = {"title": title, "image": f"{tmdb_id}.jpg"}
+    if media_type == MediaTypes.SEASON.value:
+        metadata["episodes"] = [
+            {"episode_number": number, "still_path": f"/{number}.jpg"}
+            for number in range(1, FIXTURE_SEASON_EPISODES + 1)
+        ]
+        metadata["max_progress"] = FIXTURE_SEASON_EPISODES
+    return metadata
+
+
+class ImportTraktSampleExport(TestCase):
+    """Test importing the sample Trakt export archive in mock_data."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Import the sample export once for the whole class."""
+        credentials = {"username": "test", "password": "12345"}
+        cls.user = get_user_model().objects.create_user(**credentials)
+        with patch(
+            "integrations.imports.trakt.TraktImporter._get_metadata",
+            side_effect=fake_metadata,
+        ):
+            cls.imported_counts, cls.messages = importer(
+                None,
+                cls.user,
+                "new",
+                file=build_fixture_archive(),
+            )
+
+    def test_sample_export_imports(self):
+        """Every media type in the sample export reaches the database."""
+        self.assertEqual(self.messages, "")
+        self.assertEqual(
+            self.imported_counts[MediaTypes.MOVIE.value],
+            Movie.objects.filter(user=self.user).count(),
+        )
+        self.assertEqual(
+            self.imported_counts[MediaTypes.TV.value],
+            TV.objects.filter(user=self.user).count(),
+        )
+        self.assertEqual(
+            self.imported_counts[MediaTypes.SEASON.value],
+            Season.objects.filter(user=self.user).count(),
+        )
+        self.assertEqual(
+            self.imported_counts[MediaTypes.EPISODE.value],
+            Episode.objects.filter(related_season__user=self.user).count(),
+        )
+
+    def test_username_read_from_sample_profile(self):
+        """The username comes from the sample user-profile.json."""
+        export_importer = TraktExportImporter(build_fixture_archive(), self.user, "new")
+
+        self.assertEqual(export_importer.username, "yamtrack_user")
+
+    def test_history_is_imported_oldest_first(self):
+        """The export lists history newest first, so entries are reversed."""
+        history = json.loads((trakt_export_path / "watched-history.json").read_text())
+        watched_at = [entry["watched_at"] for entry in history]
+        self.assertEqual(watched_at, sorted(watched_at, reverse=True))
+
+        with patch(
+            "integrations.imports.trakt.TraktImporter._get_metadata",
+            side_effect=fake_metadata,
+        ):
+            export_importer = TraktExportImporter(
+                build_fixture_archive(),
+                self.user,
+                "new",
+            )
+            export_importer.process_history()
+
+        end_dates = [
+            episode.end_date
+            for episode in export_importer.bulk_media[MediaTypes.EPISODE.value]
+        ]
+        self.assertEqual(end_dates, sorted(end_dates))
+
+    def test_show_rating_is_imported(self):
+        """A rated show from ratings-shows.json keeps its score."""
+        # Breaking Bad, rated 8 in the sample export and absent from the history.
+        breaking_bad = TV.objects.get(user=self.user, item__media_id="1396")
+
+        self.assertEqual(breaking_bad.score, 8)
+
+    def test_season_rating_is_imported(self):
+        """A rated season from ratings-seasons.json keeps its score."""
+        # Breaking Bad season 4, rated 8 in the sample export.
+        season = Season.objects.get(
+            user=self.user,
+            item__media_id="1396",
+            item__season_number=4,
+        )
+
+        self.assertEqual(season.score, 8)
+
+    def test_watchlist_entries_are_planning(self):
+        """Watchlist entries are imported with the planning status."""
+        # Perfect Blue is only on the watchlist, never watched.
+        perfect_blue = Movie.objects.get(user=self.user, item__media_id="10494")
+
+        self.assertEqual(perfect_blue.status, Status.PLANNING.value)
+
+    def test_season_comment_becomes_notes(self):
+        """A comment from comments-seasons.json is stored as notes."""
+        # Friends season 10, commented on in the sample export.
+        season = Season.objects.get(
+            user=self.user,
+            item__media_id="1668",
+            item__season_number=10,
+        )
+
+        self.assertEqual(season.notes, "it was okay i guess")
+
+    def test_episode_ratings_are_skipped(self):
+        """Episode ratings are dropped because Episode has no score field."""
+        ratings = json.loads((trakt_export_path / "ratings-episodes.json").read_text())
+        self.assertTrue(any(entry["type"] == "episode" for entry in ratings))
+
+        # Skipped silently, so the import reports no warning about them.
+        self.assertEqual(self.messages, "")
+
+    def test_repeat_plays_are_kept(self):
+        """A rewatched episode keeps one record per play."""
+        # Reacher S1E1 was watched three times in the sample export.
+        episodes = Episode.objects.filter(
+            related_season__user=self.user,
+            item__media_id="108978",
+            item__season_number=1,
+            item__episode_number=1,
+        )
+
+        self.assertEqual(episodes.count(), 3)
+
+    def test_every_mapped_prefix_has_a_sample_file(self):
+        """The sample export covers the files the importer looks for."""
+        expected = {
+            prefix for prefixes in ENDPOINTS_TO_FILES.values() for prefix in prefixes
+        }
+        available = {path.stem for path in trakt_export_path.glob("*.json")}
+
+        self.assertLessEqual(expected - available, EXPORT_FILES_WITHOUT_SAMPLES)

@@ -1,0 +1,74 @@
+[
+  {
+    "rated_at": "2024-09-11T08:38:40.000Z",
+    "rating": 8,
+    "type": "show",
+    "show": {
+      "title": "Frieren: Beyond Journey's End",
+      "year": 2023,
+      "ids": {
+        "trakt": 198225,
+        "slug": "frieren-beyond-journey-s-end",
+        "tvdb": 424536,
+        "imdb": "tt22248376",
+        "tmdb": 209867,
+        "tvrage": null
+      },
+      "aired_episodes": 38
+    }
+  },
+  {
+    "rated_at": "2024-09-11T08:38:20.000Z",
+    "rating": 7,
+    "type": "show",
+    "show": {
+      "title": "Lost",
+      "year": 2004,
+      "ids": {
+        "trakt": 4583,
+        "slug": "lost-2004",
+        "tvdb": 73739,
+        "imdb": "tt0411008",
+        "tmdb": 4607,
+        "tvrage": null
+      },
+      "aired_episodes": 118
+    }
+  },
+  {
+    "rated_at": "2024-03-07T19:37:27.000Z",
+    "rating": 8,
+    "type": "show",
+    "show": {
+      "title": "Breaking Bad",
+      "year": 2008,
+      "ids": {
+        "trakt": 1388,
+        "slug": "breaking-bad",
+        "tvdb": 81189,
+        "imdb": "tt0903747",
+        "tmdb": 1396,
+        "tvrage": null
+      },
+      "aired_episodes": 62
+    }
+  },
+  {
+    "rated_at": "2023-06-22T22:31:23.000Z",
+    "rating": 8,
+    "type": "show",
+    "show": {
+      "title": "Friends",
+      "year": 1994,
+      "ids": {
+        "trakt": 1657,
+        "slug": "friends",
+        "tvdb": 79168,
+        "imdb": "tt0108778",
+        "tmdb": 1668,
+        "tvrage": null
+      },
+      "aired_episodes": 228
+    }
+  }
+]

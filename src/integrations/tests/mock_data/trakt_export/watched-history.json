@@ -1,0 +1,1746 @@
+[
+  {
+    "id": 12152226892,
+    "watched_at": "2026-04-01T11:10:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt38689179",
+        "plex": {
+          "guid": "6961067da7f74efb16ccbb2f"
+        },
+        "tmdb": 6815172,
+        "tvdb": 11471275,
+        "trakt": 13522451
+      },
+      "title": "In the Driver's Seat",
+      "number": 13,
+      "season": 2
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22091076",
+        "plex": {
+          "guid": "646e036d7a2b3b58610b5cab",
+          "slug": "high-potential-1"
+        },
+        "slug": "high-potential",
+        "tmdb": 226637,
+        "tvdb": 434988,
+        "trakt": 205414
+      },
+      "year": 2024,
+      "title": "High Potential",
+      "aired_episodes": 31
+    }
+  },
+  {
+    "id": 12152207148,
+    "watched_at": "2026-04-01T11:05:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt38689178",
+        "plex": {
+          "guid": "6961067ea7f74efb16ccbb37"
+        },
+        "tmdb": 6815171,
+        "tvdb": 11471274,
+        "trakt": 13522450
+      },
+      "title": "The Faust and the Furious",
+      "number": 12,
+      "season": 2
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22091076",
+        "plex": {
+          "guid": "646e036d7a2b3b58610b5cab",
+          "slug": "high-potential-1"
+        },
+        "slug": "high-potential",
+        "tmdb": 226637,
+        "tvdb": 434988,
+        "trakt": 205414
+      },
+      "year": 2024,
+      "title": "High Potential",
+      "aired_episodes": 31
+    }
+  },
+  {
+    "id": 12152147348,
+    "watched_at": "2026-04-01T10:38:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt35624680",
+        "plex": {
+          "guid": "678656bf481cbe2805c3bae9"
+        },
+        "tmdb": 5899515,
+        "tvdb": 10913253,
+        "trakt": 12710503
+      },
+      "title": "Let's Play",
+      "number": 13,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22091076",
+        "plex": {
+          "guid": "646e036d7a2b3b58610b5cab",
+          "slug": "high-potential-1"
+        },
+        "slug": "high-potential",
+        "tmdb": 226637,
+        "tvdb": 434988,
+        "trakt": 205414
+      },
+      "year": 2024,
+      "title": "High Potential",
+      "aired_episodes": 31
+    }
+  },
+  {
+    "id": 12152147336,
+    "watched_at": "2026-04-01T10:38:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt27102157",
+        "plex": {
+          "guid": "646e03707a2b3b58610b5ce8"
+        },
+        "tmdb": 4447673,
+        "tvdb": 9792791,
+        "trakt": 9492805
+      },
+      "title": "Pilot",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22091076",
+        "plex": {
+          "guid": "646e036d7a2b3b58610b5cab",
+          "slug": "high-potential-1"
+        },
+        "slug": "high-potential",
+        "tmdb": 226637,
+        "tvdb": 434988,
+        "trakt": 205414
+      },
+      "year": 2024,
+      "title": "High Potential",
+      "aired_episodes": 31
+    }
+  },
+  {
+    "id": 12152145976,
+    "watched_at": "2026-04-01T10:37:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt35505101",
+        "plex": {
+          "guid": "687a5d7bb25e1f67ea81cf50"
+        },
+        "tmdb": 6388491,
+        "tvdb": 11230692,
+        "trakt": 13331305
+      },
+      "title": "Pawns",
+      "number": 1,
+      "season": 2
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22091076",
+        "plex": {
+          "guid": "646e036d7a2b3b58610b5cab",
+          "slug": "high-potential-1"
+        },
+        "slug": "high-potential",
+        "tmdb": 226637,
+        "tvdb": 434988,
+        "trakt": 205414
+      },
+      "year": 2024,
+      "title": "High Potential",
+      "aired_episodes": 31
+    }
+  },
+  {
+    "id": 11333824246,
+    "watched_at": "2025-09-23T21:23:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": null,
+        "plex": {
+          "guid": null
+        },
+        "tmdb": 6516407,
+        "tvdb": 11326228,
+        "trakt": 13495862
+      },
+      "title": "BRIF de Laza, Kiti M\u00e1nver y \u00c1lvaro Morte",
+      "number": 1,
+      "season": 2
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt33362276",
+        "plex": {
+          "guid": "66e061ea7cff1cce92a01cb0",
+          "slug": "the-revolt-1"
+        },
+        "slug": "la-revuelta",
+        "tmdb": 270462,
+        "tvdb": 454264,
+        "trakt": 254755
+      },
+      "year": 2024,
+      "title": "La Revuelta",
+      "aired_episodes": 319
+    }
+  },
+  {
+    "id": 11024258305,
+    "watched_at": "2025-07-07T12:52:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt0992436",
+        "plex": {
+          "guid": "5d9c10d608fddd001f304b34"
+        },
+        "tmdb": 1149717,
+        "tvdb": 362049,
+        "trakt": 856340
+      },
+      "title": "The First Patient! The Untold Story of the Rumble Ball!",
+      "number": 131,
+      "season": 5
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0388629",
+        "plex": {
+          "guid": "5d9c084fec357c001f9ab4d8",
+          "slug": "one-piece"
+        },
+        "slug": "one-piece",
+        "tmdb": 37854,
+        "tvdb": 81797,
+        "trakt": 37696
+      },
+      "year": 1999,
+      "title": "One Piece",
+      "aired_episodes": 1175
+    }
+  },
+  {
+    "id": 11024253065,
+    "watched_at": "2025-07-07T12:48:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt0583462",
+        "plex": {
+          "guid": "5d9c12a2e98e47001eb85c27"
+        },
+        "tmdb": 85990,
+        "tvdb": 303828,
+        "trakt": 97999
+      },
+      "title": "The One Where Nana Dies Twice",
+      "number": 8,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0108778",
+        "plex": {
+          "guid": "5d9c086d2192ba001f3101c6",
+          "slug": "friends-1"
+        },
+        "slug": "friends",
+        "tmdb": 1668,
+        "tvdb": 79168,
+        "trakt": 1657
+      },
+      "year": 1994,
+      "title": "Friends",
+      "aired_episodes": 228
+    }
+  },
+  {
+    "id": 11024252626,
+    "watched_at": "2025-07-07T12:48:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": null,
+        "plex": {
+          "guid": null
+        },
+        "tmdb": 1988543,
+        "tvdb": 7601788,
+        "trakt": 1719662
+      },
+      "title": "The One Where They Got Back Together",
+      "number": 7,
+      "season": 0
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0108778",
+        "plex": {
+          "guid": "5d9c086d2192ba001f3101c6",
+          "slug": "friends-1"
+        },
+        "slug": "friends",
+        "tmdb": 1668,
+        "tvdb": 79168,
+        "trakt": 1657
+      },
+      "year": 1994,
+      "title": "Friends",
+      "aired_episodes": 228
+    }
+  },
+  {
+    "id": 11024252337,
+    "watched_at": "2025-07-07T12:48:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": null,
+        "plex": {
+          "guid": "603413c5e9909e002d0d7680"
+        },
+        "tmdb": 2639441,
+        "tvdb": 375869,
+        "trakt": 97988
+      },
+      "title": "The One Before the Last One - Ten Years of Friends",
+      "number": 2,
+      "season": 0
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0108778",
+        "plex": {
+          "guid": "5d9c086d2192ba001f3101c6",
+          "slug": "friends-1"
+        },
+        "slug": "friends",
+        "tmdb": 1668,
+        "tvdb": 79168,
+        "trakt": 1657
+      },
+      "year": 1994,
+      "title": "Friends",
+      "aired_episodes": 228
+    }
+  },
+  {
+    "id": 11005136051,
+    "watched_at": "2025-07-01T18:41:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt35643632",
+        "plex": {
+          "guid": "6824439a82550536c4c1ccc9"
+        },
+        "tmdb": 5884551,
+        "tvdb": 11126291,
+        "trakt": 12681892
+      },
+      "title": "The Starry Night",
+      "number": 2,
+      "season": 3
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 11005135416,
+    "watched_at": "2025-07-01T18:41:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt33056155",
+        "plex": {
+          "guid": "677e74d7ed273032b625b0a8"
+        },
+        "tmdb": 5884550,
+        "tvdb": 10936217,
+        "trakt": 12676829
+      },
+      "title": "Keys and Knives",
+      "number": 1,
+      "season": 3
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 11005135296,
+    "watched_at": "2025-07-01T18:40:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt35153959",
+        "plex": {
+          "guid": "673387a68f339a3926a0a361"
+        },
+        "tmdb": 5747919,
+        "tvdb": 10863921,
+        "trakt": 12482882
+      },
+      "title": "Friend or Foe",
+      "number": 7,
+      "season": 2
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 11005134661,
+    "watched_at": "2025-07-01T18:40:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt33056155",
+        "plex": {
+          "guid": "677e74d7ed273032b625b0a8"
+        },
+        "tmdb": 5884550,
+        "tvdb": 10936217,
+        "trakt": 12676829
+      },
+      "title": "Keys and Knives",
+      "number": 1,
+      "season": 3
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 11005134070,
+    "watched_at": "2025-07-01T18:39:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt15939754",
+        "plex": {
+          "guid": "6697d3ffbc83beb931b4808f"
+        },
+        "tmdb": 5475279,
+        "tvdb": 10617348,
+        "trakt": 12113107
+      },
+      "title": "Bread and Lottery",
+      "number": 1,
+      "season": 2
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 11005133896,
+    "watched_at": "2025-07-01T18:39:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt11979940",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b8"
+        },
+        "tmdb": 1922715,
+        "tvdb": 8332593,
+        "trakt": 5063550
+      },
+      "title": "Red Light, Green Light",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 11002717863,
+    "watched_at": "2025-06-30T21:55:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt11979940",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b8"
+        },
+        "tmdb": 1922715,
+        "tvdb": 8332593,
+        "trakt": 5063550
+      },
+      "title": "Red Light, Green Light",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 11002719677,
+    "watched_at": "2025-06-29T21:55:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt15215362",
+        "plex": {
+          "guid": "6123babecd697e002c98e17c"
+        },
+        "tmdb": 3146767,
+        "tvdb": 8640473,
+        "trakt": 5426923
+      },
+      "title": "Hell",
+      "number": 2,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "plex": {
+          "guid": "5e1612d6c2a81f001ed363b3",
+          "slug": "squid-game"
+        },
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 162712
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    }
+  },
+  {
+    "id": 10985573513,
+    "watched_at": "2025-06-24T21:30:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt1167675",
+        "plex": {
+          "guid": "5d776881431c830024c0dd83",
+          "slug": "saint"
+        },
+        "slug": "saint-2010",
+        "tmdb": 45756,
+        "trakt": 31265
+      },
+      "year": 2010,
+      "title": "Saint"
+    }
+  },
+  {
+    "id": 10923235176,
+    "watched_at": "2025-06-03T12:51:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": null,
+        "plex": {
+          "guid": null
+        },
+        "tmdb": 5577492,
+        "tvdb": 10690212,
+        "trakt": 12251992
+      },
+      "title": "Juan Jos\u00e9 Mill\u00e1s and Juan Luis Arsuaga",
+      "number": 3,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt33362276",
+        "plex": {
+          "guid": "66e061ea7cff1cce92a01cb0",
+          "slug": "the-revolt-1"
+        },
+        "slug": "la-revuelta",
+        "tmdb": 270462,
+        "tvdb": 454264,
+        "trakt": 254755
+      },
+      "year": 2024,
+      "title": "La Revuelta",
+      "aired_episodes": 319
+    }
+  },
+  {
+    "id": 10911590677,
+    "watched_at": "2025-05-31T08:31:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt32567460",
+        "plex": {
+          "guid": "679267fcd27b3158868487fb"
+        },
+        "tmdb": 5946335,
+        "tvdb": 10922069,
+        "trakt": 12773541
+      },
+      "title": "Arlo Brandt",
+      "number": 6,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt21906554",
+        "plex": {
+          "guid": "65e0775007e862daad474570",
+          "slug": "the-hunting-party"
+        },
+        "slug": "the-hunting-party",
+        "tmdb": 247723,
+        "tvdb": 446821,
+        "trakt": 228601
+      },
+      "year": 2025,
+      "title": "The Hunting Party",
+      "aired_episodes": 23
+    }
+  },
+  {
+    "id": 10911589013,
+    "watched_at": "2025-05-31T08:29:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt32567461",
+        "plex": {
+          "guid": "67860caf6486f0b520ca8dbf"
+        },
+        "tmdb": 5899790,
+        "tvdb": 10901078,
+        "trakt": 12710505
+      },
+      "title": "Roy Barber",
+      "number": 5,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt21906554",
+        "plex": {
+          "guid": "65e0775007e862daad474570",
+          "slug": "the-hunting-party"
+        },
+        "slug": "the-hunting-party",
+        "tmdb": 247723,
+        "tvdb": 446821,
+        "trakt": 228601
+      },
+      "year": 2025,
+      "title": "The Hunting Party",
+      "aired_episodes": 23
+    }
+  },
+  {
+    "id": 10885238232,
+    "watched_at": "2025-05-22T15:26:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt3420580",
+        "plex": {
+          "guid": null
+        },
+        "tmdb": null,
+        "tvdb": 4735412,
+        "trakt": 1404886
+      },
+      "title": "Paul Scheer, Andrea Savage, Kumail Nanjiani",
+      "number": 1,
+      "season": 2014
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt3279494",
+        "plex": {
+          "guid": "5d9c083fffd9ef001e9905de",
+          "slug": "midnight"
+        },
+        "slug": "midnight",
+        "tmdb": 61025,
+        "tvdb": 274099,
+        "trakt": 60550
+      },
+      "year": 2013,
+      "title": "@midnight",
+      "aired_episodes": 600
+    }
+  },
+  {
+    "id": 10868149035,
+    "watched_at": "2025-05-16T22:03:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": null,
+        "plex": {
+          "guid": "61b1275fafa9bc747bdc8541"
+        },
+        "tmdb": null,
+        "tvdb": 6481406,
+        "trakt": 2843071
+      },
+      "title": "The Ice Block Expedition and Chainsaw Licences (Live)",
+      "number": 7,
+      "season": 5
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt8590476",
+        "plex": {
+          "guid": "61b12742afa9bc747bdc8469",
+          "slug": "citation-needed"
+        },
+        "slug": "citation-needed",
+        "tmdb": 322020,
+        "tvdb": 322162,
+        "trakt": 115662
+      },
+      "year": 2014,
+      "title": "Citation Needed",
+      "aired_episodes": 52
+    }
+  },
+  {
+    "id": 10868148333,
+    "watched_at": "2025-05-16T22:03:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": null,
+        "plex": {
+          "guid": "61b1275dafa9bc747bdc8535"
+        },
+        "tmdb": 7252401,
+        "tvdb": 5909125,
+        "trakt": 2456724
+      },
+      "title": "The Hydraulic Telegraph and Latin Grease",
+      "number": 1,
+      "season": 5
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt8590476",
+        "plex": {
+          "guid": "61b12742afa9bc747bdc8469",
+          "slug": "citation-needed"
+        },
+        "slug": "citation-needed",
+        "tmdb": 322020,
+        "tvdb": 322162,
+        "trakt": 115662
+      },
+      "year": 2014,
+      "title": "Citation Needed",
+      "aired_episodes": 52
+    }
+  },
+  {
+    "id": 10866535118,
+    "watched_at": "2025-05-16T16:29:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt26900526",
+        "plex": {
+          "guid": "63fe2d71a8e00803a3cc253a",
+          "slug": "emesis-blue-2023"
+        },
+        "slug": "nemesis-blu-2023",
+        "tmdb": 1200816,
+        "trakt": 969284
+      },
+      "year": 2023,
+      "title": "Nemesis Blu"
+    }
+  },
+  {
+    "id": 10861309420,
+    "watched_at": "2025-05-14T20:33:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt3566834",
+        "plex": {
+          "guid": "5d776b32594b2b001e6d2947",
+          "slug": "a-minecraft-movie"
+        },
+        "slug": "a-minecraft-movie-2025",
+        "tmdb": 950387,
+        "trakt": 763995
+      },
+      "year": 2025,
+      "title": "A Minecraft Movie"
+    }
+  },
+  {
+    "id": 10796788945,
+    "watched_at": "2025-04-25T14:06:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt0583459",
+        "plex": {
+          "guid": "5d9c12a2ffd9ef001ea02956"
+        },
+        "tmdb": 85987,
+        "tvdb": 303821,
+        "trakt": 97992
+      },
+      "title": "Pilot",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0108778",
+        "plex": {
+          "guid": "5d9c086d2192ba001f3101c6",
+          "slug": "friends-1"
+        },
+        "slug": "friends",
+        "tmdb": 1668,
+        "tvdb": 79168,
+        "trakt": 1657
+      },
+      "year": 1994,
+      "title": "Friends",
+      "aired_episodes": 228
+    }
+  },
+  {
+    "id": 10861309503,
+    "watched_at": "2025-04-04T20:00:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt3566834",
+        "plex": {
+          "guid": "5d776b32594b2b001e6d2947",
+          "slug": "a-minecraft-movie"
+        },
+        "slug": "a-minecraft-movie-2025",
+        "tmdb": 950387,
+        "trakt": 763995
+      },
+      "year": 2025,
+      "title": "A Minecraft Movie"
+    }
+  },
+  {
+    "id": 10716189069,
+    "watched_at": "2025-03-31T21:46:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": null,
+        "plex": {
+          "guid": "66e061eb7cff1cce92a01cb5"
+        },
+        "tmdb": 5577489,
+        "tvdb": 10687127,
+        "trakt": 12251990
+      },
+      "title": "Aitor Francesena",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt33362276",
+        "plex": {
+          "guid": "66e061ea7cff1cce92a01cb0",
+          "slug": "the-revolt-1"
+        },
+        "slug": "la-revuelta",
+        "tmdb": 270462,
+        "tvdb": 454264,
+        "trakt": 254755
+      },
+      "year": 2024,
+      "title": "La Revuelta",
+      "aired_episodes": 319
+    }
+  },
+  {
+    "id": 10670465001,
+    "watched_at": "2025-03-19T15:40:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt32567461",
+        "plex": {
+          "guid": "67860caf6486f0b520ca8dbf"
+        },
+        "tmdb": 5899790,
+        "tvdb": 10901078,
+        "trakt": 12710505
+      },
+      "title": "Roy Barber",
+      "number": 5,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt21906554",
+        "plex": {
+          "guid": "65e0775007e862daad474570",
+          "slug": "the-hunting-party"
+        },
+        "slug": "the-hunting-party",
+        "tmdb": 247723,
+        "tvdb": 446821,
+        "trakt": 228601
+      },
+      "year": 2025,
+      "title": "The Hunting Party",
+      "aired_episodes": 23
+    }
+  },
+  {
+    "id": 10670464305,
+    "watched_at": "2025-03-19T15:39:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt32332879",
+        "plex": {
+          "guid": "65e0775007e862daad47457d"
+        },
+        "tmdb": 5180597,
+        "tvdb": 10344656,
+        "trakt": 11567111
+      },
+      "title": "Richard Harris (Pilot)",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt21906554",
+        "plex": {
+          "guid": "65e0775007e862daad474570",
+          "slug": "the-hunting-party"
+        },
+        "slug": "the-hunting-party",
+        "tmdb": 247723,
+        "tvdb": 446821,
+        "trakt": 228601
+      },
+      "year": 2025,
+      "title": "The Hunting Party",
+      "aired_episodes": 23
+    }
+  },
+  {
+    "id": 10515061244,
+    "watched_at": "2025-02-07T23:04:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt13801578",
+        "plex": {
+          "guid": "63ee7a3ea821b4f6faea296f"
+        },
+        "tmdb": 4237596,
+        "tvdb": 9636217,
+        "trakt": 7305920
+      },
+      "title": "Chapter 22: Guns for Hire",
+      "number": 6,
+      "season": 3
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt8111088",
+        "plex": {
+          "guid": "5e1621e7b0b6c1003fd4b475",
+          "slug": "the-mandalorian"
+        },
+        "slug": "the-mandalorian",
+        "tmdb": 82856,
+        "tvdb": 361753,
+        "trakt": 137178
+      },
+      "year": 2019,
+      "title": "The Mandalorian",
+      "aired_episodes": 24
+    }
+  },
+  {
+    "id": 10515060729,
+    "watched_at": "2025-02-07T23:04:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt26420382",
+        "plex": {
+          "guid": "63aa45d8b0445b127fe6b9b1"
+        },
+        "tmdb": 4148004,
+        "tvdb": 9524426,
+        "trakt": 7174923
+      },
+      "title": "Iron Fist Ketil",
+      "number": 7,
+      "season": 2
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt10233448",
+        "plex": {
+          "guid": "5d9c09184eefaa001f5e81a4",
+          "slug": "vinland-saga"
+        },
+        "slug": "vinland-saga",
+        "tmdb": 88803,
+        "tvdb": 359274,
+        "trakt": 143851
+      },
+      "year": 2019,
+      "title": "Vinland Saga",
+      "aired_episodes": 48
+    }
+  },
+  {
+    "id": 10515060591,
+    "watched_at": "2025-02-07T23:04:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt3884286",
+        "plex": {
+          "guid": "5d9c0ee67b5c2e001e69bd96"
+        },
+        "tmdb": 1041926,
+        "tvdb": 5126775,
+        "trakt": 1753332
+      },
+      "title": "Bingo",
+      "number": 7,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt3032476",
+        "plex": {
+          "guid": "5d9c08254eefaa001f5d6dcb",
+          "slug": "better-call-saul"
+        },
+        "slug": "better-call-saul",
+        "tmdb": 60059,
+        "tvdb": 273181,
+        "trakt": 59660
+      },
+      "year": 2015,
+      "title": "Better Call Saul",
+      "aired_episodes": 63
+    }
+  },
+  {
+    "id": 10515060525,
+    "watched_at": "2025-02-07T23:04:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt7660884",
+        "plex": {
+          "guid": "5de83dd199d6fa001e4dd334"
+        },
+        "tmdb": 1487962,
+        "tvdb": 6681544,
+        "trakt": 2988009
+      },
+      "title": "Sh*t Show at the F**k Factory",
+      "number": 2,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt7660850",
+        "plex": {
+          "guid": "5d9c08ed46115600200ade5e",
+          "slug": "succession"
+        },
+        "slug": "succession",
+        "tmdb": 76331,
+        "tvdb": 338186,
+        "trakt": 125479
+      },
+      "year": 2018,
+      "title": "Succession",
+      "aired_episodes": 39
+    }
+  },
+  {
+    "id": 10515059708,
+    "watched_at": "2025-02-07T23:03:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt27033613",
+        "plex": {
+          "guid": "62a35be4d0b4bf52d8308a8c"
+        },
+        "tmdb": 3772012,
+        "tvdb": 9207267,
+        "trakt": 6449532
+      },
+      "title": "Mother and Children",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt21030032",
+        "plex": {
+          "guid": "62a3245d52758f8243740884",
+          "slug": "oshi-no-ko"
+        },
+        "slug": "oshi-no-ko",
+        "tmdb": 203737,
+        "tvdb": 421069,
+        "trakt": 196091
+      },
+      "year": 2023,
+      "title": "Oshi no Ko",
+      "aired_episodes": 35
+    }
+  },
+  {
+    "id": 10499896909,
+    "watched_at": "2025-02-03T13:23:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt30220959",
+        "plex": {
+          "guid": "65281ecd652e2431381cbf53"
+        },
+        "tmdb": 4810165,
+        "tvdb": 10086093,
+        "trakt": 10961628
+      },
+      "title": "It Would Be Embarrassing When We Met Again",
+      "number": 28,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22248376",
+        "plex": {
+          "guid": "631ccdfccbff4464978f9d53",
+          "slug": "frieren-beyond-journeys-end"
+        },
+        "slug": "frieren-beyond-journey-s-end",
+        "tmdb": 209867,
+        "tvdb": 424536,
+        "trakt": 198225
+      },
+      "year": 2023,
+      "title": "Frieren: Beyond Journey's End",
+      "aired_episodes": 38
+    }
+  },
+  {
+    "id": 9977152671,
+    "watched_at": "2024-09-11T07:43:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt0156887",
+        "plex": {
+          "guid": "5d77683585719b001f3a3b8c",
+          "slug": "perfect-blue"
+        },
+        "slug": "perfect-blue-1998",
+        "tmdb": 10494,
+        "trakt": 5677
+      },
+      "year": 1998,
+      "title": "Perfect Blue"
+    }
+  },
+  {
+    "id": 9977150712,
+    "watched_at": "2024-09-11T07:40:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt4978420",
+        "plex": {
+          "guid": "5d776becad5437001f7ae52b",
+          "slug": "borderlands"
+        },
+        "slug": "borderlands-2024",
+        "tmdb": 365177,
+        "trakt": 223432
+      },
+      "year": 2024,
+      "title": "Borderlands"
+    }
+  },
+  {
+    "id": 9976215698,
+    "watched_at": "2024-09-10T21:46:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt30220959",
+        "plex": {
+          "guid": "65281ecd652e2431381cbf53"
+        },
+        "tmdb": 4810165,
+        "tvdb": 10086093,
+        "trakt": 10961628
+      },
+      "title": "It Would Be Embarrassing When We Met Again",
+      "number": 28,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22248376",
+        "plex": {
+          "guid": "631ccdfccbff4464978f9d53",
+          "slug": "frieren-beyond-journeys-end"
+        },
+        "slug": "frieren-beyond-journey-s-end",
+        "tmdb": 209867,
+        "tvdb": 424536,
+        "trakt": 198225
+      },
+      "year": 2023,
+      "title": "Frieren: Beyond Journey's End",
+      "aired_episodes": 38
+    }
+  },
+  {
+    "id": 9976215671,
+    "watched_at": "2024-09-10T21:46:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt23861604",
+        "plex": {
+          "guid": "631ccdfdcbff4464978f9d56"
+        },
+        "tmdb": 3946240,
+        "tvdb": 9350138,
+        "trakt": 6706012
+      },
+      "title": "The Journey's End",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt22248376",
+        "plex": {
+          "guid": "631ccdfccbff4464978f9d53",
+          "slug": "frieren-beyond-journeys-end"
+        },
+        "slug": "frieren-beyond-journey-s-end",
+        "tmdb": 209867,
+        "tvdb": 424536,
+        "trakt": 198225
+      },
+      "year": 2023,
+      "title": "Frieren: Beyond Journey's End",
+      "aired_episodes": 38
+    }
+  },
+  {
+    "id": 9975256378,
+    "watched_at": "2024-09-10T13:52:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt0705904",
+        "plex": {
+          "guid": "5d9c13e3705e7a001e77089b"
+        },
+        "tmdb": 153599,
+        "tvdb": 179552,
+        "trakt": 166538
+      },
+      "title": "Cartman's Mom Is a Dirty Slut",
+      "number": 13,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0121955",
+        "plex": {
+          "guid": "5d9c08742192ba001f311a5d",
+          "slug": "south-park"
+        },
+        "slug": "south-park",
+        "tmdb": 2190,
+        "tvdb": 75897,
+        "trakt": 2177
+      },
+      "year": 1997,
+      "title": "South Park",
+      "aired_episodes": 331
+    }
+  },
+  {
+    "id": 9975256366,
+    "watched_at": "2024-09-10T13:52:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt0394893",
+        "plex": {
+          "guid": "5d9c13e33c3f87001f3d15ed"
+        },
+        "tmdb": 153587,
+        "tvdb": 179540,
+        "trakt": 166526
+      },
+      "title": "Cartman Gets an Anal Probe",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0121955",
+        "plex": {
+          "guid": "5d9c08742192ba001f311a5d",
+          "slug": "south-park"
+        },
+        "slug": "south-park",
+        "tmdb": 2190,
+        "tvdb": 75897,
+        "trakt": 2177
+      },
+      "year": 1997,
+      "title": "South Park",
+      "aired_episodes": 331
+    }
+  },
+  {
+    "id": 9975255234,
+    "watched_at": "2024-09-10T13:52:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt12037194",
+        "plex": {
+          "guid": "5f409c475a76a80042e6b3b6",
+          "slug": "furiosa-a-mad-max-saga"
+        },
+        "slug": "furiosa-a-mad-max-saga-2024",
+        "tmdb": 786892,
+        "trakt": 623532
+      },
+      "year": 2024,
+      "title": "Furiosa: A Mad Max Saga"
+    }
+  },
+  {
+    "id": 9975251423,
+    "watched_at": "2024-09-10T13:49:00.000Z",
+    "action": "watch",
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt15239678",
+        "plex": {
+          "guid": "5eb8f22237ccbe0041723253",
+          "slug": "dune-part-two"
+        },
+        "slug": "dune-part-two-2024",
+        "tmdb": 693134,
+        "trakt": 537449
+      },
+      "year": 2024,
+      "title": "Dune: Part Two"
+    }
+  },
+  {
+    "id": 9652248701,
+    "watched_at": "2024-04-13T11:35:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt0583459",
+        "plex": {
+          "guid": "5d9c12a2ffd9ef001ea02956"
+        },
+        "tmdb": 85987,
+        "tvdb": 303821,
+        "trakt": 97992
+      },
+      "title": "Pilot",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt0108778",
+        "plex": {
+          "guid": "5d9c086d2192ba001f3101c6",
+          "slug": "friends-1"
+        },
+        "slug": "friends",
+        "tmdb": 1668,
+        "tvdb": 79168,
+        "trakt": 1657
+      },
+      "year": 1994,
+      "title": "Friends",
+      "aired_episodes": 228
+    }
+  },
+  {
+    "id": 9644802190,
+    "watched_at": "2024-04-09T12:06:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt11609062",
+        "plex": {
+          "guid": "61b7c4786269de9c6f932eef"
+        },
+        "tmdb": 2416050,
+        "tvdb": 8485174,
+        "trakt": 4982215
+      },
+      "title": "Welcome to Margrave",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt9288030",
+        "plex": {
+          "guid": "5d9c09190aaccd001f8f42f0",
+          "slug": "reacher"
+        },
+        "slug": "reacher",
+        "tmdb": 108978,
+        "tvdb": 366924,
+        "trakt": 155536
+      },
+      "year": 2022,
+      "title": "Reacher",
+      "aired_episodes": 28
+    }
+  },
+  {
+    "id": 9643318387,
+    "watched_at": "2024-04-08T14:16:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt11609062",
+        "plex": {
+          "guid": "61b7c4786269de9c6f932eef"
+        },
+        "tmdb": 2416050,
+        "tvdb": 8485174,
+        "trakt": 4982215
+      },
+      "title": "Welcome to Margrave",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt9288030",
+        "plex": {
+          "guid": "5d9c09190aaccd001f8f42f0",
+          "slug": "reacher"
+        },
+        "slug": "reacher",
+        "tmdb": 108978,
+        "tvdb": 366924,
+        "trakt": 155536
+      },
+      "year": 2022,
+      "title": "Reacher",
+      "aired_episodes": 28
+    }
+  },
+  {
+    "id": 9515555422,
+    "watched_at": "2024-02-03T22:22:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt11609062",
+        "plex": {
+          "guid": "61b7c4786269de9c6f932eef"
+        },
+        "tmdb": 2416050,
+        "tvdb": 8485174,
+        "trakt": 4982215
+      },
+      "title": "Welcome to Margrave",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt9288030",
+        "plex": {
+          "guid": "5d9c09190aaccd001f8f42f0",
+          "slug": "reacher"
+        },
+        "slug": "reacher",
+        "tmdb": 108978,
+        "tvdb": 366924,
+        "trakt": 155536
+      },
+      "year": 2022,
+      "title": "Reacher",
+      "aired_episodes": 28
+    }
+  },
+  {
+    "id": 8971706687,
+    "watched_at": "2023-05-04T19:32:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt8100958",
+        "plex": {
+          "guid": "5e161372ae6f98001f3fe24e"
+        },
+        "tmdb": 1863442,
+        "tvdb": 7299052,
+        "trakt": 3641287
+      },
+      "title": "You Found Me",
+      "number": 8,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt1190634",
+        "plex": {
+          "guid": "5d9c08f246115600200ae0f6",
+          "slug": "the-boys"
+        },
+        "slug": "the-boys-2019",
+        "tmdb": 76479,
+        "tvdb": 355567,
+        "trakt": 139960
+      },
+      "year": 2019,
+      "title": "The Boys",
+      "aired_episodes": 40
+    }
+  },
+  {
+    "id": 8971706680,
+    "watched_at": "2023-05-04T19:32:00.000Z",
+    "action": "watch",
+    "type": "episode",
+    "episode": {
+      "ids": {
+        "imdb": "tt7775902",
+        "plex": {
+          "guid": "5e161373ae6f98001f3fe262"
+        },
+        "tmdb": 1705013,
+        "tvdb": 7140390,
+        "trakt": 3487886
+      },
+      "title": "The Name of the Game",
+      "number": 1,
+      "season": 1
+    },
+    "show": {
+      "ids": {
+        "imdb": "tt1190634",
+        "plex": {
+          "guid": "5d9c08f246115600200ae0f6",
+          "slug": "the-boys"
+        },
+        "slug": "the-boys-2019",
+        "tmdb": 76479,
+        "tvdb": 355567,
+        "trakt": 139960
+      },
+      "year": 2019,
+      "title": "The Boys",
+      "aired_episodes": 40
+    }
+  }
+]
