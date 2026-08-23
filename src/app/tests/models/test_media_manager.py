@@ -330,6 +330,15 @@ class MediaManagerTests(TestCase):
 
         self.assertTrue(hasattr(prefetched_queryset, "_prefetch_related_lookups"))
         prefetch_lookups = prefetched_queryset._prefetch_related_lookups
+        self.assertEqual(len(prefetch_lookups), 1)
+
+        prefetched_queryset = manager._apply_prefetch_related(
+            queryset,
+            MediaTypes.SEASON.value,
+            prefetch_events=True,
+        )
+
+        prefetch_lookups = prefetched_queryset._prefetch_related_lookups
         self.assertEqual(len(prefetch_lookups), 2)
 
         queryset = Movie.objects.filter(user=self.user.id)
@@ -339,6 +348,15 @@ class MediaManagerTests(TestCase):
         )
 
         self.assertTrue(hasattr(prefetched_queryset, "_prefetch_related_lookups"))
+        prefetch_lookups = prefetched_queryset._prefetch_related_lookups
+        self.assertEqual(len(prefetch_lookups), 0)
+
+        prefetched_queryset = manager._apply_prefetch_related(
+            queryset,
+            MediaTypes.MOVIE.value,
+            prefetch_events=True,
+        )
+
         prefetch_lookups = prefetched_queryset._prefetch_related_lookups
         self.assertEqual(len(prefetch_lookups), 1)
 
@@ -353,14 +371,24 @@ class MediaManagerTests(TestCase):
             sort_filter="score",
         )
 
-        tv_list = list(tv_list)
+        tv = tv_list[0]
+
+        with self.assertNumQueries(0):
+            self.assertEqual(tv.progress, 3)
+
+        tv_queryset = TV.objects.filter(user=self.user.id)
+        tv_queryset = manager._apply_prefetch_related(
+            tv_queryset,
+            MediaTypes.TV.value,
+        )
+        tv_list = list(tv_queryset)
 
         for tv in tv_list:
             seasons = list(tv.seasons.all())
             for season in seasons:
                 list(season.episodes.all())
 
-        with self.assertNumQueries(0):  # No additional queries should be made
+        with self.assertNumQueries(0):
             for tv in tv_list:
                 seasons = list(tv.seasons.all())
                 for season in seasons:

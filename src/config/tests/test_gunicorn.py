@@ -1,3 +1,4 @@
+import importlib
 import sys
 from unittest import mock, skipIf
 
@@ -7,10 +8,35 @@ from django.test import SimpleTestCase
 if sys.platform != "win32":
     from gunicorn.app.wsgiapp import run
 
+DEFAULT_WORKERS = 2
+CUSTOM_WORKERS = 4
+
 
 @skipIf(sys.platform == "win32", "gunicorn is not fully supported on Windows")
 class GunicornConfigTests(SimpleTestCase):
     """Test Gunicorn configuration."""
+
+    def test_workers_default_to_two(self):
+        """Test that Gunicorn starts multiple workers by default."""
+        from config import gunicorn
+
+        with mock.patch.dict("os.environ", {}, clear=True):
+            importlib.reload(gunicorn)
+
+            self.assertEqual(gunicorn.workers, DEFAULT_WORKERS)
+
+        importlib.reload(gunicorn)
+
+    def test_workers_use_web_concurrency(self):
+        """Test that WEB_CONCURRENCY controls the worker count."""
+        from config import gunicorn
+
+        with mock.patch.dict("os.environ", {"WEB_CONCURRENCY": str(CUSTOM_WORKERS)}):
+            importlib.reload(gunicorn)
+
+            self.assertEqual(gunicorn.workers, CUSTOM_WORKERS)
+
+        importlib.reload(gunicorn)
 
     def test_config(self):
         """Test that the Gunicorn configuration file is valid."""

@@ -15,6 +15,8 @@ from django.urls import include, path
 from health_check.views import HealthCheckView
 from redis.asyncio import Redis as RedisClient
 
+from config.views import health_check
+
 urlpatterns = [
     path("", include("app.urls")),
     path("", include("integrations.urls")),
@@ -22,8 +24,9 @@ urlpatterns = [
     path("", include("lists.urls")),
     path("", include("events.urls")),
     path("select2/", include("django_select2.urls")),
+    path("health/", login_not_required(health_check), name="health"),
     path(
-        "health/",
+        "health/full/",
         login_not_required(
             HealthCheckView.as_view(
                 checks=[
@@ -41,6 +44,7 @@ urlpatterns = [
                 ]
             )
         ),
+        name="health_full",
     ),
 ]
 
