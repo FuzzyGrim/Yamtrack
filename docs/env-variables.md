@@ -53,27 +53,6 @@ See [media-imports](media-imports.md).
 | `SOCIALACCOUNT_ONLY`            | Default to `False`. Set to `True` to disable local authentication when using social authentication only.                                                              |
 | `REDIRECT_LOGIN_TO_SSO`         | Default to `False`. Set to `True` to automatically redirect (using JavaScript) to the SSO provider when there's only one available. Useful for single sign-on setups. |
 | `YAMTRACK_AUTO_LOGIN_USERNAME`  | Default to `None`, which disables this feature. Specify a username to automatically login with the selected user. The user needs to be existing and active.           |
-| `YAMTRACK_INTERNAL_PORT`                 | ADVANCED. Port nginx listens on inside the container. Default to `8000`. Useful when the default port is unavailable or the container shares a network namespace with another service (e.g. `network_mode: service:gluetun`). See example below.                                     |
-
-### Example: sharing a network namespace (e.g. gluetun)
-
-When a container joins another service's network namespace via `network_mode: service:<name>`, it can no longer publish its own `ports:` — it must instead use a port that's free inside that namespace. Set `YAMTRACK_INTERNAL_PORT` to change what nginx listens on internally:
-
-```yaml
-services:
-  yamtrack:
-    image: ghcr.io/fuzzygrim/yamtrack
-    environment:
-      ...
-      - YAMTRACK_INTERNAL_PORT=9117
-    network_mode: service:gluetun
-    depends_on:
-      - gluetun
-  # ports for yamtrack are published on the gluetun service instead, e.g.:
-  # gluetun:
-  #   ports:
-  #     - "9117:9117"
-```
 
 ## Celery Health Check
 
@@ -93,7 +72,7 @@ services:
 
 **Note:** Check the example `docker-compose.postgres.yml` in the root directory of the repo for a PostgreSQL configuration example.
 
-**Connecting via a local Unix socket:** set `DB_HOST` to an empty string (e.g. `DB_HOST=`). Yamtrack only falls back to SQLite when `DB_HOST` is omitted and not present in the environment at all; an empty value is treated as "use PostgreSQL" and is passed through to `psycopg`, which interprets an empty host as "connect via the local Unix socket". `DB_PORT`, `DB_USER`, and `DB_PASSWORD` can likewise be left empty or omitted in this setup — only `DB_NAME` must be set.
+**Connecting via a local Unix socket:** set `DB_HOST` to an empty string (e.g. `DB_HOST=`). Yamtrack only falls back to SQLite when `DB_HOST` is omitted and not present in the environment at all; when `DB_HOST` is present but empty, it connects via the local Unix socket by default. `DB_PORT`, `DB_USER`, and `DB_PASSWORD` can likewise be left empty or omitted in this setup — only `DB_NAME` must be set.
 
 ### External PostgreSQL database with SSL (YamTrack Container)
 
