@@ -14,6 +14,7 @@ from integrations.imports import (
     hltb,
     imdb,
     kitsu,
+    letterboxd,
     mal,
     simkl,
     steam,
@@ -52,14 +53,7 @@ def format_import_message(imported_counts, warning_messages=None):
     return info_message
 
 
-def import_media(
-    importer_func,
-    identifier,
-    user_id,
-    mode,
-    oauth_username=None,
-    **kwargs,
-):
+def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
     """Handle the import process for different media services."""
     user = get_user_model().objects.get(id=user_id)
 
@@ -69,7 +63,6 @@ def import_media(
                 identifier,
                 user,
                 mode,
-                **kwargs,
             )
         else:
             imported_counts, warnings = importer_func(
@@ -77,7 +70,6 @@ def import_media(
                 user,
                 mode,
                 username=oauth_username,
-                **kwargs,
             )
 
     events.tasks.reload_calendar.delay()
@@ -86,19 +78,12 @@ def import_media(
 
 
 @shared_task(name="Import from Trakt")
-def import_trakt(user_id, mode, token=None, username=None, redirect_uri=None):
+def import_trakt(user_id, mode, token=None, username=None):
     """Celery task for importing media data from Trakt.
 
     Can import using either OAuth (token provided) or public username.
     """
-    return import_media(
-        trakt.importer,
-        token,
-        user_id,
-        mode,
-        username,
-        redirect_uri=redirect_uri,
-    )
+    return import_media(trakt.importer, token, user_id, mode, username)
 
 
 @shared_task(name="Import from SIMKL")
@@ -147,6 +132,18 @@ def import_steam(username, user_id, mode):
 def import_imdb(file, user_id, mode):
     """Celery task for importing media data from IMDB."""
     return import_media(imdb.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from Letterboxd CSV")
+def import_letterboxd_csv(file, user_id, mode):
+    """Celery task for importing media data from a Letterboxd CSV dump."""
+    return import_media(letterboxd.importer_csv, file, user_id, mode)
+
+
+@shared_task(name="Import from Letterboxd RSS")
+def import_letterboxd_rss(username, user_id, mode):
+    """Celery task for importing media data from a Letterboxd RSS feed."""
+    return import_media(letterboxd.importer_rss, username, user_id, mode)
 
 
 @shared_task(name="Import from GoodReads")

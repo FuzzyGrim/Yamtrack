@@ -29,6 +29,7 @@ dependencies = [
   "django-widget-tweaks~=1.5.1",
   "gunicorn~=26.0.0",
   "icalendar~=7.2.2",
+  "pandas>=3.0.5",
   "pillow~=12.3.0",
   "psycopg[binary,pool]~=3.3.4",
   "python-decouple~=3.8",

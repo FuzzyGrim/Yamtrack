@@ -50,6 +50,34 @@ def get_existing_media(user):
     return existing
 
 
+def get_existing_media_with_duplicates(user):
+    """Get all existing media for the user, including duplicate media IDs."""
+    excluded_types = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
+    valid_types = [value for value in MediaTypes.values if value not in excluded_types]
+
+    existing = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+
+    for media_type in valid_types:
+        media_model = apps.get_model(app_label="app", model_name=media_type)
+
+        for media in media_model.objects.filter(user=user).select_related("item"):
+            existing[media_type][media.item.source][media.item.media_id].append(media)
+
+    counts = [
+        f"{media_type}: {sum(len(media) for media in source_dict.values())}"
+        for media_type, media_dict in existing.items()
+        for source_dict in media_dict.values()
+    ]
+
+    logger.debug(
+        "Existing media for user %s: %s",
+        user.username,
+        ", ".join(counts),
+    )
+
+    return existing
+
+
 def should_process_media(existing_media, to_delete, media_type, source, media_id, mode):
     """Determine if a media item should be processed based on mode."""
     exists = media_id in existing_media[media_type][source]

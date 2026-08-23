@@ -665,6 +665,8 @@ class User(AbstractUser):
             "hltb": "Import from HowLongToBeat",
             "steam": "Import from Steam",
             "imdb": "Import from IMDB",
+            "letterboxd_rss": "Import from Letterboxd RSS",
+            "letterboxd_csv": "Import from Letterboxd CSV",
             "goodreads": "Import from GoodReads",
         }
 
