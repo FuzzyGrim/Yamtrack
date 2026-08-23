@@ -1431,6 +1431,7 @@ class Season(Media):
             elif (
                 self.status == Status.DROPPED.value
                 and self.related_tv.status != Status.DROPPED.value
+                and self.item.season_number != 0
             ):
                 self.related_tv.status = Status.DROPPED.value
                 bulk_update_with_history(
