@@ -110,9 +110,21 @@
           <div class="relative inline-flex shadow-sm rounded-md"
                @click.outside="dropdownOpen = false">
 
+            {# Rewatch Button #}
+            <button type="submit"
+                    name="action"
+                    value="rewatch"
+                    class="px-2 py-2 border-dashed border-r border-indigo-500 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-md transition duration-300 cursor-pointer font-medium"
+                    title="Start rewatching from this episode"
+                    alt>
+                      {% include "app/icons/states/rewatching.svg" with classes="w-5 h-5" %}
+            </button>
+
             {# Main Button #}
             <button type="submit"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-md transition duration-300 cursor-pointer font-medium"
+                    name="action"
+                    value="watch"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white transition duration-300 cursor-pointer font-medium"
                     title="Add watched entry with current settings">Add watch</button>
 
             {# Dropdown Toggle #}

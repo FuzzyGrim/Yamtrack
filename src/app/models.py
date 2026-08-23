@@ -229,7 +229,11 @@ class MediaManager(models.Manager):
         queryset = model.objects.filter(user=user.id)
 
         if status_filter != users.models.MediaStatusChoices.ALL:
-            queryset = queryset.filter(status=status_filter)
+            if status_filter == Status.IN_PROGRESS.value:
+                statuses = [status_filter, Status.REWATCHING.value]
+            else:
+                statuses = [status_filter]
+            queryset = queryset.filter(status__in=statuses)
 
         if search:
             search_filter = Q(item__title__icontains=search)
@@ -776,6 +780,7 @@ class Status(models.TextChoices):
     PLANNING = "Planning", "Planning"
     PAUSED = "Paused", "Paused"
     DROPPED = "Dropped", "Dropped"
+    REWATCHING = "Rewatching", "Rewatching"
 
 
 class UserMessageLevel(models.TextChoices):
@@ -998,6 +1003,12 @@ class TV(Media):
             ):
                 self._start_next_available_season()
 
+            elif (
+                self.status == Status.REWATCHING.value
+                and not self.seasons.filter(status=Status.REWATCHING.value).exists()
+            ):
+                self._advance_rewatch()
+
             self.item.fetch_releases(delay=True)
 
     @property
@@ -1180,16 +1191,18 @@ class TV(Media):
 
     def _mark_in_progress_seasons_as_dropped(self):
         """Mark all in-progress seasons as dropped."""
-        in_progress_seasons = list(
-            self.seasons.filter(status=Status.IN_PROGRESS.value),
+        active_seasons = list(
+            self.seasons.filter(
+                status__in=[Status.IN_PROGRESS.value, Status.REWATCHING.value],
+            ),
         )
 
-        for season in in_progress_seasons:
+        for season in active_seasons:
             season.status = Status.DROPPED.value
 
-        if in_progress_seasons:
+        if active_seasons:
             bulk_update_with_history(
-                in_progress_seasons,
+                active_seasons,
                 Season,
                 fields=["status"],
             )
@@ -1288,14 +1301,121 @@ class TV(Media):
 
         return season_started
 
+    def _advance_rewatch(
+        self,
+        min_season_number=0,
+    ):
+        """Find the next available season to watch and set it to in-progress."""
+        min_season_number = int(min_season_number or 0)
+        current_date = timezone.localdate()
+        existing_seasons = {
+            season.item.season_number: season
+            for season in self.seasons.filter(
+                item__season_number__gt=min_season_number,
+            ).order_by("item__season_number")
+        }
+        tv_metadata = providers.services.get_media_metadata(
+            self.item.media_type,
+            self.item.media_id,
+            self.item.source,
+        )
+        related_seasons = tv_metadata.get("related", {}).get("seasons", [])
+
+        for season_data in related_seasons:
+            season_number = season_data["season_number"]
+            if season_number <= min_season_number:
+                continue
+
+            if not app.helpers.is_released_date(
+                season_data.get("first_air_date"),
+                current_date,
+            ):
+                continue
+
+            existing_season = existing_seasons.get(season_number)
+            has_prior_history = (
+                existing_season is not None and existing_season.episodes.exists()
+            )
+
+            if has_prior_history:
+                if existing_season.status != Status.REWATCHING.value:
+                    existing_season.status = Status.REWATCHING.value
+                    existing_season.rewatch_started_at = timezone.now()
+                    bulk_update_with_history(
+                        [existing_season],
+                        Season,
+                        fields=["status", "rewatch_started_at"],
+                    )
+                if self.status != Status.REWATCHING.value:
+                    self.status = Status.REWATCHING.value
+                    bulk_update_with_history(
+                        [self],
+                        TV,
+                        fields=["status"],
+                    )
+                self.create_user_message(
+                    f"Season {season_number} was marked as rewatching automatically.",
+                    level=UserMessageLevel.INFO,
+                )
+                return True
+
+            if existing_season is None:
+                item, _ = Item.objects.get_or_create(
+                    media_id=self.item.media_id,
+                    source=self.item.source,
+                    media_type=MediaTypes.SEASON.value,
+                    season_number=season_number,
+                    defaults={
+                        "title": self.item.title,
+                        "image": season_data["image"],
+                    },
+                )
+
+                new_season = Season(
+                    item=item,
+                    user=self.user,
+                    related_tv=self,
+                    status=Status.IN_PROGRESS.value,
+                )
+                bulk_create_with_history([new_season], Season)
+            else:
+                existing_season.status = Status.IN_PROGRESS.value
+                bulk_update_with_history(
+                    [existing_season],
+                    Season,
+                    fields=["status"],
+                )
+
+            if self.status != Status.IN_PROGRESS.value:
+                self.status = Status.IN_PROGRESS.value
+                bulk_update_with_history(
+                    [self],
+                    TV,
+                    fields=["status"],
+                )
+
+            self.create_user_message(
+                f"Season {season_number} was marked as in progress automatically.",
+                level=UserMessageLevel.INFO,
+            )
+
+            return True
+
+        return False
+
     def _handle_completed_season(
         self,
         completed_season_number,
+        *,
+        was_rewatch=False,
     ):
         """Start the next season, or complete the TV show if no seasons remain."""
-        if self._start_next_available_season(
-            completed_season_number,
-        ):
+        if was_rewatch:
+            advanced = self._advance_rewatch(completed_season_number)
+        else:
+            advanced = self._start_next_available_season(completed_season_number)
+
+        if advanced:
             return
 
         incomplete_seasons_exist = (
@@ -1343,6 +1463,8 @@ class Season(Media):
         related_name="seasons",
     )
 
+    rewatch_started_at = models.DateTimeField(null=True, blank=True)
+
     tracker = FieldTracker()
 
     class Meta:
@@ -1363,7 +1485,7 @@ class Season(Media):
         return f"{self.item.title} S{self.item.season_number}"
 
     @tracker  # postpone field reset until after the save
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):  # noqa: C901
         """Save the media instance."""
         # if related_tv is not set
         if self.related_tv_id is None:
@@ -1428,6 +1550,21 @@ class Season(Media):
                             fields=["status"],
                         )
 
+            elif self.status == Status.REWATCHING.value:
+                self.rewatch_started_at = timezone.now()
+                bulk_update_with_history(
+                    [self],
+                    Season,
+                    fields=["rewatch_started_at"],
+                )
+                if self.related_tv.status != Status.REWATCHING.value:
+                    self.related_tv.status = Status.REWATCHING.value
+                    bulk_update_with_history(
+                        [self.related_tv],
+                        TV,
+                        fields=["status"],
+                    )
+
             elif (
                 self.status == Status.DROPPED.value
                 and self.related_tv.status != Status.DROPPED.value
@@ -1457,7 +1594,11 @@ class Season(Media):
         if self.pk is None:
             return 0
 
-        latest_watched_ep_num = Episode.objects.filter(related_season=self).aggregate(
+        episodes = Episode.objects.filter(related_season=self)
+        if self.rewatch_started_at:
+            episodes = episodes.filter(created_at__gte=self.rewatch_started_at)
+
+        latest_watched_ep_num = episodes.aggregate(
             latest_watched_ep_num=Max("item__episode_number"),
         )["latest_watched_ep_num"]
 
@@ -1495,6 +1636,9 @@ class Season(Media):
     def progress(self):
         """Return the current episode number of the season."""
         episodes = self.episodes.all()
+        if self.rewatch_started_at:
+            episodes = [e for e in episodes if e.created_at >= self.rewatch_started_at]
+
         if not episodes:
             return 0
 
@@ -1573,6 +1717,26 @@ class Season(Media):
             self.watch(next_episode_number, now)
         else:
             logger.info("No more episodes to watch.")
+
+    def rewatch(self, episode_number, end_date):
+        """Create or add a repeat to an episode of the season."""
+        self.rewatch_started_at = timezone.now()
+        self.status = Status.REWATCHING.value
+        bulk_update_with_history(
+            [self],
+            Season,
+            fields=["status", "rewatch_started_at"],
+        )
+
+        if self.related_tv != Status.REWATCHING.value:
+            self.related_tv.status = Status.REWATCHING.value
+            bulk_update_with_history(
+                [self.related_tv],
+                TV,
+                fields=["status"],
+            )
+
+        self.watch(episode_number, end_date)
 
     def watch(self, episode_number, end_date):
         """Create or add a repeat to an episode of the season."""
@@ -1799,6 +1963,8 @@ class Episode(models.Model):
 
         is_finale = self.item.episode_number == max_progress
         season_just_completed = False
+        was_rewatch = self.related_season.status == Status.REWATCHING.value
+
         if is_finale:
             if self.related_season.status != Status.COMPLETED.value:
                 self.related_season.status = Status.COMPLETED.value
@@ -1813,7 +1979,10 @@ class Episode(models.Model):
                     level=UserMessageLevel.SUCCESS,
                 )
 
-        elif self.related_season.status != Status.IN_PROGRESS.value:
+        elif self.related_season.status not in (
+            Status.IN_PROGRESS.value,
+            Status.REWATCHING.value,
+        ):
             self.related_season.status = Status.IN_PROGRESS.value
             bulk_update_with_history(
                 [self.related_season],
@@ -1822,7 +1991,10 @@ class Episode(models.Model):
             )
 
         if season_just_completed:
-            self.related_season.related_tv._handle_completed_season(season_number)
+            self.related_season.related_tv._handle_completed_season(
+                season_number,
+                was_rewatch=was_rewatch,
+            )
         elif (
             not is_finale
             and self.related_season.related_tv.status != Status.IN_PROGRESS.value
