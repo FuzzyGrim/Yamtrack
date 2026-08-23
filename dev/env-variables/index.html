@@ -961,6 +961,14 @@
 <td><code>DB_PASSWORD</code></td>
 <td>The password for the specified user.</td>
 </tr>
+<tr>
+<td><code>DB_POOL_MIN_SIZE</code></td>
+<td>Default to <code>1</code>. Minimum number of connections each process keeps open in its connection pool.</td>
+</tr>
+<tr>
+<td><code>DB_POOL_MAX_SIZE</code></td>
+<td>Default to <code>4</code>. Maximum number of connections each process can open in its connection pool.</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Note:</strong> Check the example <code>docker-compose.postgres.yml</code> in the root directory of the repo for a PostgreSQL configuration example.</p>
