@@ -10,6 +10,7 @@ urlpatterns = [
         name="import_trakt_private",
     ),
     path("import/trakt/public", views.import_trakt_public, name="import_trakt_public"),
+    path("import/trakt/export", views.import_trakt_export, name="import_trakt_export"),
     path("import/simkl-oauth", views.simkl_oauth, name="simkl_oauth"),
     path(
         "import/simkl_private",
