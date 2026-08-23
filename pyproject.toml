@@ -1,6 +1,6 @@
 [project]
 name = "yamtrack"
-version = "0.26.2"
+version = "0.26.3"
 description = "A self hosted media tracker."
 readme = "README.md"
 requires-python = ">=3.12"
