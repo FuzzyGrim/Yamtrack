@@ -62,13 +62,15 @@ See [media-imports](media-imports.md).
 
 ## PostgreSQL Environment Variables (YamTrack Container)
 
-| Name          | Notes                                                                                                    |
-| ------------- | -------------------------------------------------------------------------------------------------------- |
-| `DB_HOST`     | The hostname or IP address of the PostgreSQL server. If not set, SQLite is used as the default database. |
-| `DB_PORT`     | The port number on which the PostgreSQL server is listening.                                             |
-| `DB_NAME`     | The name of the database to connect to.                                                                  |
-| `DB_USER`     | The username used to authenticate with the PostgreSQL server.                                            |
-| `DB_PASSWORD` | The password for the specified user.                                                                     |
+| Name               | Notes                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| `DB_HOST`          | The hostname or IP address of the PostgreSQL server. If not set, SQLite is used as the default database. |
+| `DB_PORT`          | The port number on which the PostgreSQL server is listening.                                             |
+| `DB_NAME`          | The name of the database to connect to.                                                                  |
+| `DB_USER`          | The username used to authenticate with the PostgreSQL server.                                            |
+| `DB_PASSWORD`      | The password for the specified user.                                                                     |
+| `DB_POOL_MIN_SIZE` | Default to `1`. Minimum number of connections each process keeps open in its connection pool.            |
+| `DB_POOL_MAX_SIZE` | Default to `4`. Maximum number of connections each process can open in its connection pool.              |
 
 **Note:** Check the example `docker-compose.postgres.yml` in the root directory of the repo for a PostgreSQL configuration example.
 
