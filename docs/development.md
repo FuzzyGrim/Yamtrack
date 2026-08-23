@@ -99,7 +99,7 @@ Run Tailwind in another terminal:
 
 ```bash
 cd src
-tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
+tailwindcss -i ./static/css/input.css -o ./static/css/main.css --watch
 ```
 
 Open the development server at:
