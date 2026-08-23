@@ -657,6 +657,7 @@ class User(AbstractUser):
         """Return import tasks history and schedules for the user."""
         import_tasks = {
             "trakt": "Import from Trakt",
+            "wutch": "Import from Wutch",
             "simkl": "Import from SIMKL",
             "myanimelist": "Import from MyAnimeList",
             "anilist": "Import from AniList",

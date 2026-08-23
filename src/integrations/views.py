@@ -19,7 +19,7 @@ from django.views.decorators.http import require_GET, require_POST
 import users
 from app import helpers as app_helpers
 from integrations import exports, tasks
-from integrations.imports import anilist, helpers, simkl, trakt
+from integrations.imports import anilist, helpers, simkl, trakt, wutch
 from integrations.webhooks import emby, jellyfin, plex
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,37 @@ def import_trakt_public(request):
             frequency=frequency,
             import_time=import_time,
             source="Trakt",
+        )
+    return redirect("import_data")
+
+
+@require_POST
+def import_wutch(request):
+    """View for importing Wutch data using public username."""
+    username = request.POST.get("user")
+    if not username:
+        messages.error(request, "Wutch username is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+    import_time = request.POST["time"]
+
+    if frequency == "once":
+        tasks.import_wutch.delay(
+            user_id=request.user.id,
+            mode=mode,
+            username=username,
+        )
+        messages.info(request, "The task to import media from Wutch has been queued.")
+    else:
+        helpers.create_import_schedule(
+            username=username,
+            request=request,
+            mode=mode,
+            frequency=frequency,
+            import_time=import_time,
+            source="Wutch",
         )
     return redirect("import_data")
 

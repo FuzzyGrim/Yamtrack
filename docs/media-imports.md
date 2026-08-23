@@ -32,6 +32,15 @@ For private Trakt profiles, you'll need to set up OAuth authentication:
 
 ---
 
+## Wutch
+
+1. Create a Wutch application at [Wutch API Keys](https://wutch.tv/settings?tab=integrations)
+2. Configure the following environment variables:
+
+| Environment Variable | Description              |
+| -------------------- | ------------------------ |
+| `WUTCH_API`          | Your Wutch API Key     |
+
 ## Simkl
 
 Create a SIMKL application: <https://simkl.com/settings/developer/new/custom-search/>

@@ -465,6 +465,11 @@ TRAKT_API_SECRET = config(
     ),
 )
 
+WUTCH_API = config(
+    "WUTCH_API",
+    default="",
+)
+
 ANILIST_ID = config(
     "ANILIST_ID",
     default=secret(

@@ -18,6 +18,7 @@ from integrations.imports import (
     simkl,
     steam,
     trakt,
+    wutch,
     yamtrack,
 )
 
@@ -105,6 +106,12 @@ def import_trakt(user_id, mode, token=None, username=None, redirect_uri=None):
 def import_simkl(token, user_id, mode, username=None):  # noqa: ARG001
     """Celery task for importing media data from SIMKL."""
     return import_media(simkl.importer, token, user_id, mode)
+
+
+@shared_task(name="Import from Wutch")
+def import_wutch(username, user_id, mode):
+    """Celery task for importing media data from Wutch."""
+    return import_media(wutch.importer, username, user_id, mode)
 
 
 @shared_task(name="Import from MyAnimeList")
