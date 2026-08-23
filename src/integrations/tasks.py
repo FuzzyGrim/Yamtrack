@@ -2,6 +2,7 @@ import logging
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
 
 import events
 from app.mixins import disable_fetch_releases
@@ -22,7 +23,7 @@ from integrations.imports import (
 )
 
 logger = logging.getLogger(__name__)
-ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
+ERROR_TITLE = _("\n\n\n Couldn't import the following media: \n\n")
 
 
 def format_media_type_display(count, media_type):
@@ -43,9 +44,11 @@ def format_import_message(imported_counts, warning_messages=None):
     parts = [p for p in parts if p is not None]
 
     if not parts:
-        info_message = "No media was imported."
+        info_message = _("No media was imported.")
     else:
-        info_message = f"Imported {helpers.join_with_commas_and(parts)}."
+        info_message = _("Imported %(media_list)s.") % {
+            "media_list": helpers.join_with_commas_and(parts)
+        }
 
     if warning_messages:
         return f"{info_message} {ERROR_TITLE} {warning_messages}"

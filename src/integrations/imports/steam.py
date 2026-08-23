@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import requests
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -41,7 +42,7 @@ class SteamImporter:
         self.api_key = settings.STEAM_API_KEY
 
         if not self.api_key:
-            msg = "Steam API key not configured in environment variables"
+            msg = _("Steam API key not configured in environment variables")
             raise MediaImportError(msg)
 
         self.existing_media = helpers.get_existing_media(user)
@@ -109,14 +110,14 @@ class SteamImporter:
                 response = services.api_request("STEAM", "GET", url, params=params)
 
                 if "response" not in response:
-                    msg = "Invalid response from Steam API"
+                    msg = _("Invalid response from Steam API")
                     raise MediaImportError(msg)
 
                 if "games" not in response["response"]:
                     # User might have private profile or no games
                     logger.warning(
-                        "No games found in Steam response for user %s",
-                        self.steam_id,
+                        _("No games found in Steam response for user %(steam_id)s"),
+                        {"steam_id": self.steam_id},
                     )
                     return []
 
@@ -141,21 +142,23 @@ class SteamImporter:
                         )
                         time.sleep(delay)
                         continue
-                    msg = "Steam API rate limit exceeded. Please try again later."
+                    msg = _("Steam API rate limit exceeded. Please try again later.")
                     raise MediaImportError(msg) from e
                 if e.response.status_code == requests.codes.forbidden:
-                    msg = "Steam profile is private or invalid"
+                    msg = _("Steam profile is private or invalid")
                     raise MediaImportError(msg) from e
                 if e.response.status_code == requests.codes.bad_request:
-                    msg = "Bad request to Steam API. Please check the Steam ID."
+                    msg = _("Bad request to Steam API. Please check the Steam ID.")
                     raise MediaImportError(msg) from e
                 if e.response.status_code == requests.codes.unauthorized:
-                    msg = "Invalid Steam API key"
+                    msg = _("Invalid Steam API key")
                     raise MediaImportError(msg) from e
-                msg = f"Steam API error: {e.response.status_code}"
+                msg = _("Steam API error: %(status_code)s") % {
+                    "status_code": e.response.status_code
+                }
                 raise MediaImportError(msg) from e
 
-        msg = "Steam API request failed after all retries"
+        msg = _("Steam API request failed after all retries")
         raise MediaImportUnexpectedError(msg)
 
     def _process_game(self, game_data):
@@ -177,7 +180,8 @@ class SteamImporter:
                     appid,
                 )
                 self.warnings.append(
-                    f"{name} ({appid}): Couldn't find a match in {Sources.IGDB.label}",
+                    _("%(name)s (%(appid)s): Couldn't find a match in %(source)s")
+                    % {"name": name, "appid": appid, "source": Sources.IGDB.label}
                 )
                 return
 
@@ -205,7 +209,7 @@ class SteamImporter:
                 return
 
             # Use IGDB data if found
-            item, _ = app.models.Item.objects.get_or_create(
+            item, _created = app.models.Item.objects.get_or_create(
                 media_id=str(igdb_game["media_id"]),
                 source=Sources.IGDB.value,
                 media_type=MediaTypes.GAME.value,
@@ -246,12 +250,16 @@ class SteamImporter:
                 e,
             )
             self.warnings.append(
-                f"{name} ({appid}): Couldn't find a match in {Sources.IGDB.label}"
+                _("Couldn't find a match in %(source)s")
+                % {"source": Sources.IGDB.label}
             )
 
         except (ValueError, KeyError, TypeError) as e:
             logger.warning("Failed to process Steam game %s (%s): %s", name, appid, e)
-            self.warnings.append(f"{name} ({appid}): {e!s}")
+            self.warnings.append(
+                _("Failed to process Steam game %(name)s (%(appid)s): %(error)s")
+                % {"name": name, "appid": appid, "error": e}
+            )
 
     def _queue_existing_game_update(self, game, playtime_forever, playtime_2weeks):
         """Queue updates for an existing game when Steam overwrite is used."""

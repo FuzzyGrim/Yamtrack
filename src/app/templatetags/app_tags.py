@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.dateparse import parse_date
 from django.utils.html import format_html
+from django.utils.translation import npgettext
 from unidecode import unidecode
 
 from app import config, helpers
@@ -141,13 +142,48 @@ def media_type_readable(media_type):
 @register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
-    singular = MediaTypes(media_type).label
+    # Keep literal strings inside npgettext so makemessages can extract them.
+    plural_translators = {
+        MediaTypes.TV.value: lambda: npgettext(
+            "media type plural label", "TV Show", "TV Shows", 2
+        ),
+        MediaTypes.SEASON.value: lambda: npgettext(
+            "media type plural label", "TV Season", "TV Seasons", 2
+        ),
+        MediaTypes.EPISODE.value: lambda: npgettext(
+            "media type plural label", "Episode", "Episodes", 2
+        ),
+        MediaTypes.MOVIE.value: lambda: npgettext(
+            "media type plural label", "Movie", "Movies", 2
+        ),
+        MediaTypes.ANIME.value: lambda: npgettext(
+            "media type plural label", "Anime", "Anime", 2
+        ),
+        MediaTypes.MANGA.value: lambda: npgettext(
+            "media type plural label", "Manga", "Manga", 2
+        ),
+        MediaTypes.GAME.value: lambda: npgettext(
+            "media type plural label", "Game", "Games", 2
+        ),
+        MediaTypes.BOOK.value: lambda: npgettext(
+            "media type plural label", "Book", "Books", 2
+        ),
+        MediaTypes.COMIC.value: lambda: npgettext(
+            "media type plural label", "Comic", "Comics", 2
+        ),
+        MediaTypes.BOARDGAME.value: lambda: npgettext(
+            "media type plural label", "Boardgame", "Boardgames", 2
+        ),
+    }
 
-    # Special cases that don't change in plural form
-    if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
-        return singular
+    translator = plural_translators.get(media_type)
+    if translator is None:
+        singular = MediaTypes(media_type).label
+        readable = f"{singular}s"
+    else:
+        readable = translator()
 
-    return f"{singular}s"
+    return readable
 
 
 @register.filter

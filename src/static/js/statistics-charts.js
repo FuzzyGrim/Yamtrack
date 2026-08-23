@@ -32,9 +32,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (chart.canvas.id === "scoreStackedChart") {
         const score = parseInt(title);
         if (score === 10) {
-          formattedTitle = `Score: 10`;
+          formattedTitle = `${gettext("Score")}: 10`;
         } else {
-          formattedTitle = `Score: ${score}.0-${score}.9`;
+          formattedTitle = `${gettext("Score")}: ${score}.0-${score}.9`;
         }
       }
 
@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Add total row
       tableBody +=
         '<tr class="total-row">' +
-        "<td>Total:</td>" +
+        `<td>${gettext("Total")}: </td>` +
         '<td style="text-align:right;font-weight:bold;">' +
         stackTotal +
         "</td>" +
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Create tooltip content
       let tooltipContent = `
         <div class="pie-label">${label}</div>
-        <div class="pie-value">Count: ${value}</div>
+        <div class="pie-value">${gettext("Count")}: ${value}</div>
         <div class="pie-percent">${percentage}%</div>
       `;
 
@@ -336,23 +336,22 @@ document.addEventListener("DOMContentLoaded", function () {
     // Add score-specific configurations
     scoreChartOptions.scales.x.title = {
       display: true,
-      text: "Score",
+      text: gettext("Score"),
       color: "#D1D5DB",
       padding: { top: 10, bottom: 0 },
     };
 
     scoreChartOptions.scales.y.title = {
       display: true,
-      text: "Number of Items",
+      text: gettext("Number of Items"),
       color: "#D1D5DB",
       padding: { top: 0, left: 10 },
     };
 
+    const itemsText = tn("item", "items", scoreData.total_scored);
     scoreChartOptions.plugins.title = {
       display: true,
-      text: `Average Score: ${scoreData.average_score} (${
-        scoreData.total_scored
-      } ${scoreData.total_scored === 1 ? "item" : "items"})`,
+      text: `${gettext("Average Score")}: ${scoreData.average_score} (${scoreData.total_scored} ${itemsText})`,
       color: "#D1D5DB",
       padding: { bottom: 10 },
       font: { size: 14 },

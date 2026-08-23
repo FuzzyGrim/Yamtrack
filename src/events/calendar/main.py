@@ -1,5 +1,7 @@
 import logging
 
+from django.utils.translation import gettext_lazy as _
+
 from app.models import MediaTypes, Sources
 from events.models import Event
 
@@ -15,11 +17,11 @@ logger = logging.getLogger(__name__)
 def fetch_releases(user=None, items_to_process=None):
     """Fetch and process releases for the calendar."""
     if items_to_process and items_to_process[0].source == Sources.MANUAL.value:
-        return "Manual sources are not processed"
+        return _("Manual sources are not processed")
 
     items_to_process = items_to_process or get_items_to_process(user)
     if not items_to_process:
-        return "No items to process"
+        return _("No items to process")
 
     logger.info(
         "Processing %d items:\n%s",

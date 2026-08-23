@@ -14,6 +14,7 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonRespo
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import config, helpers, history_processor
@@ -443,7 +444,7 @@ def update_media_score(request, media_type, instance_id):
 def sync_metadata(request, source, media_type, media_id, season_number=None):
     """Refresh the metadata for a media item."""
     if source == Sources.MANUAL.value:
-        msg = "Manual items cannot be synced."
+        msg = _("Manual items cannot be synced.")
         messages.error(request, msg)
         return HttpResponse(
             msg,
@@ -459,7 +460,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
     logger.debug("%s - Cache TTL for: %s", cache_key, ttl)
 
     if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 3):
-        msg = "The data was recently synced, please wait a few seconds."
+        msg = _("The data was recently synced, please wait a few seconds.")
         messages.error(request, msg)
         logger.error(msg)
     else:
@@ -472,7 +473,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             source,
             [season_number],
         )
-        item, _ = Item.objects.update_or_create(
+        item, _created = Item.objects.update_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
@@ -535,7 +536,9 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
 
         item.fetch_releases(delay=False)
 
-        msg = f"{title} was synced to {Sources(source).label} successfully."
+        msg = _("%(title)s was synced to %(source)s successfully.") % (
+            {"title": title, "source": Sources(source).label}
+        )
         messages.success(request, msg)
 
     if request.headers.get("HX-Request"):
@@ -706,7 +709,7 @@ def episode_save(request):
     form = EpisodeForm(request.POST)
     if not form.is_valid():
         logger.error("Form validation failed: %s", form.errors)
-        return HttpResponseBadRequest("Invalid form data")
+        return HttpResponseBadRequest(_("Invalid form data"))
 
     try:
         related_season = Season.objects.get(
@@ -725,7 +728,7 @@ def episode_save(request):
         )
         season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-        item, _ = Item.objects.get_or_create(
+        item, _created = Item.objects.get_or_create(
             media_id=media_id,
             source=Sources.TMDB.value,
             media_type=MediaTypes.SEASON.value,
@@ -772,12 +775,20 @@ def create_entry(request):
         # Handle duplicate item
         media_name = form.cleaned_data["title"]
         if form.cleaned_data.get("season_number"):
-            media_name += f" - Season {form.cleaned_data['season_number']}"
+            media_name += " - " + _("Season %(episode_number)s") % {
+                "episode_number": form.cleaned_data["season_number"]
+            }
         if form.cleaned_data.get("episode_number"):
-            media_name += f" - Episode {form.cleaned_data['episode_number']}"
+            media_name += " - " + _("Episode %(episode_number)s") % {
+                "episode_number": form.cleaned_data["episode_number"]
+            }
 
         logger.exception("%s already exists in the database.", media_name)
-        messages.error(request, f"{media_name} already exists in the database.")
+        messages.error(
+            request,
+            _("%(media_name)s already exists in the database.")
+            % {"media_name": media_name},
+        )
         return redirect("create_entry")
 
     # Prepare and validate the media form
@@ -808,7 +819,7 @@ def create_entry(request):
     media_form.save()
 
     # Success message
-    msg = f"{item} added successfully."
+    msg = _("%(item)s added successfully.") % {"item": item}
     messages.success(request, msg)
     logger.info(msg)
 
@@ -943,7 +954,7 @@ def delete_history_record(request, media_type, history_id):
             str(history_id),
             str(request.user),
         )
-        return HttpResponse("Record not found", status=404)
+        return HttpResponse(_("Record not found"), status=404)
 
 
 @require_GET

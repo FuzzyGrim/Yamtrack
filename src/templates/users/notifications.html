@@ -1,9 +1,10 @@
 {% extends "users/base.html" %}
 
 {% load widget_tweaks %}
+{% load i18n %}
 
 {% block title %}
-  Notifications - Yamtrack
+  {% trans "Notifications" %} - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
@@ -12,10 +13,10 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
         {% include "app/icons/bell.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Notifications</h2>
+        <h2 class="text-xl font-semibold">{% trans "Notifications" %}</h2>
       </div>
 
-      <p class="text-gray-400 mb-5 text-sm">Configure how you want to receive notifications about your media.</p>
+      <p class="text-gray-400 mb-5 text-sm">{% trans "Configure how you want to receive notifications about your media." %}</p>
 
       <form class="space-y-6" method="post">
         {% csrf_token %}
@@ -23,7 +24,7 @@
         {# Notification URLS #}
         <div x-data="{ showInfo: false }">
           <div class="flex items-center justify-between mb-2">
-            <label for="apprise-urls" class="block text-sm font-medium text-gray-300">Apprise URLs</label>
+            <label for="apprise-urls" class="block text-sm font-medium text-gray-300">{% trans "Apprise URLs" %}</label>
             <button type="button"
                     class="text-gray-400 hover:text-gray-300 cursor-pointer"
                     @click="showInfo = !showInfo">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</button>
@@ -32,37 +33,35 @@
           <div class="mb-4 p-3 bg-[#39404b] rounded-md text-sm text-gray-300"
                x-show="showInfo">
             <p class="mb-2">
-              <a href="https://github.com/caronc/apprise"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 class="text-indigo-400 hover:underline">Apprise</a> is a notification service that supports
-              <a href="https://github.com/caronc/apprise/wiki"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 class="text-indigo-400 hover:underline">many platforms</a> including:
+              {% blocktrans trimmed with apprise_link_start='<a href="https://github.com/caronc/apprise" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">'|safe apprise_link_end='</a>'|safe platforms_start='<a href="https://github.com/caronc/apprise/wiki" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">'|safe platforms_end='</a>'|safe %}
+              {{ apprise_link_start }}Apprise{{ apprise_link_end }} is a notification service that supports
+              {{ platforms_start }}many platforms{{ platforms_end }} including:
+              {% endblocktrans %}
             </p>
             <ul class="list-disc pl-5 space-y-1 text-gray-400">
-              <li>Discord</li>
-              <li>Telegram</li>
-              <li>Slack</li>
-              <li>Email</li>
-              <li>Pushover</li>
-              <li>ntfy</li>
-              <li>And many more...</li>
+              <li>{% trans "Discord" %}</li>
+              <li>{% trans "Telegram" %}</li>
+              <li>{% trans "Slack" %}</li>
+              <li>{% trans "Email" %}</li>
+              <li>{% trans "Pushover" %}</li>
+              <li>{% trans "ntfy" %}</li>
+              <li>{% trans "And many more..." %}</li>
             </ul>
             <p class="mt-2">
-              Enter one URL per line. Example: <code class="bg-[#2a2f35] px-1 py-0.5 rounded">discord://webhook_id/webhook_token</code>
+              {% blocktrans trimmed with code_start='<code class="bg-[#2a2f35] px-1 py-0.5 rounded">'|safe code_end='</code>'|safe %}
+              Enter one URL per line. Example: {{ code_start }}discord://webhook_id/webhook_token{{ code_end }}
+              {% endblocktrans %}
             </p>
           </div>
 
           {{ form.notification_urls|add_class:"w-full p-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 min-h-[150px]" }}
           <p class="mt-1 text-xs text-gray-400">
-            Enter each Apprise URL on a separate line to send notifications to multiple services.
+            {% trans "Enter each Apprise URL on a separate line to send notifications to multiple services." %}
           </p>
         </div>
 
         <div>
-          <h3 class="text-sm font-medium text-gray-300 mb-2">Notification Settings</h3>
+          <h3 class="text-sm font-medium text-gray-300 mb-2">{% trans "Notification Settings" %}</h3>
 
           {# Notification Settings #}
           <div class="bg-[#39404b] p-4 rounded-md space-y-4">
@@ -71,10 +70,10 @@
                 <label for="id_daily_digest_enabled"
                        class="text-sm font-medium text-gray-200 flex items-center">
                   {% include "app/icons/alarm-clock.svg" with classes="w-4 h-4 mr-2 text-indigo-400" %}
-                  Enable Daily Digest
+                  {% trans "Enable Daily Digest" %}
                 </label>
                 <p class="text-xs text-gray-400 mt-1 ml-6">
-                  Receive a single notification each day with all media scheduled to release that day
+                  {% trans "Receive a single notification each day with all media scheduled to release that day" %}
                 </p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
@@ -93,9 +92,11 @@
                 <label for="id_release_notifications_enabled"
                        class="text-sm font-medium text-gray-200 flex items-center">
                   {% include "app/icons/bell-ringing.svg" with classes="w-4 h-4 mr-2 text-indigo-400" %}
-                  Receive notifications for recently released media
+                  {% trans "Receive notifications for recently released media" %}
                 </label>
-                <p class="text-xs text-gray-400 mt-1 ml-6">Get notified when new episodes, chapters, or other media are released</p>
+                <p class="text-xs text-gray-400 mt-1 ml-6">
+                  {% trans "Get notified when new episodes, chapters, or other media are released" %}
+                </p>
               </div>
 
               <label class="relative inline-flex items-center cursor-pointer">
@@ -115,12 +116,12 @@
           <a href="{% url 'test_notification' %}"
              class="flex items-center px-4 py-2 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors text-sm cursor-pointer">
             {% include "app/icons/bell.svg" with classes="w-4 h-4 mr-2" %}
-            Test Notifications
+            {% trans "Test Notifications" %}
           </a>
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
             {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
-            Save Settings
+            {% trans "Save Settings" %}
           </button>
         </div>
       </form>
@@ -130,10 +131,10 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-5">
         {% include "app/icons/funnel.svg" with classes="lucide lucide-user w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Excluded Media Items</h2>
+        <h2 class="text-xl font-semibold">{% trans "Excluded Media Items" %}</h2>
       </div>
 
-      <p class="text-sm text-gray-300 mb-3">Exclude specific media items from notifications:</p>
+      <p class="text-sm text-gray-300 mb-3">{% trans "Exclude specific media items from notifications:" %}</p>
 
       <div class="relative mb-4">
         <input placeholder="Search for media to exclude..."

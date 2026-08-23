@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
-  Search - Yamtrack
+  {% trans "Search" %} - Yamtrack
 {% endblock title %}
 
 {% block content %}
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-y-4">
-    <h2 class="text-2xl font-bold">Search Results</h2>
+    <h2 class="text-2xl font-bold">{% trans "Search Results" %}</h2>
     <div class="flex items-center flex-wrap gap-x-4 gap-y-2">
-      <span class="text-sm text-gray-400">Source:</span>
+      <span class="text-sm text-gray-400">{% trans "Source" %}:</span>
       <div class="flex gap-x-2">
         {% with source_options=media_type|sources %}
           {% for source_option in source_options %}
@@ -22,10 +23,10 @@
         <div class="flex rounded-md overflow-hidden border border-gray-700">
           <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=grid"
              {% if layout == 'grid' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
-             title="Grid View">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
+             title="{% trans 'Grid View' %}">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
           <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=list"
              {% if layout == 'list' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
-             title="List View">{% include "app/icons/list.svg" with classes="w-5 h-5" %}</a>
+             title="{% trans 'List View' %}">{% include "app/icons/list.svg" with classes="w-5 h-5" %}</a>
         </div>
       </div>
     </div>
@@ -96,9 +97,9 @@
     <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
       {% include "app/icons/magnifying-glass.svg" with classes="w-8 h-8 text-gray-400" %}
     </div>
-    <h3 class="text-xl font-semibold mb-2">No results found</h3>
+    <h3 class="text-xl font-semibold mb-2">{% trans "No results found" %}</h3>
     <p class="text-gray-400 text-center max-w-md mb-8">
-      We couldn't find any matches for "{{ request.GET.q }}". Try checking your spelling or using different keywords.
+      {% trans "We couldn't find any matches for" %} "{{ request.GET.q }}". {% trans "Try checking your spelling or using different keywords." %}
     </p>
   </div>
 {% endif %}

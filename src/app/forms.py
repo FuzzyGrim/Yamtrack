@@ -2,6 +2,7 @@ import math
 
 from django import forms
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 from app import config
 from app.models import (
@@ -66,14 +67,16 @@ class CustomDurationField(forms.CharField):
         if "h" in value:  # [n]h format
             return int(value.strip("h")), 0
 
-        msg = "Invalid time format"
+        msg = _("Invalid time format")
         raise ValueError(msg)
 
     def _validate_minutes(self, minutes):
         """Validate that minutes are within acceptable range."""
         max_min = 59
         if not (0 <= minutes <= max_min):
-            msg = f"Minutes must be between 0 and {max_min}."
+            msg = _("Minutes must be between 0 and %(max_min)s.") % {
+                "max_min": max_min,
+            }
             raise forms.ValidationError(msg)
 
     def clean(self, value):
@@ -87,7 +90,12 @@ class CustomDurationField(forms.CharField):
             self._validate_minutes(minutes)
             return hours * 60 + minutes
         except ValueError as e:
-            msg = "Invalid time format. Provide duration in hours (e.g., '5', '1.5'), hours and minutes (e.g., '5:30', '5h 30min'), or just minutes (e.g., '30min')."  # noqa: E501
+            msg = _(
+                "Invalid time format. Provide duration in hours "
+                "(e.g., '5', '1.5'), hours and minutes "
+                "(e.g., '5:30', '5h 30min'), or just minutes "
+                "(e.g., '30min')."
+            )
             raise forms.ValidationError(msg) from e
 
 
@@ -97,15 +105,15 @@ class ManualItemForm(forms.ModelForm):
     parent_tv = forms.ModelChoiceField(
         required=False,
         queryset=TV.objects.none(),
-        empty_label="Select",
-        label="Parent TV Show",
+        empty_label=_("Select"),
+        label=_("Parent TV Show"),
     )
 
     parent_season = forms.ModelChoiceField(
         required=False,
         queryset=Season.objects.none(),
-        empty_label="Select",
-        label="Parent Season",
+        empty_label=_("Select"),
+        label=_("Parent Season"),
     )
 
     class Meta:
@@ -154,7 +162,7 @@ class ManualItemForm(forms.ModelForm):
                 if not parent:
                     self.add_error(
                         "parent_tv",
-                        "Parent TV show is required for seasons",
+                        _("Parent TV show is required for seasons"),
                     )
                     return cleaned_data
                 cleaned_data["title"] = parent.item.title
@@ -164,7 +172,7 @@ class ManualItemForm(forms.ModelForm):
                 if not parent:
                     self.add_error(
                         "parent_season",
-                        "Parent season is required for episodes",
+                        _("Parent season is required for episodes"),
                     )
                     return cleaned_data
                 cleaned_data["title"] = parent.item.title
@@ -172,7 +180,7 @@ class ManualItemForm(forms.ModelForm):
         else:
             # For standalone media, title is required
             if not cleaned_data.get("title"):
-                self.add_error("title", "Title is required for this media type")
+                self.add_error("title", _("Title is required for this media type"))
             cleaned_data["season_number"] = None
             cleaned_data["episode_number"] = None
 

@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
-  Calendar - YamTrack
+  {% trans "Calendar" %} - YamTrack
 {% endblock title %}
 
 {% block content %}
   <div class="mb-8">
-    <h1 class="text-3xl font-bold mb-2">Calendar</h1>
-    <p class="text-gray-400">Track upcoming releases from your list.</p>
+    <h1 class="text-3xl font-bold mb-2">{% trans "Calendar" %}</h1>
+    <p class="text-gray-400">{% trans "Track upcoming releases from your list." %}</p>
   </div>
 
   <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
@@ -29,13 +30,13 @@
 
       <div class="flex items-center gap-2">
         <a class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
-           href="{% url 'calendar' %}?month={{ today.month }}&year={{ today.year }}&view={{ view_type }}">Today</a>
+           href="{% url 'calendar' %}?month={{ today.month }}&year={{ today.year }}&view={{ view_type }}">{% trans "Today" %}</a>
 
         <form method="post" action="{% url 'reload_calendar' %}">
           {% csrf_token %}
           <button class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 cursor-pointer">
             {% include "app/icons/circle-spinning-clockwise.svg" with classes="w-4 h-4" %}
-            <span>Fetch New Releases</span>
+            <span>{% trans "Fetch New Releases" %}</span>
           </button>
         </form>
 
@@ -67,10 +68,10 @@
   <div class="bg-[#2a2f35] p-5 rounded-lg mb-6">
     <div class="flex items-center mb-3">
       {% include "app/icons/link.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-      <h3 class="text-base font-medium">Export link</h3>
+      <h3 class="text-base font-medium">{% trans "Export link" %}</h3>
     </div>
     <p class="text-gray-400 mb-4 text-sm">
-      This link can be used to integrate your calendar into any of your calendar applications.
+      {% trans "This link can be used to integrate your calendar into any of your calendar applications." %}
     </p>
     <div class="bg-[#262a2f] p-3 rounded-md mb-4">
       <input readonly=""

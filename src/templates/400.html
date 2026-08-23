@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
-  Forbidden - Yamtrack
+  {% trans "Bad Request" %} - Yamtrack
 {% endblock title %}
 
 {% block body %}
@@ -10,20 +11,21 @@
     <div class="text-center max-w-md">
       <div class="mb-6">
         <div class="text-9xl font-bold text-orange-500">400</div>
-        <h1 class="text-3xl font-bold mt-4 mb-2">Bad Request</h1>
+        <h1 class="text-3xl font-bold mt-4 mb-2">{% trans "Bad Request" %}</h1>
         <p class="text-gray-400 mb-8">
-          The server could not understand the request due to invalid syntax or missing parameters.
+          {% trans "The server could not understand the request due to invalid syntax or missing parameters." %}
         </p>
         <p class="text-sm text-gray-500 mb-6">
-          If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues"
-    class="text-indigo-400 hover:underline">report the issue.</a>
+          {% blocktrans trimmed with link_start='<a href="https://github.com/fuzzygrim/yamtrack/issues">'|safe link_end='</a>'|safe %}
+          If you believe this was a bug, please {{ link_start }}report the issue{{ link_end }}.
+          {% endblocktrans %}
         </p>
       </div>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="{% url 'home' %}"
-           class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+          class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
           {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-          <span>Back to Home</span></a>
+          <span>{% trans "Back to Home" %}</span></a>
       </div>
     </div>
   </div>

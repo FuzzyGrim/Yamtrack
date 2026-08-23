@@ -6,6 +6,7 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from app.models import TV, MediaTypes, Season
 from app.templatetags import app_tags
@@ -30,7 +31,7 @@ def send_releases():
     )
 
     if not users.exists():
-        return "No users with release notifications enabled"
+        return _("No users with release notifications enabled")
 
     # Find events that were released recently and haven't been notified yet
     base_queryset = Event.objects.filter(
