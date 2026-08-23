@@ -1,4 +1,7 @@
+import json
+import zipfile
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +16,15 @@ from app.models import (
 from integrations.imports import (
     helpers,
 )
-from integrations.imports.trakt import TraktImporter, get_access_token, importer
+from integrations.imports.helpers import MediaImportError
+from integrations.imports.trakt import (
+    EXPORT_FALLBACK_USERNAME,
+    TraktArchiveManager,
+    TraktExportImporter,
+    TraktImporter,
+    get_access_token,
+    importer,
+)
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 app_mock_path = (
@@ -311,3 +322,183 @@ class ImportTrakt(TestCase):
             params["redirect_uri"],
             "https://yamtrack.example.com/import/trakt/private",
         )
+
+
+def build_archive(files, prefix=""):
+    """Build an in-memory Trakt export archive from a name to contents mapping."""
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for name, contents in files.items():
+            payload = contents if isinstance(contents, str) else json.dumps(contents)
+            archive.writestr(f"{prefix}{name}.json", payload)
+    buffer.seek(0)
+    return buffer
+
+
+MOVIE_HISTORY_ENTRY = {
+    "type": "movie",
+    "movie": {"title": "Export Movie", "ids": {"tmdb": 111}},
+    "watched_at": "2023-01-01T00:00:00.000Z",
+}
+
+
+class ImportTraktExport(TestCase):
+    """Test importing media from a Trakt export archive."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+        self.metadata_patcher = patch(
+            "integrations.imports.trakt.TraktImporter._get_metadata",
+        )
+        mock_get_metadata = self.metadata_patcher.start()
+        mock_get_metadata.return_value = {
+            "title": "Export Movie",
+            "image": "movie.jpg",
+        }
+        self.addCleanup(self.metadata_patcher.stop)
+
+    def test_import_full_flow(self):
+        """A minimal export archive imports through the standard pipeline."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [MOVIE_HISTORY_ENTRY],
+                "lists-watchlist": [],
+                "ratings-movies": [],
+                "comments-movies": [],
+            },
+        )
+
+        imported_counts, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(messages, "")
+
+    def test_username_read_from_profile(self):
+        """The Trakt username is taken from user-profile.json."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [],
+            },
+        )
+
+        export_importer = TraktExportImporter(archive, self.user, "new")
+
+        self.assertEqual(export_importer.username, "exported_user")
+
+    def test_missing_user_profile_falls_back(self):
+        """A missing user-profile.json does not break the import."""
+        archive = build_archive({"watched-history": [MOVIE_HISTORY_ENTRY]})
+
+        export_importer = TraktExportImporter(archive, self.user, "new")
+        imported_counts, _ = export_importer.import_data()
+
+        self.assertEqual(export_importer.username, EXPORT_FALLBACK_USERNAME)
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+
+    def test_nested_archive_is_read(self):
+        """Archives that keep the export inside a directory are still read."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [MOVIE_HISTORY_ENTRY],
+            },
+            prefix="trakt-export/",
+        )
+
+        imported_counts, _ = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+
+    def test_paged_files_are_read_in_order(self):
+        """Numbered history pages are concatenated in page order."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history-1": [MOVIE_HISTORY_ENTRY],
+                "watched-history-2": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Second Movie", "ids": {"tmdb": 222}},
+                        "watched_at": "2023-02-01T00:00:00.000Z",
+                    },
+                ],
+            },
+        )
+
+        manager = TraktArchiveManager(archive)
+
+        self.assertEqual(
+            manager._match_names("watched-history"),
+            ["watched-history-1", "watched-history-2"],
+        )
+        self.assertEqual(len(manager.load("watched-history")), 2)
+
+    def test_custom_list_is_not_read_as_watchlist_page(self):
+        """A custom list ending in digits is not treated as a watchlist page."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-watchlist": [],
+                "lists-watchlist-2025": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Custom List Movie", "ids": {"tmdb": 333}},
+                    },
+                ],
+            },
+        )
+
+        manager = TraktArchiveManager(archive)
+
+        self.assertEqual(manager._match_names("lists-watchlist"), ["lists-watchlist"])
+        self.assertEqual(manager.load("lists-watchlist"), [])
+
+    def test_unreadable_files_are_reported(self):
+        """Every unreadable export file is reported in the import summary."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [],
+                "ratings-movies": "not json",
+                "ratings-shows": "also not json",
+                "comments-movies": {"unexpected": "shape"},
+            },
+        )
+
+        _, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertIn("ratings-movies.json: could not be read, skipped.", messages)
+        self.assertIn("ratings-shows.json: could not be read, skipped.", messages)
+        self.assertIn("comments-movies.json: unexpected contents, skipped.", messages)
+
+    def test_invalid_zip_raises(self):
+        """A file that is not a ZIP archive raises a readable error."""
+        with self.assertRaises(MediaImportError):
+            TraktArchiveManager(BytesIO(b"definitely not a zip"))
+
+    def test_unrecognized_archive_raises(self):
+        """A ZIP without any Trakt export file raises a readable error."""
+        archive = build_archive({"something-else": []})
+
+        with self.assertRaises(MediaImportError):
+            TraktArchiveManager(archive)
+
+    def test_oversized_archive_raises(self):
+        """An archive larger than the uncompressed cap is rejected."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": " " * 128,
+            },
+        )
+
+        with (
+            patch("integrations.imports.trakt.MAX_EXPORT_UNCOMPRESSED_BYTES", 16),
+            self.assertRaises(MediaImportError),
+        ):
+            TraktArchiveManager(archive)

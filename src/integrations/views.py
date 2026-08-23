@@ -147,7 +147,7 @@ def import_trakt_export(request):
     tasks.import_trakt.delay(
         user_id=request.user.id,
         mode=mode,
-        file=request.FILES["trakt_export_zip"],
+        file=file,
     )
     messages.info(
         request,

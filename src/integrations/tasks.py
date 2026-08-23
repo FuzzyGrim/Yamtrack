@@ -91,7 +91,8 @@ def import_trakt(
 ):
     """Celery task for importing media data from Trakt.
 
-    Can import using either OAuth (token provided) or public username.
+    Can import using OAuth (token provided), public username, or the contents of
+    an export archive downloaded from the Trakt website.
     """
     return import_media(
         trakt.importer,

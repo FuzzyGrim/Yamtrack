@@ -341,9 +341,7 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
-# For CSV imports (was 10 MB)
-# Since we allow importing the trakt export archive, which can be larger than 10 MB,
-# we increase the limit to 50 MB.
+# For CSV imports and the Trakt export archive
 FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 MB
 
 VERSION = config("VERSION", default="dev")

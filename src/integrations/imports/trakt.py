@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import zipfile
 from collections import defaultdict
 
@@ -21,11 +22,11 @@ logger = logging.getLogger(__name__)
 TRAKT_API_BASE_URL = "https://api.trakt.tv"
 BULK_PAGE_SIZE = 1000
 
-# Max upload size defined in django settings is 10 MB,
-# but since we're importing a compressed archive,
-# we can allow a larger size for the uncompressed data.
-# So we cap the size of the uncompressed archive to avoid memory issues. (100 MB)
+# The archive is expanded in the worker, so cap how much it may hold uncompressed.
 MAX_EXPORT_UNCOMPRESSED_BYTES = 100 * 1024 * 1024
+
+# Username used when the archive has no readable user-profile.json.
+EXPORT_FALLBACK_USERNAME = "Trakt User"
 
 # Convert Trakt API endpoints to the corresponding export file(s) that contain the data.
 ENDPOINTS_TO_FILES = {
@@ -164,22 +165,19 @@ def update_refresh_token(old_token, new_token):
 def importer(token, user, mode, username=None, redirect_uri=None, file=None):
     """Import the user's data from Trakt.
 
-    Can import using either OAuth (token provided) or public username.
-    When using OAuth, username should be the authenticated user's username.
-    When using public import, username is the Trakt username and token should be None.
+    Can import using OAuth (token provided), public username, or an export archive
+    downloaded from the Trakt website.
 
     Args:
         token (str, optional): Encrypted OAuth2 refresh token if using OAuth else None
         user: Django user object to import data for
         mode (str): Import mode ("new" or "overwrite")
         username (str, optional): Trakt username if using API import else None
-        file (File, optional): Uploaded file for Trakt export import else None
+        redirect_uri (str, optional): OAuth2 redirect URI if using OAuth else None
+        file (File, optional): Uploaded Trakt export archive else None
     """
     if file:
-        archive = TraktArchiveManager(file)
-
-        export_importer = TraktExportImporter(archive, user, mode)
-        imported_counts, messages = export_importer.import_data()
+        trakt_importer = TraktExportImporter(file, user, mode)
     else:
         trakt_importer = TraktImporter(
             username,
@@ -188,9 +186,8 @@ def importer(token, user, mode, username=None, redirect_uri=None, file=None):
             refresh_token=token,
             redirect_uri=redirect_uri,
         )
-        imported_counts, messages = trakt_importer.import_data()
 
-    return imported_counts, messages
+    return trakt_importer.import_data()
 
 
 class TraktImporter:
@@ -822,32 +819,22 @@ class TraktImporter:
 class TraktExportImporter(TraktImporter):
     """Run the standard Trakt import against an export archive instead of the API."""
 
-    def __init__(self, export_archive, user, mode):
-        """Initialize from export archive."""
-        self.export_archive = export_archive
+    def __init__(self, file, user, mode):
+        """Initialize from a Trakt export archive."""
+        # The archive appends to this list while files are read during the import,
+        # so it is shared with the importer instead of being merged afterwards.
+        warnings = []
+        self.export_archive = TraktArchiveManager(file, warnings)
 
-        # Get the username from the user-profile.json file in the archive,
-        # or default to "Trakt User" if not found.
-        user_profile = export_archive.parse_json("user-profile")
+        user_profile = self.export_archive.parse_json("user-profile")
+        username = (
+            user_profile.get("username")
+            if isinstance(user_profile, dict)
+            else EXPORT_FALLBACK_USERNAME
+        )
 
-        username = user_profile.get("username") if user_profile else "Trakt User"
-
-        super().__init__(username, user, mode)
-        self.warnings.extend(export_archive.warnings)
-
-    def import_data(self):
-        """Import from Trakt export archive."""
-        imported_counts, messages = super().import_data()
-
-        # Add warnings from the file reading process.
-        archive_warnings = self.export_archive.warnings
-        if archive_warnings:
-            messages = "\n".join(dict.fromkeys([messages], *archive_warnings))
-
-        return imported_counts, messages
-
-    def _validate_username(self):
-        """Override username validation to skip API calls when importing from export."""
+        super().__init__(username or EXPORT_FALLBACK_USERNAME, user, mode)
+        self.warnings = warnings
 
     def _make_api_request(self, url):
         """Read from the export archive instead of making API calls."""
@@ -876,20 +863,30 @@ class TraktExportImporter(TraktImporter):
 class TraktArchiveManager:
     """Class to manage a Trakt export archive."""
 
-    def __init__(self, file):
-        """Open the archive and index its JSON files."""
+    def __init__(self, file, warnings=None):
+        """Open the archive and index its JSON files.
+
+        Args:
+            file: Uploaded export archive, or any file-like object
+            warnings (list, optional): List to append read warnings to
+        """
         try:
             self.zipfile = zipfile.ZipFile(file)
         except zipfile.BadZipFile as e:
             msg = "The uploaded file is not a valid Trakt export archive."
             raise MediaImportError(msg) from e
 
-        self._files = []
-        self.warnings = []
+        self.warnings = warnings if warnings is not None else []
+
+        # Map each JSON base name to its full path inside the archive, so archives
+        # that keep the export in a subdirectory can still be read.
+        self._files = {}
 
         uncompressed_size = 0
 
         # Check the uncompressed size of the archive to avoid memory issues.
+        # file_size is what the archive declares, so this is a guard against
+        # oversized exports rather than against deliberately crafted archives.
         for info in self.zipfile.infolist():
             if info.is_dir():
                 continue
@@ -902,19 +899,37 @@ class TraktArchiveManager:
             if not name.lower().endswith(".json"):
                 continue
             # Store the base name without the .json suffix for easier matching.
-            self._files.append(name[:-5])
+            self._files.setdefault(name[: -len(".json")], info.filename)
+
+        if not self._recognized_export():
+            msg = (
+                "The uploaded archive does not contain any Trakt export data. "
+                "Upload the ZIP file downloaded from the Trakt website."
+            )
+            raise MediaImportError(msg)
+
+    def _recognized_export(self):
+        """Check whether the archive holds at least one known export file."""
+        if "user-profile" in self._files:
+            return True
+
+        return any(
+            self._match_names(prefix)
+            for prefixes in ENDPOINTS_TO_FILES.values()
+            for prefix in prefixes
+        )
 
     def parse_json(self, base_name):
-        """Read a JSON file from the archive."""
-        filename = base_name + ".json"
+        """Read a JSON file from the archive, returning None when unavailable."""
+        filename = self._files.get(base_name)
         if filename is None:
             return None
 
         try:
             return json.loads(self.zipfile.read(filename))
-        except (json.JSONDecodeError, UnicodeDecodeError):
+        except (KeyError, OSError, json.JSONDecodeError, UnicodeDecodeError):
             logger.exception("Trakt export file %s could not be read", filename)
-            self.warnings.append(f"{filename}: could not be read, skipped.")
+            self.warnings.append(f"{base_name}.json: could not be read, skipped.")
             return None
 
     def load(self, *prefixes):
@@ -923,6 +938,9 @@ class TraktArchiveManager:
         for prefix in prefixes:
             for base_name in self._match_names(prefix):
                 page = self.parse_json(base_name)
+                if page is None:
+                    # parse_json already recorded why the file was skipped.
+                    continue
                 if isinstance(page, list):
                     entries.extend(page)
                 else:
@@ -935,12 +953,21 @@ class TraktArchiveManager:
         """Return base names for prefixes by page."""
         names = []
         if prefix in self._files:
-            names.append((0, prefix))
+            names.append(prefix)
 
+        pages = {}
+        page_pattern = re.compile(rf"^{re.escape(prefix)}-(\d+)$")
         for base_name in self._files:
-            page = base_name.rsplit("-", 1)[-1]
-            if page.isdigit() and base_name.startswith(prefix):
-                names.append((int(page), base_name))
+            match = page_pattern.match(base_name)
+            if match:
+                pages[int(match.group(1))] = base_name
 
-        names.sort()
-        return [name for _, name in names]
+        # Trakt splits large sections into pages numbered contiguously from 1, e.g.
+        # watched-history-1.json. Only following that run keeps a custom list such as
+        # lists-watchlist-2025 from being read as a page of lists-watchlist.
+        page = 1
+        while page in pages:
+            names.append(pages[page])
+            page += 1
+
+        return names

@@ -67,23 +67,26 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {# Trakt #}
-        <div class="bg-[#39404b] p-4 rounded-lg" x-data="{ setTraktImport: 0 }">
+        <div class="bg-[#39404b] p-4 rounded-lg"
+             x-data="{ traktImportMethod: 'public' }">
           <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import TV shows and movies</p>
+          <p class="text-sm text-gray-400 mb-3"
+             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? 'Import TV shows and movies' : 'File uploads are not available for periodic imports'">
+          </p>
 
           <div class="mb-3">
-            <label class="block text-sm font-medium text-gray-300 mb-2">Import mode</label>
-            <select x-model="setTraktImport"
-                    class="w-full bg-[#39404b] text-gray-200 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 cursor-pointer">
-              <option value="0" class="bg-[#2a2f35] text-gray-200">Public</option>
-              <option value="1" class="bg-[#2a2f35] text-gray-200">Private (requires authentication)</option>
-              <option value="2" class="bg-[#2a2f35] text-gray-200">Export (requires ZIP file)</option>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Import method</label>
+            <select x-model="traktImportMethod"
+                    class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
+              <option value="public">Public</option>
+              <option value="private">Private (requires authentication)</option>
+              <option value="export">Export (requires ZIP file)</option>
             </select>
           </div>
 
           <form class="flex items-center"
                 method="post"
-                x-show="setTraktImport==0"
+                x-show="traktImportMethod === 'public'"
                 action="{% url 'import_trakt_public' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
@@ -105,7 +108,7 @@
 
           <form class="flex items-center"
                 method="post"
-                x-show="setTraktImport==1"
+                x-show="traktImportMethod === 'private'"
                 action="{% url 'trakt_oauth' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
@@ -120,7 +123,7 @@
 
           <form class="flex items-center"
                 method="post"
-                x-show="setTraktImport==2"
+                x-show="traktImportMethod === 'export'"
                 action="{% url 'import_trakt_export' %}"
                 enctype="multipart/form-data">
             {% csrf_token %}
@@ -139,7 +142,6 @@
               Select ZIP File
             </label>
           </form>
-
         </div>
 
         {# Simkl #}
