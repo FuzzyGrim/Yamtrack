@@ -15,8 +15,9 @@ services:
       - DB_USER=yamtrack
       - DB_PASSWORD=yamtrack
       - DB_PORT=5432
+      - YAMTRACK_INTERNAL_PORT=${YAMTRACK_INTERNAL_PORT:-8000}
     ports:
-      - "8000:8000"
+      - "8000:${YAMTRACK_INTERNAL_PORT:-8000}"
 
   db:
     image: postgres:16-alpine
