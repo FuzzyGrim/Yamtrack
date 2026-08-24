@@ -859,7 +859,11 @@ class Media(models.Model):
     progressed_at = MonitorField(monitor="progress")
     status = models.CharField(
         max_length=20,
-        choices=Status,
+        choices=[
+            (value, label)
+            for value, label in Status.choices
+            if value != Status.REWATCHING.value
+        ],
         default=Status.COMPLETED.value,
     )
     start_date = models.DateTimeField(null=True, blank=True)
@@ -972,6 +976,11 @@ class BasicMedia(Media):
 class TV(Media):
     """Model for TV shows."""
 
+    status = models.CharField(
+        max_length=20,
+        choices=Status,
+        default=Status.COMPLETED.value,
+    )
     tracker = FieldTracker()
 
     class Meta:
@@ -1461,6 +1470,12 @@ class Season(Media):
         TV,
         on_delete=models.CASCADE,
         related_name="seasons",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status,
+        default=Status.COMPLETED.value,
     )
 
     rewatch_started_at = models.DateTimeField(null=True, blank=True)
