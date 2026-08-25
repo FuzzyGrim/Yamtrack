@@ -191,6 +191,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
 
 if config("DB_HOST", default=None) is not None:
+    DB_POOL_MIN_SIZE = config("DB_POOL_MIN_SIZE", default=1, cast=int)
+    DB_POOL_MAX_SIZE = config("DB_POOL_MAX_SIZE", default=4, cast=int)
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -203,7 +206,10 @@ if config("DB_HOST", default=None) is not None:
             ),
             "PORT": config("DB_PORT", default=""),
             "OPTIONS": {
-                "pool": True,
+                "pool": {
+                    "min_size": DB_POOL_MIN_SIZE,
+                    "max_size": DB_POOL_MAX_SIZE,
+                },
             },
         },
     }
@@ -344,8 +350,8 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
-# For CSV imports
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+# For CSV imports and the Trakt export archive
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 MB
 
 VERSION = config("VERSION", default="dev")
 

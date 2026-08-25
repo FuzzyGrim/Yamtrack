@@ -68,22 +68,25 @@
 
         {# Trakt #}
         <div class="bg-[#39404b] p-4 rounded-lg"
-             x-data="{ usePrivateImport: false }">
+             x-data="{ traktImportMethod: 'public' }">
           <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import TV shows and movies</p>
+          <p class="text-sm text-gray-400 mb-3"
+             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? 'Import TV shows and movies' : 'File uploads are not available for periodic imports'">
+          </p>
 
           <div class="mb-3">
-            <label class="flex items-center text-sm text-gray-300">
-              <input type="checkbox"
-                     x-model="usePrivateImport"
-                     class="mr-2 rounded bg-[#2a2f35] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0">
-              Import private profile (requires authentication)
-            </label>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Import method</label>
+            <select x-model="traktImportMethod"
+                    class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
+              <option value="public">Public</option>
+              <option value="private">Private (requires authentication)</option>
+              <option value="export">Export (requires ZIP file)</option>
+            </select>
           </div>
 
           <form class="flex items-center"
                 method="post"
-                x-show="!usePrivateImport"
+                x-show="traktImportMethod === 'public'"
                 action="{% url 'import_trakt_public' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
@@ -105,7 +108,7 @@
 
           <form class="flex items-center"
                 method="post"
-                x-show="usePrivateImport"
+                x-show="traktImportMethod === 'private'"
                 action="{% url 'trakt_oauth' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
@@ -116,6 +119,28 @@
                     class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
               Connect with Trakt & Import
             </button>
+          </form>
+
+          <form class="flex items-center"
+                method="post"
+                x-show="traktImportMethod === 'export'"
+                action="{% url 'import_trakt_export' %}"
+                enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :disabled="importFrequency !== 'once'">
+              <input name="trakt_export_zip"
+                     accept=".zip"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
+                     @change="importFrequency === 'once' && $el.form.submit()">
+              Select ZIP File
+            </label>
           </form>
         </div>
 
