@@ -21,92 +21,12 @@ class Migration(migrations.Migration):
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='anime',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='basicmedia',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='boardgame',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='book',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='comic',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='game',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalanime',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalbasicmedia',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalboardgame',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalbook',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalcomic',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalgame',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalmanga',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='historicalmovie',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
             model_name='historicalseason',
             name='status',
             field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
         ),
         migrations.AlterField(
             model_name='historicaltv',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='manga',
-            name='status',
-            field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='movie',
             name='status',
             field=models.CharField(choices=[('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped'), ('Rewatching', 'Rewatching')], default='Completed', max_length=20),
         ),

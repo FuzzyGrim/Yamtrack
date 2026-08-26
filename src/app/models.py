@@ -1310,6 +1310,42 @@ class TV(Media):
 
         return season_started
 
+    def _demote_other_rewatching_seasons(self, exclude_season):
+        other_rewatching_seasons = self.seasons.filter(
+            status=Status.REWATCHING.value,
+        ).exclude(pk=exclude_season.pk)
+
+        if not other_rewatching_seasons.exists():
+            return
+
+        current_date = timezone.localdate()
+
+        for season in other_rewatching_seasons:
+            season_metadata = providers.services.get_media_metadata(
+                MediaTypes.SEASON.value,
+                season.item.media_id,
+                season.item.source,
+                [season.item.season_number],
+            )
+            new_status, new_rewatch_started_at = season._resolve_demoted_rewatch_status(
+                season_metadata, current_date
+            )
+
+            if (
+                season.status != new_status
+                or season.rewatch_started_at != new_rewatch_started_at
+            ):
+                season.status = new_status
+                season.rewatch_started_at = new_rewatch_started_at
+                bulk_update_with_history(
+                    [season], Season, fields=["status", "rewatch_started_at"]
+                )
+                season.create_user_message(
+                    f"was automatically set to {new_status} because another "
+                    "season started rewatching.",
+                    level=UserMessageLevel.INFO,
+                )
+
     def _advance_rewatch(
         self,
         min_season_number=0,
@@ -1355,6 +1391,8 @@ class TV(Media):
                         Season,
                         fields=["status", "rewatch_started_at"],
                     )
+                self._demote_other_rewatching_seasons(exclude_season=existing_season)
+
                 if self.status != Status.REWATCHING.value:
                     self.status = Status.REWATCHING.value
                     bulk_update_with_history(
@@ -1509,6 +1547,13 @@ class Season(Media):
         super(Media, self).save(*args, **kwargs)
 
         if self.tracker.has_changed("status"):
+            left_rewatch = (
+                self.tracker.previous("status") == Status.REWATCHING.value
+                and self.status != Status.REWATCHING.value
+            )
+            if left_rewatch:
+                self.rewatch_started_at = None
+                bulk_update_with_history([self], Season, fields=["rewatch_started_at"])
             if self.status == Status.COMPLETED.value:
                 season_metadata = providers.services.get_media_metadata(
                     MediaTypes.SEASON.value,
@@ -1579,6 +1624,7 @@ class Season(Media):
                         TV,
                         fields=["status"],
                     )
+                self.related_tv._demote_other_rewatching_seasons(exclude_season=self)
 
             elif (
                 self.status == Status.DROPPED.value
@@ -1604,13 +1650,13 @@ class Season(Media):
 
             self.item.fetch_releases(delay=True)
 
-    def _get_latest_watched_episode_number(self):
+    def _get_latest_watched_episode_number(self, *, current_cycle_only=True):
         """Return the highest watched episode number for the season."""
         if self.pk is None:
             return 0
 
         episodes = Episode.objects.filter(related_season=self)
-        if self.rewatch_started_at:
+        if current_cycle_only and self.rewatch_started_at:
             episodes = episodes.filter(created_at__gte=self.rewatch_started_at)
 
         latest_watched_ep_num = episodes.aggregate(
@@ -1657,7 +1703,7 @@ class Season(Media):
         if not episodes:
             return 0
 
-        if self.status == Status.IN_PROGRESS.value:
+        if self.status in (Status.IN_PROGRESS.value, Status.REWATCHING.value):
             # Sort by most recently watched, then by episode number
             sorted_episodes = sorted(
                 episodes,
@@ -1707,6 +1753,33 @@ class Season(Media):
         ]
         return max(dates) if dates else None
 
+    def _resolve_demoted_rewatch_status(self, season_metadata, current_date):
+        """Return the status this season falls back to when interrupting its rewatch."""
+        released_episode_numbers = [
+            episode["episode_number"]
+            for episode in season_metadata["episodes"]
+            if app.helpers.is_released_date(episode.get("air_date"), current_date)
+        ]
+
+        max_released = max(released_episode_numbers) if released_episode_numbers else 0
+
+        cycle_watched = self._get_latest_watched_episode_number(current_cycle_only=True)
+
+        if cycle_watched > 0:
+            if max_released and cycle_watched >= max_released:
+                return Status.COMPLETED.value, None
+            return Status.IN_PROGRESS.value, self.rewatch_started_at
+
+        latest_watched = self._get_latest_watched_episode_number(
+            current_cycle_only=False
+        )
+
+        if latest_watched == 0:
+            return Status.PLANNING.value, None
+        if max_released and latest_watched >= max_released:
+            return Status.COMPLETED.value, None
+        return Status.IN_PROGRESS.value, None
+
     def increase_progress(self):
         """Watch the next episode of the season."""
         season_metadata = providers.services.get_media_metadata(
@@ -1743,7 +1816,7 @@ class Season(Media):
             fields=["status", "rewatch_started_at"],
         )
 
-        if self.related_tv != Status.REWATCHING.value:
+        if self.related_tv.status != Status.REWATCHING.value:
             self.related_tv.status = Status.REWATCHING.value
             bulk_update_with_history(
                 [self.related_tv],
@@ -1751,6 +1824,7 @@ class Season(Media):
                 fields=["status"],
             )
 
+        self.related_tv._demote_other_rewatching_seasons(exclude_season=self)
         self.watch(episode_number, end_date)
 
     def watch(self, episode_number, end_date):
