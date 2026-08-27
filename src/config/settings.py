@@ -568,6 +568,11 @@ DAILY_DIGEST_HOUR = config(
     default=8,
     cast=int,
 )
+ANIME_SEQUEL_CHECK_INTERVAL = config(
+    "ANIME_SEQUEL_CHECK_INTERVAL",
+    default=60 * 60 * 24,  # every 24 hours
+    cast=int,
+)
 USER_MESSAGE_RETENTION_DAYS = config(
     "USER_MESSAGE_RETENTION_DAYS",
     default=30,
@@ -585,6 +590,10 @@ CELERY_BEAT_SCHEDULE = {
     "send_daily_digest": {
         "task": "Send daily digest",
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
+    },
+    "check_anime_sequels": {
+        "task": "Check anime sequels",
+        "schedule": ANIME_SEQUEL_CHECK_INTERVAL,
     },
     "cleanup_user_messages": {
         "task": "Cleanup user messages",
