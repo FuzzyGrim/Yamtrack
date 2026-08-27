@@ -85,6 +85,44 @@
           </div>
         </div>
 
+        {# Rewatch #}
+        {% if current_instance and media_type == MediaTypes.TV.value %}
+          <div class="mt-2"
+               x-data="{ rewatchOpen: false }"
+               @keydown.escape.window="rewatchOpen = false">
+            <button class="w-full p-3 rounded-lg text-center text-sm font-medium text-white transition duration-300 cursor-pointer {% if current_instance.rewatch_since %}bg-amber-600 hover:bg-amber-700{% else %}bg-[#2a2f35] hover:bg-gray-700{% endif %}"
+                    hx-get="{% url 'rewatch_modal' instance_id=current_instance.id %}"
+                    hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                    hx-target="#rewatch-modal-{{ current_instance.id }}"
+                    hx-trigger="click"
+                    type="button"
+                    @click="rewatchOpen = true">
+              {% if current_instance.rewatch_since %}
+                Rewatching
+              {% else %}
+                Start rewatch
+              {% endif %}
+            </button>
+
+            {% if current_instance.rewatch_since %}
+              <p class="mt-2 text-xs text-gray-400 text-center">
+                Since {{ current_instance.rewatch_since|datetime_format:request.user }}
+              </p>
+            {% endif %}
+
+            {# Rewatch Modal #}
+            <div x-show="rewatchOpen"
+                 x-cloak
+                 class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
+                   @click.outside="rewatchOpen = false"
+                   @click.stop>
+                <div id="rewatch-modal-{{ current_instance.id }}"></div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
       </div>
 
       {# Hero #}
