@@ -264,6 +264,9 @@ def preferences(request):
     week_start_day = request.POST.get("week_start_day")
     if week_start_day in WeekStartDayChoices.values:
         request.user.week_start_day = week_start_day
+
+    request.user.show_adult_titles = "show_adult_titles" in request.POST
+
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     provider_region = request.POST.get("watch_provider_region", "")

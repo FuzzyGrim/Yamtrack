@@ -432,6 +432,11 @@ class User(AbstractUser):
         help_text="Process Jellyfin MarkUnplayed webhook events",
     )
 
+    show_adult_titles = models.BooleanField(
+        default=False,
+        help_text="Show adult titles",
+    )
+
     class Meta:
         """Meta options for the model."""
 

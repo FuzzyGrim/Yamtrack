@@ -175,9 +175,9 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
     return data
 
 
-def search(query, page):
+def search(query, page, show_adult_titles=False):  # noqa: FBT002
     """Search for games on IGDB using MultiQuery."""
-    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}_{page}"
+    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}_{page}_{show_adult_titles}"  # noqa: E501
     data = cache.get(cache_key)
 
     if data is None:
@@ -192,7 +192,7 @@ def search(query, page):
             f'where name ~ *"{query}"* & game_type = (0,1,2,3,4,5,6,7,8,9,10)'
         )
 
-        if not settings.IGDB_NSFW:
+        if not settings.IGDB_NSFW or not show_adult_titles:
             base_conditions += " & themes != (42)"
 
         offset = (page - 1) * settings.PER_PAGE

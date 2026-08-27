@@ -40,9 +40,11 @@ def handle_error(error):
     raise services.ProviderAPIError(Sources.MAL.value, error)
 
 
-def search(media_type, query, page):
+def search(media_type, query, page, show_adult_titles=False):  # noqa: FBT002
     """Search for media on MyAnimeList."""
-    cache_key = f"search_{Sources.MAL.value}_{media_type}_{query}_{page}"
+    cache_key = (
+        f"search_{Sources.MAL.value}_{media_type}_{query}_{page}_{show_adult_titles}"
+    )
     data = cache.get(cache_key)
 
     if data is None:
@@ -53,7 +55,7 @@ def search(media_type, query, page):
             "limit": settings.PER_PAGE,
             "offset": (page - 1) * settings.PER_PAGE,
         }
-        if settings.MAL_NSFW:
+        if settings.MAL_NSFW and show_adult_titles:
             params["nsfw"] = "true"
 
         try:

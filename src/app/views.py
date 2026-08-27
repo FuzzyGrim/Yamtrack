@@ -290,7 +290,13 @@ def media_search(request):
         config.get_default_source_name(media_type).value,
     )
 
-    data = services.search(media_type, query, page, source)
+    data = services.search(
+        media_type,
+        query,
+        page,
+        source,
+        show_adult_titles=request.user.show_adult_titles,
+    )
 
     # Enrich search results with user tracking data
     if data.get("results"):
