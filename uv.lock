@@ -617,15 +617,15 @@ wheels = [
 
 [[package]]
 name = "django-allauth"
-version = "65.16.1"
+version = "65.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/df/357187dfff18c7783e4911827a6c69437e290d7259a32a99c23fcd85997f/django_allauth-65.16.1.tar.gz", hash = "sha256:4425ac3088541c4c54983e16e08f6e3eb9f438dc1b1009534fa51c8bb739ed31", size = 2232835, upload-time = "2026-04-17T18:53:59.475Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/b7/6107ed71b0136a6d2a6647dbfe125dbc6c2fa764fdb19e98bda9bd52b0e6/django_allauth-65.19.0.tar.gz", hash = "sha256:9a615fd7f48f31985e1e3d886f8983e12d09e189f8d00d7a9750b3d300b7b366", size = 2283106, upload-time = "2026-08-06T14:27:15.296Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/58/d95b6c3088d83697bfd93782ee57bc6a6462e41eb19121a947b8a015396a/django_allauth-65.16.1-py3-none-any.whl", hash = "sha256:e49df24056bf37c44e56aaad1e51f78994b7d175bc3476d65e8f8f58390a8ce8", size = 2051868, upload-time = "2026-04-17T18:54:12.032Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/ec/3595bf98e7a2d161cab30c79f6bb2e395ff4f707110ef55ea0d4c04348cf/django_allauth-65.19.0-py3-none-any.whl", hash = "sha256:e37efea604d0bf40a6b16edd5b00e1560414e2c3ed07c2431b6e5bb058e2a771", size = 2073767, upload-time = "2026-08-06T14:27:06.411Z" },
 ]
 
 [package.optional-dependencies]
@@ -2437,7 +2437,7 @@ requires-dist = [
     { name = "croniter", specifier = "~=6.2.4" },
     { name = "defusedxml", specifier = "~=0.7.1" },
     { name = "django", specifier = "~=5.2.16" },
-    { name = "django-allauth", extras = ["socialaccount"], specifier = "~=65.16.1" },
+    { name = "django-allauth", extras = ["socialaccount"], specifier = "~=65.19.0" },
     { name = "django-celery-beat", specifier = "~=2.9.0" },
     { name = "django-celery-results", specifier = "~=2.6.0" },
     { name = "django-debug-toolbar", specifier = "~=6.3.0" },
