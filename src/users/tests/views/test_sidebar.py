@@ -104,6 +104,38 @@ class SidebarViewTests(TestCase):
         self.assertEqual(len(messages), 1)
         self.assertIn("Settings updated", str(messages[0]))
 
+    def test_include_specials_post_disable(self):
+        """Test disabling include_specials via preferences."""
+        self.assertTrue(self.user.include_specials)
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.include_specials)
+
+    def test_include_specials_post_enable(self):
+        """Test enabling include_specials via preferences."""
+        self.user.include_specials = False
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "include_specials": "on",
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.include_specials)
+
     def test_obfuscate_unseen_episodes_post_disable(self):
         """Test disabling obfuscate_unseen_episodes via preferences."""
         self.user.obfuscate_unseen_episodes = True

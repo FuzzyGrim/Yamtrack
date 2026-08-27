@@ -61,6 +61,30 @@
         </div>
       </div>
 
+      {# Include Specials #}
+      <div class="mb-5">
+        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+          <div class="flex-1">
+            <div class="flex items-center text-gray-200 mb-1">
+              {% include "app/icons/star.svg" with classes="w-5 h-5 mr-2" %}
+              <span class="text-sm font-medium">Include Specials</span>
+            </div>
+            <p class="text-xs text-gray-400 ml-7">
+              When disabled, specials no longer count towards the status of a TV show and are hidden from the home,
+              TV shows and TV seasons pages. They stay tracked and can still be watched from the show details page.
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer ml-4">
+            <input class="sr-only peer"
+                   type="checkbox"
+                   name="include_specials"
+                   {% if user.include_specials %}checked{% endif %}>
+            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+            </div>
+          </label>
+        </div>
+      </div>
+
       {# Quick Watch Date #}
       <div class="mb-5">
         <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
