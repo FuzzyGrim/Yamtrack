@@ -666,6 +666,7 @@ class User(AbstractUser):
             "steam": "Import from Steam",
             "imdb": "Import from IMDB",
             "goodreads": "Import from GoodReads",
+            "calibre-web-nextgen": "Import from Calibre-Web-NextGen",
         }
 
         # Reverse mapping to get source from task name
