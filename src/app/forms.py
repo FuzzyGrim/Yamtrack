@@ -18,6 +18,7 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    Status,
 )
 
 
@@ -234,6 +235,27 @@ class MediaForm(forms.ModelForm):
         }
 
 
+class RewatchableMediaForm(MediaForm):
+    """Base form for media that can be rewatched."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form, hiding Rewatching when it isn't applicable yet."""
+        super().__init__(*args, **kwargs)
+        if not self._can_rewatch():
+            self.fields["status"].choices = [
+                (value, label)
+                for value, label in self.fields["status"].choices
+                if value != Status.REWATCHING.value
+            ]
+
+    def _can_rewatch(self):
+        """Return whether Rewatching should be offered for this TV show."""
+        instance = self.instance
+        if instance.pk is None:
+            return False
+        return instance.progress > 0
+
+
 class MangaForm(MediaForm):
     """Form for manga."""
 
@@ -331,7 +353,7 @@ class BoardgameForm(MediaForm):
         }
 
 
-class TvForm(MediaForm):
+class TvForm(RewatchableMediaForm):
     """Form for TV shows."""
 
     class Meta(MediaForm.Meta):
@@ -341,7 +363,7 @@ class TvForm(MediaForm):
         fields = ["score", "status", "notes"]
 
 
-class SeasonForm(MediaForm):
+class SeasonForm(RewatchableMediaForm):
     """Form for seasons."""
 
     season_number = forms.IntegerField(widget=forms.HiddenInput(), required=False)

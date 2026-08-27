@@ -702,6 +702,7 @@ def episode_save(request):
     season_number = int(request.POST["season_number"])
     episode_number = int(request.POST["episode_number"])
     source = request.POST["source"]
+    action = request.POST["action"]
 
     form = EpisodeForm(request.POST)
     if not form.is_valid():
@@ -745,7 +746,10 @@ def episode_save(request):
 
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    related_season.watch(episode_number, form.cleaned_data["end_date"])
+    if action == "rewatch":
+        related_season.rewatch(episode_number, form.cleaned_data["end_date"])
+    else:
+        related_season.watch(episode_number, form.cleaned_data["end_date"])
 
     return helpers.redirect_back(request)
 
