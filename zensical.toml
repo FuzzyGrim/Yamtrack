@@ -16,6 +16,7 @@ nav = [
   { "Environment Variables" = "env-variables.md" },
   { "Media Imports" = "media-imports.md" },
   { "Social Auth" = "social-auth.md" },
+  { "Seerr Integration" = "seerr.md" },
   { "Administration" = "administration.md" },
 ]
 
