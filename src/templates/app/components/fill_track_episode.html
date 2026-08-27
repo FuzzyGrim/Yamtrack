@@ -45,11 +45,14 @@
             {% for entry in episode.history %}
               <div class="flex items-center justify-between bg-[#343a40] rounded-md p-3 border border-gray-600">
                 <div class="text-sm text-white">
-                  {% if entry.end_date %}
-                    {{ entry.end_date|datetime_format:request.user }}
-                  {% else %}
-                    No date provided
-                  {% endif %}
+                  <div>
+                    {% if entry.end_date %}
+                      {{ entry.end_date|datetime_format:request.user }}
+                    {% else %}
+                      No date provided
+                    {% endif %}
+                  </div>
+                  {% if entry.notes %}<p class="mt-1 text-xs text-gray-300 italic">"{{ entry.notes|linebreaksbr }}"</p>{% endif %}
                 </div>
                 <form hx-post="{% url 'media_delete' %}?next={{ request.path }}"
                       hx-swap="none">
@@ -103,6 +106,16 @@
                  @focus="if (!pointerOnPickerIcon) { $el.showPicker?.() }"
                  @click="pointerOnPickerIcon = false"
                  x-model="inputDateTime">
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-300 mb-2"
+                 for="episode-notes-{{ episode.episode_number }}">Notes</label>
+          <textarea class="w-full p-3 bg-[#343a40] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]"
+                    id="episode-notes-{{ episode.episode_number }}"
+                    rows="3"
+                    name="notes"
+                    placeholder="Add any notes or comments..."></textarea>
         </div>
 
         {# Submit Area #}

@@ -745,7 +745,11 @@ def episode_save(request):
 
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    related_season.watch(episode_number, form.cleaned_data["end_date"])
+    related_season.watch(
+        episode_number,
+        form.cleaned_data["end_date"],
+        form.cleaned_data["notes"],
+    )
 
     return helpers.redirect_back(request)
 
