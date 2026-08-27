@@ -557,6 +557,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="User and System Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-sharing-a-network-namespace-eg-gluetun" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Example: sharing a network namespace (e.g. gluetun)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -915,8 +932,31 @@
 <td><code>YAMTRACK_AUTO_LOGIN_USERNAME</code></td>
 <td>Default to <code>None</code>, which disables this feature. Specify a username to automatically login with the selected user. The user needs to be existing and active.</td>
 </tr>
+<tr>
+<td><code>YAMTRACK_INTERNAL_PORT</code></td>
+<td>ADVANCED. Port nginx listens on inside the container. Default to <code>8000</code>. Only needed when <code>8000</code> is already taken, typically when the container shares another service's network namespace (e.g. <code>network_mode: service:gluetun</code>). See the example below.</td>
+</tr>
 </tbody>
 </table>
+<h3 id="example-sharing-a-network-namespace-eg-gluetun">Example: sharing a network namespace (e.g. gluetun)<a class="headerlink" href="#example-sharing-a-network-namespace-eg-gluetun" title="Permanent link">&para;</a></h3>
+<p>When a container joins another service's network namespace via
+<code>network_mode: service:&lt;name&gt;</code>, it can no longer publish its own <code>ports:</code> — it
+must instead listen on a port that is free inside that namespace. Set
+<code>YAMTRACK_INTERNAL_PORT</code> to change what nginx listens on:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">services</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">yamtrack</span><span class="p">:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/fuzzygrim/yamtrack</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">      </span><span class="c1"># ... the rest of the Yamtrack variables</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YAMTRACK_INTERNAL_PORT=9117</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">network_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service:gluetun</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gluetun</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nt">gluetun</span><span class="p">:</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;9117:9117&quot;</span>
+</span></code></pre></div>
 <h2 id="celery-health-check">Celery Health Check<a class="headerlink" href="#celery-health-check" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
