@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, StreamingHttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -19,7 +19,7 @@ from django.views.decorators.http import require_GET, require_POST
 import users
 from app import helpers as app_helpers
 from integrations import exports, tasks
-from integrations.imports import anilist, helpers, simkl, trakt
+from integrations.imports import anilist, epic, helpers, simkl, trakt
 from integrations.webhooks import emby, jellyfin, plex
 
 logger = logging.getLogger(__name__)
@@ -460,6 +460,88 @@ def import_imdb(request):
         "The task to import media from IMDB CSV file has been queued.",
     )
     return redirect("import_data")
+
+
+@require_GET
+def epic_oauth(request):
+    """View for Epic Games OAuth flow.
+
+    Shows the Epic login URL and a field where the user pastes
+    the redirect URL containing the authorization code after logging in.
+    """
+    auth_url = epic.get_auth_url()
+    return render(request, "users/epic_auth.html", {"auth_url": auth_url})
+
+
+@require_POST
+def import_epic_private(request):
+    """View for completing Epic Games OAuth.
+
+    Accepts the authorization code the user copied from Epic's
+    redirect page, exchanges it for tokens, and starts the import.
+    """
+    code = request.POST.get("authorization_code", "").strip()
+    if not code:
+        messages.error(request, "Please paste the authorization code.")
+        return redirect("epic_oauth")
+
+    mode = request.session.get("epic_mode", "new")
+    frequency = request.session.get("epic_frequency", "once")
+    import_time = request.session.get("epic_time", "")
+
+    request.session.pop("epic_mode", None)
+    request.session.pop("epic_frequency", None)
+    request.session.pop("epic_time", None)
+
+    try:
+        oauth_data = epic.handle_oauth_callback(code)
+    except helpers.MediaImportError as e:
+        messages.error(request, str(e))
+        return redirect("epic_oauth")
+
+    encrypted_token = oauth_data["refresh_token"]
+    username = oauth_data["username"]
+
+    if frequency == "once":
+        tasks.import_epic.delay(
+            token=encrypted_token,
+            user_id=request.user.id,
+            mode=mode,
+        )
+        messages.info(
+            request,
+            f"The task to import media from Epic Games Store ({username}) has been queued.",
+        )
+    else:
+        helpers.create_import_schedule(
+            username=username,
+            request=request,
+            mode=mode,
+            frequency=frequency,
+            import_time=import_time,
+            source="Epic Games",
+            token=encrypted_token,
+        )
+
+    return redirect("import_data")
+
+
+@require_POST
+def import_epic_public(request):
+    """View for importing Epic Games library.
+
+    Stores the mode/frequency in the session and redirects to
+    the OAuth flow page.
+    """
+    mode = request.POST.get("mode", "new")
+    frequency = request.POST.get("frequency", "once")
+    import_time = request.POST.get("time", "")
+
+    request.session["epic_mode"] = mode
+    request.session["epic_frequency"] = frequency
+    request.session["epic_time"] = import_time
+
+    return redirect("epic_oauth")
 
 
 @require_POST

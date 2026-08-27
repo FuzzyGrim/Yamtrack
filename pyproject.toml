@@ -37,6 +37,7 @@ dependencies = [
   "requests-ratelimiter~=0.10.0",
   "supervisor~=4.3.0",
   "unidecode~=1.4.0",
+  "legendary-gl~=0.20.34",
 ]
 
 [dependency-groups]
