@@ -3,6 +3,7 @@ import logging
 from celery import shared_task
 
 from events import notifications
+from events.calendar.anime_sequels import check_anime_sequels
 from events.calendar.main import fetch_releases
 
 logger = logging.getLogger(__name__)
@@ -36,3 +37,11 @@ def send_daily_digest_notifications():
     logger.info("Starting daily digest task")
 
     return notifications.send_daily_digest()
+
+
+@shared_task(name="Check anime sequels")
+def check_anime_sequel_announcements():
+    """Create planning entries for newly announced sequels of completed anime."""
+    logger.info("Starting anime sequel announcement task")
+
+    return check_anime_sequels()
