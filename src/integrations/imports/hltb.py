@@ -232,9 +232,17 @@ class HowLongToBeatImporter:
         return Status.COMPLETED.value
 
     def _parse_hltb_date(self, date_str):
-        """Parse HLTB date string (YYYY-MM-DD) into datetime object."""
+        """Parse an HLTB date, normalizing unknown month and day values."""
         if not date_str:
             return None
+
+        year, month, day = date_str.split("-")
+        if year == "0000":
+            return None
+
+        month = "01" if month == "00" else month
+        day = "01" if day == "00" else day
+        date_str = f"{year}-{month}-{day}"
 
         return datetime.strptime(date_str, "%Y-%m-%d").replace(
             hour=0,
