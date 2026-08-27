@@ -53,26 +53,29 @@ See [media-imports](media-imports.md).
 | `SOCIALACCOUNT_ONLY`            | Default to `False`. Set to `True` to disable local authentication when using social authentication only.                                                              |
 | `REDIRECT_LOGIN_TO_SSO`         | Default to `False`. Set to `True` to automatically redirect (using JavaScript) to the SSO provider when there's only one available. Useful for single sign-on setups. |
 | `YAMTRACK_AUTO_LOGIN_USERNAME`  | Default to `None`, which disables this feature. Specify a username to automatically login with the selected user. The user needs to be existing and active.           |
-| `YAMTRACK_INTERNAL_PORT`                 | ADVANCED. Port nginx listens on inside the container. Default to `8000`. Useful when the default port is unavailable or the container shares a network namespace with another service (e.g. `network_mode: service:gluetun`). See example below.                                     |
+| `YAMTRACK_INTERNAL_PORT`        | ADVANCED. Port nginx listens on inside the container. Default to `8000`. Only needed when `8000` is already taken, typically when the container shares another service's network namespace (e.g. `network_mode: service:gluetun`). See the example below. |
 
 ### Example: sharing a network namespace (e.g. gluetun)
 
-When a container joins another service's network namespace via `network_mode: service:<name>`, it can no longer publish its own `ports:` — it must instead use a port that's free inside that namespace. Set `YAMTRACK_INTERNAL_PORT` to change what nginx listens on internally:
+When a container joins another service's network namespace via
+`network_mode: service:<name>`, it can no longer publish its own `ports:` — it
+must instead listen on a port that is free inside that namespace. Set
+`YAMTRACK_INTERNAL_PORT` to change what nginx listens on:
 
 ```yaml
 services:
   yamtrack:
     image: ghcr.io/fuzzygrim/yamtrack
     environment:
-      ...
+      # ... the rest of the Yamtrack variables
       - YAMTRACK_INTERNAL_PORT=9117
     network_mode: service:gluetun
     depends_on:
       - gluetun
-  # ports for yamtrack are published on the gluetun service instead, e.g.:
-  # gluetun:
-  #   ports:
-  #     - "9117:9117"
+
+  gluetun:
+    ports:
+      - "9117:9117"
 ```
 
 ## Celery Health Check

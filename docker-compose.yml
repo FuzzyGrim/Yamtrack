@@ -9,11 +9,10 @@ services:
       - TZ=Europe/Berlin
       - SECRET=longstring
       - REDIS_URL=redis://redis:6379
-      - YAMTRACK_INTERNAL_PORT=${YAMTRACK_INTERNAL_PORT:-8000}
     volumes:
       - ./db:/yamtrack/db
     ports:
-      - "8000:${YAMTRACK_INTERNAL_PORT:-8000}"
+      - "8000:8000"
 
   redis:
     container_name: yamtrack-redis
