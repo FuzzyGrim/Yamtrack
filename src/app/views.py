@@ -147,6 +147,11 @@ def progress_edit(request, media_type, instance_id):
             response["HX-Reswap"] = "delete"
             return response
 
+    BasicMedia.objects.annotate_max_progress(             
+        [media],                                          
+        media_type,                                              
+    )
+
     context = {
         "media": media,
         "home_status": home_status,
