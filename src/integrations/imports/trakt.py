@@ -614,7 +614,10 @@ class TraktImporter:
         """Process watchlist from Trakt."""
         logger.info("Importing watchlist for user %s", self.username)
         watchlist_endpoint = f"{self.user_base_url}/watchlist"
-        watchlist_data = self._make_api_request(watchlist_endpoint)
+        watchlist_data = self._get_paginated_data(
+            watchlist_endpoint,
+            "watchlist entries",
+        )
 
         for entry in watchlist_data:
             try:
@@ -631,7 +634,7 @@ class TraktImporter:
         """Process ratings from Trakt."""
         logger.info("Importing ratings for user %s", self.username)
         ratings_endpoint = f"{self.user_base_url}/ratings"
-        ratings_data = self._make_api_request(ratings_endpoint)
+        ratings_data = self._get_paginated_data(ratings_endpoint, "ratings")
 
         for entry in ratings_data:
             try:
