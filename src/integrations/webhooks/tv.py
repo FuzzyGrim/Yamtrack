@@ -1,14 +1,19 @@
 import logging
 
+import requests
 from django.utils import timezone
 
 import app
 from app.models import MediaTypes, Sources, Status
 from app.providers import tvdb as tvdb_provider
+from app.providers.services import ProviderAPIError
 
 from . import anime_mappings
 
 logger = logging.getLogger(__name__)
+
+# How many TMDB title-search candidates to confirm an episode ID against.
+TMDB_SEARCH_CANDIDATES = 5
 
 
 class TVWebhookMixin:
@@ -16,44 +21,12 @@ class TVWebhookMixin:
 
     def _process_tv(self, payload, user, ids):
         anidb_id = ids.get("anidb_id")
-        if user.anime_enabled and anidb_id:
-            mapping_data = anime_mappings.fetch_mapping_data()
-            episode_number = self._get_episode_number(payload)
-            mal_id = None
-            mal_episode_number = None
-
-            if not episode_number:
-                logger.warning(
-                    "No episode number found for AniDB ID: %s",
-                    anidb_id,
-                )
-            else:
-                mal_id, mal_episode_number = anime_mappings.get_mal_id_from_anidb(
-                    mapping_data,
-                    anidb_id,
-                    episode_number,
-                )
-
-            if episode_number and not mal_id:
-                logger.info(
-                    "AniDB ID %s not found in mapping, "
-                    "falling through to TV processing",
-                    anidb_id,
-                )
-            elif episode_number:
-                logger.info(
-                    "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
-                    anidb_id,
-                    mal_id,
-                    mal_episode_number,
-                )
-                self._handle_anime(
-                    mal_id,
-                    mal_episode_number,
-                    payload,
-                    user,
-                )
-                return
+        if (
+            user.anime_enabled
+            and anidb_id
+            and self._process_anidb_episode(anidb_id, payload, user)
+        ):
+            return
 
         tvdb_episode_id = ids.get("tvdb_id")
         if tvdb_episode_id:
@@ -74,10 +47,129 @@ class TVWebhookMixin:
         if imdb_id and self._process_imdb_episode(imdb_id, payload, user):
             return
 
+        tmdb_episode_id = ids.get("tmdb_id")
+        if tmdb_episode_id and self._process_tmdb_episode(
+            tmdb_episode_id, payload, user
+        ):
+            return
+
         if imdb_id:
             logger.warning("No matching TMDB ID found for IMDB ID: %s", imdb_id)
+        elif tmdb_episode_id:
+            logger.warning(
+                "Could not resolve TMDB episode ID %s to a show",
+                tmdb_episode_id,
+            )
         else:
             logger.warning("No TVDB or IMDB ID found for TV episode")
+
+    def _process_anidb_episode(self, anidb_id, payload, user):
+        """Process an anime episode using an AniDB ID.
+
+        Returns True when the episode was handled as anime, False to fall
+        through to regular TV processing.
+        """
+        episode_number = self._get_episode_number(payload)
+        if not episode_number:
+            logger.warning("No episode number found for AniDB ID: %s", anidb_id)
+            return False
+
+        mapping_data = anime_mappings.fetch_mapping_data()
+        mal_id, mal_episode_number = anime_mappings.get_mal_id_from_anidb(
+            mapping_data,
+            anidb_id,
+            episode_number,
+        )
+
+        if not mal_id:
+            logger.info(
+                "AniDB ID %s not found in mapping, falling through to TV processing",
+                anidb_id,
+            )
+            return False
+
+        logger.info(
+            "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
+            anidb_id,
+            mal_id,
+            mal_episode_number,
+        )
+        self._handle_anime(mal_id, mal_episode_number, payload, user)
+        return True
+
+    def _process_tmdb_episode(self, tmdb_episode_id, payload, user):
+        """Process a TV episode from an episode-level TMDB ID.
+
+        Plex's tv.plex.agents.series agent regularly matches an episode
+        against TMDB with no TVDB or IMDB cross-reference, leaving a lone
+        episode-level ``tmdb://`` GUID. TMDB exposes no endpoint that maps an
+        episode ID back to its show, so search by the show title carried in
+        the payload and accept a candidate only when the episode ID
+        round-trips against that candidate's season metadata. The ID match is
+        what makes the title search safe.
+        """
+        show_title = self._get_show_title(payload)
+        season_number = self._get_season_number(payload)
+        if not show_title or season_number is None:
+            logger.debug(
+                "Cannot resolve TMDB episode ID %s without a show title and "
+                "season number",
+                tmdb_episode_id,
+            )
+            return False
+
+        try:
+            search_results = app.providers.tmdb.search(
+                MediaTypes.TV.value,
+                show_title,
+                1,
+            )["results"]
+        except (ProviderAPIError, requests.exceptions.RequestException):
+            logger.exception("TMDB search failed for show title: %s", show_title)
+            return False
+
+        for candidate in search_results[:TMDB_SEARCH_CANDIDATES]:
+            media_id = candidate["media_id"]
+            try:
+                tv_metadata = app.providers.tmdb.tv_with_seasons(
+                    media_id,
+                    [season_number],
+                )
+            except (ProviderAPIError, requests.exceptions.RequestException, KeyError):
+                logger.debug(
+                    "Could not fetch season %s of TMDB show %s",
+                    season_number,
+                    media_id,
+                )
+                continue
+
+            season_metadata = tv_metadata.get(f"season/{season_number}")
+            if not season_metadata:
+                continue
+
+            for episode in season_metadata.get("episodes", []):
+                if str(episode.get("id")) != str(tmdb_episode_id):
+                    continue
+
+                episode_number = episode["episode_number"]
+                logger.info(
+                    "Detected TV episode via TMDB episode ID: %s, "
+                    "TMDB ID: %s, Season: %d, Episode: %d",
+                    tmdb_episode_id,
+                    media_id,
+                    season_number,
+                    episode_number,
+                )
+                self._handle_tv_episode(
+                    media_id,
+                    season_number,
+                    episode_number,
+                    payload,
+                    user,
+                )
+                return True
+
+        return False
 
     def _process_tvdb_episode(self, tvdb_episode, tvdb_episode_id, payload, user):
         """Process a TV episode using TVDB metadata."""
