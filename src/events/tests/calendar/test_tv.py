@@ -298,6 +298,50 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         self.assertEqual(get_seasons_to_process(self.tv_item), [])
 
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_get_seasons_to_process_includes_seasons_with_new_tmdb_episodes(
+        self, mock_tv
+    ):
+        """Seasons with fewer events than TMDB episode count should be re-processed."""
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    # Season 0: TMDB has 2 episodes, we have 1 event → needs refresh
+                    {"season_number": 0, "max_progress": 2},
+                    # Season 1: TMDB has 1 episode, we have 1 event → up to date
+                    {"season_number": 1, "max_progress": 1},
+                    # Season 2: upcoming → always processed
+                    {"season_number": 2, "max_progress": 0},
+                ],
+            },
+            "next_episode_season": 2,
+        }
+        Event.objects.create(
+            item=self.season_item,  # season_number=1
+            content_number=1,
+            datetime=datetime.datetime(2020, 1, 1, tzinfo=ZoneInfo("UTC")),
+        )
+        season_0_item, _ = Item.objects.get_or_create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type="season",
+            season_number=0,
+            defaults={"title": self.tv_item.title, "image": ""},
+        )
+        Event.objects.create(
+            item=season_0_item,
+            content_number=1,
+            datetime=datetime.datetime(2019, 1, 1, tzinfo=ZoneInfo("UTC")),
+        )
+
+        result = get_seasons_to_process(self.tv_item)
+
+        # Season 0 (new TMDB episode) and season 2 (upcoming) should be processed
+        self.assertIn(0, result)
+        self.assertIn(2, result)
+        # Season 1 is up to date
+        self.assertNotIn(1, result)
+
     @patch("events.calendar.tv.get_seasons_to_process")
     def test_process_tv_returns_when_no_seasons_need_processing(
         self,

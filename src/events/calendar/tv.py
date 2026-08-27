@@ -72,12 +72,23 @@ def get_seasons_to_process(tv_item):
         item__media_type=MediaTypes.SEASON.value,
     ).select_related("item")
 
-    seasons_with_events = {event.item.season_number for event in existing_season_events}
+    events_per_season = {}
+    seasons_with_events = set()
+    for sn in existing_season_events.values_list("item__season_number", flat=True):
+        seasons_with_events.add(sn)
+        events_per_season[sn] = events_per_season.get(sn, 0) + 1
+
+    tmdb_episode_count = {
+        season["season_number"]: season.get("max_progress", 0)
+        for season in tv_metadata["related"]["seasons"]
+    }
+
     seasons_to_process = [
         season_num
         for season_num in season_numbers
         if season_num not in seasons_with_events
         or (next_episode_season and season_num >= next_episode_season)
+        or events_per_season.get(season_num, 0) < tmdb_episode_count.get(season_num, 0)
     ]
 
     if not seasons_to_process:
