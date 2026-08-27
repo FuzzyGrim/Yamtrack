@@ -263,6 +263,122 @@ class JellyfinWebhookTests(TestCase):
             self.user,
         )
 
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.find")
+    @patch("integrations.webhooks.tv.tvdb_provider.episode")
+    def test_tv_episode_uses_series_tmdb_id_fallback(
+        self,
+        mock_tvdb_episode,
+        mock_tmdb_find,
+        mock_handle_tv_episode,
+    ):
+        """Test the series TMDB ID is used when the episode has no usable ID."""
+        mock_tmdb_find.return_value = {"tv_episode_results": []}
+        payload = {
+            "Event": "Play",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {
+                    "Imdb": "tt6848982",
+                },
+                "SeriesName": "La Mante",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 2,
+                "UserData": {"Played": False},
+            },
+            "Series": {
+                "Name": "La Mante",
+                "ProviderIds": {
+                    "Imdb": "tt6467482",
+                    "Tmdb": "73613",
+                    "Tvdb": "322885",
+                },
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tvdb_episode.assert_not_called()
+        mock_tmdb_find.assert_called_once_with("tt6848982", "imdb_id")
+        mock_handle_tv_episode.assert_called_once_with(
+            "73613",
+            1,
+            2,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.find")
+    def test_tv_episode_series_tmdb_id_is_only_id(
+        self,
+        mock_tmdb_find,
+        mock_handle_tv_episode,
+    ):
+        """Test the series TMDB ID alone is enough to process an episode."""
+        payload = {
+            "Event": "Play",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {},
+                "SeriesName": "La Mante",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 2,
+                "UserData": {"Played": False},
+            },
+            "Series": {"ProviderIds": {"Tmdb": "73613"}},
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tmdb_find.assert_not_called()
+        mock_handle_tv_episode.assert_called_once_with(
+            "73613",
+            1,
+            2,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    def test_tv_episode_series_tmdb_id_without_episode_numbers(
+        self,
+        mock_handle_tv_episode,
+    ):
+        """Test the series TMDB ID is not used without season/episode numbers."""
+        payload = {
+            "Event": "Play",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {},
+                "SeriesName": "La Mante",
+                "UserData": {"Played": False},
+            },
+            "Series": {"ProviderIds": {"Tmdb": "73613"}},
+        }
+
+        processed = JellyfinWebhookProcessor()._process_tmdb_show_episode(
+            "73613",
+            payload,
+            self.user,
+        )
+
+        self.assertFalse(processed)
+        mock_handle_tv_episode.assert_not_called()
+
     def test_mark_played_ignored_when_disabled(self):
         """Test Jellyfin MarkPlayed events are ignored by default."""
         payload = {
@@ -724,6 +840,7 @@ class JellyfinWebhookTests(TestCase):
             "tmdb_id": "603",
             "imdb_id": None,
             "tvdb_id": "169",
+            "tmdb_show_id": None,
         }
 
         result = JellyfinWebhookProcessor()._extract_external_ids(payload)
@@ -747,6 +864,7 @@ class JellyfinWebhookTests(TestCase):
             "tmdb_id": None,
             "imdb_id": None,
             "tvdb_id": None,
+            "tmdb_show_id": None,
         }
 
         result = JellyfinWebhookProcessor()._extract_external_ids(payload)
@@ -768,12 +886,53 @@ class JellyfinWebhookTests(TestCase):
             "tmdb_id": None,
             "imdb_id": None,
             "tvdb_id": None,
+            "tmdb_show_id": None,
         }
 
         result = JellyfinWebhookProcessor()._extract_external_ids(payload)
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)
+
+    def test_extract_external_ids_from_series(self):
+        """Test the series TMDB ID is extracted when the episode has none."""
+        payload = {
+            "Event": "Play",
+            "Item": {
+                "Type": "Episode",
+                "ProviderIds": {"Imdb": "tt6848982"},
+            },
+            "Series": {
+                "ProviderIds": {
+                    "Imdb": "tt6467482",
+                    "Tmdb": "73613",
+                    "Tvdb": "322885",
+                },
+            },
+        }
+
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": "tt6848982",
+            "tvdb_id": None,
+            "tmdb_show_id": "73613",
+        }
+
+        result = JellyfinWebhookProcessor()._extract_external_ids(payload)
+
+        self.assertEqual(result, expected)
+
+    def test_get_season_number(self):
+        """Test extracting season number from Jellyfin payload."""
+        payload = {
+            "Item": {
+                "ParentIndexNumber": 3,
+            },
+        }
+
+        result = JellyfinWebhookProcessor()._get_season_number(payload)
+
+        self.assertEqual(result, 3)
 
     def test_get_episode_number(self):
         """Test extracting episode number from Jellyfin payload."""

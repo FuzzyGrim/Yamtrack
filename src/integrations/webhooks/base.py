@@ -46,6 +46,10 @@ class BaseWebhookProcessor(TVWebhookMixin, MovieWebhookMixin, AnimeWebhookMixin)
         """Get media title from payload."""
         raise NotImplementedError
 
+    def _get_season_number(self, payload):
+        """Get season number from payload."""
+        raise NotImplementedError
+
     def _get_episode_number(self, payload):
         """Get episode number from payload."""
         raise NotImplementedError

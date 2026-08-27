@@ -87,6 +87,9 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
 
         return title
 
+    def _get_season_number(self, payload):
+        return payload["Metadata"].get("parentIndex")
+
     def _get_episode_number(self, payload):
         return payload["Metadata"].get("index")
 
