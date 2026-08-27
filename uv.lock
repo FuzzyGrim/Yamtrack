@@ -871,15 +871,15 @@ wheels = [
 
 [[package]]
 name = "fakeredis"
-version = "2.35.1"
+version = "2.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "redis" },
     { name = "sortedcontainers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/43/50/b748233c02fa77e5105238190cc9bb58b852eb1c8b1d0763230d3a5b745a/fakeredis-2.35.1.tar.gz", hash = "sha256:5bae5eba7b9d93cb968944ac40936373cf2397ff71667d4b595df65c3d2e413f", size = 189118, upload-time = "2026-04-12T17:05:58.539Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/34/73256495885f68b125b6a95f6a8448e103adf34825746ab8905db52183a0/fakeredis-2.37.0.tar.gz", hash = "sha256:7461f124dcba04a80691d72270b3d1d5cd100ef14dc068c76db825940f3ed799", size = 236339, upload-time = "2026-07-22T20:04:53.753Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/27/b8b057a23f7777177e92d3a602fd866751b6b45014964548997e92e048fd/fakeredis-2.35.1-py3-none-any.whl", hash = "sha256:67d97e11f562b7870e11e5c30cf182270bfb2dd37f6707dba47cc6d91628d1b9", size = 129678, upload-time = "2026-04-12T17:05:56.86Z" },
+    { url = "https://files.pythonhosted.org/packages/76/e2/964e6ef372770dd7c32f9738b50ff4924f1d3cccd665b568680e4bcb0167/fakeredis-2.37.0-py3-none-any.whl", hash = "sha256:657a2a695a1123be0c13f98db409371497bd94c29d260dd76a9fc7ce1a633745", size = 151526, upload-time = "2026-07-22T20:04:51.979Z" },
 ]
 
 [package.optional-dependencies]
@@ -2464,7 +2464,7 @@ dev = [
     { name = "coverage", specifier = "~=7.15.3" },
     { name = "django-upgrade", specifier = "~=1.31.1" },
     { name = "djlint", specifier = "~=1.44.0" },
-    { name = "fakeredis", extras = ["lua"], specifier = "~=2.35.1" },
+    { name = "fakeredis", extras = ["lua"], specifier = "~=2.37.0" },
     { name = "pre-commit", specifier = "~=4.6.1" },
     { name = "pytest-django", specifier = "~=4.12.0" },
     { name = "pytest-playwright", specifier = "~=0.8.0" },
@@ -2483,7 +2483,7 @@ lint = [
 ]
 test = [
     { name = "coverage", specifier = "~=7.15.3" },
-    { name = "fakeredis", extras = ["lua"], specifier = "~=2.35.1" },
+    { name = "fakeredis", extras = ["lua"], specifier = "~=2.37.0" },
     { name = "pytest-django", specifier = "~=4.12.0" },
     { name = "pytest-playwright", specifier = "~=0.8.0" },
     { name = "tblib", specifier = "~=3.2.2" },
