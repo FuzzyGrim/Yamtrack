@@ -1574,7 +1574,7 @@ class Season(Media):
         else:
             logger.info("No more episodes to watch.")
 
-    def watch(self, episode_number, end_date):
+    def watch(self, episode_number, end_date, score=None):
         """Create or add a repeat to an episode of the season."""
         item = self.get_episode_item(episode_number)
 
@@ -1582,6 +1582,7 @@ class Season(Media):
             related_season=self,
             item=item,
             end_date=end_date,
+            score=score,
         )
         logger.info(
             "%s created successfully.",
@@ -1763,6 +1764,17 @@ class Episode(models.Model):
         Season,
         on_delete=models.CASCADE,
         related_name="episodes",
+    )
+    score = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=3,
+        decimal_places=1,
+        validators=[
+            DecimalValidator(3, 1),
+            MinValueValidator(0),
+            MaxValueValidator(10),
+        ],
     )
     end_date = models.DateTimeField(null=True, blank=True)
 

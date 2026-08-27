@@ -184,6 +184,28 @@ class JournalViewTests(TestCase):
             "Watched episode 1",
         )
 
+    def test_journal_episode_score_change(self):
+        """Rating an already-watched episode shows the rating, not a bare update."""
+        self._add_episode()
+        episode = Episode.objects.get(related_season__user=self.user)
+        episode.score = 8
+        episode._history_user = self.user
+        episode.save()
+
+        response = self.client.get(reverse("journal"))
+
+        score_entries = [
+            entry
+            for entry in response.context["entries"]
+            if entry["media_type"] == MediaTypes.EPISODE.value
+            and entry["changes"][0]["field"] == "score"
+        ]
+        self.assertEqual(len(score_entries), 1)
+        self.assertEqual(
+            score_entries[0]["changes"][0]["description"],
+            "Rated 8.0/10",
+        )
+
     def test_journal_excludes_other_users(self):
         """The feed only contains the requesting user's activity."""
         credentials = {"username": "other", "password": "12345"}

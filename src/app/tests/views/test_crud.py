@@ -126,6 +126,25 @@ class CreateMedia(TestCase):
             True,
         )
 
+    def test_create_episode_with_score(self):
+        """Test creating an episode with a score through views."""
+        self.client.post(
+            reverse("episode_save"),
+            {
+                "media_id": "1668",
+                "season_number": 1,
+                "episode_number": 1,
+                "source": Sources.TMDB.value,
+                "score": 7,
+            },
+        )
+        episode = Episode.objects.get(
+            item__media_id="1668",
+            related_season__user=self.user,
+            item__episode_number=1,
+        )
+        self.assertEqual(episode.score, 7)
+
 
 class EditMedia(TestCase):
     """Test the editing of media objects through views."""
@@ -358,3 +377,70 @@ class DeleteMedia(TestCase):
             Episode.objects.filter(related_season__user=self.user).count(),
             0,
         )
+
+
+class UpdateEpisodeScore(TestCase):
+    """Test updating an episode's score through views."""
+
+    def setUp(self):
+        """Create a user, a season and an episode."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.external_credentials = {"username": "test2", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.external_user = get_user_model().objects.create_user(
+            **self.external_credentials
+        )
+        self.client.login(**self.credentials)
+
+        item_season = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        self.season = Season.objects.create(
+            item=item_season,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        item_ep = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+        self.episode = Episode.objects.create(
+            item=item_ep,
+            related_season=self.season,
+            end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
+        )
+
+    def test_update_episode_score(self):
+        """Test setting a score on an episode."""
+        response = self.client.post(
+            reverse("update_episode_score", kwargs={"instance_id": self.episode.id}),
+            {"score": 8},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.episode.refresh_from_db()
+        self.assertEqual(self.episode.score, 8)
+
+    def test_cannot_update_another_users_episode_score(self):
+        """Test users cannot update another user's episode score."""
+        self.client.logout()
+        self.client.login(**self.external_credentials)
+
+        response = self.client.post(
+            reverse("update_episode_score", kwargs={"instance_id": self.episode.id}),
+            {"score": 8},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.episode.refresh_from_db()
+        self.assertIsNone(self.episode.score)

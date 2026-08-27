@@ -1,8 +1,12 @@
+import datetime
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from app import config
-from app.history_processor import format_description
-from app.models import MediaTypes, Status
+from app.history_processor import _episode_changes, format_description
+from app.models import Episode, Item, MediaTypes, Season, Sources, Status
 
 
 class HistoryProcessorTests(TestCase):
@@ -198,3 +202,47 @@ class HistoryProcessorTests(TestCase):
             format_description("custom_field", "old", "new"),
             "Updated custom field from old to new",
         )
+
+
+class EpisodeJournalChangesTests(TestCase):
+    """Test journal descriptions for episode changes."""
+
+    def setUp(self):
+        """Create a user, a season and an episode item."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        item_season = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        self.season = Season.objects.create(
+            item=item_season,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        self.item_ep = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+
+    def test_watched_episode_with_score_shows_watch_and_rating(self):
+        """A watch logged with a score surfaces the rating beside the watch."""
+        episode = Episode.objects.create(
+            item=self.item_ep,
+            related_season=self.season,
+            end_date=datetime.datetime(2023, 6, 1, tzinfo=datetime.UTC),
+            score=Decimal("10.0"),
+        )
+        record = episode.history.first()
+        changes = _episode_changes(record, {"episode_number": 1}, None, self.user)
+        descriptions = [change["description"] for change in changes]
+        self.assertEqual(descriptions, ["Watched episode 1", "Rated 10.0/10"])

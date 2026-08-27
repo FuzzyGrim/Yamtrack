@@ -26,6 +26,11 @@ urlpatterns = [
         name="update_media_score",
     ),
     path(
+        "update-episode-score/<int:instance_id>",
+        views.update_episode_score,
+        name="update_episode_score",
+    ),
+    path(
         "details/sync/<source:source>/<media_type:media_type>/<str:media_id>",
         views.sync_metadata,
         name="sync_metadata",

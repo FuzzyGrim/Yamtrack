@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
@@ -161,6 +162,31 @@ class ImportYamtrackEpisodeHistoryDate(TestCase):
             episode_instance._history_date,
             datetime(2025, 11, 19, 19, 0, 0, tzinfo=UTC),
         )
+
+    def test_episode_score_imported(self):
+        """A scored episode row restores its score on import."""
+        importer = yamtrack.YamtrackImporter(None, self.user, "new")
+        row = {
+            "media_id": "1668",
+            "source": "tmdb",
+            "media_type": "episode",
+            "title": "Friends",
+            "image": "http://image.tmdb.org/t/p/original/friends.jpg",
+            "season_number": "1",
+            "episode_number": "1",
+            "score": "8.0",
+            "progress": "",
+            "status": "",
+            "start_date": "",
+            "end_date": "2025-11-19 19:00:00+00:00",
+            "notes": "",
+            "progressed_at": "",
+        }
+
+        importer._process_row(row)
+
+        episode_instance = importer.bulk_media["episode"][0]
+        self.assertEqual(episode_instance.score, Decimal("8.0"))
 
 
 class ImportYamtrackPartials(TestCase):
