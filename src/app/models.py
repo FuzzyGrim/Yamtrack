@@ -983,6 +983,10 @@ class TV(Media):
     @tracker  # postpone field reset until after the save
     def save(self, *args, **kwargs):
         """Save the media instance."""
+        # Read before saving, the seasons of a show update it in bulk to avoid
+        # cascading back, which leaves the tracker holding an outdated status
+        previous_status = self._get_stored_status()
+
         super(Media, self).save(*args, **kwargs)
 
         if self.tracker.has_changed("status"):
@@ -990,7 +994,7 @@ class TV(Media):
                 self._completed()
 
             elif self.status == Status.DROPPED.value:
-                self._mark_in_progress_seasons_as_dropped()
+                self._drop_started_seasons()
 
             elif (
                 self.status == Status.IN_PROGRESS.value
@@ -998,7 +1002,17 @@ class TV(Media):
             ):
                 self._start_next_available_season()
 
+            elif previous_status and previous_status != self.status:
+                self._move_seasons_from_status(previous_status, self.status)
+
             self.item.fetch_releases(delay=True)
+
+    def _get_stored_status(self):
+        """Return the status currently stored for the show, if any."""
+        if not self.pk:
+            return None
+
+        return TV.objects.filter(pk=self.pk).values_list("status", flat=True).first()
 
     @property
     def progress(self):
@@ -1178,18 +1192,42 @@ class TV(Media):
                 level=UserMessageLevel.WARNING,
             )
 
-    def _mark_in_progress_seasons_as_dropped(self):
-        """Mark all in-progress seasons as dropped."""
-        in_progress_seasons = list(
-            self.seasons.filter(status=Status.IN_PROGRESS.value),
+    def _drop_started_seasons(self):
+        """Drop every season that was started but never finished.
+
+        Dropping a show abandons everything still underway, so paused seasons
+        follow along with the in-progress ones. Seasons never started stay
+        planned and finished seasons stay completed.
+        """
+        self._move_seasons(
+            self.seasons.filter(
+                status__in=[Status.IN_PROGRESS.value, Status.PAUSED.value],
+            ),
+            Status.DROPPED.value,
         )
 
-        for season in in_progress_seasons:
-            season.status = Status.DROPPED.value
+    def _move_seasons_from_status(self, from_status, to_status):
+        """Move seasons that shared the old show status to the new one.
 
-        if in_progress_seasons:
+        Seasons at any other status are left alone, so finished seasons stay
+        finished when a show is paused or moved back to planning.
+        """
+        self._move_seasons(self.seasons.filter(status=from_status), to_status)
+
+    def _move_seasons(self, seasons, to_status):
+        """Set the status of the given seasons.
+
+        Updates bypass ``Season.save`` to avoid cascading straight back into
+        the show.
+        """
+        seasons_to_move = list(seasons)
+
+        for season in seasons_to_move:
+            season.status = to_status
+
+        if seasons_to_move:
             bulk_update_with_history(
-                in_progress_seasons,
+                seasons_to_move,
                 Season,
                 fields=["status"],
             )
