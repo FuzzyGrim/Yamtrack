@@ -1310,9 +1310,9 @@ class TV(Media):
 
         return season_started
 
-    def _demote_other_rewatching_seasons(self, exclude_season):
+    def _demote_other_active_seasons(self, exclude_season):
         other_rewatching_seasons = self.seasons.filter(
-            status=Status.REWATCHING.value,
+            status__in=[Status.REWATCHING.value, Status.IN_PROGRESS.value],
         ).exclude(pk=exclude_season.pk)
 
         if not other_rewatching_seasons.exists():
@@ -1391,7 +1391,7 @@ class TV(Media):
                         Season,
                         fields=["status", "rewatch_started_at"],
                     )
-                self._demote_other_rewatching_seasons(exclude_season=existing_season)
+                self._demote_other_active_seasons(exclude_season=existing_season)
 
                 if self.status != Status.REWATCHING.value:
                     self.status = Status.REWATCHING.value
@@ -1624,7 +1624,7 @@ class Season(Media):
                         TV,
                         fields=["status"],
                     )
-                self.related_tv._demote_other_rewatching_seasons(exclude_season=self)
+                self.related_tv._demote_other_active_seasons(exclude_season=self)
 
             elif (
                 self.status == Status.DROPPED.value
@@ -1768,17 +1768,18 @@ class Season(Media):
         if cycle_watched > 0:
             if max_released and cycle_watched >= max_released:
                 return Status.COMPLETED.value, None
-            return Status.IN_PROGRESS.value, self.rewatch_started_at
+            return Status.PAUSED.value, self.rewatch_started_at
 
-        latest_watched = self._get_latest_watched_episode_number(
+        # Restoring previous progresses if no rewatch happened for the a season
+        all_time_watched = self._get_latest_watched_episode_number(
             current_cycle_only=False
         )
 
-        if latest_watched == 0:
+        if all_time_watched == 0:
             return Status.PLANNING.value, None
-        if max_released and latest_watched >= max_released:
+        if max_released and all_time_watched >= max_released:
             return Status.COMPLETED.value, None
-        return Status.IN_PROGRESS.value, None
+        return Status.PAUSED.value, None
 
     def increase_progress(self):
         """Watch the next episode of the season."""
@@ -1824,7 +1825,7 @@ class Season(Media):
                 fields=["status"],
             )
 
-        self.related_tv._demote_other_rewatching_seasons(exclude_season=self)
+        self.related_tv._demote_other_active_seasons(exclude_season=self)
         self.watch(episode_number, end_date)
 
     def watch(self, episode_number, end_date):
