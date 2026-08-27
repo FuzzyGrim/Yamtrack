@@ -11,7 +11,7 @@ from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import Prefetch, prefetch_related_objects
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -39,7 +39,6 @@ from users.models import (
     HomeSortChoices,
     MediaSortChoices,
     MediaStatusChoices,
-    User,
 )
 
 logger = logging.getLogger(__name__)
@@ -162,7 +161,7 @@ def progress_edit(request, media_type, instance_id):
 @require_GET
 def media_list(request, username, media_type):
     """Return the media list page."""
-    target_user = get_object_or_404(User, username=username)
+    target_user = helpers.get_user_or_404(request, username)
 
     # if user is looking at own page then update preferences
     if request.user == target_user:
