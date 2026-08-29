@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from app import statistics
 from app.models import (
@@ -955,7 +956,7 @@ class StatisticsTests(TestCase):
             today,
         )
 
-        # No activity today, so current streak is 0
+        # No activity on the last day of the past range, so current streak is 0
         self.assertEqual(current_streak, 0)
         # Longest streak should be 2 (Mar 29-30)
         self.assertEqual(longest_streak, 2)
@@ -968,6 +969,22 @@ class StatisticsTests(TestCase):
         )
         self.assertEqual(current_streak, 0)
         self.assertEqual(longest_streak, 0)
+
+    def test_calculate_streaks_today_in_progress(self):
+        """Test that today without activity yet doesn't break the streak."""
+        today = timezone.localdate()
+        date_counts = {
+            today - datetime.timedelta(days=1): 2,
+            today - datetime.timedelta(days=2): 3,
+        }
+
+        current_streak, longest_streak = statistics.calculate_streaks(
+            date_counts,
+            today,
+        )
+
+        self.assertEqual(current_streak, 2)
+        self.assertEqual(longest_streak, 2)
 
 
 class GetActivityDataWeekStartTests(TestCase):
