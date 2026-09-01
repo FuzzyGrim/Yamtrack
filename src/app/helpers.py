@@ -88,16 +88,10 @@ def redirect_back(request):
     """
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
         next_url = request.GET["next"]
-
-        # Parse the URL
         parsed_url = urlparse(next_url)
-
-        # Get the query parameters and remove params we don't want
         query_params = dict(parse_qsl(parsed_url.query, keep_blank_values=True))
         query_params.pop("page", None)
         query_params.pop("load_media_type", None)
-
-        # Reconstruct the URL without the removed params
         new_query = urlencode(query_params)
         clean_url = iri_to_uri(parsed_url._replace(query=new_query).geturl())
     else:
@@ -109,7 +103,6 @@ def redirect_back(request):
             {
                 "path": clean_url or reverse("home"),
                 "target": "body",
-                # show:none keeps the current scroll position after the swap
                 "swap": "innerHTML show:none",
                 "headers": {"X-Soft-Navigation": "true"},
             },
@@ -191,11 +184,10 @@ def enrich_items_with_user_data(request, items, section_name):
     if not items:
         return []
 
-    # All items are the same media type
     media_type = items[0]["media_type"]
     media_lookup = _build_user_media_lookup(request.user, items, media_type)
+    tracking_users_lookup = _build_tracking_users_lookup(items, media_type)
 
-    # Enrich items with matched media
     enriched_items = []
     items_to_refresh = []
     for item in items:
@@ -216,12 +208,55 @@ def enrich_items_with_user_data(request, items, section_name):
             media_item.item.image = item["image"]
             items_to_refresh.append(media_item.item)
 
-        enriched_items.append({"item": item, "media": media_item})
+        enriched_items.append(
+            {
+                "item": item,
+                "media": media_item,
+                "tracking_users": tracking_users_lookup.get(key, []),
+            }
+        )
 
     if items_to_refresh:
         Item.objects.bulk_update(items_to_refresh, ["image"])
 
     return enriched_items
+
+
+def _build_tracking_users_lookup(items, media_type):
+    """Return a {key: [username, ...]} lookup for all users tracking each item."""
+    source = items[0]["source"]
+
+    q_objects = Q()
+    for item in items:
+        filter_params = {
+            "item__media_id": item["media_id"],
+            "item__media_type": media_type,
+            "item__source": source,
+        }
+        if media_type == MediaTypes.SEASON.value:
+            filter_params["item__season_number"] = item.get("season_number")
+        q_objects |= Q(**filter_params)
+
+    model = apps.get_model(app_label="app", model_name=media_type)
+    media_queryset = model.objects.filter(q_objects).select_related("item", "user")
+
+    tracking_users_lookup = {}
+    for media in media_queryset:
+        if media_type == MediaTypes.SEASON.value:
+            key = (
+                media.item.media_id,
+                media.item.source,
+                media.item.season_number,
+            )
+        else:
+            key = (media.item.media_id, media.item.source)
+
+        tracking_users_lookup.setdefault(key, set()).add(media.user.username)
+
+    return {
+        key: sorted(usernames, key=str.casefold)
+        for key, usernames in tracking_users_lookup.items()
+    }
 
 
 def _build_user_media_lookup(user, items, media_type):
