@@ -1,106 +1,73 @@
-<!-- --8<-- [start:docs-index-intro] -->
+# Yamtrack — Personal Custom Build
 
-# Yamtrack
+This repository is my customized fork of **Yamtrack**, a self-hosted media tracker.
 
-![App Tests](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml/badge.svg)
-![Docker Image](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/docker-image.yml/badge.svg)
-![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack/badge)
-![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)
-![GitHub](https://img.shields.io/badge/license-AGPL--3.0-blue)
+The original Yamtrack project is maintained by FuzzyGrim:
 
-Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
+**Original project:** https://github.com/FuzzyGrim/Yamtrack
 
-<!-- --8<-- [end:docs-index-intro] -->
+For the original application's documentation, installation instructions, features, screenshots, support, and development information, please use the upstream Yamtrack repository and documentation.
 
-## 📚 Documentation
+## About this fork
 
-The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/).
+This fork exists to maintain a small set of personal changes on top of Yamtrack without automatically following every upstream release.
 
-<!-- --8<-- [start:docs-index-body] -->
+The `custom-release` branch is the customized version intended for my self-hosted installation.
 
-## 🚀 Demo
+Updates are deliberately manual and selective. When I decide to adopt a newer upstream Yamtrack release, the custom behavior is reviewed and ported onto the newer code rather than automatically applying every upstream update.
 
-You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) using the username `demo` and password `demo`.
+## Custom changes
 
-## ✨ Features
+### Cross-account tracking visibility
 
-- 🎬 Track movies, tv shows, anime, manga, games, books, comics, and board games.
-- 📺 Track each season of a tv show individually and episodes watched.
-- ⭐ Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
-- 📈 Keep a tracking history with each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
-- ✏️ Create custom media entries, for niche media that cannot be found by the supported APIs.
-- 📂 Create personal lists to organize your media for any purpose, add other members to collaborate on your lists.
-- 📅 Keep up with your upcoming media with a calendar, which can be subscribed to in external applications using a iCalendar (.ics) URL.
-- 🔔 Receive notifications of upcoming releases via Apprise (supports Discord, Telegram, ntfy, Slack, email, and many more).
-- 🐳 Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
-- 👥 Multi-users functionality allowing individual accounts with personalized tracking.
-- 🔑 Flexible authentication options including OIDC and 100+ social providers (Google, GitHub, Discord, etc.) via django-allauth.
-- 🦀 Integration with [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/) and [Emby](https://emby.media/) to automatically track new media watched.
-- 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/) with support for periodic automatic imports.
-- 📊 Export all your tracked media to a CSV file and import it back.
+Search results can show when the same media is already being tracked by other accounts on the local Yamtrack installation.
 
-## 📱 Screenshots
+Compared with upstream Yamtrack, which enriches search results with the current user's own tracking state, this custom version also looks up the local accounts tracking each result.
 
-| Homepage                                                                                       | Calendar                                                                                    |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/homepage.png?v2" alt="Homepage" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/calendar.png" alt="calendar" /> |
+The search interface displays:
 
-| Media List Grid                                                                                    | Media List Table                                                                                     |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/medialist_grid.png" alt="List Grid" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/medialist_table.png" alt="List Table" /> |
+- **Tracked by N account(s)** when one or more accounts track the media.
+- The usernames of the accounts tracking that media.
+- The information in both grid and list search-result layouts.
+- Correct account tracking for seasons by including the season number when identifying media.
+- Usernames de-duplicated and sorted case-insensitively.
 
-| Media Details                                                                                         | Tracking                                                                                    |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/media_details.png" alt="Media Details" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/tracking.png" alt="Tracking" /> |
+This is useful on a multi-user Yamtrack installation for quickly seeing whether another local account already has a movie, show, season, book, game, or other supported media in its tracking library.
 
-| Season Details                                                                                          | Tracking Episodes                                                                                            |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/season_details.png" alt="Season Details" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/tracking_episode.png" alt="Tracking Episodes" /> |
+## Docker image
 
-| Lists                                                                                 | Statistics                                                                                      |
-| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/lists.png" alt="Lists" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/statistics.png" alt="Statistics" /> |
+The customized Docker image is published to GitHub Container Registry as:
 
-| Create Manual Entries                                                                                         | Import Data                                                                                       |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/create_custom.png" alt="Create Manual Entries" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/import_data.png" alt="Import Data" /> |
-
-## 🐳 Installing with Docker
-
-Download the default `docker-compose.yml` file from the repository, update the environment values, and start Yamtrack:
-
-```bash
-docker compose up -d
+```yaml
+image: ghcr.io/dragonmaster1748/Yamtrack-my-custom-01:custom-release
 ```
 
-The default Compose file uses SQLite, which is enough for most personal installs. For full SQLite, PostgreSQL, and reverse proxy setup instructions, see the [Setup documentation](https://fuzzygrim.github.io/Yamtrack/release/setup/).
+The image is built from the `custom-release` branch through a manually triggered GitHub Actions workflow. Building an image does not automatically update this fork from upstream Yamtrack.
 
-## 💻 Development
+## Branches
 
-Development instructions are available in the [Development documentation](https://fuzzygrim.github.io/Yamtrack/release/development/).
+- **`custom-release`** — my customized Yamtrack source and the source used for the custom Docker image.
+- **`dev`** — upstream/reference branch used when preparing future updates.
 
-## 💪 Support the Project
+## Updating the custom version
 
-There are many ways you can support Yamtrack's development:
+Future upstream updates are intentionally handled manually:
 
-### ⭐ Star the Project
+1. Choose an upstream Yamtrack version worth adopting.
+2. Compare the new upstream code with the current customized version.
+3. Reimplement or port the custom behavior while preserving upstream changes.
+4. Test the customized build.
+5. Build and publish a new `custom-release` Docker image.
+6. Deploy the tested image to the self-hosted installation.
 
-The simplest way to show your support is to star the repository on GitHub. It helps increase visibility and shows appreciation for the work.
+The goal is to keep a stable personal build rather than automatically following every upstream release.
 
-### 🐛 Bug Reports
+## Additional implementation notes
 
-Found a bug? Open an [issue](https://github.com/FuzzyGrim/Yamtrack/issues) on GitHub with detailed steps to reproduce it. Quality bug reports are incredibly valuable for improving stability.
+More detailed notes about the customization and the areas of the Yamtrack code it modifies are available in [`CUSTOM_CHANGES.md`](CUSTOM_CHANGES.md).
 
-### 💡 Feature Suggestions
+## License and upstream attribution
 
-Have ideas for new features? Share them through [GitHub issues](https://github.com/FuzzyGrim/Yamtrack/issues). Your feedback helps shape the future of Yamtrack.
+This repository is a fork of [FuzzyGrim/Yamtrack](https://github.com/FuzzyGrim/Yamtrack) and retains the upstream project's **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-### 🧪 Contributing
-
-Pull requests are welcome! Whether it's fixing typos, improving documentation, or adding new features, your contributions help make Yamtrack better for everyone.
-
-### ☕ Donate
-
-If you'd like to support the project financially:
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/fuzzygrim)
+Yamtrack itself and the majority of this codebase originate from the upstream Yamtrack project. This repository documents only the additional personal modifications maintained in this fork.
