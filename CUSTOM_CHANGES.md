@@ -4,6 +4,21 @@ This fork is a personal customized build of the upstream [FuzzyGrim/Yamtrack](ht
 
 It is intentionally **not automatically synchronized or patched when upstream releases a new version**. The goal is to keep a known-working customized build and only port these changes forward when an upstream release is worth adopting.
 
+## Current verified custom version
+
+The first verified custom build is preserved as:
+
+- Branch: `custom-v0.26.3-dev`
+- Upstream release baseline: Yamtrack `v0.26.3`
+- Upstream release commit: `76856f9e053e7f59469d1eac0238727263e2adfd`
+- Source basis: upstream `dev`, which contained additional post-`v0.26.3` development commits when this custom build was created.
+- Verified custom snapshot commit: `7017aa0253fe2a99d81db470aaffb33c277bd72c`
+- Status: manually tested successfully on the self-hosted Docker deployment.
+
+The `-dev` suffix is intentional: this build is newer than the exact `v0.26.3` release tag because it was based on Yamtrack's development branch after that release.
+
+`custom-release` remains the moving branch for the currently maintained custom build. Versioned `custom-v...` branches are intended to remain as historical known-good snapshots for reference and rollback.
+
 ## Custom feature: cross-account tracking visibility
 
 ### Purpose
@@ -38,13 +53,14 @@ Do not automatically merge every upstream Yamtrack release and do not blindly co
 
 When an upstream version is worth adopting:
 
-1. Start from the desired new upstream Yamtrack version.
-2. Read this document to understand the intended behavior.
-3. Compare the previous customized version against its upstream base when useful.
-4. Reimplement the cross-account tracking behavior using the new upstream architecture.
-5. Preserve new upstream behavior wherever possible.
-6. Run the relevant Yamtrack tests and manually verify grid and list search results with multiple local accounts.
-7. Deploy the tested customized version.
+1. Start from the desired new upstream Yamtrack release/version.
+2. Preserve the currently verified `custom-v...` branch as a frozen rollback/reference point.
+3. Read this document to understand the intended custom behavior.
+4. Compare the previous customized version against its upstream base when useful.
+5. Reimplement the cross-account tracking behavior using the new upstream architecture.
+6. Preserve new upstream behavior wherever possible.
+7. Run the relevant Yamtrack tests and manually verify grid and list search results with multiple local accounts.
+8. After successful testing, create a new versioned `custom-v...` snapshot and publish the corresponding Docker image.
 
 ## Automation policy
 
