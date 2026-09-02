@@ -270,6 +270,83 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         self.assertEqual(result, date_parser("2025-01-31"))
 
+    def test_get_episode_datetime_uses_tvmaze_when_dates_agree(self):
+        """TVMaze's timestamp should be used when its date matches TMDB's."""
+        result = get_episode_datetime(
+            {"air_date": "2008-01-20"},
+            season_number=1,
+            episode_number=1,
+            tvmaze_map={"1_1": "2008-01-20T22:00:00+00:00"},
+        )
+
+        self.assertEqual(
+            result,
+            datetime.datetime.fromisoformat("2008-01-20T22:00:00+00:00"),
+        )
+
+    def test_get_episode_datetime_falls_back_when_tvmaze_date_wrong(self):
+        """TMDB's date should win when TVMaze's date outright disagrees.
+
+        Regression test for a report where TVMaze had the correct episode
+        count for a season but flat-out wrong air dates (three episodes
+        bunched on one date, three on another) while TMDB, TheTVDB, and IMDB
+        all agreed on a weekly schedule.
+        """
+        result = get_episode_datetime(
+            {"air_date": "2026-08-27"},
+            season_number=2,
+            episode_number=2,
+            tvmaze_map={"2_2": "2026-08-20T20:00:00+01:00"},
+        )
+
+        self.assertEqual(result, date_parser("2026-08-27"))
+
+    @patch("events.calendar.tv.get_tvmaze_episode_map")
+    def test_process_season_episodes_falls_back_when_tvmaze_dates_wrong(
+        self,
+        mock_get_tvmaze_episode_map,
+    ):
+        """A season where TVMaze's dates disagree with TMDB's should use TMDB.
+
+        Same episode count on both sides, but TVMaze bunches three episodes
+        on one date and three on another instead of the correct weekly
+        cadence that TMDB (and TheTVDB) report.
+        """
+        mock_get_tvmaze_episode_map.return_value = {
+            "2_1": "2026-08-13T20:00:00+01:00",
+            "2_2": "2026-08-13T20:00:00+01:00",
+            "2_3": "2026-08-13T20:00:00+01:00",
+            "2_4": "2026-12-25T20:00:00+01:00",
+            "2_5": "2026-12-25T20:00:00+01:00",
+            "2_6": "2026-12-25T20:00:00+01:00",
+        }
+
+        events_bulk = []
+        process_season_episodes(
+            self.season_item,
+            {
+                "season_number": 2,
+                "tvdb_id": "81189",
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2026-08-20"},
+                    {"episode_number": 2, "air_date": "2026-08-27"},
+                    {"episode_number": 3, "air_date": "2026-09-03"},
+                    {"episode_number": 4, "air_date": "2026-09-10"},
+                    {"episode_number": 5, "air_date": "2026-09-17"},
+                    {"episode_number": 6, "air_date": "2026-09-24"},
+                ],
+            },
+            events_bulk,
+        )
+
+        by_number = {event.content_number: event for event in events_bulk}
+        self.assertEqual(by_number[1].datetime, date_parser("2026-08-20"))
+        self.assertEqual(by_number[2].datetime, date_parser("2026-08-27"))
+        self.assertEqual(by_number[3].datetime, date_parser("2026-09-03"))
+        self.assertEqual(by_number[4].datetime, date_parser("2026-09-10"))
+        self.assertEqual(by_number[5].datetime, date_parser("2026-09-17"))
+        self.assertEqual(by_number[6].datetime, date_parser("2026-09-24"))
+
     @patch("events.calendar.tv.get_tvmaze_episode_map")
     def test_process_season_episodes_falls_back_when_tvmaze_count_mismatches(
         self,

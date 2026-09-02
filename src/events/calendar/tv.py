@@ -322,7 +322,28 @@ def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
     tvmaze_airstamp = tvmaze_map.get(tvmaze_key)
 
     if tvmaze_airstamp:
-        return datetime.fromisoformat(tvmaze_airstamp)
+        tvmaze_datetime = datetime.fromisoformat(tvmaze_airstamp)
+        tmdb_air_date = episode.get("air_date")
+
+        if not tmdb_air_date or tvmaze_date_matches_tmdb(
+            tvmaze_datetime,
+            tmdb_air_date,
+        ):
+            return tvmaze_datetime
+
+        # TVMaze occasionally has outright wrong air dates for a show even
+        # though its episode count matches TMDB's (unlike the numbering
+        # shift in issue #1182). When the two sources disagree on the date
+        # for the same episode, prefer TMDB's, which is corroborated by
+        # TheTVDB in these cases.
+        logger.warning(
+            "S%sE%s - TVMaze air date (%s) disagrees with TMDB (%s), "
+            "falling back to TMDB",
+            season_number,
+            episode_number,
+            tvmaze_datetime.date(),
+            tmdb_air_date,
+        )
 
     if episode["air_date"]:
         try:
@@ -336,6 +357,22 @@ def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
             )
 
     return None
+
+
+def tvmaze_date_matches_tmdb(tvmaze_datetime, tmdb_air_date):
+    """Check whether TVMaze's air date (in its own timezone) matches TMDB's.
+
+    ``tvmaze_datetime`` carries the broadcast region's own UTC offset, so its
+    date component is compared directly against TMDB's date rather than
+    converting to UTC first, which would spuriously shift the date for
+    broadcasts near midnight.
+    """
+    try:
+        tmdb_datetime = date_parser(tmdb_air_date)
+    except ValueError:
+        return True
+
+    return tvmaze_datetime.date() == tmdb_datetime.date()
 
 
 def tvmaze_season_episode_count_matches(tvmaze_map, season_number, tmdb_episode_count):
