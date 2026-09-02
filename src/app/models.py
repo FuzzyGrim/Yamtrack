@@ -483,7 +483,7 @@ class MediaManager(models.Manager):
                     for event in getattr(media.item, "prefetched_events", [])
                     if event.datetime > current_time
                 ],
-                key=lambda e: e.datetime,
+                key=lambda e: (e.datetime, e.content_number or 0),
             )
 
             media.next_event = future_events[0] if future_events else None
