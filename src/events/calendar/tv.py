@@ -273,6 +273,25 @@ def process_season_episodes(item, metadata, events_bulk):
         return
 
     season_number = metadata["season_number"]
+
+    if tvmaze_map and not tvmaze_season_episode_count_matches(
+        tvmaze_map,
+        season_number,
+        len(metadata["episodes"]),
+    ):
+        # TVMaze sometimes splits or merges episodes differently than TMDB
+        # (e.g. one TMDB episode airing as two on TVMaze), which shifts every
+        # subsequent TVMaze episode number - and its air date - by one
+        # relative to TMDB (see issue #1182). Only trust TVMaze's per-episode
+        # dates for a season when both sources agree on the episode count.
+        logger.warning(
+            "%s - TVMaze episode count for season %s does not match TMDB, "
+            "falling back to TMDB air dates for this season",
+            item,
+            season_number,
+        )
+        tvmaze_map = {}
+
     episode_datetimes = {
         episode["episode_number"]: get_episode_datetime(
             episode,
@@ -317,6 +336,13 @@ def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
             )
 
     return None
+
+
+def tvmaze_season_episode_count_matches(tvmaze_map, season_number, tmdb_episode_count):
+    """Check whether TVMaze's episode count for a season matches TMDB's."""
+    season_prefix = f"{season_number}_"
+    tvmaze_episode_count = sum(1 for key in tvmaze_map if key.startswith(season_prefix))
+    return tvmaze_episode_count == tmdb_episode_count
 
 
 def get_tvmaze_episode_map(tvdb_id):

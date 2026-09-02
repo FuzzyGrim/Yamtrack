@@ -270,6 +270,48 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         self.assertEqual(result, date_parser("2025-01-31"))
 
+    @patch("events.calendar.tv.get_tvmaze_episode_map")
+    def test_process_season_episodes_falls_back_when_tvmaze_count_mismatches(
+        self,
+        mock_get_tvmaze_episode_map,
+    ):
+        """A TVMaze/TMDB episode-count mismatch should discard TVMaze dates.
+
+        Regression test for https://github.com/FuzzyGrim/Yamtrack/issues/1182
+        where TVMaze splits one TMDB episode into two, shifting every later
+        TVMaze episode number - and its air date - by one relative to TMDB.
+        Trusting the shifted dates makes not-yet-aired episodes look released.
+        """
+        # TVMaze has an extra episode (a split) that TMDB does not have, so
+        # TVMaze's "2" is really TMDB's episode 1's second half, and every
+        # later TVMaze number is shifted by one.
+        mock_get_tvmaze_episode_map.return_value = {
+            "1_1": "2008-01-20T22:00:00+00:00",
+            "1_2": "2008-01-20T22:30:00+00:00",
+            "1_3": "2008-01-27T22:00:00+00:00",
+            "1_4": "2008-02-03T22:00:00+00:00",
+        }
+
+        events_bulk = []
+        process_season_episodes(
+            self.season_item,
+            {
+                "season_number": 1,
+                "tvdb_id": "81189",
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2008-01-20"},
+                    {"episode_number": 2, "air_date": "2008-01-27"},
+                    {"episode_number": 3, "air_date": "2008-02-03"},
+                ],
+            },
+            events_bulk,
+        )
+
+        by_number = {event.content_number: event for event in events_bulk}
+        self.assertEqual(by_number[1].datetime, date_parser("2008-01-20"))
+        self.assertEqual(by_number[2].datetime, date_parser("2008-01-27"))
+        self.assertEqual(by_number[3].datetime, date_parser("2008-02-03"))
+
     def test_get_episode_datetime_returns_none_for_invalid_date(self):
         """Invalid or missing episode dates should resolve to None (unknown)."""
         result = get_episode_datetime(
