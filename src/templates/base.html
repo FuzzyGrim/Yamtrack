@@ -4,346 +4,96 @@
 <!DOCTYPE html>
 <html lang="en" class="scheme-dark bg-[#212529]">
   <head>
-    {# Required meta tags #}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="keywords" content="Yamtrack, Media Tracker">
     <meta name="description" content="Search and track media on Yamtrack.">
-
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-title" content="Yamtrack">
-
-    <title>
-      {% block title %}
-        Yamtrack
-      {% endblock title %}
-    </title>
-
-    {% block extra_head %}
-    {% endblock extra_head %}
-
-    <link rel="stylesheet"
-          type="text/css"
-          href="{% static 'css/main.css' %}{% get_static_file_mtime 'css/main.css' %}">
-
+    <title>{% block title %}Yamtrack{% endblock title %}</title>
+    {% block extra_head %}{% endblock extra_head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}{% get_static_file_mtime 'css/main.css' %}">
     <script src="{% static 'js/libraries/htmx-2.0.4.min.js' %}"></script>
     <script defer src="{% static 'js/libraries/alpinejs-3.14.9.min.js' %}"></script>
     <script src="{% static 'js/libraries/lazysizes-5.3.2.min.js' %}" async></script>
-
-    <link rel="apple-touch-icon"
-          sizes="180x180"
-          href="{% static "favicon/apple-touch-icon.png" %}">
-    <link rel="icon"
-          type="image/png"
-          sizes="32x32"
-          href="{% static "favicon/favicon-32x32.png" %}">
-    <link rel="icon"
-          type="image/png"
-          sizes="16x16"
-          href="{% static "favicon/favicon-16x16.png" %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static "favicon/favicon-16x16.png" %}">
     <link rel="manifest" href="{% static "favicon/site.webmanifest" %}">
-    <link rel="mask-icon"
-          href="{% static "favicon/safari-pinned-tab.svg" color="#181a1b" %}">
+    <link rel="mask-icon" href="{% static "favicon/safari-pinned-tab.svg" color="#181a1b" %}">
     <link rel="shortcut icon" href="{% static "favicon/favicon.ico" %}">
     <meta name="msapplication-TileColor" content="#181a1b">
-    <meta name="msapplication-config"
-          content="{% static "favicon/browserconfig.xml" %}">
+    <meta name="msapplication-config" content="{% static "favicon/browserconfig.xml" %}">
     <meta name="theme-color" content="#181a1b">
-
   </head>
-
   <body>
     {% block body %}
-      {# Main container for the layout #}
-      <div class="flex min-h-screen bg-[#212529] text-gray-100"
-           x-data="{ isMobileMenuOpen: false }">
-
-        {# Mobile menu overlay #}
-        <div x-show="isMobileMenuOpen"
-             class="fixed inset-0 bg-black/50 z-30 lg:hidden"
-             @click="isMobileMenuOpen = false"></div>
-
-        {# Sidebar #}
-        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
-               :class="isMobileMenuOpen ? 'translate-x-0' : ''">
+      <div class="flex min-h-screen bg-[#212529] text-gray-100" x-data="{ isMobileMenuOpen: false }">
+        <div x-show="isMobileMenuOpen" class="fixed inset-0 bg-black/50 z-30 lg:hidden" @click="isMobileMenuOpen = false"></div>
+        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col" :class="isMobileMenuOpen ? 'translate-x-0' : ''">
           <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
             <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
           </div>
           <nav class="p-4 flex-1 overflow-y-auto">
             {% block sidebar_own_media %}
               <ul class="space-y-1 mb-6">
-                <li>
-                  <a href="{% url 'home' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% if request.path|str_equals:"/" %}
-                      {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                    {% else %}
-                      {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-
-                    {% endif %}
-                    <span>Home</span>
-                  </a>
-                </li>
-
+                <li><a href="{% url 'home' %}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% if request.path|str_equals:"/" %}{% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}{% else %}{% include "app/icons/house.svg" with classes="w-5 h-5" %}{% endif %}<span>Home</span></a></li>
                 {% get_sidebar_media_types user as sidebar_media_types %}
                 {% for item in sidebar_media_types %}
                   <li>
                     {% if target_user is None or target_user == request.user %}
-                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
-                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                        {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
-                        <span>{{ item.display_name }}</span>
-                      </a>
+                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% icon item.media_type is_active=media_type|str_equals:item.media_type %}<span>{{ item.display_name }}</span></a>
                     {% else %}
-                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
-                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-gray-400 hover:text-white hover:bg-[#23272b]">
-                        {% icon item.media_type is_active=False %}
-                        <span>{{ item.display_name }}</span>
-                      </a>
+                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-gray-400 hover:text-white hover:bg-[#23272b]">{% icon item.media_type is_active=False %}<span>{{ item.display_name }}</span></a>
                     {% endif %}
                   </li>
                 {% endfor %}
               </ul>
             {% endblock sidebar_own_media %}
-
-            {% block sidebar_external_media_view %}
-            {% endblock sidebar_external_media_view %}
-
+            {% block sidebar_external_media_view %}{% endblock sidebar_external_media_view %}
             {% block sidebar_utilities %}
-              <div class="border-t border-[#2c3136] pt-4">
-                <ul class="space-y-1">
-                  {% url 'create_entry' as create_entry_url %}
-                  <li>
-                    <a href="{{ create_entry_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:create_entry_url %}
-                        {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                      {% else %}
-                        {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Create Custom</span>
-                    </a>
-                  </li>
-
-                  {% url 'statistics' as statistics_url %}
-                  <li>
-                    <a href="{{ statistics_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:statistics_url %}
-                        {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                      {% else %}
-                        {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Statistics</span>
-                    </a>
-                  </li>
-
-                  {% url 'journal' as journal_url %}
-                  <li>
-                    <a href="{{ journal_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == journal_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:journal_url %}
-                        {% include "app/icons/history.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                      {% else %}
-                        {% include "app/icons/history.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Journal</span>
-                    </a>
-                  </li>
-
-                  {% url 'lists' as lists_url %}
-                  <li>
-                    <a href="{{ lists_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:lists_url %}
-                        {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                      {% else %}
-                        {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Lists</span>
-                    </a>
-                  </li>
-
-                  {% url 'calendar' as calendar_url %}
-                  <li>
-                    <a href="{{ calendar_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:calendar_url %}
-                        {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                      {% else %}
-                        {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Calendar</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
+              <div class="border-t border-[#2c3136] pt-4"><ul class="space-y-1">
+                {% url 'create_entry' as create_entry_url %}<li><a href="{{ create_entry_url }}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% if request.path|str_equals:create_entry_url %}{% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}{% else %}{% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}{% endif %}<span>Create Custom</span></a></li>
+                {% url 'statistics' as statistics_url %}<li><a href="{{ statistics_url }}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% if request.path|str_equals:statistics_url %}{% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}{% else %}{% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}{% endif %}<span>Statistics</span></a></li>
+                {% url 'journal' as journal_url %}<li><a href="{{ journal_url }}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == journal_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% if request.path|str_equals:journal_url %}{% include "app/icons/history.svg" with classes="w-5 h-5 text-indigo-400 " %}{% else %}{% include "app/icons/history.svg" with classes="w-5 h-5" %}{% endif %}<span>Journal</span></a></li>
+                {% url 'lists' as lists_url %}<li><a href="{{ lists_url }}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% if request.path|str_equals:lists_url %}{% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}{% else %}{% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}{% endif %}<span>Lists</span></a></li>
+                {% url 'calendar' as calendar_url %}<li><a href="{{ calendar_url }}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% if request.path|str_equals:calendar_url %}{% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}{% else %}{% include "app/icons/calendar.svg" with classes="w-5 h-5" %}{% endif %}<span>Calendar</span></a></li>
+              </ul></div>
             {% endblock sidebar_utilities %}
           </nav>
-
           {% block sidebar_logout %}
-            <div class="p-4 border-t border-[#2c3136] mt-auto">
-              <div class="space-y-2">
-                {% url 'account' as account_url %}
-                {% url 'notifications' as notifications_url %}
-                {% url 'sidebar' as sidebar_url %}
-                {% url 'integrations' as integrations_url %}
-                {% url 'import_data' as import_url %}
-                {% url 'export_data' as export_url %}
-                <a href="{{ account_url }}"
-                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                  {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
-                    {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                  {% else %}
-                    {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
-
-                  {% endif %}
-                  <span>Settings</span>
-                </a>
-
-                <form method="post" action="{% url 'account_logout' %}" class="w-full">
-                  {% csrf_token %}
-                  <button type="submit"
-                          class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
-                    {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
-
-                    <span>Logout</span>
-                  </button>
-                </form>
-              </div>
-            </div>
+            <div class="p-4 border-t border-[#2c3136] mt-auto"><div class="space-y-2">
+              {% url 'account' as account_url %}{% url 'notifications' as notifications_url %}{% url 'sidebar' as sidebar_url %}{% url 'integrations' as integrations_url %}{% url 'import_data' as import_url %}{% url 'export_data' as export_url %}
+              <a href="{{ account_url }}" class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">{% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}{% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}{% else %}{% include "app/icons/settings.svg" with classes="w-5 h-5" %}{% endif %}<span>Settings</span></a>
+              <form method="post" action="{% url 'account_logout' %}" class="w-full">{% csrf_token %}<button type="submit" class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">{% include "app/icons/logout.svg" with classes="w-5 h-5" %}<span>Logout</span></button></form>
+            </div></div>
           {% endblock sidebar_logout %}
-
-          {% block anonymous_login %}
-          {% endblock anonymous_login %}
+          {% block anonymous_login %}{% endblock anonymous_login %}
         </aside>
-
-        {# Main content #}
         <div class="flex-1 min-w-0 flex flex-col min-h-screen">
-          {# Top bar #}
           <div class="sticky top-0 z-10 bg-[#1a1d20] border-b border-[#2c3136] shadow-md">
-            <div class="container mx-auto px-4">
-              <div class="flex items-center justify-between lg:justify-center h-16">
-                {# Mobile: sidebar toggle button #}
-                <button @click="isMobileMenuOpen = !isMobileMenuOpen"
-                        class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
-                  {% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}
-
-                </button>
-
-                {# Define search type from current media type (if it exists) or last search type #}
-                {% if media_type == MediaTypes.SEASON.value %}
-                  {% firstof MediaTypes.TV.value as search_type %}
-                {% else %}
-                  {% firstof media_type user.last_search_type as search_type %}
-                {% endif %}
-
-                {# Search bar #}
-                {% block search_bar %}
-                  <div class="relative w-full max-w-2xl">
-                    <form method="get"
-                          action="{% url 'search' %}"
-                          x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
-                      <div class="flex">
-                        <div class="relative grow">
-                          {# Search input #}
-                          <input type="search"
-                                 id="global-search"
-                                 name="q"
-                                 value="{{ request.GET.q }}"
-                                 :placeholder="getPlaceholder()"
-                                 class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
-                          <button type="submit"
-                                  class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
-                            {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
-
-                          </button>
-                        </div>
-
-                        <input type="hidden" name="media_type" :value="selectedType.value">
-
-                        {# Media type dropdown #}
-                        <button type="button"
-                                @click="isOpen = !isOpen"
-                                @click.away="isOpen = false"
-                                class="flex items-center justify-between max-w-27.5 sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
-                          <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
-                          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
-
-                        </button>
-                        <ul x-cloak
-                            x-show="isOpen"
-                            @keydown.escape.window="isOpen = false"
-                            x-transition:enter="transition ease-out duration-100"
-                            x-transition:enter-start="transform opacity-0 scale-95"
-                            x-transition:enter-end="transform opacity-100 scale-100"
-                            x-transition:leave="transition ease-in duration-75"
-                            x-transition:leave-start="transform opacity-100 scale-100"
-                            x-transition:leave-end="transform opacity-0 scale-95"
-                            class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
-                          <template x-for="type in mediaTypes" :key="type.value">
-                            <li @click="selectedType = type; isOpen = false"
-                                class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
-                                x-text="type.display"></li>
-                          </template>
-                        </ul>
-                      </div>
-                    </form>
-                  </div>
-                {% endblock search_bar %}
-              </div>
-            </div>
+            <div class="container mx-auto px-4"><div class="flex items-center justify-between lg:justify-center h-16 gap-3">
+              <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">{% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}</button>
+              {% if media_type == MediaTypes.SEASON.value %}{% firstof MediaTypes.TV.value as search_type %}{% else %}{% firstof media_type user.last_search_type as search_type %}{% endif %}
+              {% block search_bar %}
+                <div class="relative w-full max-w-2xl">
+                  <form method="get" action="{% url 'search' %}" x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
+                    <div class="flex"><div class="relative grow"><input type="search" id="global-search" name="q" value="{{ request.GET.q }}" :placeholder="getPlaceholder()" class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500"><button type="submit" class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">{% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}</button></div><input type="hidden" name="media_type" :value="selectedType.value"><button type="button" @click="isOpen = !isOpen" @click.away="isOpen = false" class="flex items-center justify-between max-w-27.5 sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer"><span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>{% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}</button><ul x-cloak x-show="isOpen" @keydown.escape.window="isOpen = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32"><template x-for="type in mediaTypes" :key="type.value"><li @click="selectedType = type; isOpen = false" class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out" x-text="type.display"></li></template></ul></div>
+                  </form>
+                </div>
+              {% endblock search_bar %}
+              {% if request.user.is_authenticated %}<div class="shrink-0 max-w-28 sm:max-w-48 text-right" title="Signed in as {{ request.user.username }}"><div class="text-[10px] uppercase tracking-wide text-gray-500 leading-tight">Account</div><div class="text-sm font-semibold text-gray-200 truncate">{{ request.user.username }}</div></div>{% endif %}
+            </div></div>
           </div>
-
-          <main class="flex-1 relative bg-[#212529]">
-            <div class="container mx-auto px-8 py-12">
-              {% block content %}
-              {% endblock content %}
-            </div>
-          </main>
+          <main class="flex-1 relative bg-[#212529]"><div class="container mx-auto px-8 py-12">{% block content %}{% endblock content %}</div></main>
         </div>
       </div>
     {% endblock body %}
-
-    <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none">
-      <div id="messages-list"
-           class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
-        {% include "app/components/messages/messages_stack.html" %}
-      </div>
-    </div>
-
+    <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none"><div id="messages-list" class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">{% include "app/components/messages/messages_stack.html" %}</div></div>
     <div id="persistent-messages-actions">{% include "app/components/messages/persistent_messages_actions.html" %}</div>
-
-    {% block js %}
-    {% endblock js %}
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/static/js/serviceworker.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
-      }
-    </script>
-
+    {% block js %}{% endblock js %}
+    <script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/static/js/serviceworker.js').then((registration) => { console.log('SW registered: ', registration); }).catch((registrationError) => { console.log('SW registration failed: ', registrationError); }); }); }</script>
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>
     <script src="{% static 'js/searchShortcut.js' %}{% get_static_file_mtime 'js/searchShortcut.js' %}"></script>
   </body>
