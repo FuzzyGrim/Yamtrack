@@ -33,7 +33,13 @@
   </div>
   <div class="p-3">
     <a href="{{ item|media_url }}" class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1" title="{{ title }}">{{ title }}</a>
-    {% if tracking_users %}<div class="mt-2 text-xs text-amber-300"><div class="font-semibold">Tracked by {{ tracking_users|length }} account{{ tracking_users|length|pluralize }}</div><div class="text-gray-400 truncate" title="{{ tracking_users|join:', ' }}">{{ tracking_users|join:", " }}</div></div>{% endif %}
+    {% if tracking_users %}
+      {% if tracking_users|length == 1 and request.user.username in tracking_users %}
+        <div class="mt-2 text-xs text-amber-300 font-semibold">In your account</div>
+      {% else %}
+        <div class="mt-2 text-xs text-amber-300"><div class="font-semibold">Tracked by {{ tracking_users|length }} account{{ tracking_users|length|pluralize }}</div><div class="text-gray-400 truncate" title="{{ tracking_users|join:', ' }}">{{ tracking_users|join:", " }}</div></div>
+      {% endif %}
+    {% endif %}
   </div>
   {% if item.media_type == MediaTypes.EPISODE.value %}{% include "app/components/fill_track_episode.html" with request=request media=item episode=item episode_title=title csrf_token=csrf_token TRACK_TIME=TRACK_TIME only %}{% else %}<div x-show="trackOpen" @keydown.escape.window="trackOpen = false" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60" @click.outside="trackOpen = false"><div id="{% component_id 'track' item media.id %}"></div></div></div>{% endif %}
   <div x-show="listsOpen" @keydown.escape.window="listsOpen = false" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60" @click.outside="listsOpen = false"><div id="{% component_id 'lists' item %}"></div></div></div>
