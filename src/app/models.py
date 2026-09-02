@@ -476,14 +476,27 @@ class MediaManager(models.Manager):
         current_time = timezone.now()
 
         for media in media_list:
-            # Get future events sorted by datetime
+            # Get future events for this item and pick the lowest-numbered
+            # one. `datetime` only decides whether an event has aired yet;
+            # ordering by it as well is unreliable because a provider's
+            # reported time-of-day for same-day releases can be wrong or
+            # inconsistent even when the date itself is correct (unlike the
+            # date, which #1182/#1699 already cross-check against TMDB), so
+            # two same-day episodes can end up with datetimes that put the
+            # later episode number first. content_number is unique per item
+            # and reflects the actual release order, so it is the
+            # authoritative tiebreaker - and primary key - here.
             future_events = sorted(
                 [
                     event
                     for event in getattr(media.item, "prefetched_events", [])
                     if event.datetime > current_time
                 ],
-                key=lambda e: e.datetime,
+                key=lambda e: (
+                    e.content_number is None,
+                    e.content_number or 0,
+                    e.datetime,
+                ),
             )
 
             media.next_event = future_events[0] if future_events else None
