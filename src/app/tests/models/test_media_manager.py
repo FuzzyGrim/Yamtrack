@@ -776,6 +776,52 @@ class MediaManagerTests(TestCase):
         self.assertIsNotNone(anime_list[0].next_event)
         self.assertEqual(anime_list[0].next_event.content_number, 1)
 
+    def test_annotate_next_event_picks_lowest_number_when_times_disagree(self):
+        """Next event should pick the lowest number even when times disagree.
+
+        Regression test for a report where TVMaze/TMDB agreed on the same
+        release *date* for two episodes (so the exact-tie case above didn't
+        apply), but the stored time-of-day for episode 2 was earlier than
+        episode 1's, making episode 2 sort first if datetime were the
+        primary ordering key. content_number is unique per item and defines
+        the true release order, so it must win over datetime for ordering
+        (datetime should only gate whether an event has aired yet).
+        """
+        manager = MediaManager()
+
+        release_day = (timezone.now() + timedelta(days=1)).replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+
+        # Episode 2's stored time-of-day is earlier than episode 1's, even
+        # though both are meant to release on the same day.
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=2,
+            datetime=release_day,
+        )
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=1,
+            datetime=release_day + timedelta(hours=12),
+        )
+
+        queryset = Anime.objects.filter(user=self.user.id).select_related("item")
+        anime_list = list(queryset)
+
+        for anime in anime_list:
+            anime.item.prefetched_events = list(
+                Event.objects.filter(item=anime.item).order_by("-datetime"),
+            )
+
+        manager._annotate_next_event(anime_list)
+
+        self.assertIsNotNone(anime_list[0].next_event)
+        self.assertEqual(anime_list[0].next_event.content_number, 1)
+
     def test_sort_home_media(self):
         """Test the _sort_home_media method."""
         manager = MediaManager()
