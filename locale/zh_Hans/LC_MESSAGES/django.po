@@ -1,0 +1,1263 @@
+# Yamtrack Chinese (Simplified) translation.
+# Copyright (C) 2026 Yamtrack
+# This file is distributed under the same license as the Yamtrack package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Yamtrack\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-08 10:11+0800\n"
+"PO-Revision-Date: 2026-09-08 04:00+0800\n"
+"Last-Translator: Hermes Agent\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: config/settings.py:328 src/config/settings.py:328
+msgid "English"
+msgstr "英文"
+
+#: config/settings.py:329 src/config/settings.py:329
+msgid "Simplified Chinese"
+msgstr "简体中文"
+
+#: src/templates/400.html:6 src/templates/400.html:14 templates/400.html:6
+#: templates/400.html:14
+msgid "请求错误"
+msgstr "请求错误"
+
+#: src/templates/400.html:16 templates/400.html:16
+msgid "服务器无法理解该请求，因为语法无效或缺少参数。"
+msgstr "服务器无法理解该请求，因为语法无效或缺少参数。"
+
+#: src/templates/400.html:20 src/templates/403.html:21
+#: src/templates/403_csrf.html:30 src/templates/404.html:18
+#: src/templates/500.html:24 templates/400.html:20 templates/403.html:21
+#: templates/403_csrf.html:30 templates/404.html:18 templates/500.html:24
+msgid "报告此问题。"
+msgstr "报告此问题。"
+
+#: src/templates/400.html:27 src/templates/403.html:33
+#: src/templates/403_csrf.html:42 src/templates/404.html:25
+#: src/templates/500.html:36 templates/400.html:27 templates/403.html:33
+#: templates/403_csrf.html:42 templates/404.html:25 templates/500.html:36
+msgid "返回首页"
+msgstr "返回首页"
+
+#: src/templates/403.html:6 src/templates/403_csrf.html:6 templates/403.html:6
+#: templates/403_csrf.html:6
+msgid "禁止访问"
+msgstr "禁止访问"
+
+#: src/templates/403.html:14 src/templates/403_csrf.html:14
+#: templates/403.html:14 templates/403_csrf.html:14
+msgid "访问被拒绝"
+msgstr "访问被拒绝"
+
+#: src/templates/403.html:16 src/templates/403_csrf.html:16
+#: templates/403.html:16 templates/403_csrf.html:16
+msgid "您没有权限访问此资源。请登录或联系管理员。"
+msgstr "您没有权限访问此资源。请登录或联系管理员。"
+
+#: src/templates/403.html:28 src/templates/403_csrf.html:37
+#: src/templates/account/login.html:7 src/templates/account/login.html:28
+#: src/templates/account/signup.html:40 templates/403.html:28
+#: templates/403_csrf.html:37 templates/account/login.html:7
+#: templates/account/login.html:28 templates/account/signup.html:40
+msgid "登录"
+msgstr "登录"
+
+#: src/templates/403_csrf.html:19 templates/403_csrf.html:19
+msgid "使用反向代理？"
+msgstr "使用反向代理？"
+
+#: src/templates/403_csrf.html:21 templates/403_csrf.html:21
+msgid ""
+"如果您通过反向代理访问 YamTrack，需要设置 <code class=\"bg-[#39404b] px-1 "
+"py-0.5 rounded\">URLS</code> 环境变量为您的应用程序 URL。"
+msgstr "如果您通过反向代理访问 YamTrack，需要设置 <code class=\"bg-[#39404b] px-1 py-0.5 rounded\">URLS</code> 环境变量为您的应用程序 URL。"
+
+#: src/templates/403_csrf.html:25 templates/403_csrf.html:25
+msgid "例如，"
+msgstr "例如，"
+
+#: src/templates/404.html:6 src/templates/404.html:14 templates/404.html:6
+#: templates/404.html:14
+msgid "页面未找到"
+msgstr "页面未找到"
+
+#: src/templates/404.html:15 templates/404.html:15
+msgid "您要查找的页面不存在或已被移动。"
+msgstr "您要查找的页面不存在或已被移动。"
+
+#: src/templates/500.html:6 templates/500.html:6
+msgid "服务器错误"
+msgstr "服务器错误"
+
+#: src/templates/500.html:14 templates/500.html:14
+msgid "出了点问题"
+msgstr "出了点问题"
+
+#: src/templates/500.html:19 templates/500.html:19
+msgid "抱歉，处理您的请求时出错。"
+msgstr "抱歉，处理您的请求时出错。"
+
+#: src/templates/500.html:31 templates/500.html:31
+msgid "重试"
+msgstr "重试"
+
+#: src/templates/account/login.html:11 templates/account/login.html:11
+msgid "登录您的账户"
+msgstr "登录您的账户"
+
+#: src/templates/account/login.html:41 templates/account/login.html:41
+msgid "需要账户？"
+msgstr "需要账户？"
+
+#: src/templates/account/login.html:43 templates/account/login.html:43
+msgid "立即注册"
+msgstr "立即注册"
+
+#: src/templates/account/signup.html:6 templates/account/signup.html:6
+msgid "注册"
+msgstr "注册"
+
+#: src/templates/account/signup.html:10 templates/account/signup.html:10
+msgid "创建您的账户"
+msgstr "创建您的账户"
+
+#: src/templates/account/signup.html:26 templates/account/signup.html:26
+msgid "创建账户"
+msgstr "创建账户"
+
+#: src/templates/account/signup.html:38 templates/account/signup.html:38
+msgid "已有账户？"
+msgstr "已有账户？"
+
+#: src/templates/allauth/elements/hr.html:4
+#: templates/allauth/elements/hr.html:4
+msgid "或使用其他方式"
+msgstr "或使用其他方式"
+
+#: src/templates/app/components/fill_history.html:6
+#: templates/app/components/fill_history.html:6
+msgid "Activity History"
+msgstr "活动历史"
+
+#: src/templates/app/components/fill_history.html:16
+#: templates/app/components/fill_history.html:16
+msgid "Instance"
+msgstr "实例"
+
+#: src/templates/app/components/fill_history.html:29
+#: templates/app/components/fill_history.html:29
+msgid "You haven't started tracking it yet."
+msgstr "你还没有开始追踪它"
+
+#: src/templates/app/components/fill_track.html:75
+#: templates/app/components/fill_track.html:75
+msgid "Update"
+msgstr "更新"
+
+#: src/templates/app/components/fill_track.html:77
+#: src/templates/lists/components/list_item_button.html:16
+#: templates/app/components/fill_track.html:77
+#: templates/lists/components/list_item_button.html:16
+msgid "Add"
+msgstr "添加"
+
+#: src/templates/app/components/fill_track.html:85
+#: src/templates/app/components/fill_track_episode.html:62
+#: src/templates/app/components/journal_items.html:72
+#: src/templates/lists/components/list_form.html:46
+#: templates/app/components/fill_track.html:85
+#: templates/app/components/fill_track_episode.html:62
+#: templates/app/components/journal_items.html:72
+#: templates/lists/components/list_form.html:46
+msgid "Delete"
+msgstr "删除"
+
+#: src/templates/app/components/fill_track_episode.html:14
+#: src/templates/app/media_details.html:598
+#: templates/app/components/fill_track_episode.html:14
+#: templates/app/media_details.html:598
+msgid "Track Episode"
+msgstr "剧集追踪"
+
+#: src/templates/app/components/fill_track_episode.html:27
+#: templates/app/components/fill_track_episode.html:27
+msgid "Episode"
+msgstr "集"
+
+#: src/templates/app/components/fill_track_episode.html:30
+#: templates/app/components/fill_track_episode.html:30
+msgid "Watched once"
+msgstr "看过一次"
+
+#: src/templates/app/components/fill_track_episode.html:32
+#: src/templates/app/media_details.html:669
+#: templates/app/components/fill_track_episode.html:32
+#: templates/app/media_details.html:669
+#, python-format
+msgid "Watched %(count)s times"
+msgstr "看过 %(count)s 次"
+
+#: src/templates/app/components/fill_track_episode.html:35
+#: templates/app/components/fill_track_episode.html:35
+msgid "Not watched yet"
+msgstr "还未观看"
+
+#: src/templates/app/components/fill_track_episode.html:44
+#: templates/app/components/fill_track_episode.html:44
+msgid "Previous Watches"
+msgstr "历史观看记录"
+
+#: src/templates/app/components/fill_track_episode.html:52
+#: src/templates/app/media_details.html:667
+#: templates/app/components/fill_track_episode.html:52
+#: templates/app/media_details.html:667
+msgid "No date provided"
+msgstr "未提供日期"
+
+#: src/templates/app/components/fill_track_episode.html:96
+#: templates/app/components/fill_track_episode.html:96
+msgid "Watch Date"
+msgstr "观看日期"
+
+#: src/templates/app/components/fill_track_episode.html:117
+#: templates/app/components/fill_track_episode.html:117
+msgid "Add watched entry with current settings"
+msgstr "用当前设置添加观看记录"
+
+#: src/templates/app/components/fill_track_episode.html:117
+#: templates/app/components/fill_track_episode.html:117
+msgid "Add watch"
+msgstr "添加观看"
+
+#: src/templates/app/components/fill_track_episode.html:143
+#: templates/app/components/fill_track_episode.html:143
+msgid "Fills in the current date and time"
+msgstr "填入当前日期和时间"
+
+#: src/templates/app/components/fill_track_episode.html:143
+#: templates/app/components/fill_track_episode.html:143
+msgid "Fill in current time"
+msgstr "填入当前时间"
+
+#: src/templates/app/components/fill_track_episode.html:150
+#: templates/app/components/fill_track_episode.html:150
+msgid "Fills in the date and time the episode will be finished if started now"
+msgstr "填入从现在开始观看的结束时间"
+
+#: src/templates/app/components/fill_track_episode.html:151
+#: templates/app/components/fill_track_episode.html:151
+msgid "Fill in end time"
+msgstr "填入结束时间"
+
+#: src/templates/app/components/fill_track_episode.html:160
+#: templates/app/components/fill_track_episode.html:160
+msgid "Fills in the air date of the episode, if available"
+msgstr "填入该集的播出日期（如有）"
+
+#: src/templates/app/components/fill_track_episode.html:160
+#: templates/app/components/fill_track_episode.html:160
+msgid "Fill in air date"
+msgstr "填入播出日期"
+
+#: src/templates/app/components/fill_track_episode.html:167
+#: templates/app/components/fill_track_episode.html:167
+msgid "Clears the watch date and time"
+msgstr "清除观看日期和时间"
+
+#: src/templates/app/components/fill_track_episode.html:167
+#: templates/app/components/fill_track_episode.html:167
+msgid "Fill in no date"
+msgstr "不填日期"
+
+#: src/templates/app/components/home_grid.html:40
+#: src/templates/app/components/media_card.html:72
+#: src/templates/app/components/media_card_list.html:40
+#: src/templates/app/media_details.html:35
+#: templates/app/components/home_grid.html:40
+#: templates/app/components/media_card.html:72
+#: templates/app/components/media_card_list.html:40
+#: templates/app/media_details.html:35
+msgid "Add to tracker"
+msgstr "添加到追踪"
+
+#: src/templates/app/components/home_grid.html:48
+#: src/templates/app/components/media_card.html:82
+#: src/templates/app/components/media_card_list.html:49
+#: src/templates/app/media_details.html:307
+#: src/templates/app/media_details.html:614
+#: templates/app/components/home_grid.html:48
+#: templates/app/components/media_card.html:82
+#: templates/app/components/media_card_list.html:49
+#: templates/app/media_details.html:307 templates/app/media_details.html:614
+msgid "Add to custom lists"
+msgstr "添加到自定义列表"
+
+#: src/templates/app/components/home_grid.html:56
+#: src/templates/app/components/media_card.html:91
+#: src/templates/app/components/media_card_list.html:58
+#: src/templates/app/media_details.html:332
+#: src/templates/app/media_details.html:636
+#: templates/app/components/home_grid.html:56
+#: templates/app/components/media_card.html:91
+#: templates/app/components/media_card_list.html:58
+#: templates/app/media_details.html:332 templates/app/media_details.html:636
+msgid "View your activity history"
+msgstr "查看活动历史"
+
+#: src/templates/app/components/home_section.html:25
+#: src/templates/lists/components/list_grid.html:37
+#: src/templates/lists/list_detail.html:32
+#: templates/app/components/home_section.html:25
+#: templates/lists/components/list_grid.html:37
+#: templates/lists/list_detail.html:32
+msgid "item"
+msgstr "项"
+
+#: src/templates/app/components/home_section.html:59
+#: templates/app/components/home_section.html:59
+msgid "Load all"
+msgstr "加载全部"
+
+#: src/templates/app/components/home_section.html:83
+#: templates/app/components/home_section.html:83
+msgid "Nothing is actively moving right now"
+msgstr "当前没有正在进行的项目"
+
+#: src/templates/app/components/home_section.html:85
+#: templates/app/components/home_section.html:85
+msgid "Your planning shelf is still empty"
+msgstr "你的计划列表还是空的"
+
+#: src/templates/app/components/home_section.html:90
+#: templates/app/components/home_section.html:90
+msgid ""
+"Start a title and mark it as in progress to see quick updates and release "
+"reminders here."
+msgstr "开始追踪一个标题并标记为进行中，即可在此查看快速更新和发布提醒。"
+
+#: src/templates/app/components/home_section.html:92
+#: templates/app/components/home_section.html:92
+msgid "Add a few titles to planning to see them here."
+msgstr "添加几个标题到计划列表就能在这里看到它们"
+
+#: src/templates/app/components/home_section.html:99
+#: templates/app/components/home_section.html:99
+msgid "Browse media"
+msgstr "浏览媒体"
+
+#: src/templates/app/components/journal_items.html:30
+#: templates/app/components/journal_items.html:30
+msgid "Delete activity"
+msgstr "删除活动"
+
+#: src/templates/app/components/journal_items.html:51
+#: templates/app/components/journal_items.html:51
+msgid "Delete activity?"
+msgstr "删除活动？"
+
+#: src/templates/app/components/journal_items.html:52
+#: templates/app/components/journal_items.html:52
+msgid "This removes “"
+msgstr "这将移除「"
+
+#: src/templates/app/components/journal_items.html:57
+#: templates/app/components/journal_items.html:57
+#, python-format
+msgid "” for %(item)s from your history. This can't be undone."
+msgstr "」的 %(item)s 历史记录。此操作无法撤销。"
+
+#: src/templates/app/components/journal_items.html:63
+#: templates/app/components/journal_items.html:63
+msgid "Cancel"
+msgstr "取消"
+
+#: src/templates/app/components/media_section_tabs.html:9
+#: templates/app/components/media_section_tabs.html:9
+msgid "Overview"
+msgstr "概览"
+
+#: src/templates/app/components/media_section_tabs.html:16
+#: src/templates/app/media_details.html:422
+#: templates/app/components/media_section_tabs.html:16
+#: templates/app/media_details.html:422
+msgid "Cast"
+msgstr "演员"
+
+#: src/templates/app/components/media_section_tabs.html:27
+#: src/templates/app/media_details.html:450
+#: templates/app/components/media_section_tabs.html:27
+#: templates/app/media_details.html:450
+msgid "DLCs"
+msgstr "DLCs"
+
+#: src/templates/app/components/media_section_tabs.html:40
+#: templates/app/components/media_section_tabs.html:40
+msgid "Repeats"
+msgstr "重复"
+
+#: src/templates/app/components/media_section_tabs.html:48
+#: src/templates/app/media_details.html:559
+#: templates/app/components/media_section_tabs.html:48
+#: templates/app/media_details.html:559
+#, fuzzy
+#| msgid "Episode"
+msgid "Episodes"
+msgstr "集"
+
+#: src/templates/app/components/media_section_tabs.html:57
+#: src/templates/app/media_details.html:684
+#: templates/app/components/media_section_tabs.html:57
+#: templates/app/media_details.html:684
+msgid "Streaming"
+msgstr "流媒体"
+
+#: src/templates/app/components/media_section_tabs.html:66
+#: src/templates/app/media_details.html:711
+#: templates/app/components/media_section_tabs.html:66
+#: templates/app/media_details.html:711
+msgid "Time to Beat"
+msgstr "通关时长"
+
+#: src/templates/app/components/search_parent_season.html:14
+#: templates/app/components/search_parent_season.html:14
+#, python-format
+msgid ""
+"No seasons found matching \"%(query)s\". Please try a different search term."
+msgstr "未找到匹配「%(query)s」的季。请尝试其他搜索词。"
+
+#: src/templates/app/components/search_parent_tv.html:14
+#: templates/app/components/search_parent_tv.html:14
+#, python-format
+msgid ""
+"No TV shows found matching \"%(query)s\". Please try a different search term."
+msgstr "未找到匹配「%(query)s」的电视剧。请尝试其他搜索词。"
+
+#: src/templates/app/home.html:6 src/templates/app/home.html:12
+#: templates/app/home.html:6 templates/app/home.html:12
+msgid "Home"
+msgstr "首页"
+
+#: src/templates/app/home.html:17 templates/app/home.html:17
+msgid "Hide unreleased"
+msgstr "隐藏未发布"
+
+#: src/templates/app/journal.html:190 templates/app/journal.html:190
+msgid "Less"
+msgstr "收起"
+
+#: src/templates/app/journal.html:196 templates/app/journal.html:196
+msgid "More"
+msgstr "更多"
+
+#: src/templates/app/media_details.html:42 templates/app/media_details.html:42
+msgid "More tracking options"
+msgstr "更多追踪选项"
+
+#: src/templates/app/media_details.html:63 templates/app/media_details.html:63
+msgid "Add new entry"
+msgstr "添加新条目"
+
+#: src/templates/app/media_details.html:160
+#: src/templates/app/media_details.html:294
+#: src/templates/app/media_details.html:545
+#: templates/app/media_details.html:160 templates/app/media_details.html:294
+#: templates/app/media_details.html:545
+msgid "Show less"
+msgstr "收起"
+
+#: src/templates/app/media_details.html:160
+#: src/templates/app/media_details.html:294
+#: src/templates/app/media_details.html:545
+#: templates/app/media_details.html:160 templates/app/media_details.html:294
+#: templates/app/media_details.html:545
+msgid "Read more"
+msgstr "展开更多"
+
+#: src/templates/app/media_details.html:192
+#: templates/app/media_details.html:192
+msgid "YOUR SCORE"
+msgstr "你的评分"
+
+#: src/templates/app/media_details.html:205
+#: templates/app/media_details.html:205
+msgid "Click to edit"
+msgstr "点击编辑"
+
+#: src/templates/app/media_details.html:250
+#: templates/app/media_details.html:250
+msgid "Your History"
+msgstr "你的历史"
+
+#: src/templates/app/media_details.html:256
+#: templates/app/media_details.html:256
+#, fuzzy
+#| msgid "Start Date"
+msgid "Started:"
+msgstr "开始日期"
+
+#: src/templates/app/media_details.html:263
+#: templates/app/media_details.html:263
+msgid "Ended:"
+msgstr "结束："
+
+#: src/templates/app/media_details.html:270
+#: templates/app/media_details.html:270
+#, fuzzy
+#| msgid "Progress"
+msgid "Progress:"
+msgstr "进度"
+
+#: src/templates/app/media_details.html:286
+#: templates/app/media_details.html:286
+msgid "Your notes"
+msgstr "你的笔记"
+
+#: src/templates/app/media_details.html:302
+#: templates/app/media_details.html:302
+msgid "Actions"
+msgstr "操作"
+
+#: src/templates/app/media_details.html:316
+#: templates/app/media_details.html:316
+#, fuzzy
+#| msgid "Add to custom lists"
+msgid "Add to lists"
+msgstr "添加到自定义列表"
+
+#: src/templates/app/media_details.html:341
+#: templates/app/media_details.html:341
+#, fuzzy
+#| msgid "Activity History"
+msgid "Activity history"
+msgstr "活动历史"
+
+#: src/templates/app/media_details.html:356
+#: templates/app/media_details.html:356
+msgid "Sync metadata with provider"
+msgstr "与提供商同步元数据"
+
+#: src/templates/app/media_details.html:371
+#: templates/app/media_details.html:371
+msgid "Sync metadata"
+msgstr "同步元数据"
+
+#: src/templates/app/media_details.html:376
+#: templates/app/media_details.html:376
+msgid "Details"
+msgstr "详情"
+
+#: src/templates/app/media_details.html:392
+#: templates/app/media_details.html:392
+msgid "Provider"
+msgstr "提供商"
+
+#: src/templates/app/media_details.html:399 src/templates/users/about.html:29
+#: templates/app/media_details.html:399 templates/users/about.html:29
+msgid "Links"
+msgstr "链接"
+
+#: src/templates/app/media_details.html:410
+#: templates/app/media_details.html:410
+msgid "No details available"
+msgstr "暂无详情"
+
+#: src/templates/app/media_details.html:434
+#: templates/app/media_details.html:434
+msgid "View all"
+msgstr "查看全部"
+
+#: src/templates/app/media_details.html:473
+#: templates/app/media_details.html:473
+#, python-format
+msgid "Repeats (%(count)s)"
+msgstr "重复 (%(count)s)"
+
+#: src/templates/app/media_details.html:492
+#: templates/app/media_details.html:492
+msgid "Edit entry"
+msgstr "编辑条目"
+
+#: src/templates/app/media_details.html:526
+#: templates/app/media_details.html:526
+#, fuzzy, python-format
+#| msgid "Start Date"
+msgid "Started %(date)s"
+msgstr "开始日期"
+
+#: src/templates/app/media_details.html:528
+#: templates/app/media_details.html:528
+#, python-format
+msgid "Finished %(date)s"
+msgstr "完成于 %(date)s"
+
+#: src/templates/app/media_details.html:590
+#: templates/app/media_details.html:590
+#, fuzzy, python-format
+#| msgid "Episode"
+msgid "Episode %(ep)s"
+msgstr "集"
+
+#: src/templates/app/media_details.html:663
+#: templates/app/media_details.html:663
+#, fuzzy
+#| msgid "Last Watched"
+msgid "Last watched:"
+msgstr "最后观看"
+
+#: src/templates/app/media_details.html:690
+#: templates/app/media_details.html:690
+msgid "preferences"
+msgstr "偏好设置"
+
+#: src/templates/app/media_details.html:720
+#: templates/app/media_details.html:720
+msgid "Main Story"
+msgstr "主线剧情"
+
+#: src/templates/app/media_details.html:731
+#: templates/app/media_details.html:731
+msgid "Main + Extra"
+msgstr "主线 + 额外"
+
+#: src/templates/app/media_details.html:742
+#: templates/app/media_details.html:742
+msgid "Completionist"
+msgstr "完美通关"
+
+#: src/templates/app/search.html:6 templates/app/search.html:6
+msgid "Search"
+msgstr "搜索"
+
+#: src/templates/app/search.html:11 templates/app/search.html:11
+msgid "Search Results"
+msgstr "搜索结果"
+
+#: src/templates/app/search.html:13 templates/app/search.html:13
+msgid "Source:"
+msgstr "来源："
+
+#: src/templates/app/search.html:26 templates/app/search.html:26
+msgid "Grid View"
+msgstr "网格视图"
+
+#: src/templates/app/search.html:29 templates/app/search.html:29
+msgid "List View"
+msgstr "列表视图"
+
+#: src/templates/app/search.html:92 templates/app/search.html:92
+#, python-format
+msgid "Page %(page)s of %(total_pages)s (%(total_results)s results)"
+msgstr "第 %(page)s 页/共 %(total_pages)s 页（共 %(total_results)s 项）"
+
+#: src/templates/app/search.html:100 templates/app/search.html:100
+msgid "No results found"
+msgstr "未找到结果"
+
+#: src/templates/app/search.html:102 templates/app/search.html:102
+#, python-format
+msgid ""
+"We couldn't find any matches for \"%(q)s\". Try checking your spelling or "
+"using different keywords."
+msgstr "未找到与「%(q)s」匹配的内容。请检查拼写或使用其他关键词。"
+
+#: src/templates/base.html:87 templates/base.html:87
+msgid "首页"
+msgstr "首页"
+
+#: src/templates/base.html:129 templates/base.html:129
+msgid "创建自定义"
+msgstr "创建自定义"
+
+#: src/templates/base.html:144 templates/base.html:144
+msgid "统计"
+msgstr "统计"
+
+#: src/templates/base.html:159 templates/base.html:159
+msgid "日志"
+msgstr "日志"
+
+#: src/templates/base.html:174 templates/base.html:174
+msgid "列表"
+msgstr "列表"
+
+#: src/templates/base.html:189 templates/base.html:189
+msgid "日历"
+msgstr "日历"
+
+#: src/templates/base.html:215 templates/base.html:215
+msgid "设置"
+msgstr "设置"
+
+#: src/templates/base.html:224 templates/base.html:224
+msgid "退出登录"
+msgstr "退出登录"
+
+#: src/templates/base.html:260 templates/base.html:260
+msgid "搜索"
+msgstr "搜索"
+
+#: src/templates/events/calendar.html:6 src/templates/events/calendar.html:11
+#: templates/events/calendar.html:6 templates/events/calendar.html:11
+msgid "Calendar"
+msgstr "日历"
+
+#: src/templates/events/calendar.html:12 templates/events/calendar.html:12
+msgid "Track upcoming releases from your list."
+msgstr "追踪你列表中的即将发布的内容。"
+
+#: src/templates/events/calendar.html:33
+#: src/templates/events/components/calendar_list.html:11
+#: templates/events/calendar.html:33
+#: templates/events/components/calendar_list.html:11
+msgid "Today"
+msgstr "今天"
+
+#: src/templates/events/calendar.html:39 templates/events/calendar.html:39
+msgid "Fetch New Releases"
+msgstr "获取新发布"
+
+#: src/templates/events/calendar.html:71 templates/events/calendar.html:71
+msgid "Export link"
+msgstr "导出链接"
+
+#: src/templates/events/calendar.html:74 templates/events/calendar.html:74
+msgid ""
+"This link can be used to integrate your calendar into any of your calendar "
+"applications."
+msgstr "此链接可用于将你的日历集成到任何日历应用中。"
+
+#: src/templates/events/components/calendar_list.html:27
+#: templates/events/components/calendar_list.html:27
+msgid "at"
+msgstr "于"
+
+#: src/templates/lists/components/fill_lists.html:4
+#: src/templates/lists/custom_lists.html:10
+#: src/templates/lists/custom_lists.html:17
+#: templates/lists/components/fill_lists.html:4
+#: templates/lists/custom_lists.html:10 templates/lists/custom_lists.html:17
+msgid "Lists"
+msgstr "列表"
+
+#: src/templates/lists/components/fill_lists.html:15
+#: templates/lists/components/fill_lists.html:15
+#, fuzzy
+#| msgid "You haven't started tracking it yet."
+msgid "You haven't created any lists yet."
+msgstr "你还没有开始追踪它"
+
+#: src/templates/lists/components/list_form.html:12
+#: src/templates/lists/list_detail.html:40
+#: templates/lists/components/list_form.html:12
+#: templates/lists/list_detail.html:40
+msgid "Edit List"
+msgstr "编辑列表"
+
+#: src/templates/lists/components/list_form.html:14
+#: templates/lists/components/list_form.html:14
+msgid "Create New List"
+msgstr "创建新列表"
+
+#: src/templates/lists/components/list_form.html:41
+#: templates/lists/components/list_form.html:41
+msgid "Save"
+msgstr "保存"
+
+#: src/templates/lists/components/list_form.html:53
+#: templates/lists/components/list_form.html:53
+msgid "Create List"
+msgstr "创建列表"
+
+#: src/templates/lists/components/list_grid.html:17
+#: templates/lists/components/list_grid.html:17
+msgid "Edit list"
+msgstr "编辑列表"
+
+#: src/templates/lists/components/list_item_button.html:8
+#: templates/lists/components/list_item_button.html:8
+msgid "Remove"
+msgstr "移除"
+
+#: src/templates/lists/custom_lists.html:18
+#: templates/lists/custom_lists.html:18
+msgid "Organize and share your media lists"
+msgstr "整理和分享你的媒体列表"
+
+#: src/templates/lists/custom_lists.html:23
+#: templates/lists/custom_lists.html:23
+msgid "New List"
+msgstr "新建列表"
+
+#: src/templates/lists/custom_lists.html:37
+#: templates/lists/custom_lists.html:37
+#, fuzzy
+#| msgid "Search Results"
+msgid "Search lists..."
+msgstr "搜索结果"
+
+#: src/templates/lists/custom_lists.html:60
+#: templates/lists/custom_lists.html:60
+msgid "Last Item Added"
+msgstr "最后添加时间"
+
+#: src/templates/lists/custom_lists.html:60
+#: templates/lists/custom_lists.html:60
+msgid "Name"
+msgstr "名称"
+
+#: src/templates/lists/custom_lists.html:60
+#: templates/lists/custom_lists.html:60
+msgid "Newest First"
+msgstr "最新优先"
+
+#: src/templates/lists/custom_lists.html:60
+#: templates/lists/custom_lists.html:60
+msgid "Items Count"
+msgstr "项目数量"
+
+#: src/templates/lists/custom_lists.html:99
+#: templates/lists/custom_lists.html:99
+msgid "No Lists Created Yet"
+msgstr "还没有创建列表"
+
+#: src/templates/lists/custom_lists.html:100
+#: templates/lists/custom_lists.html:100
+msgid ""
+"Create custom lists to organize your media collection and share with friends."
+msgstr "创建自定义列表来整理你的媒体收藏并与好友分享。"
+
+#: src/templates/lists/custom_lists.html:103
+#: templates/lists/custom_lists.html:103
+msgid "Create Your First List"
+msgstr "创建你的第一个列表"
+
+#: src/templates/lists/list_detail.html:30 templates/lists/list_detail.html:30
+msgid "collaborator"
+msgstr "协作者"
+
+#: src/templates/lists/list_detail.html:67 templates/lists/list_detail.html:67
+msgid "Search in collection..."
+msgstr "在收藏中搜索..."
+
+#: src/templates/lists/list_detail.html:167
+#: templates/lists/list_detail.html:167
+msgid "All"
+msgstr "全部"
+
+#: src/templates/lists/list_detail.html:188
+#: templates/lists/list_detail.html:188
+msgid "Date Added"
+msgstr "添加日期"
+
+#: src/templates/lists/list_detail.html:188
+#: templates/lists/list_detail.html:188
+msgid "Title"
+msgstr "标题"
+
+#: src/templates/lists/list_detail.html:188
+#: templates/lists/list_detail.html:188
+msgid "Media Type"
+msgstr "媒体类型"
+
+#: src/templates/lists/list_detail.html:224
+#: templates/lists/list_detail.html:224
+msgid "No items in this list yet"
+msgstr "此列表中还没有项目"
+
+#: src/templates/lists/list_detail.html:225
+#: templates/lists/list_detail.html:225
+msgid "Start adding your favorite media to build your collection"
+msgstr "开始添加你喜欢的媒体来建立你的收藏"
+
+#: src/templates/lists/list_detail.html:228
+#: templates/lists/list_detail.html:228
+#, fuzzy
+#| msgid "Browse media"
+msgid "Browse Media"
+msgstr "浏览媒体"
+
+#: src/templates/socialaccount/connections.html:95
+#: templates/socialaccount/connections.html:95
+msgid "Back to Home"
+msgstr "返回首页"
+
+#: src/templates/users/about.html:46 templates/users/about.html:46
+msgid "Documentation"
+msgstr "文档"
+
+#: src/templates/users/about.html:55 templates/users/about.html:55
+msgid "Bug Reports"
+msgstr "问题反馈"
+
+#: src/templates/users/about.html:64 templates/users/about.html:64
+msgid "License"
+msgstr "许可证"
+
+#: src/templates/users/about.html:79 templates/users/about.html:79
+msgid "Attribution"
+msgstr "致谢"
+
+#: src/templates/users/base.html:19 templates/users/base.html:19
+msgid "Account"
+msgstr "账户"
+
+#: src/templates/users/base.html:26 templates/users/base.html:26
+msgid "Preferences"
+msgstr "偏好设置"
+
+#: src/templates/users/base.html:33 templates/users/base.html:33
+msgid "Notifications"
+msgstr "通知"
+
+#: src/templates/users/base.html:40 templates/users/base.html:40
+msgid "Integrations"
+msgstr "集成"
+
+#: src/templates/users/base.html:47 templates/users/base.html:47
+msgid "Import Data"
+msgstr "导入数据"
+
+#: src/templates/users/base.html:54 templates/users/base.html:54
+msgid "Export Data"
+msgstr "导出数据"
+
+#: src/templates/users/base.html:61 templates/users/base.html:61
+msgid "Advanced"
+msgstr "高级"
+
+#: src/templates/users/base.html:68 templates/users/base.html:68
+msgid "About"
+msgstr "关于"
+
+#: src/templates/users/import_data.html:28 templates/users/import_data.html:28
+msgid "One Time Import"
+msgstr "一次性导入"
+
+#: src/templates/users/import_data.html:29 templates/users/import_data.html:29
+msgid "Every Day"
+msgstr "每天"
+
+#: src/templates/users/import_data.html:30 templates/users/import_data.html:30
+msgid "Every 2 Days"
+msgstr "每2天"
+
+#: src/templates/users/import_data.html:46 templates/users/import_data.html:46
+msgid "Only Sync New Items"
+msgstr "仅同步新项目"
+
+#: src/templates/users/import_data.html:47 templates/users/import_data.html:47
+msgid "Sync New Items and Overwrite Existing"
+msgstr "同步新项目并覆盖已有"
+
+#: src/templates/users/import_data.html:82 templates/users/import_data.html:82
+msgid "Public"
+msgstr "公开"
+
+#: src/templates/users/import_data.html:83 templates/users/import_data.html:83
+msgid "Private (requires authentication)"
+msgstr "私密（需要认证）"
+
+#: src/templates/users/import_data.html:84 templates/users/import_data.html:84
+msgid "Export (requires ZIP file)"
+msgstr "导出（需要 ZIP 文件）"
+
+#: src/templates/users/integrations.html:21
+#: templates/users/integrations.html:21
+msgid "Token"
+msgstr "令牌"
+
+#: src/templates/users/integrations.html:23
+#: templates/users/integrations.html:23
+msgid ""
+"This token is used to authenticate webhook requests from your media servers."
+msgstr "此令牌用于验证来自你的媒体服务器的 Webhook 请求。"
+
+#: src/templates/users/integrations.html:41
+#: templates/users/integrations.html:41
+msgid "Regenerating will invalidate the previous token"
+msgstr "重新生成将使之前的令牌失效"
+
+#: src/templates/users/integrations.html:49
+#: templates/users/integrations.html:49
+msgid "Regenerate"
+msgstr "重新生成"
+
+#: src/templates/users/integrations.html:58
+#: templates/users/integrations.html:58
+msgid "Media Servers"
+msgstr "媒体服务器"
+
+#: src/templates/users/integrations.html:60
+#: templates/users/integrations.html:60
+msgid ""
+"Connect your media servers to automatically track your watching progress."
+msgstr "连接你的媒体服务器以自动追踪你的观看进度。"
+
+#: src/templates/users/integrations.html:99
+#: templates/users/integrations.html:99
+msgid "Connect Jellyfin to automatically track your watching progress."
+msgstr "连接 Jellyfin 以自动追踪你的观看进度。"
+
+#: src/templates/users/integrations.html:101
+#: templates/users/integrations.html:101
+msgid "Webhook Events"
+msgstr "Webhook 事件"
+
+#: src/templates/users/integrations.html:103
+#: templates/users/integrations.html:103
+msgid ""
+"Play and Stop events are always processed. Enable these to sync manual "
+"watched changes from the unofficial Webhooks plugin."
+msgstr "播放和停止事件始终会被处理。启用以下选项可从非官方 Webhook 插件同步手动标记的观看状态变更。"
+
+#: src/templates/users/integrations.html:113
+#: templates/users/integrations.html:113
+msgid "Process MarkPlayed events"
+msgstr "处理 MarkPlayed 事件"
+
+#: src/templates/users/integrations.html:115
+#: templates/users/integrations.html:115
+msgid "Mark media as watched when it is manually marked played in Jellyfin."
+msgstr "在 Jellyfin 中手动标记为已播放时，将媒体标记为已观看。"
+
+#: src/templates/users/integrations.html:130
+#: templates/users/integrations.html:130
+msgid "Process MarkUnplayed events"
+msgstr "处理 MarkUnplayed 事件"
+
+#: src/templates/users/integrations.html:133
+#: templates/users/integrations.html:133
+msgid ""
+"Remove watched progress when it is manually marked unplayed in Jellyfin. "
+"This event can delete media from Yamtrack."
+msgstr "在 Jellyfin 中手动标记为未播放时，移除观看进度。此事件可能会从 Yamtrack 中删除媒体。"
+
+#: src/templates/users/integrations.html:149
+#: src/templates/users/integrations.html:275
+#: templates/users/integrations.html:149 templates/users/integrations.html:275
+msgid "Save Changes"
+msgstr "保存修改"
+
+#: src/templates/users/integrations.html:155
+#: templates/users/integrations.html:155
+msgid "Official Webhook Plugin"
+msgstr "官方 Webhook 插件"
+
+#: src/templates/users/integrations.html:157
+#: src/templates/users/integrations.html:210
+#: templates/users/integrations.html:157 templates/users/integrations.html:210
+msgid "You will need to have TMDB and TVDB as metadata providers in Jellyfin."
+msgstr "你需要在 Jellyfin 中将 TMDB 和 TVDB 设置为元数据提供商。"
+
+#: src/templates/users/integrations.html:158
+#: templates/users/integrations.html:158
+msgid ""
+"Install the Webhook plugin from the 'Jellyfin Stable' repo via your server's "
+"Plugin Catalog."
+msgstr "通过服务器的插件目录从 'Jellyfin Stable' 仓库安装 Webhook 插件。"
+
+#: src/templates/users/integrations.html:160
+#: src/templates/users/integrations.html:227
+#: templates/users/integrations.html:160 templates/users/integrations.html:227
+msgid "Restart your server, then configure the plugin:"
+msgstr "重启服务器，然后配置插件："
+
+#: src/templates/users/integrations.html:162
+#: templates/users/integrations.html:162
+msgid "Click on the \\"
+msgstr "点击 \\"
+msgid "Notification Type: Playback Start and Playback Stop"
+msgstr "通知类型：播放开始和播放停止"
+
+#: src/templates/users/integrations.html:175
+#: templates/users/integrations.html:175
+msgid "User Filter: Your Jellyfin User"
+msgstr "用户过滤器：你的 Jellyfin 用户"
+
+#: src/templates/users/integrations.html:176
+#: templates/users/integrations.html:176
+msgid "Finally, under the \\"
+msgstr "最后，在 \\"
+msgid "Unofficial Webhooks Plugin"
+msgstr "非官方 Webhook 插件"
+
+#: src/templates/users/integrations.html:212
+#: templates/users/integrations.html:212
+msgid "Add this repository"
+msgstr "添加此仓库"
+
+#: src/templates/users/integrations.html:217
+#: templates/users/integrations.html:217
+msgid "to your \\"
+msgstr "到你的 \\"
+msgid "From your \\"
+msgstr "从你的 \\"
+msgid "Payload format: Default"
+msgstr "载荷格式：默认"
+
+#: src/templates/users/integrations.html:240
+#: templates/users/integrations.html:240
+msgid "Listen to events only for: Your Jellyfin User"
+msgstr "仅监听事件：你的 Jellyfin 用户"
+
+#: src/templates/users/integrations.html:241
+#: templates/users/integrations.html:241
+msgid "Events: Play, Stop, MarkPlayed and MarkUnplayed"
+msgstr "事件：播放、停止、MarkPlayed 和 MarkUnplayed"
+
+#: src/templates/users/integrations.html:254
+#: templates/users/integrations.html:254
+msgid "Connect Plex to automatically track your watching progress."
+msgstr "连接 Plex 以自动追踪你的观看进度。"
+
+#: src/templates/users/integrations.html:256
+#: templates/users/integrations.html:256
+msgid "Plex Usernames"
+msgstr "Plex 用户名"
+
+#: src/templates/users/integrations.html:263
+#: templates/users/integrations.html:263
+msgid ""
+"This username (or several, comma separated) will be used to filter which "
+"events are sent to your webhook."
+msgstr "此用户名（或多个，逗号分隔）将用于过滤发送到你的 Webhook 的事件。"
+
+#: src/templates/users/integrations.html:281
+#: src/templates/users/integrations.html:323
+#: templates/users/integrations.html:281 templates/users/integrations.html:323
+msgid "Setup Instructions"
+msgstr "设置说明"
+
+#: src/templates/users/integrations.html:283
+#: templates/users/integrations.html:283
+msgid "You will need to have a PlexPass in order to have webhooks enabled"
+msgstr "你需要 PlexPass 才能启用 Webhook"
+
+#: src/templates/users/integrations.html:284
+#: templates/users/integrations.html:284
+msgid "Go to Settings > Server > Network and enable Webhooks"
+msgstr "前往 设置 > 服务器 > 网络 并启用 Webhook"
+
+#: src/templates/users/integrations.html:286
+#: templates/users/integrations.html:286
+msgid "In Plex settings, go to"
+msgstr "在 Plex 设置中，前往"
+
+#: src/templates/users/integrations.html:293
+#: templates/users/integrations.html:293
+msgid "In the Webhooks section, click on \\"
+msgstr "在 Webhook 部分，点击 \\"
+msgid "Connect Emby to automatically track your watching progress."
+msgstr "连接 Emby 以自动追踪你的观看进度。"
+
+#: src/templates/users/integrations.html:325
+#: templates/users/integrations.html:325
+msgid "In Emby, go to Settings > Notifications"
+msgstr "在 Emby 中，前往 设置 > 通知"
+
+#: src/templates/users/integrations.html:326
+#: templates/users/integrations.html:326
+msgid "In the Notifications section, click on \\"
+msgstr "在通知部分，点击 \\"
+msgid "In the Notification settings:"
+msgstr "在通知设置中："
+
+#: src/templates/users/integrations.html:346
+#: templates/users/integrations.html:346
+msgid "Request content type: multipart/form-data"
+msgstr "请求内容类型：multipart/form-data"
+
+#: src/templates/users/integrations.html:347
+#: templates/users/integrations.html:347
+msgid "Events: Play and Stop"
+msgstr "事件：播放和停止"
+
+#: src/templates/users/integrations.html:348
+#: templates/users/integrations.html:348
+msgid "Limit user events to: Your Emby User"
+msgstr "限制用户事件为：你的 Emby 用户"
+
+#: src/templates/users/integrations.html:349
+#: templates/users/integrations.html:349
+msgid "\\"
+msgstr "\\"
+
+#: src/templates/users/notifications.html:49
+#: templates/users/notifications.html:49
+msgid "Email"
+msgstr "邮箱"
+
+#: src/templates/users/notifications.html:52
+#: templates/users/notifications.html:52
+msgid "And many more..."
+msgstr "更多..."
+
+#: src/users/forms.py:20 users/forms.py:20
+msgid "输入用户名"
+msgstr "输入用户名"
+
+#: src/users/forms.py:22 users/forms.py:22
+msgid "输入密码"
+msgstr "输入密码"
+
+#: src/users/forms.py:35 src/users/forms.py:36 users/forms.py:35
+#: users/forms.py:36
+msgid "确认密码"
+msgstr "确认密码"
+
+#: src/users/forms.py:46 users/forms.py:46
+msgid "演示账户不允许修改用户名。"
+msgstr "演示账户不允许修改用户名。"
+
+#: src/users/forms.py:69 users/forms.py:69
+msgid "演示账户不允许修改密码。"
+msgstr "演示账户不允许修改密码。"
+
+#: src/users/forms.py:117 users/forms.py:117
+#, python-format
+msgid "'%(url)s' 不是有效的 Apprise URL。"
+msgstr "'%(url)s' 不是有效的 Apprise URL。"
+
+#, python-format
+#~ msgid "Search %(media_type_plural)s in %(target_user.username)s's list..."
+#~ msgstr "在 %(target_user.username)s 的列表中搜索 %(media_type_plural)s..."
+
+#, python-format
+#~ msgid "Search %(media_type_plural)s in your list..."
+#~ msgstr "在你的列表中搜索 %(media_type_plural)s..."
+
+#~ msgid "Table View"
+#~ msgstr "表格视图"
+
+#, python-format
+#~ msgid "No %(media_type_plural)s Tracked Yet"
+#~ msgstr "暂无追踪的 %(media_type_plural)s"
+
+#, python-format
+#~ msgid ""
+#~ "Start tracking your %(media_type_plural)s to keep a record of what you've "
+#~ "%(media_past_verb)s."
+#~ msgstr ""
+#~ "开始追踪你的 %(media_type_plural)s，记录你 %(media_past_verb)s 的内容。"
+
+#, python-format
+#~ msgid "Browse %(media_type_readable)s"
+#~ msgstr "浏览 %(media_type_readable)s"
+
+#~ msgid "Score"
+#~ msgstr "评分"
+
+#~ msgid "Status"
+#~ msgstr "状态"
+
+#~ msgid "End Date"
+#~ msgstr "结束日期"

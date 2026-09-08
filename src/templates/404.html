@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 
 {% block title %}
-  Page not found - Yamtrack
+  {% trans "页面未找到" %} - Yamtrack
 {% endblock title %}
 
 {% block body %}
@@ -10,18 +11,18 @@
     <div class="text-center max-w-md">
       <div class="mb-6">
         <div class="text-9xl font-bold text-indigo-500">404</div>
-        <h1 class="text-3xl font-bold mt-4 mb-2">Page Not Found</h1>
-        <p class="text-gray-400 mb-4">The page you are looking for doesn't exist or has been moved.</p>
+        <h1 class="text-3xl font-bold mt-4 mb-2">{% trans "页面未找到" %}</h1>
+        <p class="text-gray-400 mb-4">{% trans "您要查找的页面不存在或已被移动。" %}</p>
         <p class="text-sm text-gray-500 mb-6">
           If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues"
-    class="text-indigo-400 hover:underline">report the issue.</a>
+    class="text-indigo-400 hover:underline">{% trans "报告此问题。" %}</a>
         </p>
       </div>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="{% url 'home' %}"
            class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
           {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-          <span>Back to Home</span></a>
+          <span>{% trans "返回首页" %}</span></a>
       </div>
     </div>
   </div>

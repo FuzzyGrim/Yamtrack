@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load app_tags %}
 {% load events_tags %}
 
@@ -7,7 +8,7 @@
       <div class="px-4 py-3 font-medium flex items-center justify-between {% if day == today.day and month == today.month and year == today.year %}bg-indigo-600{% else %}bg-gray-600{% endif %}">
         <span>{% day_of_week day month year %}, {{ month_name }} {{ day }}</span>
         {% if day == today.day and month == today.month and year == today.year %}
-          <span class="text-sm bg-white text-indigo-600 px-2 py-0.5 rounded-full">Today</span>
+          <span class="text-sm bg-white text-indigo-600 px-2 py-0.5 rounded-full">{% trans "Today" %}</span>
         {% endif %}
       </div>
 
@@ -23,7 +24,7 @@
                 <div class="flex items-center">
                   <span class="text-xs text-gray-400 me-2">{{ release.item.media_type|media_type_readable }}</span>
                   {% if release.readable_content_number %}
-                    <span class="text-xs text-indigo-400">{{ release.readable_content_number }} at {{ release.datetime|time_format:user }}</span>
+                    <span class="text-xs text-indigo-400">{{ release.readable_content_number }} {% trans "at" %} {{ release.datetime|time_format:user }}</span>
                   {% endif %}
                 </div>
               </div>

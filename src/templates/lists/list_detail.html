@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 {% load app_tags %}
 
@@ -26,9 +27,9 @@
             {% endfor %}
           </div>
           <span class="text-sm text-gray-400">
-            {{ collaborators_count }} collaborator{{ collaborators_count|pluralize }}
+            {{ collaborators_count }} {% trans "collaborator" %}{{ collaborators_count|pluralize }}
             <span class="mx-2">•</span>
-            {{ items_count }} item{{ items_count|pluralize }}
+            {{ items_count }} {% trans "item" %}{{ items_count|pluralize }}
           </span>
         </div>
       </div>
@@ -36,7 +37,7 @@
     <button @click="showModal = true"
             class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 text-sm group cursor-pointer">
       {% include "app/icons/horizontal-sliders.svg" with classes="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" %}
-      <span>Edit List</span>
+      <span>{% trans "Edit List" %}</span>
     </button>
     {% include "lists/components/list_form.html" %}
   </div>
@@ -63,7 +64,7 @@
       {# Search #}
       <div class="relative flex-1">
         <input id="search-input"
-               placeholder="Search in collection..."
+               placeholder="{% trans "Search in collection..." %}"
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="query"
@@ -163,7 +164,7 @@
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
                     :class="type === 'all' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                     @click="type = 'all'; open = false"
-                    type="button">All</button>
+                    type="button">{% trans "All" %}</button>
             {% for media_type in media_types %}
               <button hx-get="{% url 'list_detail' custom_list.id %}"
                       {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
@@ -184,7 +185,7 @@
                   type="button">
             {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
             <span class="text-sm"
-                  x-text="sort === 'date_added' ? 'Date Added' : (sort === 'title' ? 'Title' : 'Media Type')"></span>
+                  x-text="sort === 'date_added' ? '{% trans "Date Added" %}' : (sort === 'title' ? '{% trans "Title" %}' : '{% trans "Media Type" %}')"></span>
             {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
           </button>
 
@@ -220,11 +221,11 @@
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             {% include "app/icons/list-add.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
-          <h3 class="text-xl font-semibold mb-2">No items in this list yet</h3>
-          <p class="text-gray-400 mb-6">Start adding your favorite media to build your collection</p>
+          <h3 class="text-xl font-semibold mb-2">{% trans "No items in this list yet" %}</h3>
+          <p class="text-gray-400 mb-6">{% trans "Start adding your favorite media to build your collection" %}</p>
           <div class="pt-4">
             <a href="{{ 'tv'|sample_search }}"
-               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">{% trans "Browse Media" %}</a>
           </div>
         </div>
       </div>

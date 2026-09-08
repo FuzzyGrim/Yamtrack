@@ -1,6 +1,7 @@
 {% extends "users/base.html" %}
 
 {% load widget_tweaks %}
+{% load i18n %}
 
 {% block title %}
   Notifications - Yamtrack
@@ -45,10 +46,10 @@
               <li>Discord</li>
               <li>Telegram</li>
               <li>Slack</li>
-              <li>Email</li>
+              <li>{% trans "Email" %}</li>
               <li>Pushover</li>
               <li>ntfy</li>
-              <li>And many more...</li>
+              <li>{% trans "And many more..." %}</li>
             </ul>
             <p class="mt-2">
               Enter one URL per line. Example: <code class="bg-[#2a2f35] px-1 py-0.5 rounded">discord://webhook_id/webhook_token</code>

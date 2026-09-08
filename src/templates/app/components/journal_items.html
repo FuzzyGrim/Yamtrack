@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load app_tags humanize %}
 
 {% for day in journal_days %}
@@ -26,7 +27,7 @@
              class="font-semibold text-white group-hover:text-indigo-400 transition-colors duration-200 line-clamp-1">{{ entry.item }}</a>
           <button type="button"
                   @click="confirmOpen = true"
-                  aria-label="Delete activity"
+                  aria-label="{% trans "Delete activity" %}"
                   class="shrink-0 -mt-0.5 -me-0.5 p-1 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 cursor-pointer">
             {% include "app/icons/trashcan.svg" with classes="w-4 h-4" %}
           </button>
@@ -47,20 +48,19 @@
            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div class="w-96 max-w-full bg-[#2a2f35] rounded-xl p-6 relative z-60 ring-1 ring-white/10 shadow-xl"
              @click.outside="confirmOpen = false">
-          <h3 class="text-lg font-semibold text-white mb-2">Delete activity?</h3>
-          <p class="text-sm text-gray-400 mb-6">
-            This removes “
+          <h3 class="text-lg font-semibold text-white mb-2">{% trans "Delete activity?" %}</h3>
+          <p class="text-sm text-gray-400 mb-6">{% blocktrans with item=entry.item %}This removes “{% endblocktrans %}
             {% for change in entry.changes %}
               {{ change.description }}
               {% if not forloop.last %},{% endif %}
             {% endfor %}
-            ” for {{ entry.item }} from your history. This can't be undone.
+            {% blocktrans with item=entry.item %}” for {{ item }} from your history. This can't be undone.{% endblocktrans %}
           </p>
           <div class="flex justify-end gap-2">
             <button type="button"
                     @click="confirmOpen = false"
                     class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
-              Cancel
+              {% trans "Cancel" %}
             </button>
             <button type="button"
                     hx-delete="{% url 'delete_history_record' entry.media_type entry.id %}"
@@ -69,7 +69,7 @@
                     hx-swap="outerHTML"
                     class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
               {% include "app/icons/trashcan.svg" with classes="w-4 h-4" %}
-              Delete
+              {% trans "Delete" %}
             </button>
           </div>
         </div>

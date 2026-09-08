@@ -1,6 +1,7 @@
 {% extends "socialaccount/base_manage.html" %}
 {% load allauth %}
 {% load socialaccount %}
+{% load i18n %}
 
 {% block head_title %}
   Account Connections
@@ -91,6 +92,6 @@
     <a href="{% url 'home' %}"
        class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
       {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-      <span>Back to Home</span></a>
+      <span>{% trans "Back to Home" %}</span></a>
   </div>
 {% endblock content %}

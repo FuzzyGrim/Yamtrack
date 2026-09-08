@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
   Journal - Yamtrack
@@ -186,13 +187,13 @@
       <!-- Legend -->
       <div class="flex items-center gap-2 pl-6 text-xs text-gray-400"
            :class="graphTooWide ? 'mb-5 mt-2' : 'mt-4'">
-        <span>Less</span>
+        <span>{% trans "Less" %}</span>
         <div class="w-4 h-4 rounded-sm bg-[#3a414c]"></div>
         <div class="w-4 h-4 rounded-sm bg-indigo-600"></div>
         <div class="w-4 h-4 rounded-sm bg-indigo-500"></div>
         <div class="w-4 h-4 rounded-sm bg-indigo-400"></div>
         <div class="w-4 h-4 rounded-sm bg-indigo-300"></div>
-        <span>More</span>
+        <span>{% trans "More" %}</span>
       </div>
     </div>
   </div>

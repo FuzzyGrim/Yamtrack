@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
   {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
@@ -192,60 +193,8 @@
   {% if request.user.is_authenticated %}{{ block.super }}{% endif %}
 {% endblock sidebar_own_media %}
 
-{% block sidebar_external_media_view %}
-  {% if target_user != request.user %}
-    <ul class="space-y-1 mb-6 {% if request.user.is_authenticated %}border-t border-[#2c3136] pt-4{% endif %}">
-      <li>
-        <span class="flex font-bold items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-white">{{ target_user.username }}'s Media:</span>
-      </li>
-      {% get_sidebar_media_types target_user as sidebar_media_types %}
-      {% for item in sidebar_media_types %}
-        <li>
-          <a href="{% url 'medialist' username=target_user.username media_type=item.media_type %}"
-             class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-            {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
-            <span>{{ item.display_name }}</span>
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
+{% block sidebar_external_media %}
+  {% if request.user == target_user %}
+    {{ block.super }}
   {% endif %}
-{% endblock sidebar_external_media_view %}
-
-{% block sidebar_utilities %}
-  {% if request.user.is_authenticated %}{{ block.super }}{% endif %}
-{% endblock sidebar_utilities %}
-
-{% block sidebar_logout %}
-  {% if request.user.is_authenticated %}{{ block.super }}{% endif %}
-{% endblock sidebar_logout %}
-
-{% block anonymous_login %}
-  {% if not request.user.is_authenticated %}
-    <div class="p-4 border-t border-[#2c3136] mt-auto">
-      <div class="space-y-2">
-        <a href="{% url 'account_login' %}?next={{ request.path }}"
-           class="mt-4 p-3 rounded-lg w-full flex items-center justify-center gap-2 text-white duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 ">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="18"
-               height="18"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-            <polyline points="10 17 15 12 10 7"></polyline>
-            <line x1="15" x2="3" y1="12" y2="12"></line>
-          </svg>
-          Sign In
-        </a>
-      </div>
-    </div>
-  {% endif %}
-{% endblock anonymous_login %}
-
-{% block search_bar %}
-  {% if request.user.is_authenticated %}{{ block.super }}{% endif %}
-{% endblock search_bar %}
+{% endblock sidebar_external_media %}

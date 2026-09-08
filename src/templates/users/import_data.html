@@ -1,6 +1,7 @@
 {% extends "users/base.html" %}
 {% load user_tags %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
   Import - Yamtrack
@@ -24,9 +25,9 @@
             <div class="relative">
               <select x-model="importFrequency"
                       class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-                <option value="once">One Time Import</option>
-                <option value="daily">Every Day</option>
-                <option value="2days">Every 2 Days</option>
+                <option value="once">{% trans "One Time Import" %}</option>
+                <option value="daily">{% trans "Every Day" %}</option>
+                <option value="2days">{% trans "Every 2 Days" %}</option>
               </select>
               {% include "app/icons/chevron-down.svg" with classes="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" %}
             </div>
@@ -42,8 +43,8 @@
             <div class="relative">
               <select x-model="importMode"
                       class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-                <option value="new">Only Sync New Items</option>
-                <option value="overwrite">Sync New Items and Overwrite Existing</option>
+                <option value="new">{% trans "Only Sync New Items" %}</option>
+                <option value="overwrite">{% trans "Sync New Items and Overwrite Existing" %}</option>
               </select>
               {% include "app/icons/chevron-down.svg" with classes="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" %}
             </div>
@@ -78,9 +79,9 @@
             <label class="block text-sm font-medium text-gray-300 mb-2">Import method</label>
             <select x-model="traktImportMethod"
                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-              <option value="public">Public</option>
-              <option value="private">Private (requires authentication)</option>
-              <option value="export">Export (requires ZIP file)</option>
+              <option value="public">{% trans "Public" %}</option>
+              <option value="private">{% trans "Private (requires authentication)" %}</option>
+              <option value="export">{% trans "Export (requires ZIP file)" %}</option>
             </select>
           </div>
 
