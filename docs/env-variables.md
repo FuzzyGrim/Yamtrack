@@ -54,6 +54,7 @@ See [media-imports](media-imports.md).
 | `REDIRECT_LOGIN_TO_SSO`         | Default to `False`. Set to `True` to automatically redirect (using JavaScript) to the SSO provider when there's only one available. Useful for single sign-on setups. |
 | `YAMTRACK_AUTO_LOGIN_USERNAME`  | Default to `None`, which disables this feature. Specify a username to automatically login with the selected user. The user needs to be existing and active.           |
 | `YAMTRACK_INTERNAL_PORT`        | ADVANCED. Port nginx listens on inside the container. Default to `8000`. Only needed when `8000` is already taken, typically when the container shares another service's network namespace (e.g. `network_mode: service:gluetun`). See the example below. |
+| `TRUSTED_PROXIES`               | ADVANCED. Comma-separated list of IP addresses or CIDR subnets of upstream reverse proxies (e.g., `192.168.1.0/24, 10.0.0.5`). |
 
 ### Example: sharing a network namespace (e.g. gluetun)
 
@@ -76,6 +77,20 @@ services:
   gluetun:
     ports:
       - "9117:9117"
+ ```
+
+### Example: reverse proxy
+
+When Yamtrack sits behind a reverse proxy, set `TRUSTED_PROXIES` to the IP
+address(es) or subnet(s) of the proxy so that the real client IP is used:
+
+```yaml
+services:
+  yamtrack:
+    image: ghcr.io/fuzzygrim/yamtrack
+    environment:
+      # ... the rest of the Yamtrack variables
+      - TRUSTED_PROXIES=192.168.1.0/24, 10.0.0.5
 ```
 
 ## Celery Health Check
