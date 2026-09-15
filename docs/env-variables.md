@@ -18,6 +18,16 @@ This page outlines the environment variables used in the YamTrack project.
 | `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
 
+## Critic Scores
+
+Movie, TV show, season and anime pages can show critic and audience scores next to the source score. They are loaded after the page has rendered and cached for a week.
+
+| Name                       | Notes                                                                                                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OMDB_API`                 | [OMDb API](https://www.omdbapi.com/apikey.aspx) key, shows the IMDb score and Metascore for movies and TV shows. The free tier allows 1000 requests per day. Disabled when unset.                                                                      |
+| `ROTTEN_TOMATOES`          | Default to `True`. Shows the Tomatometer and Popcornmeter from rottentomatoes.com, which has no public API, so the title is looked up on their site and the closest match by title and year is used. Set to `False` to disable.                        |
+| `RT_TITLE_MATCH_THRESHOLD` | Default to `0.75`. Minimum title similarity (0 to 1) a Rotten Tomatoes search result must have to be used. When the matched title is not identical to the item's title, it is shown on the score card. Raise it for fewer, stricter matches.          |
+
 ## Media Import
 
 See [media-imports](media-imports.md).

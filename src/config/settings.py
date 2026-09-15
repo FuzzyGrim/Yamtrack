@@ -373,6 +373,20 @@ TMDB_API = config(
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
+# Optional, enables IMDb and Metacritic ratings on movie/TV pages via https://www.omdbapi.com
+OMDB_API = config(
+    "OMDB_API",
+    default=secret(
+        "OMDB_API_FILE",
+        "",
+    ),
+)
+
+# Tomatometer and Popcornmeter scraped from rottentomatoes.com, matched by title.
+# Search results whose title similarity (0-1) is below the threshold are ignored.
+ROTTEN_TOMATOES = config("ROTTEN_TOMATOES", default=True, cast=bool)
+RT_TITLE_MATCH_THRESHOLD = config("RT_TITLE_MATCH_THRESHOLD", default=0.75, cast=float)
+
 TVDB_API = config(
     "TVDB_API",
     default=secret(
