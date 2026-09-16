@@ -337,9 +337,8 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
                 not_found_error = type("Error", (), {"response": not_found_response})
                 raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
 
-            season_data = process_season(
-                response[season_key], response[f"{season_key}/watch/providers"]
-            )
+            providers = response.get(f"{season_key}/watch/providers") or {}
+            season_data = process_season(response[season_key], providers)
             season_data = enrich_season_with_tv_data(
                 season_data,
                 fetched_tv_data,
