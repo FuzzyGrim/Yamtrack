@@ -165,6 +165,37 @@ class EpisodeStatusTests(TestCase):
         self.assertEqual(self.tv.status, Status.COMPLETED.value)
 
     @patch("app.models.providers.services.get_media_metadata")
+    def test_last_episode_does_not_complete_season_when_preference_disabled(
+        self,
+        mock_get_metadata,
+    ):
+        """Test last episode leaves season/TV in progress when disabled."""
+        self.user.complete_season_on_last_episode = False
+        self.user.save()
+
+        mock_metadata = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
+            "related": {
+                "seasons": [{"season_number": 1}],
+            },
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        self.season.refresh_from_db()
+        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
+
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
     def test_middle_episode_does_not_change_status(self, mock_get_metadata):
         """Test middle episode doesn't change season/TV status."""
         mock_metadata = {
