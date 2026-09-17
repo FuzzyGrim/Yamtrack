@@ -1798,9 +1798,18 @@ class Episode(models.Model):
         self.related_season.refresh_from_db()
 
         is_finale = self.item.episode_number == max_progress
-        completes_season = (
-            is_finale and self.related_season.user.complete_season_on_last_episode
-        )
+        if self.related_season.user.complete_season_on_last_episode:
+            completes_season = is_finale
+        else:
+            watched_episode_count = (
+                self.related_season.episodes.values_list(
+                    "item__episode_number",
+                    flat=True,
+                )
+                .distinct()
+                .count()
+            )
+            completes_season = watched_episode_count >= max_progress
         season_just_completed = False
         if completes_season:
             if self.related_season.status != Status.COMPLETED.value:
