@@ -318,7 +318,7 @@ class BookForm(MediaForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Seed the unit and relabel the progress field."""
+        """Seed the unit and relabel progress."""
         super().__init__(*args, **kwargs)
 
         self.initial["progress_unit"] = self.default_progress_unit()
@@ -328,7 +328,7 @@ class BookForm(MediaForm):
             self.fields["progress"].widget.attrs["max"] = 100
 
     def default_progress_unit(self):
-        """Return the book's unit, else the user's preference."""
+        """Return the book's unit, else the preference."""
         if self.instance and self.instance.pk:
             return self.instance.progress_unit
         if self.user:
@@ -336,7 +336,7 @@ class BookForm(MediaForm):
         return ProgressUnit.PAGES
 
     def clean_progress_unit(self):
-        """Fall back to the default when none was submitted."""
+        """Default when the unit is missing."""
         return self.cleaned_data["progress_unit"] or self.default_progress_unit()
 
     def clean(self):
@@ -421,7 +421,7 @@ class EpisodeForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Initialize the form, accepting the shared user kwarg."""
+        """Initialize the form, accepting a user."""
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 

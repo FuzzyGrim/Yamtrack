@@ -566,7 +566,7 @@ class MediaManager(models.Manager):
                 max_progress_dict[item_id] = max(current_max, content_number)
 
         for media in media_list:
-            # Percentage progress is scaled to 100, not to the page count.
+            # Percentage scales to 100, not pages.
             if media.get_progress_unit() == ProgressUnit.PERCENTAGE:
                 media.max_progress = PERCENTAGE_MAX_PROGRESS
             else:
@@ -910,7 +910,7 @@ class Media(models.Model):
         )
 
     def get_progress_unit(self):
-        """Return the progress unit, or None if untracked."""
+        """Return the progress unit, or None."""
         return
 
     def progress_unit_changed(self):
@@ -929,7 +929,7 @@ class Media(models.Model):
                 self.item.source,
             )
         except providers.services.ProviderAPIError:
-            # Keep the edit; the cap is a refinement, not the point of the save.
+            # Keep the edit; the cap is optional.
             logger.warning("Could not read the max progress of %s", self.item)
             return None
 
@@ -939,7 +939,7 @@ class Media(models.Model):
         """Update fields depending on the progress of the media."""
         self.progress = max(self.progress, 0)
 
-        # A percentage is out of range in any status, not just in progress.
+        # Out of range in any status.
         if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
             self.progress = min(self.progress, PERCENTAGE_MAX_PROGRESS)
 
@@ -979,7 +979,7 @@ class Media(models.Model):
 
     @property
     def formatted_progress(self):
-        """Return the progress of the media in a formatted string."""
+        """Return progress, with the max when annotated."""
         display = str(self.progress)
         max_progress = getattr(self, "max_progress", None)
         if max_progress and self.item.media_type != MediaTypes.MOVIE.value:
@@ -1961,7 +1961,7 @@ class Book(Media):
 
     tracker = FieldTracker()
 
-    # Unit of the stored progress; never resolved at read time.
+    # Unit of the stored progress, never inherited.
     progress_unit = models.CharField(
         max_length=20,
         choices=ProgressUnit,
@@ -1981,13 +1981,13 @@ class Book(Media):
 
     @property
     def formatted_progress(self):
-        """Return "N%" when tracked by percentage, else the base "N / max" form."""
+        """Return "N%", else the base form."""
         if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
             return f"{self.progress}%"
         return super().formatted_progress
 
     def get_progress_unit(self):
-        """Return the unit this book's progress is recorded in."""
+        """Return the book's recorded unit."""
         return self.progress_unit
 
     def progress_unit_changed(self):

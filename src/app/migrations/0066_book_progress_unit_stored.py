@@ -5,7 +5,7 @@ UNITS = ["pages", "percentage"]
 
 
 def set_unit_on_existing_books(apps, _):
-    """Existing progress predates percentages, so it is pages."""
+    """Existing progress predates percentages."""
     for model_name in ("Book", "HistoricalBook"):
         model = apps.get_model("app", model_name)
         model.objects.filter(progress_unit="").update(progress_unit=PAGES)

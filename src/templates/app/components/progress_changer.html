@@ -14,7 +14,7 @@
   </button>
 
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
-    {# formatted_progress already carries the max and the % suffix #}
+    {# formatted_progress already carries the max #}
     {{ media.formatted_progress }}
 
     {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value and media.get_progress_unit != 'percentage' %}

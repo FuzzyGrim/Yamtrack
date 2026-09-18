@@ -358,7 +358,7 @@ def organize_changes(changes, media_type, user, record=None):
         if change.field == "progress" and media_type == MediaTypes.MOVIE.value:
             continue
 
-        # The unit is an attribute of progress, not a change worth reporting.
+        # Describes progress, not its own change.
         if change.field == "progress_unit":
             continue
 
@@ -487,7 +487,7 @@ def build_changes_list(changes, processed_entry):
 
 
 def progress_noun(media_type, progress_unit):
-    """Return the progress unit noun for a media type."""
+    """Return the progress unit noun."""
     if progress_unit == ProgressUnit.PERCENTAGE:
         return "%"
     return config.get_unit(media_type, short=False).lower()

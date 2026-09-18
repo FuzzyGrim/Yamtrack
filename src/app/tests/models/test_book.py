@@ -31,7 +31,7 @@ class BookModelTests(TestCase):
         )
 
     def test_progress_unit_defaults_to_pages(self, mock_metadata):
-        """Test that a new book records pages by default."""
+        """Test the default unit is pages."""
         mock_metadata.return_value = {"max_progress": 200}
         book = Book.objects.create(
             item=self.item,
@@ -43,7 +43,7 @@ class BookModelTests(TestCase):
         self.assertEqual(book.get_progress_unit(), ProgressUnit.PAGES)
 
     def test_preference_does_not_reinterpret_stored_progress(self, mock_metadata):
-        """Test that the preference never rewrites recorded progress."""
+        """Test the preference never rewrites progress."""
         mock_metadata.return_value = {"max_progress": 400}
         book = Book.objects.create(
             item=self.item,
@@ -61,7 +61,7 @@ class BookModelTests(TestCase):
         self.assertEqual(book.formatted_progress, "250")
 
     def test_percentage_capped_outside_in_progress(self, mock_metadata):
-        """Test that a paused book cannot exceed 100 percent."""
+        """Test a paused book caps at 100."""
         mock_metadata.return_value = {"max_progress": 400}
         book = Book.objects.create(
             item=self.item,
@@ -76,7 +76,7 @@ class BookModelTests(TestCase):
         self.assertEqual(book.status, Status.PAUSED.value)
 
     def test_progress_saved_when_provider_unavailable(self, mock_metadata):
-        """Test that a provider outage does not lose the edit."""
+        """Test a provider outage keeps the edit."""
         mock_metadata.side_effect = ProviderAPIError(
             Sources.OPENLIBRARY.value,
             Exception("unavailable"),
@@ -93,7 +93,7 @@ class BookModelTests(TestCase):
         self.assertEqual(book.status, Status.IN_PROGRESS.value)
 
     def test_progress_unit_is_stored_on_the_book(self, mock_metadata):
-        """Test that an explicit unit persists to the database."""
+        """Test an explicit unit persists."""
         mock_metadata.return_value = {"max_progress": 200}
         book = Book.objects.create(
             item=self.item,

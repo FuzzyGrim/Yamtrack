@@ -44,7 +44,7 @@ if (!window.__mediaFormRegistered) {
           const newUnit = oldUnit === 'pages' ? 'percentage' : 'pages';
           const currentValue = parseInt(progressField.value) || 0;
 
-          // Needs the page count; rounding makes repeat toggles lossy.
+          // Needs page count; rounding is lossy.
           if (maxProgress > 0) {
             let newValue;
             if (newUnit === 'percentage') {

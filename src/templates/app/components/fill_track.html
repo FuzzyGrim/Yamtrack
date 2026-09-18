@@ -24,7 +24,7 @@
     {{ form.season_number }}
     {% if form.progress_unit %}{{ form.progress_unit }}{% endif %}
 
-    {# notes renders outside the grid, so an even visible count means an odd grid #}
+    {# notes sits outside the grid #}
     {% with total_fields=form.fields|length grid_fields=form.visible_fields|length %}
       {% if total_fields > 8 %}<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">{% endif %}
 

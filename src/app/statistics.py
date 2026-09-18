@@ -395,7 +395,7 @@ def _consumed_value_and_unit(media_type, queryset, item_count):
         # Whole movies are counted; reuse the count get_user_media already ran.
         value = item_count
     elif media_type == MediaTypes.BOOK.value:
-        # Percentages are not pages, so they cannot join this total.
+        # Percentages are not pages.
         value = (
             queryset.filter(progress_unit=ProgressUnit.PAGES).aggregate(
                 total=models.Sum("progress"),
