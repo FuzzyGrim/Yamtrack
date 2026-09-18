@@ -14,7 +14,16 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from app import config
-from app.models import TV, BasicMedia, Episode, MediaManager, MediaTypes, Season, Status
+from app.models import (
+    TV,
+    BasicMedia,
+    Episode,
+    MediaManager,
+    MediaTypes,
+    ProgressUnit,
+    Season,
+    Status,
+)
 from app.templatetags import app_tags
 from users.models import WeekStartDayChoices
 
@@ -385,6 +394,14 @@ def _consumed_value_and_unit(media_type, queryset, item_count):
     elif media_type == MediaTypes.MOVIE.value:
         # Whole movies are counted; reuse the count get_user_media already ran.
         value = item_count
+    elif media_type == MediaTypes.BOOK.value:
+        # Percentages are not pages, so they cannot join this total.
+        value = (
+            queryset.filter(progress_unit=ProgressUnit.PAGES).aggregate(
+                total=models.Sum("progress"),
+            )["total"]
+            or 0
+        )
     else:
         value = queryset.aggregate(total=models.Sum("progress"))["total"] or 0
 
