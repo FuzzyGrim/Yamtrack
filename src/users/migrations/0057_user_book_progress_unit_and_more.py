@@ -1,0 +1,30 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("auth", "0012_alter_user_first_name_max_length"),
+        ("users", "0056_user_home_hide_unreleased"),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name="user",
+            name="book_progress_unit",
+            field=models.CharField(
+                choices=[("pages", "Pages"), ("percentage", "Percentage")],
+                default="pages",
+                max_length=20,
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="user",
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    ("book_progress_unit__in", ["pages", "percentage"]),
+                ),
+                name="book_progress_unit_valid",
+            ),
+        ),
+    ]
