@@ -16,6 +16,7 @@ from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
+from lists.models import CustomList, CustomListItem
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,9 @@ EXPORT_FALLBACK_USERNAME = "Trakt User"
 ENDPOINTS_TO_FILES = {
     "/history": ("watched-history",),
     "/watchlist": ("lists-watchlist",),
+    "/lists": ("lists-lists",),
+    "/lists/collaborations": ("lists-collaborations",),
+    "/favorites": ("lists-favorites",),
     "/ratings": (
         "ratings-movies",
         "ratings-shows",
@@ -45,6 +49,32 @@ ENDPOINTS_TO_FILES = {
         "comments-episodes",
     ),
 }
+
+# Trakt writes each custom list's items to lists-list-<trakt id>-<slug>.json,
+# so those files cannot be mapped from an endpoint alone.
+LIST_ITEMS_FILE_PREFIX = "lists-list"
+
+# Trakt exposes favorites as a fixed list, so it has no name of its own.
+FAVORITES_LIST_NAME = "Favorites"
+
+# Trakt list entry types that map onto a Yamtrack item. Lists can also hold
+# people, which Yamtrack does not track.
+LIST_ENTRY_MEDIA_TYPES = {
+    "movie": MediaTypes.MOVIE.value,
+    "show": MediaTypes.TV.value,
+    "season": MediaTypes.SEASON.value,
+    "episode": MediaTypes.EPISODE.value,
+}
+
+# Responses that mean a list is simply not shared with us, which is expected for
+# a public import, rather than an import failure.
+MISSING_LIST_STATUSES = frozenset(
+    {
+        requests.codes.unauthorized,
+        requests.codes.forbidden,
+        requests.codes.not_found,
+    },
+)
 
 
 def handle_oauth_callback(request, redirect_uri=None):
@@ -223,6 +253,10 @@ class TraktImporter:
         # Track media instances being created
         self.media_instances = defaultdict(lambda: defaultdict(list))
 
+        # Track custom lists to create, keyed by list name. Each holds the item
+        # IDs it contains mapped to the date Trakt listed them at.
+        self.custom_lists = {}
+
         logger.info(
             "Initialized Trakt importer for user %s with mode %s",
             username,
@@ -235,6 +269,7 @@ class TraktImporter:
         self.process_watchlist()
         self.process_ratings()
         self.process_comments()
+        self.process_lists()
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
@@ -243,6 +278,11 @@ class TraktImporter:
             media_type: len(media_list)
             for media_type, media_list in self.bulk_media.items()
         }
+
+        list_count = self.save_custom_lists()
+        if list_count:
+            imported_counts[helpers.CUSTOM_LIST_COUNT_KEY] = list_count
+
         deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
 
         return imported_counts, deduplicated_messages
@@ -661,6 +701,243 @@ class TraktImporter:
                 msg = f"Error processing comment entry: {entry}"
                 raise MediaImportUnexpectedError(msg) from e
 
+    def process_lists(self):
+        """Process the watchlist-independent lists: personal, shared, favorites."""
+        logger.info("Importing custom lists for user %s", self.username)
+
+        for list_data in self.get_custom_lists():
+            try:
+                self.process_custom_list(list_data)
+            except Exception as e:
+                msg = f"Error processing list: {list_data}"
+                raise MediaImportUnexpectedError(msg) from e
+
+    def get_custom_lists(self):
+        """Get the metadata of every Trakt list that should be imported."""
+        lists = []
+
+        for endpoint in ("/lists", "/lists/collaborations"):
+            lists.extend(
+                self._get_optional_list_data(
+                    f"{self.user_base_url}{endpoint}",
+                    endpoint.removeprefix("/"),
+                ),
+            )
+
+        # Favorites carries no metadata of its own, an empty ids mapping marks it
+        # so that the items are read from the favorites endpoint or file.
+        lists.append({"name": FAVORITES_LIST_NAME, "description": "", "ids": {}})
+
+        return [entry for entry in lists if isinstance(entry, dict)]
+
+    def get_custom_list_items(self, list_data):
+        """Get the entries held by a single Trakt list."""
+        list_id = (list_data.get("ids") or {}).get("trakt")
+
+        if list_id is None:
+            return self._get_optional_list_data(
+                f"{self.user_base_url}/favorites",
+                "favorites",
+            )
+
+        return self._get_optional_list_data(
+            f"{self.user_base_url}/lists/{list_id}/items",
+            f"list {list_id}",
+        )
+
+    def _get_optional_list_data(self, endpoint, description):
+        """Request list data the account may not expose, [] when unavailable."""
+        try:
+            data = self._make_api_request(endpoint)
+        except requests.exceptions.HTTPError as error:
+            if error.response.status_code in MISSING_LIST_STATUSES:
+                logger.info("Trakt %s is not available, skipping", description)
+                self.warnings.append(f"Trakt {description}: not available, skipped.")
+                return []
+            raise
+
+        return data if isinstance(data, list) else []
+
+    def process_custom_list(self, list_data):
+        """Collect the items of a single Trakt list."""
+        name = (list_data.get("name") or "").strip()
+        if not name:
+            self.warnings.append("A Trakt list without a name was skipped.")
+            return
+
+        entries = self.get_custom_list_items(list_data)
+        if not entries:
+            return
+
+        logger.info("Processing Trakt list %s with %s entries", name, len(entries))
+
+        # Two Trakt lists can share a name, in which case they are merged.
+        custom_list = self.custom_lists.setdefault(
+            name,
+            {"description": list_data.get("description") or "", "items": {}},
+        )
+
+        for entry in entries:
+            item = self._get_list_entry_item(entry, name)
+            if item is None:
+                continue
+
+            listed_at = entry.get("listed_at")
+            # Keep the first date seen for the item, so a duplicate entry in a
+            # merged list does not move it to the top of the list.
+            custom_list["items"].setdefault(
+                item.pk,
+                parse_datetime(listed_at) if listed_at else None,
+            )
+
+    def _get_list_entry_item(self, entry, list_name):
+        """Get or create the item a Trakt list entry points at."""
+        entry_type = entry.get("type")
+        media_type = LIST_ENTRY_MEDIA_TYPES.get(entry_type)
+        if media_type is None:
+            self.warnings.append(
+                f"{list_name}: list entries of type {entry_type} are not "
+                "supported, skipped.",
+            )
+            return None
+
+        media_data = (
+            entry["movie"] if media_type == MediaTypes.MOVIE.value else entry["show"]
+        )
+        tmdb_id = self._get_tmdb_id(media_data)
+        if not tmdb_id:
+            return None
+
+        if media_type == MediaTypes.EPISODE.value:
+            return self._get_episode_item(
+                tmdb_id,
+                media_data["title"],
+                entry["episode"]["season"],
+                entry["episode"]["number"],
+            )
+
+        season_number = (
+            entry["season"]["number"] if media_type == MediaTypes.SEASON.value else None
+        )
+        metadata = self._get_metadata(
+            media_type,
+            tmdb_id,
+            media_data["title"],
+            season_number,
+        )
+        if not metadata:
+            return None
+
+        return self._get_or_create_item(media_type, tmdb_id, metadata, season_number)
+
+    def _get_episode_item(self, tmdb_id, title, season_number, episode_number):
+        """Get or create the item for a single episode of a show."""
+        tv_metadata = self._get_metadata(MediaTypes.TV.value, tmdb_id, title)
+        if not tv_metadata:
+            return None
+
+        season_metadata = self._get_metadata(
+            MediaTypes.SEASON.value,
+            tmdb_id,
+            title,
+            season_number,
+        )
+        if not season_metadata:
+            return None
+
+        episode_exists = any(
+            episode["episode_number"] == episode_number
+            for episode in season_metadata["episodes"]
+        )
+        if not episode_exists:
+            self.warnings.append(
+                f"{title} S{season_number}E{episode_number}: not found in "
+                f"{Sources.TMDB.label} with ID {tmdb_id}.",
+            )
+            return None
+
+        episode_metadata = {
+            "title": tv_metadata["title"],
+            "image": self._get_episode_image(episode_number, season_metadata),
+        }
+
+        return self._get_or_create_item(
+            MediaTypes.EPISODE.value,
+            tmdb_id,
+            episode_metadata,
+            season_number,
+            episode_number,
+        )
+
+    def save_custom_lists(self):
+        """Create the collected lists and return how many were imported."""
+        imported = 0
+
+        for name, list_data in self.custom_lists.items():
+            if not list_data["items"]:
+                # Every entry was skipped, so there is no list worth creating.
+                continue
+
+            custom_list, created = CustomList.objects.get_or_create(
+                owner=self.user,
+                name=name,
+                defaults={"description": list_data["description"]},
+            )
+            added = self._add_custom_list_items(custom_list, list_data["items"])
+            if created or added:
+                imported += 1
+
+        return imported
+
+    def _add_custom_list_items(self, custom_list, listed_at_by_item):
+        """Add the items missing from a list, keeping the dates Trakt listed."""
+        existing_item_ids = set(
+            CustomListItem.objects.filter(custom_list=custom_list).values_list(
+                "item_id",
+                flat=True,
+            ),
+        )
+        new_item_ids = [
+            item_id for item_id in listed_at_by_item if item_id not in existing_item_ids
+        ]
+        if not new_item_ids:
+            return 0
+
+        CustomListItem.objects.bulk_create(
+            [
+                CustomListItem(custom_list=custom_list, item_id=item_id)
+                for item_id in new_item_ids
+            ],
+            batch_size=BULK_PAGE_SIZE,
+            ignore_conflicts=True,
+        )
+
+        # date_added is auto_now_add, so it holds the time of the import until
+        # the date Trakt recorded is written back over it.
+        created_items = [
+            list_item
+            for list_item in CustomListItem.objects.filter(
+                custom_list=custom_list,
+                item_id__in=new_item_ids,
+            )
+            if listed_at_by_item.get(list_item.item_id)
+        ]
+        for list_item in created_items:
+            list_item.date_added = listed_at_by_item[list_item.item_id]
+
+        CustomListItem.objects.bulk_update(
+            created_items,
+            ["date_added"],
+            batch_size=BULK_PAGE_SIZE,
+        )
+
+        logger.info(
+            "Added %s items to custom list %s",
+            len(new_item_ids),
+            custom_list.name,
+        )
+        return len(new_item_ids)
+
     def _process_generic_entry(self, entry, entry_type, attribute_updates):
         """Process a generic entry (watchlist, rating, or comment)."""
         if entry["type"] == "movie":
@@ -859,6 +1136,17 @@ class TraktExportImporter(TraktImporter):
         )
         return entries
 
+    def get_custom_list_items(self, list_data):
+        """Read the export file holding a custom list's items."""
+        ids = list_data.get("ids") or {}
+        list_id = ids.get("trakt")
+
+        if list_id is None:
+            # Favorites is exported as a single file rather than as a list.
+            return self.export_archive.load("lists-favorites")
+
+        return self.export_archive.load_list_items(list_id, ids.get("slug"))
+
 
 class TraktArchiveManager:
     """Class to manage a Trakt export archive."""
@@ -934,19 +1222,52 @@ class TraktArchiveManager:
 
     def load(self, *prefixes):
         """Concatenate every file into a single list, sorted by page number."""
+        return self._load_names(
+            [name for prefix in prefixes for name in self._match_names(prefix)],
+        )
+
+    def load_list_items(self, list_id, slug=None):
+        """Concatenate the files holding a single custom list's items."""
+        base_names = self._list_items_names(list_id, slug)
+        if not base_names:
+            self.warnings.append(
+                f"{LIST_ITEMS_FILE_PREFIX}-{list_id}.json: missing from the "
+                "export, skipped.",
+            )
+            return []
+
+        return self._load_names(base_names)
+
+    def _list_items_names(self, list_id, slug):
+        """Return the base names of the files holding a list's items."""
+        prefix = f"{LIST_ITEMS_FILE_PREFIX}-{list_id}"
+
+        # Trakt names the file after the list slug, and pages long lists.
+        if slug:
+            names = self._match_names(f"{prefix}-{slug}")
+            if names:
+                return names
+
+        # The list may have been renamed since the export was written, so fall
+        # back to every file exported for this list id, whatever slug it used.
+        return sorted(
+            base_name
+            for base_name in self._files
+            if base_name == prefix or base_name.startswith(f"{prefix}-")
+        )
+
+    def _load_names(self, base_names):
+        """Concatenate the contents of the named JSON files into one list."""
         entries = []
-        for prefix in prefixes:
-            for base_name in self._match_names(prefix):
-                page = self.parse_json(base_name)
-                if page is None:
-                    # parse_json already recorded why the file was skipped.
-                    continue
-                if isinstance(page, list):
-                    entries.extend(page)
-                else:
-                    self.warnings.append(
-                        f"{base_name}.json: unexpected contents, skipped."
-                    )
+        for base_name in base_names:
+            page = self.parse_json(base_name)
+            if page is None:
+                # parse_json already recorded why the file was skipped.
+                continue
+            if isinstance(page, list):
+                entries.extend(page)
+            else:
+                self.warnings.append(f"{base_name}.json: unexpected contents, skipped.")
         return entries
 
     def _match_names(self, prefix):

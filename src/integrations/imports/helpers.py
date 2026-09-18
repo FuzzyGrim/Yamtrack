@@ -18,6 +18,13 @@ from app.models import MediaTypes
 
 logger = logging.getLogger(__name__)
 
+# Importers report how much they imported per media type. Anything they import
+# that is not a media type gets its own key and label here.
+CUSTOM_LIST_COUNT_KEY = "list"
+NON_MEDIA_COUNT_LABELS = {
+    CUSTOM_LIST_COUNT_KEY: ("custom list", "custom lists"),
+}
+
 
 class MediaImportError(Exception):
     """Custom exception for import errors."""

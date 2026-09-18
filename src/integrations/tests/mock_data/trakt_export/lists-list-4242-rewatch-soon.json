@@ -1,0 +1,116 @@
+[
+  {
+    "type": "show",
+    "show": {
+      "ids": {
+        "imdb": "tt3032476",
+        "slug": "better-call-saul",
+        "tmdb": 60059,
+        "tvdb": 273181,
+        "trakt": 60449
+      },
+      "year": 2015,
+      "title": "Better Call Saul",
+      "aired_episodes": 63
+    },
+    "rank": 1,
+    "id": 900000001,
+    "listed_at": "2021-03-02T10:16:00.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt15239678",
+        "slug": "dune-part-two-2024",
+        "tmdb": 693134,
+        "trakt": 452827
+      },
+      "year": 2024,
+      "title": "Dune: Part Two"
+    },
+    "rank": 2,
+    "id": 900000002,
+    "listed_at": "2024-03-05T20:41:30.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt0133093",
+        "slug": "the-matrix-1999",
+        "tmdb": 603,
+        "trakt": 481
+      },
+      "year": 1999,
+      "title": "The Matrix"
+    },
+    "rank": 3,
+    "id": 900000008,
+    "listed_at": "2024-06-01T12:00:00.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "season",
+    "show": {
+      "ids": {
+        "imdb": "tt0108778",
+        "slug": "friends",
+        "tmdb": 1668,
+        "tvdb": 79168,
+        "trakt": 1424
+      },
+      "year": 1994,
+      "title": "Friends",
+      "aired_episodes": 236
+    },
+    "season": {
+      "ids": {
+        "tmdb": 3293,
+        "tvdb": 2792,
+        "trakt": 16603
+      },
+      "number": 1
+    },
+    "rank": 4,
+    "id": 900000003,
+    "listed_at": "2024-08-19T07:12:05.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "episode",
+    "show": {
+      "ids": {
+        "imdb": "tt9288030",
+        "slug": "reacher",
+        "tmdb": 108978,
+        "tvdb": 368814,
+        "trakt": 155123
+      },
+      "year": 2022,
+      "title": "Reacher",
+      "aired_episodes": 24
+    },
+    "episode": {
+      "ids": {
+        "imdb": "tt13064918",
+        "tmdb": 3061455,
+        "trakt": 4060287
+      },
+      "season": 1,
+      "number": 2,
+      "title": "First Dance"
+    },
+    "rank": 5,
+    "id": 900000004,
+    "listed_at": "2025-01-04T18:22:11.000Z",
+    "notes": null,
+    "my_rating": null
+  }
+]

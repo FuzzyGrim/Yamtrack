@@ -1,0 +1,22 @@
+[
+  {
+    "type": "show",
+    "show": {
+      "ids": {
+        "imdb": "tt1190634",
+        "slug": "the-boys-2019",
+        "tmdb": 76479,
+        "tvdb": 355567,
+        "trakt": 134111
+      },
+      "year": 2019,
+      "title": "The Boys",
+      "aired_episodes": 32
+    },
+    "rank": 1,
+    "id": 900000005,
+    "listed_at": "2024-12-30T21:05:42.000Z",
+    "notes": null,
+    "my_rating": null
+  }
+]

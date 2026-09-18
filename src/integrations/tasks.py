@@ -29,6 +29,12 @@ def format_media_type_display(count, media_type):
     """Format media type display with proper pluralization."""
     if count == 0:
         return None
+
+    labels = helpers.NON_MEDIA_COUNT_LABELS.get(media_type)
+    if labels:
+        singular, plural = labels
+        return f"{count} {singular if count == 1 else plural}"
+
     if count == 1:
         return f"{count} {dict(MediaTypes.choices).get(media_type, media_type)}"
     return f"{count} {app_tags.media_type_readable_plural(media_type)}"
