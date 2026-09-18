@@ -922,11 +922,18 @@ class Media(models.Model):
         if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
             return PERCENTAGE_MAX_PROGRESS
 
-        return providers.services.get_media_metadata(
-            self.item.media_type,
-            self.item.media_id,
-            self.item.source,
-        )["max_progress"]
+        try:
+            metadata = providers.services.get_media_metadata(
+                self.item.media_type,
+                self.item.media_id,
+                self.item.source,
+            )
+        except providers.services.ProviderAPIError:
+            # Keep the edit; the cap is a refinement, not the point of the save.
+            logger.warning("Could not read the max progress of %s", self.item)
+            return None
+
+        return metadata["max_progress"]
 
     def process_progress(self):
         """Update fields depending on the progress of the media."""

@@ -11,6 +11,7 @@ from app.models import (
     Sources,
     Status,
 )
+from app.providers.services import ProviderAPIError
 
 
 @patch("app.providers.services.get_media_metadata")
@@ -73,6 +74,23 @@ class BookModelTests(TestCase):
 
         self.assertEqual(book.progress, 100)
         self.assertEqual(book.status, Status.PAUSED.value)
+
+    def test_progress_saved_when_provider_unavailable(self, mock_metadata):
+        """Test that a provider outage does not lose the edit."""
+        mock_metadata.side_effect = ProviderAPIError(
+            Sources.OPENLIBRARY.value,
+            Exception("unavailable"),
+        )
+        book = Book.objects.create(
+            item=self.item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=120,
+        )
+        book.refresh_from_db()
+
+        self.assertEqual(book.progress, 120)
+        self.assertEqual(book.status, Status.IN_PROGRESS.value)
 
     def test_progress_unit_is_stored_on_the_book(self, mock_metadata):
         """Test that an explicit unit persists to the database."""
