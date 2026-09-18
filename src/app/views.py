@@ -558,16 +558,26 @@ def track_modal(
 ):
     """Return the tracking form for a media item."""
     instance_id = request.GET.get("instance_id")
+    # Only books offer the unit toggle, which is all max_progress is read for.
+    needs_max_progress = media_type == MediaTypes.BOOK.value
     if instance_id:
-        media = BasicMedia.objects.get_media_prefetch(
-            request.user,
-            media_type,
-            instance_id,
-        )
+        if needs_max_progress:
+            media = BasicMedia.objects.get_media_prefetch(
+                request.user,
+                media_type,
+                instance_id,
+            )
+        else:
+            media = BasicMedia.objects.get_media(
+                request.user,
+                media_type,
+                instance_id,
+            )
     elif request.GET.get("is_create"):
         media = None
-    else:
-        # no specific instance, try to find the first one
+    elif needs_max_progress:
+        # annotate_max_progress writes onto the cached instances, so read
+        # them from the result cache rather than re-querying with first().
         user_medias = BasicMedia.objects.filter_media_prefetch(
             request.user,
             media_id,
@@ -576,6 +586,17 @@ def track_modal(
             season_number=season_number,
         )
         media = user_medias[0] if user_medias else None
+        if media:
+            instance_id = media.id
+    else:
+        # no specific instance, try to find the first one
+        media = BasicMedia.objects.filter_media(
+            request.user,
+            media_id,
+            media_type,
+            source,
+            season_number=season_number,
+        ).first()
         if media:
             instance_id = media.id
 
