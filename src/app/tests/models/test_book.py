@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from app.mixins import disable_user_messages
 from app.models import (
     Book,
     Item,
@@ -97,6 +98,22 @@ class BookModelTests(TestCase):
         message = UserMessage.objects.get(user=self.user)
         self.assertEqual(message.level, UserMessageLevel.WARNING)
         self.assertIn("could not be checked", message.message)
+
+    def test_no_toast_during_bulk_import(self, mock_metadata):
+        """Test bulk work suppresses the per-item toast."""
+        mock_metadata.side_effect = ProviderAPIError(
+            Sources.OPENLIBRARY.value,
+            Exception("unavailable"),
+        )
+        with disable_user_messages():
+            Book.objects.create(
+                item=self.item,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                progress=120,
+            )
+
+        self.assertFalse(UserMessage.objects.filter(user=self.user).exists())
 
     def test_progress_unit_is_stored_on_the_book(self, mock_metadata):
         """Test an explicit unit persists."""

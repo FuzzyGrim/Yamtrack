@@ -838,6 +838,8 @@ class UserMessage(models.Model):
 class Media(models.Model):
     """Abstract model for all media types."""
 
+    _disable_user_messages = False  # Set by disable_user_messages()
+
     history = HistoricalRecords(
         cascade_delete_history=True,
         inherit=True,
@@ -900,6 +902,11 @@ class Media(models.Model):
         message_context = str(self)
         if message_context and not message.startswith(message_context):
             message = f"{message_context} {message}"
+
+        if self._disable_user_messages:
+            # Bulk work reports through its own summary.
+            logger.info("Skipping user message for %s: %s", self.user, message)
+            return
 
         logger.info("Creating user message for %s: %s", self.user, message)
 

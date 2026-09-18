@@ -28,3 +28,29 @@ class _DisableCalendarTriggers:
         from app.models import Item  # noqa: PLC0415
 
         Item._disable_calendar_triggers = self.original_value
+
+
+def disable_user_messages():
+    """Context manager to disable per-item toasts.
+
+    Bulk work reports through its own summary instead.
+    """
+    return _DisableUserMessages()
+
+
+class _DisableUserMessages:
+    """Context manager for disabling toasts during bulk operations."""
+
+    def __enter__(self):
+        """Disable user messages for Media models."""
+        from app.models import Media  # noqa: PLC0415
+
+        self.original_value = Media._disable_user_messages
+        Media._disable_user_messages = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Restore user messages."""
+        from app.models import Media  # noqa: PLC0415
+
+        Media._disable_user_messages = self.original_value
