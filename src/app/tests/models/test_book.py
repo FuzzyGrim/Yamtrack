@@ -133,6 +133,9 @@ class BookModelTests(TestCase):
         book.save()
         self.assertEqual(book.progress, 100)
 
+        # Percentage needs no page count, so no provider lookup.
+        mock_metadata.assert_not_called()
+
     def test_formatted_progress_percentage(self, mock_metadata):
         """Test formatting of progress when using percentage unit."""
         mock_metadata.return_value = {"max_progress": 200}

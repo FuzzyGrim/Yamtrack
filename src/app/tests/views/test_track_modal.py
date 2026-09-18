@@ -5,9 +5,11 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
+    Book,
     Item,
     MediaTypes,
     Movie,
+    ProgressUnit,
     Sources,
     Status,
 )
@@ -35,6 +37,65 @@ class TrackModalViewTests(TestCase):
             status=Status.IN_PROGRESS.value,
             progress=0,
         )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_track_modal_book_uses_stored_unit(self, mock_metadata):
+        """Test the modal seeds a book's stored unit."""
+        mock_metadata.return_value = {"max_progress": 300, "title": "Test Book"}
+        book_item = Item.objects.create(
+            media_id="book1",
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Test Book",
+        )
+        Book.objects.create(
+            item=book_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=40,
+            progress_unit=ProgressUnit.PERCENTAGE,
+        )
+
+        response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={
+                    "source": Sources.OPENLIBRARY.value,
+                    "media_type": MediaTypes.BOOK.value,
+                    "media_id": "book1",
+                },
+            )
+            + "?return_url=/home",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        form = response.context["form"]
+        self.assertEqual(form.initial["progress_unit"], ProgressUnit.PERCENTAGE)
+        self.assertEqual(form.fields["progress"].label, "Progress (%)")
+        self.assertIn("max_progress", response.context)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_track_modal_new_book_uses_preference(self, mock_metadata):
+        """Test a new book seeds from the user preference."""
+        mock_metadata.return_value = {"max_progress": 300, "title": "Test Book"}
+        self.user.book_progress_unit = ProgressUnit.PERCENTAGE
+        self.user.save()
+
+        response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={
+                    "source": Sources.OPENLIBRARY.value,
+                    "media_type": MediaTypes.BOOK.value,
+                    "media_id": "book2",
+                },
+            )
+            + "?return_url=/home",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        form = response.context["form"]
+        self.assertEqual(form.initial["progress_unit"], ProgressUnit.PERCENTAGE)
 
     def test_track_modal_view_existing_media(self):
         """Test the track modal view for existing media."""
