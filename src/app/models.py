@@ -935,10 +935,11 @@ class Media(models.Model):
                 self.item.media_id,
                 self.item.source,
             )
-        except providers.services.ProviderAPIError as error:
+        except providers.services.ProviderAPIError:
             # Keep the edit; the cap is optional.
             self.create_user_message(
-                f"was saved, but its total could not be checked. {error}",
+                "was saved without checking its total because the provider "
+                "did not respond.",
                 level=UserMessageLevel.WARNING,
             )
             return None
@@ -1978,10 +1979,9 @@ class Book(Media):
         default=ProgressUnit.PAGES,
     )
 
-    class Meta:
+    class Meta(Media.Meta):
         """Meta options for the model."""
 
-        ordering = ["user", "item"]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(progress_unit__in=ProgressUnit.values),

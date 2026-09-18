@@ -18,10 +18,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name="book",
-            options={"ordering": ["user", "item"]},
-        ),
         migrations.AlterField(
             model_name="book",
             name="progress_unit",
@@ -42,7 +38,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(
             set_unit_on_existing_books,
-            migrations.RunPython.noop,
+            reverse_code=migrations.RunPython.noop,
         ),
         migrations.AddConstraint(
             model_name="book",

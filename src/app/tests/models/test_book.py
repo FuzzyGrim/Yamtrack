@@ -97,7 +97,7 @@ class BookModelTests(TestCase):
 
         message = UserMessage.objects.get(user=self.user)
         self.assertEqual(message.level, UserMessageLevel.WARNING)
-        self.assertIn("could not be checked", message.message)
+        self.assertIn("without checking its total", message.message)
 
     def test_no_toast_during_bulk_import(self, mock_metadata):
         """Test bulk work suppresses the per-item toast."""
