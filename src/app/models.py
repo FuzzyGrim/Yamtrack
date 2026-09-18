@@ -566,7 +566,11 @@ class MediaManager(models.Manager):
                 max_progress_dict[item_id] = max(current_max, content_number)
 
         for media in media_list:
-            media.max_progress = max_progress_dict.get(media.item.id)
+            # Percentage progress is scaled to 100, not to the page count.
+            if media.get_progress_unit() == ProgressUnit.PERCENTAGE:
+                media.max_progress = PERCENTAGE_MAX_PROGRESS
+            else:
+                media.max_progress = max_progress_dict.get(media.item.id)
 
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
