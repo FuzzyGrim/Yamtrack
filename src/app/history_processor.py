@@ -486,13 +486,6 @@ def build_changes_list(changes, processed_entry):
     processed_entry["changes"].extend(changes["other_changes"])
 
 
-def progress_noun(media_type, progress_unit):
-    """Return the progress unit noun."""
-    if progress_unit == ProgressUnit.PERCENTAGE:
-        return "%"
-    return config.get_unit(media_type, short=False).lower()
-
-
 def format_description(  # noqa: C901, PLR0911, PLR0912
     field_name,
     old_value,
@@ -535,7 +528,7 @@ def format_description(  # noqa: C901, PLR0911, PLR0912
                 return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
             if progress_unit == ProgressUnit.PERCENTAGE:
                 return f"{verb} up to {new_value}%"
-            unit = progress_noun(media_type, progress_unit)
+            unit = config.get_unit(media_type, short=False).lower()
             return f"{verb} up to {unit} {new_value}"
 
         if field_name in ["start_date", "end_date"]:
@@ -597,7 +590,9 @@ def format_description(  # noqa: C901, PLR0911, PLR0912
         if progress_unit == ProgressUnit.PERCENTAGE:
             return f"Progress set to {new_value}%"
 
-        unit = f"{progress_noun(media_type, progress_unit)}{pluralize(new_value)}"
+        unit = (
+            f"{config.get_unit(media_type, short=False).lower()}{pluralize(new_value)}"
+        )
 
         return f"Progress set to {new_value} {unit}"
 

@@ -15,7 +15,7 @@
         x-data="mediaForm"
         x-init="init"
         data-max-progress="{{ max_progress|default:0 }}"
-        {% if form.can_toggle_unit %}data-progress-unit-name="{{ media_type|long_unit }}s"{% endif %}>
+        {% if form.progress_unit %}data-progress-unit-name="{{ media_type|long_unit }}s"{% endif %}>
     {% csrf_token %}
     {{ form.instance_id }}
     {{ form.media_type }}
@@ -34,7 +34,7 @@
               <div class="flex justify-between items-center mb-1">
                 <label class="block text-sm font-medium text-gray-300"
                        for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {% if field.name == 'progress' and form.can_toggle_unit and max_progress %}
+                {% if field.name == 'progress' and form.progress_unit and max_progress %}
                   <button type="button"
                           @click="toggleProgressUnit()"
                           class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer">

@@ -558,45 +558,29 @@ def track_modal(
 ):
     """Return the tracking form for a media item."""
     instance_id = request.GET.get("instance_id")
-    # Only books read max_progress.
-    needs_max_progress = media_type == MediaTypes.BOOK.value
+    # Only books read the max_progress annotation.
+    if media_type == MediaTypes.BOOK.value:
+        get_media = BasicMedia.objects.get_media_prefetch
+        filter_media = BasicMedia.objects.filter_media_prefetch
+    else:
+        get_media = BasicMedia.objects.get_media
+        filter_media = BasicMedia.objects.filter_media
+
     if instance_id:
-        if needs_max_progress:
-            media = BasicMedia.objects.get_media_prefetch(
-                request.user,
-                media_type,
-                instance_id,
-            )
-        else:
-            media = BasicMedia.objects.get_media(
-                request.user,
-                media_type,
-                instance_id,
-            )
+        media = get_media(request.user, media_type, instance_id)
     elif request.GET.get("is_create"):
         media = None
-    elif needs_max_progress:
-        # Annotations live on the cached instances.
-        # Index rather than re-query with first().
-        user_medias = BasicMedia.objects.filter_media_prefetch(
+    else:
+        # no specific instance, try to find the first one
+        user_medias = filter_media(
             request.user,
             media_id,
             media_type,
             source,
             season_number=season_number,
         )
+        # Annotations live on the cached instances.
         media = user_medias[0] if user_medias else None
-        if media:
-            instance_id = media.id
-    else:
-        # no specific instance, try to find the first one
-        media = BasicMedia.objects.filter_media(
-            request.user,
-            media_id,
-            media_type,
-            source,
-            season_number=season_number,
-        ).first()
         if media:
             instance_id = media.id
 

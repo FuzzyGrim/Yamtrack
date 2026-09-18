@@ -203,7 +203,6 @@ class ManualItemForm(forms.ModelForm):
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
-    can_toggle_unit = False
     instance_id = forms.CharField(widget=forms.HiddenInput(), required=False)
     media_type = forms.CharField(widget=forms.HiddenInput(), required=True)
     source = forms.CharField(widget=forms.HiddenInput(), required=True)
@@ -299,7 +298,6 @@ class GameForm(MediaForm):
 class BookForm(MediaForm):
     """Form for books."""
 
-    can_toggle_unit = True
     progress_unit = forms.ChoiceField(
         choices=ProgressUnit.choices,
         widget=forms.HiddenInput(),
@@ -342,12 +340,9 @@ class BookForm(MediaForm):
     def clean(self):
         """Reject percentage progress above 100."""
         cleaned_data = super().clean()
-        percentage = ProgressUnit.PERCENTAGE
-        progress = cleaned_data.get("progress")
         if (
-            cleaned_data.get("progress_unit") == percentage
-            and progress is not None
-            and progress > PERCENTAGE_MAX_PROGRESS
+            cleaned_data.get("progress_unit") == ProgressUnit.PERCENTAGE
+            and (cleaned_data.get("progress") or 0) > PERCENTAGE_MAX_PROGRESS
         ):
             self.add_error("progress", "Progress cannot exceed 100%.")
         return cleaned_data
