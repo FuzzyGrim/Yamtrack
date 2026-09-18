@@ -10,6 +10,8 @@ from app.models import (
     ProgressUnit,
     Sources,
     Status,
+    UserMessage,
+    UserMessageLevel,
 )
 from app.providers.services import ProviderAPIError
 
@@ -91,6 +93,10 @@ class BookModelTests(TestCase):
 
         self.assertEqual(book.progress, 120)
         self.assertEqual(book.status, Status.IN_PROGRESS.value)
+
+        message = UserMessage.objects.get(user=self.user)
+        self.assertEqual(message.level, UserMessageLevel.WARNING)
+        self.assertIn("could not be checked", message.message)
 
     def test_progress_unit_is_stored_on_the_book(self, mock_metadata):
         """Test an explicit unit persists."""

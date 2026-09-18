@@ -928,9 +928,12 @@ class Media(models.Model):
                 self.item.media_id,
                 self.item.source,
             )
-        except providers.services.ProviderAPIError:
+        except providers.services.ProviderAPIError as error:
             # Keep the edit; the cap is optional.
-            logger.warning("Could not read the max progress of %s", self.item)
+            self.create_user_message(
+                f"was saved, but its total could not be checked. {error}",
+                level=UserMessageLevel.WARNING,
+            )
             return None
 
         return metadata["max_progress"]
