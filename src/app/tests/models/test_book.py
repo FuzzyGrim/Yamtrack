@@ -59,6 +59,21 @@ class BookModelTests(TestCase):
         self.assertEqual(book.progress, 250)
         self.assertEqual(book.formatted_progress, "250")
 
+    def test_percentage_capped_outside_in_progress(self, mock_metadata):
+        """Test that a paused book cannot exceed 100 percent."""
+        mock_metadata.return_value = {"max_progress": 400}
+        book = Book.objects.create(
+            item=self.item,
+            user=self.user,
+            status=Status.PAUSED.value,
+            progress_unit=ProgressUnit.PERCENTAGE,
+            progress=150,
+        )
+        book.refresh_from_db()
+
+        self.assertEqual(book.progress, 100)
+        self.assertEqual(book.status, Status.PAUSED.value)
+
     def test_progress_unit_is_stored_on_the_book(self, mock_metadata):
         """Test that an explicit unit persists to the database."""
         mock_metadata.return_value = {"max_progress": 200}

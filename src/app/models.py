@@ -887,7 +887,7 @@ class Media(models.Model):
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
-        if self.tracker.has_changed("progress"):
+        if self.tracker.has_changed("progress") or self.progress_unit_changed():
             self.process_progress()
 
         if self.tracker.has_changed("status"):
@@ -913,6 +913,10 @@ class Media(models.Model):
         """Return the progress unit, or None if untracked."""
         return
 
+    def progress_unit_changed(self):
+        """Return whether the recorded unit changed."""
+        return False
+
     def get_max_progress(self):
         """Return the progress value that counts as complete, if known."""
         if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
@@ -927,6 +931,10 @@ class Media(models.Model):
     def process_progress(self):
         """Update fields depending on the progress of the media."""
         self.progress = max(self.progress, 0)
+
+        # A percentage is out of range in any status, not just in progress.
+        if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
+            self.progress = min(self.progress, PERCENTAGE_MAX_PROGRESS)
 
         if self.status != Status.IN_PROGRESS.value:
             return
@@ -1974,6 +1982,10 @@ class Book(Media):
     def get_progress_unit(self):
         """Return the unit this book's progress is recorded in."""
         return self.progress_unit
+
+    def progress_unit_changed(self):
+        """Return whether the recorded unit changed."""
+        return self.tracker.has_changed("progress_unit")
 
 
 class Comic(Media):
