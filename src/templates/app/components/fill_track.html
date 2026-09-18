@@ -24,12 +24,13 @@
     {{ form.season_number }}
     {% if form.progress_unit %}{{ form.progress_unit }}{% endif %}
 
-    {% with total_fields=form.fields|length %}
+    {# notes renders outside the grid, so an even visible count means an odd grid #}
+    {% with total_fields=form.fields|length grid_fields=form.visible_fields|length %}
       {% if total_fields > 8 %}<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">{% endif %}
 
         {% for field in form %}
           {% if field.name != 'notes' and field.name != 'instance_id' and field.name != 'media_type' and field.name != 'source' and field.name != 'media_id' and field.name != 'season_number' and field.name != 'progress_unit' %}
-            <div class="mb-5 {% if field.name == 'status' and total_fields|divisibleby:2 %}sm:col-span-2{% endif %}">
+            <div class="mb-5 {% if field.name == 'status' and grid_fields|divisibleby:2 %}sm:col-span-2{% endif %}">
               <div class="flex justify-between items-center mb-1">
                 <label class="block text-sm font-medium text-gray-300"
                        for="{{ field.id_for_label }}">{{ field.label }}</label>
