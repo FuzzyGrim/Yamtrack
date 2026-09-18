@@ -14,14 +14,11 @@
   </button>
 
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
+    {# formatted_progress already carries the max and the % suffix #}
     {{ media.formatted_progress }}
 
-    {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value %}
-      {% if media.max_progress %}
-        / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
-      {% else %}
-        {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
-      {% endif %}
+    {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value and media.get_progress_unit != 'percentage' %}
+      {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
     {% endif %}
   </div>
 
