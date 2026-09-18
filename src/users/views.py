@@ -266,10 +266,9 @@ def preferences(request):
     week_start_day = request.POST.get("week_start_day")
     if week_start_day in WeekStartDayChoices.values:
         request.user.week_start_day = week_start_day
-    request.user.book_progress_unit = request.POST.get(
-        "book_progress_unit",
-        ProgressUnit.PAGES,
-    )
+    book_progress_unit = request.POST.get("book_progress_unit")
+    if book_progress_unit in ProgressUnit.values:
+        request.user.book_progress_unit = book_progress_unit
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     provider_region = request.POST.get("watch_provider_region", "")

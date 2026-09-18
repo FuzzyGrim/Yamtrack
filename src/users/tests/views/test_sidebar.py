@@ -5,7 +5,7 @@ from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 
-from app.models import MediaTypes
+from app.models import MediaTypes, ProgressUnit
 from users.models import WeekStartDayChoices
 
 
@@ -35,6 +35,31 @@ class SidebarViewTests(TestCase):
         self.assertIn(MediaTypes.TV.value, response.context["media_types"])
         self.assertIn(MediaTypes.MOVIE.value, response.context["media_types"])
         self.assertNotIn(MediaTypes.EPISODE.value, response.context["media_types"])
+
+    def test_preferences_post_book_progress_unit(self):
+        """Test POST updating the book progress unit."""
+        response = self.client.post(
+            reverse("preferences"),
+            {"book_progress_unit": ProgressUnit.PERCENTAGE},
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.book_progress_unit, ProgressUnit.PERCENTAGE)
+
+    def test_preferences_post_invalid_book_progress_unit(self):
+        """Test POST ignoring an invalid book progress unit."""
+        self.user.book_progress_unit = ProgressUnit.PERCENTAGE
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {"book_progress_unit": "furlongs"},
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.book_progress_unit, ProgressUnit.PERCENTAGE)
 
     def test_sidebar_post_update_preferences(self):
         """Test POST request to update preferences."""
