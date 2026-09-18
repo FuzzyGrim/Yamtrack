@@ -39,6 +39,7 @@ if (!window.__mediaFormRegistered) {
       if (progressUnitField && progressField) {
         this.progress_unit = progressUnitField.value;
         const maxProgress = parseInt(this.$el.dataset.maxProgress) || 0;
+        const unitNamePlural = this.$el.dataset.progressUnitName || "";
 
         this.toggleProgressUnit = () => {
           const oldUnit = this.progress_unit;
@@ -65,7 +66,10 @@ if (!window.__mediaFormRegistered) {
           // Update label suffix via custom event or direct DOM manipulation
           const label = this.$el.querySelector(`label[for="${progressField.id}"]`);
           if (label) {
-            label.textContent = newUnit === 'percentage' ? 'Progress (%)' : `Progress (Pages)`;
+            label.textContent =
+              newUnit === "percentage"
+                ? "Progress (%)"
+                : `Progress (${unitNamePlural})`;
           }
         };
       }

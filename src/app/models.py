@@ -34,6 +34,9 @@ from app.mixins import CalendarTriggerMixin
 
 logger = logging.getLogger(__name__)
 
+# Media tracked by percentage is complete at 100.
+PERCENTAGE_MAX_PROGRESS = 100
+
 
 class Sources(models.TextChoices):
     """Choices for the source of the item."""
@@ -900,6 +903,17 @@ class Media(models.Model):
         # Check if instance has a specific progress_unit field (like Book)
         return getattr(self, "progress_unit", None)
 
+    def get_max_progress(self):
+        """Return the progress value that counts as complete, if known."""
+        if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
+            return PERCENTAGE_MAX_PROGRESS
+
+        return providers.services.get_media_metadata(
+            self.item.media_type,
+            self.item.media_id,
+            self.item.source,
+        )["max_progress"]
+
     def process_progress(self):
         """Update fields depending on the progress of the media."""
         self.progress = max(self.progress, 0)
@@ -907,47 +921,23 @@ class Media(models.Model):
         if self.status != Status.IN_PROGRESS.value:
             return
 
-        percentage_unit = users.models.ProgressUnit.PERCENTAGE
-        if self.get_progress_unit() == percentage_unit:
-            max_percentage = 100
-            self.progress = min(self.progress, max_percentage)
-            if self.progress == max_percentage:
-                self.status = Status.COMPLETED.value
-                now = timezone.now().replace(second=0, microsecond=0)
-                self.end_date = now
+        max_progress = self.get_max_progress()
+        if not max_progress:
             return
 
-        max_progress = providers.services.get_media_metadata(
-            self.item.media_type,
-            self.item.media_id,
-            self.item.source,
-        )["max_progress"]
+        self.progress = min(self.progress, max_progress)
 
-        if max_progress:
-            self.progress = min(self.progress, max_progress)
-
-            if self.progress == max_progress:
-                self.status = Status.COMPLETED.value
-
-                now = timezone.now().replace(second=0, microsecond=0)
-                self.end_date = now
+        if self.progress == max_progress:
+            self.status = Status.COMPLETED.value
+            self.end_date = timezone.now().replace(second=0, microsecond=0)
 
     def process_status(self):
         """Update fields depending on the status of the media."""
         if self.status == Status.COMPLETED.value:
-            percentage_unit = users.models.ProgressUnit.PERCENTAGE
-            if self.get_progress_unit() == percentage_unit:
-                max_percentage = 100
-                self.progress = max_percentage
-            else:
-                max_progress = providers.services.get_media_metadata(
-                    self.item.media_type,
-                    self.item.media_id,
-                    self.item.source,
-                )["max_progress"]
+            max_progress = self.get_max_progress()
 
-                if max_progress:
-                    self.progress = max_progress
+            if max_progress:
+                self.progress = max_progress
 
         self.item.fetch_releases(delay=True)
 

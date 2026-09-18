@@ -1,4 +1,5 @@
 {% load widget_tweaks %}
+{% load app_tags %}
 
 <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
   <div class="flex items-center justify-between mb-6">
@@ -13,7 +14,8 @@
         hx-swap="none"
         x-data="mediaForm"
         x-init="init"
-        data-max-progress="{{ max_progress|default:0 }}">
+        data-max-progress="{{ max_progress|default:0 }}"
+        {% if form.can_toggle_unit %}data-progress-unit-name="{{ media_type|long_unit }}s"{% endif %}>
     {% csrf_token %}
     {{ form.instance_id }}
     {{ form.media_type }}
@@ -35,7 +37,7 @@
                   <button type="button"
                           @click="toggleProgressUnit()"
                           class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer">
-                    Toggle % / Pages
+                    Toggle % / {{ media_type|long_unit }}s
                   </button>
                 {% endif %}
               </div>
