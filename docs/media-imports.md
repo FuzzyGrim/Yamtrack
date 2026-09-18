@@ -30,6 +30,22 @@ For private Trakt profiles, you'll need to set up OAuth authentication:
 | `TRAKT_API`          | Your Trakt Client ID     |
 | `TRAKT_API_SECRET`   | Your Trakt Client Secret |
 
+### Export Archive Import
+
+You can also import the ZIP file that Trakt produces from [Settings > Data](https://trakt.tv/settings/data), without configuring OAuth. This is the only way to import an account that Trakt's API rate limits make impractical to read.
+
+The archive is read for:
+
+- Watch history, including repeat plays
+- Watchlist, imported as planned media
+- Ratings for movies, shows and seasons
+- Comments, imported as notes
+- Personal lists, lists you collaborate on, and favorites, imported as custom lists
+
+Custom lists are matched by name, so re-importing adds the items that are missing from a list instead of creating a second one. Trakt lists can also hold people, which Yamtrack does not track; those entries are reported and skipped.
+
+Export archives cannot be used for periodic imports, since the upload is only available for a one-off import.
+
 ---
 
 ## Simkl

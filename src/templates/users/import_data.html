@@ -71,7 +71,7 @@
              x-data="{ traktImportMethod: 'public' }">
           <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? 'Import TV shows and movies' : 'File uploads are not available for periodic imports'">
+             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? 'Import TV shows, movies and lists' : 'File uploads are not available for periodic imports'">
           </p>
 
           <div class="mb-3">

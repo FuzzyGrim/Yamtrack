@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Rewatch Soon",
+    "description": "Things worth a second look",
+    "privacy": "private",
+    "share_link": "https://app.trakt.tv/users/yamtrack_user/lists/rewatch-soon",
+    "type": "personal",
+    "display_numbers": false,
+    "allow_comments": false,
+    "sort_by": "rank",
+    "sort_how": "asc",
+    "created_at": "2021-03-02T10:15:00.000Z",
+    "updated_at": "2025-01-04T18:22:11.000Z",
+    "item_count": 5,
+    "comment_count": 0,
+    "likes": 0,
+    "ids": {
+      "slug": "rewatch-soon",
+      "trakt": 4242
+    },
+    "images": {
+      "posters": []
+    },
+    "user": {
+      "ids": {
+        "slug": "yamtrack_user",
+        "trakt": 28172
+      },
+      "username": "yamtrack_user",
+      "private": true,
+      "deleted": false,
+      "name": "Yamtrack User",
+      "vip": false
+    },
+    "total_count": 1
+  }
+]

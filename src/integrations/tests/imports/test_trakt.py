@@ -7,10 +7,13 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from requests import Response
+from requests.exceptions import HTTPError
 
 from app.models import (
     TV,
     Episode,
+    Item,
     MediaTypes,
     Movie,
     Season,
@@ -23,12 +26,14 @@ from integrations.imports.helpers import MediaImportError
 from integrations.imports.trakt import (
     ENDPOINTS_TO_FILES,
     EXPORT_FALLBACK_USERNAME,
+    FAVORITES_LIST_NAME,
     TraktArchiveManager,
     TraktExportImporter,
     TraktImporter,
     get_access_token,
     importer,
 )
+from lists.models import CustomList, CustomListItem
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 app_mock_path = (
@@ -328,6 +333,173 @@ class ImportTrakt(TestCase):
             "https://yamtrack.example.com/import/trakt/private",
         )
 
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_process_lists(self, mock_get_metadata, mock_make_request):
+        """Personal lists, collaborations and favorites become custom lists."""
+        personal_list = {
+            "name": "Personal",
+            "description": "My list",
+            "ids": {"trakt": 1, "slug": "personal"},
+        }
+        collaboration = {
+            "name": "Shared",
+            "description": "",
+            "ids": {"trakt": 2, "slug": "shared"},
+        }
+        entry = {
+            "type": "movie",
+            "movie": {"title": "Listed Movie", "ids": {"tmdb": 42}},
+            "listed_at": "2023-01-01T00:00:00.000Z",
+        }
+
+        mock_make_request.side_effect = [
+            [personal_list],  # /lists
+            [collaboration],  # /lists/collaborations
+            [entry],  # /lists/1/items
+            [entry],  # /lists/2/items
+            [entry],  # /favorites
+        ]
+        mock_get_metadata.return_value = {
+            "title": "Listed Movie",
+            "image": "movie.jpg",
+        }
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.process_lists()
+
+        self.assertEqual(
+            list(trakt_importer.custom_lists),
+            ["Personal", "Shared", FAVORITES_LIST_NAME],
+        )
+        self.assertEqual(trakt_importer.save_custom_lists(), 3)
+        self.assertEqual(CustomList.objects.filter(owner=self.user).count(), 3)
+
+        personal = CustomList.objects.get(owner=self.user, name="Personal")
+        self.assertEqual(personal.description, "My list")
+        self.assertEqual(personal.items.count(), 1)
+
+        # The list endpoints are read without pagination parameters.
+        called = [call.args[0] for call in mock_make_request.call_args_list]
+        self.assertEqual(
+            called,
+            [
+                "https://api.trakt.tv/users/testuser/lists",
+                "https://api.trakt.tv/users/testuser/lists/collaborations",
+                "https://api.trakt.tv/users/testuser/lists/1/items",
+                "https://api.trakt.tv/users/testuser/lists/2/items",
+                "https://api.trakt.tv/users/testuser/favorites",
+            ],
+        )
+
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    def test_private_lists_are_reported_not_fatal(self, mock_make_request):
+        """Lists a public profile does not share are skipped with a warning."""
+        response = Response()
+        response.status_code = 403
+        mock_make_request.side_effect = HTTPError(response=response)
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.process_lists()
+
+        self.assertEqual(trakt_importer.custom_lists, {})
+        self.assertIn("Trakt lists: not available, skipped.", trakt_importer.warnings)
+
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    def test_list_request_error_is_raised(self, mock_make_request):
+        """An unexpected error reading a list is not swallowed."""
+        response = Response()
+        response.status_code = 500
+        mock_make_request.side_effect = HTTPError(response=response)
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+
+        with self.assertRaises(HTTPError):
+            trakt_importer.process_lists()
+
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_unsupported_list_entries_are_reported(
+        self,
+        mock_get_metadata,
+        mock_make_request,
+    ):
+        """People in a Trakt list cannot be tracked, so they are reported."""
+        mock_make_request.side_effect = [
+            [{"name": "People", "ids": {"trakt": 1, "slug": "people"}}],
+            [],
+            [
+                {
+                    "type": "person",
+                    "person": {"name": "Bryan Cranston", "ids": {"tmdb": 17419}},
+                    "listed_at": "2023-01-01T00:00:00.000Z",
+                },
+            ],
+            [],
+        ]
+        mock_get_metadata.return_value = None
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.process_lists()
+
+        self.assertEqual(trakt_importer.save_custom_lists(), 0)
+        self.assertFalse(CustomList.objects.filter(owner=self.user).exists())
+        self.assertIn(
+            "People: list entries of type person are not supported, skipped.",
+            trakt_importer.warnings,
+        )
+
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_unnamed_list_is_skipped(self, mock_get_metadata, mock_make_request):
+        """A list without a name has nowhere to go in Yamtrack."""
+        mock_make_request.side_effect = [
+            [{"name": "  ", "ids": {"trakt": 1, "slug": ""}}],
+            [],
+            [],
+        ]
+        mock_get_metadata.return_value = None
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.process_lists()
+
+        self.assertEqual(trakt_importer.custom_lists, {})
+        self.assertIn(
+            "A Trakt list without a name was skipped.",
+            trakt_importer.warnings,
+        )
+
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_existing_list_is_merged(self, mock_get_metadata, mock_make_request):
+        """Importing twice adds the missing items instead of duplicating lists."""
+        first = {
+            "type": "movie",
+            "movie": {"title": "First Movie", "ids": {"tmdb": 1}},
+            "listed_at": "2023-01-01T00:00:00.000Z",
+        }
+        second = {
+            "type": "movie",
+            "movie": {"title": "Second Movie", "ids": {"tmdb": 2}},
+            "listed_at": "2023-02-01T00:00:00.000Z",
+        }
+        personal_list = {"name": "Personal", "ids": {"trakt": 1, "slug": "personal"}}
+
+        mock_get_metadata.side_effect = lambda *args: {
+            "title": args[2],
+            "image": "movie.jpg",
+        }
+
+        for entries in ([first], [first, second]):
+            mock_make_request.side_effect = [[personal_list], [], entries, []]
+            trakt_importer = TraktImporter("testuser", self.user, "new")
+            trakt_importer.process_lists()
+            trakt_importer.save_custom_lists()
+
+        self.assertEqual(CustomList.objects.filter(owner=self.user).count(), 1)
+        custom_list = CustomList.objects.get(owner=self.user, name="Personal")
+        self.assertEqual(custom_list.items.count(), 2)
+
 
 def build_archive(files, prefix=""):
     """Build an in-memory Trakt export archive from a name to contents mapping."""
@@ -508,6 +680,158 @@ class ImportTraktExport(TestCase):
         ):
             TraktArchiveManager(archive)
 
+    def test_list_items_file_is_read(self):
+        """A custom list's items are read from the file Trakt named after it."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-lists": [
+                    {"name": "Picks", "ids": {"trakt": 7, "slug": "picks"}},
+                ],
+                "lists-list-7-picks": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Export Movie", "ids": {"tmdb": 111}},
+                        "listed_at": "2023-01-01T00:00:00.000Z",
+                    },
+                ],
+            },
+        )
+
+        imported_counts, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(imported_counts[helpers.CUSTOM_LIST_COUNT_KEY], 1)
+        self.assertEqual(messages, "")
+        custom_list = CustomList.objects.get(owner=self.user, name="Picks")
+        self.assertEqual(custom_list.items.count(), 1)
+
+    def test_renamed_list_items_file_is_still_read(self):
+        """A list renamed after the export was written is matched by its id."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-lists": [
+                    {"name": "Picks", "ids": {"trakt": 7, "slug": "new-slug"}},
+                ],
+                "lists-list-7-old-slug": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Export Movie", "ids": {"tmdb": 111}},
+                        "listed_at": "2023-01-01T00:00:00.000Z",
+                    },
+                ],
+            },
+        )
+
+        _, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(messages, "")
+        self.assertEqual(
+            CustomList.objects.get(owner=self.user, name="Picks").items.count(),
+            1,
+        )
+
+    def test_paged_list_items_files_are_read(self):
+        """A list whose items Trakt split across pages is read in full."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-lists": [
+                    {"name": "Picks", "ids": {"trakt": 7, "slug": "picks"}},
+                ],
+                "lists-list-7-picks-1": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "First Movie", "ids": {"tmdb": 111}},
+                        "listed_at": "2023-01-01T00:00:00.000Z",
+                    },
+                ],
+                "lists-list-7-picks-2": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Second Movie", "ids": {"tmdb": 222}},
+                        "listed_at": "2023-02-01T00:00:00.000Z",
+                    },
+                ],
+            },
+        )
+
+        _, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(messages, "")
+        self.assertEqual(
+            CustomList.objects.get(owner=self.user, name="Picks").items.count(),
+            2,
+        )
+
+    def test_missing_list_items_file_is_reported(self):
+        """A list whose items file is absent is reported and skipped."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-lists": [
+                    {"name": "Picks", "ids": {"trakt": 7, "slug": "picks"}},
+                ],
+            },
+        )
+
+        _, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertIn(
+            "lists-list-7.json: missing from the export, skipped.",
+            messages,
+        )
+        self.assertFalse(CustomList.objects.filter(owner=self.user).exists())
+
+    def test_favorites_file_becomes_a_list(self):
+        """lists-favorites.json is imported as a list of its own."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-favorites": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Export Movie", "ids": {"tmdb": 111}},
+                        "listed_at": "2023-01-01T00:00:00.000Z",
+                    },
+                ],
+            },
+        )
+
+        _, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(messages, "")
+        self.assertEqual(
+            CustomList.objects.get(
+                owner=self.user,
+                name=FAVORITES_LIST_NAME,
+            ).items.count(),
+            1,
+        )
+
+    def test_list_items_keep_their_trakt_date(self):
+        """date_added holds the date Trakt listed the item, not the import time."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-favorites": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Export Movie", "ids": {"tmdb": 111}},
+                        "listed_at": "2023-01-01T00:00:00.000Z",
+                    },
+                ],
+            },
+        )
+
+        importer(None, self.user, "new", file=archive)
+
+        list_item = CustomListItem.objects.get(custom_list__owner=self.user)
+        self.assertEqual(
+            list_item.date_added,
+            datetime(2023, 1, 1, tzinfo=UTC),
+        )
+
 
 # Enough episodes for every season in the sample export, so the fake metadata
 # never rejects an episode number the real archive contains.
@@ -663,6 +987,66 @@ class ImportTraktSampleExport(TestCase):
         )
 
         self.assertEqual(episodes.count(), 3)
+
+    def test_personal_list_is_imported(self):
+        """lists-lists.json and its items file become a custom list."""
+        custom_list = CustomList.objects.get(owner=self.user, name="Rewatch Soon")
+
+        self.assertEqual(custom_list.description, "Things worth a second look")
+        self.assertEqual(custom_list.items.count(), 5)
+        self.assertEqual(
+            sorted(custom_list.items.values_list("media_type", flat=True)),
+            [
+                MediaTypes.EPISODE.value,
+                MediaTypes.MOVIE.value,
+                MediaTypes.MOVIE.value,
+                MediaTypes.SEASON.value,
+                MediaTypes.TV.value,
+            ],
+        )
+
+    def test_collaboration_list_is_imported(self):
+        """A list the user only collaborates on is imported as their own."""
+        custom_list = CustomList.objects.get(owner=self.user, name="Shared Picks")
+
+        self.assertEqual(custom_list.items.count(), 1)
+
+    def test_favorites_become_a_list(self):
+        """Trakt favorites are imported as a list named after them."""
+        custom_list = CustomList.objects.get(owner=self.user, name=FAVORITES_LIST_NAME)
+
+        self.assertEqual(custom_list.items.count(), 2)
+
+    def test_imported_counts_report_lists(self):
+        """The import summary counts the lists it created."""
+        self.assertEqual(self.imported_counts[helpers.CUSTOM_LIST_COUNT_KEY], 3)
+
+    def test_list_items_keep_their_trakt_date(self):
+        """Items are ordered by the date Trakt listed them, not the import time."""
+        custom_list = CustomList.objects.get(owner=self.user, name="Rewatch Soon")
+        list_items = CustomListItem.objects.filter(custom_list=custom_list)
+
+        self.assertEqual(
+            list_items.earliest("date_added").date_added,
+            datetime(2021, 3, 2, 10, 16, tzinfo=UTC),
+        )
+        self.assertEqual(
+            list_items.latest("date_added").date_added,
+            datetime(2025, 1, 4, 18, 22, 11, tzinfo=UTC),
+        )
+
+    def test_listed_media_is_not_tracked(self):
+        """Listing an item does not give it a status of its own."""
+        # The Matrix is only on the Rewatch Soon list, never watched or rated.
+        self.assertTrue(
+            Item.objects.filter(
+                media_id="603",
+                media_type=MediaTypes.MOVIE.value,
+            ).exists(),
+        )
+        self.assertFalse(
+            Movie.objects.filter(user=self.user, item__media_id="603").exists(),
+        )
 
     def test_every_mapped_prefix_has_a_sample_file(self):
         """The sample export covers the files the importer looks for."""

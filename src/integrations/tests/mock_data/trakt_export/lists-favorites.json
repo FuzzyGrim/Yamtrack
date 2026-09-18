@@ -1,0 +1,40 @@
+[
+  {
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt0156887",
+        "slug": "perfect-blue-1998",
+        "tmdb": 10494,
+        "trakt": 5677
+      },
+      "year": 1998,
+      "title": "Perfect Blue"
+    },
+    "rank": 1,
+    "id": 900000006,
+    "listed_at": "2024-09-11T07:45:10.000Z",
+    "notes": "Still the best",
+    "my_rating": null
+  },
+  {
+    "type": "show",
+    "show": {
+      "ids": {
+        "imdb": "tt10919420",
+        "slug": "squid-game",
+        "tmdb": 93405,
+        "tvdb": 383275,
+        "trakt": 156831
+      },
+      "year": 2021,
+      "title": "Squid Game",
+      "aired_episodes": 22
+    },
+    "rank": 2,
+    "id": 900000007,
+    "listed_at": "2025-02-18T11:30:00.000Z",
+    "notes": null,
+    "my_rating": null
+  }
+]
