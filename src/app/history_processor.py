@@ -8,7 +8,7 @@ from django.utils import formats, timezone
 from django.utils.dateparse import parse_datetime
 
 from app import config, helpers
-from app.models import MediaTypes, Status
+from app.models import MediaTypes, ProgressUnit, Status
 from app.templatetags import app_tags
 
 
@@ -325,7 +325,7 @@ def process_history_entry(entry, media_type, user):
 def process_changed_entry(new_record, old_record, media_type, processed_entry, user):
     """Process an entry representing a change to existing media."""
     delta = new_record.diff_against(old_record)
-    changes = organize_changes(delta.changes, media_type, user)
+    changes = organize_changes(delta.changes, media_type, user, new_record)
     apply_date_status_integration(changes, user)
     build_changes_list(changes, processed_entry)
     return processed_entry
@@ -344,7 +344,7 @@ def process_creation_entry(new_record, media_type, processed_entry, user):
     return processed_entry
 
 
-def organize_changes(changes, media_type, user):
+def organize_changes(changes, media_type, user, record=None):
     """Organize changes into categories."""
     organized = {
         "date_changes": {"start_date": None, "end_date": None},
@@ -358,6 +358,10 @@ def organize_changes(changes, media_type, user):
         if change.field == "progress" and media_type == MediaTypes.MOVIE.value:
             continue
 
+        # The unit is an attribute of progress, not a change worth reporting.
+        if change.field == "progress_unit":
+            continue
+
         change_data = {
             "description": format_description(
                 change.field,
@@ -365,6 +369,7 @@ def organize_changes(changes, media_type, user):
                 change.new,
                 media_type,
                 user,
+                progress_unit=getattr(record, "progress_unit", None),
             ),
             "field": change.field,
             "old": change.old,
@@ -403,6 +408,9 @@ def collect_creation_changes(new_record, history_model, media_type, user):
         ):
             continue
 
+        if field.name == "progress_unit":
+            continue
+
         value = getattr(new_record, field.attname, None)
         if not value and not (
             media_type == MediaTypes.EPISODE.value and field.name == "end_date"
@@ -418,6 +426,7 @@ def collect_creation_changes(new_record, history_model, media_type, user):
                 value,
                 media_type,
                 user,
+                progress_unit=getattr(new_record, "progress_unit", None),
             ),
         }
 
@@ -477,7 +486,21 @@ def build_changes_list(changes, processed_entry):
     processed_entry["changes"].extend(changes["other_changes"])
 
 
-def format_description(field_name, old_value, new_value, media_type=None, user=None):  # noqa: C901, PLR0911, PLR0912
+def progress_noun(media_type, progress_unit):
+    """Return the progress unit noun for a media type."""
+    if progress_unit == ProgressUnit.PERCENTAGE:
+        return "%"
+    return config.get_unit(media_type, short=False).lower()
+
+
+def format_description(  # noqa: C901, PLR0911, PLR0912
+    field_name,
+    old_value,
+    new_value,
+    media_type=None,
+    user=None,
+    progress_unit=None,
+):
     """Format change description in a human-readable way.
 
     Provides natural language descriptions for various types of changes,
@@ -510,7 +533,9 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
             verb = config.get_verb(media_type, past_tense=True).title()
             if media_type == MediaTypes.GAME.value:
                 return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
-            unit = config.get_unit(media_type, short=False).lower()
+            if progress_unit == ProgressUnit.PERCENTAGE:
+                return f"{verb} up to {new_value}%"
+            unit = progress_noun(media_type, progress_unit)
             return f"{verb} up to {unit} {new_value}"
 
         if field_name in ["start_date", "end_date"]:
@@ -569,9 +594,10 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
                 return f"Added {helpers.minutes_to_hhmm(diff_abs)} of playtime"
             return f"Removed {helpers.minutes_to_hhmm(diff_abs)} of playtime"
 
-        unit = (
-            f"{config.get_unit(media_type, short=False).lower()}{pluralize(new_value)}"
-        )
+        if progress_unit == ProgressUnit.PERCENTAGE:
+            return f"Progress set to {new_value}%"
+
+        unit = f"{progress_noun(media_type, progress_unit)}{pluralize(new_value)}"
 
         return f"Progress set to {new_value} {unit}"
 
