@@ -3,9 +3,9 @@ import math
 from django import forms
 from django.conf import settings
 
-import users
 from app import config
 from app.models import (
+    PERCENTAGE_MAX_PROGRESS,
     TV,
     Anime,
     BoardGame,
@@ -17,6 +17,7 @@ from app.models import (
     Manga,
     MediaTypes,
     Movie,
+    ProgressUnit,
     Season,
     Sources,
 )
@@ -300,7 +301,7 @@ class BookForm(MediaForm):
 
     can_toggle_unit = True
     progress_unit = forms.ChoiceField(
-        choices=users.models.ProgressUnit.choices,
+        choices=ProgressUnit.choices,
         widget=forms.HiddenInput(),
         required=False,
     )
@@ -317,26 +318,39 @@ class BookForm(MediaForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Initialize the form and set progress unit."""
+        """Seed the unit and relabel the progress field."""
         super().__init__(*args, **kwargs)
 
-        # Set initial progress unit
-        if self.instance and self.instance.pk:
-            unit = self.instance.get_progress_unit()
-            self.initial["progress_unit"] = unit
-        else:
-            # For new items, use user preference if available
-            user = getattr(self, "user", None)
-            if user:
-                self.initial["progress_unit"] = user.book_progress_unit
-            else:
-                self.initial["progress_unit"] = users.models.ProgressUnit.PAGES
+        self.initial["progress_unit"] = self.default_progress_unit()
 
-        # Update label based on unit
-        current_unit = self.initial.get("progress_unit")
-        if current_unit == users.models.ProgressUnit.PERCENTAGE:
+        if self.initial["progress_unit"] == ProgressUnit.PERCENTAGE:
             self.fields["progress"].label = "Progress (%)"
             self.fields["progress"].widget.attrs["max"] = 100
+
+    def default_progress_unit(self):
+        """Return the book's unit, else the user's preference."""
+        if self.instance and self.instance.pk:
+            return self.instance.progress_unit
+        if self.user:
+            return self.user.book_progress_unit
+        return ProgressUnit.PAGES
+
+    def clean_progress_unit(self):
+        """Fall back to the default when none was submitted."""
+        return self.cleaned_data["progress_unit"] or self.default_progress_unit()
+
+    def clean(self):
+        """Reject percentage progress above 100."""
+        cleaned_data = super().clean()
+        percentage = ProgressUnit.PERCENTAGE
+        progress = cleaned_data.get("progress")
+        if (
+            cleaned_data.get("progress_unit") == percentage
+            and progress is not None
+            and progress > PERCENTAGE_MAX_PROGRESS
+        ):
+            self.add_error("progress", "Progress cannot exceed 100%.")
+        return cleaned_data
 
 
 class ComicForm(MediaForm):
@@ -407,7 +421,8 @@ class EpisodeForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Initialize the form."""
+        """Initialize the form, accepting the shared user kwarg."""
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
         if settings.TRACK_TIME:

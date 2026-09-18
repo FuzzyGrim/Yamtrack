@@ -7,10 +7,10 @@ from app.models import (
     Book,
     Item,
     MediaTypes,
+    ProgressUnit,
     Sources,
     Status,
 )
-from users.models import ProgressUnit
 
 
 @patch("app.providers.services.get_media_metadata")
@@ -29,27 +29,48 @@ class BookModelTests(TestCase):
             title="Test Book",
         )
 
-    def test_get_progress_unit_fallback(self, mock_metadata):
-        """Test that get_progress_unit falls back to user preference."""
+    def test_progress_unit_defaults_to_pages(self, mock_metadata):
+        """Test that a new book records pages by default."""
         mock_metadata.return_value = {"max_progress": 200}
         book = Book.objects.create(
             item=self.item,
             user=self.user,
             status=Status.PLANNING.value,
         )
+        book.refresh_from_db()
 
-        # Default user preference is PAGES
         self.assertEqual(book.get_progress_unit(), ProgressUnit.PAGES)
 
-        # Update user preference to PERCENTAGE
+    def test_preference_does_not_reinterpret_stored_progress(self, mock_metadata):
+        """Test that the preference never rewrites recorded progress."""
+        mock_metadata.return_value = {"max_progress": 400}
+        book = Book.objects.create(
+            item=self.item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=250,
+        )
+
         self.user.book_progress_unit = ProgressUnit.PERCENTAGE
         self.user.save()
-        self.assertEqual(book.get_progress_unit(), ProgressUnit.PERCENTAGE)
 
-        # Override on book specifically
-        book.progress_unit = ProgressUnit.PAGES
-        book.save()
+        book.refresh_from_db()
         self.assertEqual(book.get_progress_unit(), ProgressUnit.PAGES)
+        self.assertEqual(book.progress, 250)
+        self.assertEqual(book.formatted_progress, "250")
+
+    def test_progress_unit_is_stored_on_the_book(self, mock_metadata):
+        """Test that an explicit unit persists to the database."""
+        mock_metadata.return_value = {"max_progress": 200}
+        book = Book.objects.create(
+            item=self.item,
+            user=self.user,
+            status=Status.PLANNING.value,
+            progress_unit=ProgressUnit.PERCENTAGE,
+        )
+        book.refresh_from_db()
+
+        self.assertEqual(book.get_progress_unit(), ProgressUnit.PERCENTAGE)
 
     def test_process_progress_percentage(self, mock_metadata):
         """Test progress processing when using percentage unit."""

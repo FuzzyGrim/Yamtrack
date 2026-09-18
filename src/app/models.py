@@ -771,6 +771,13 @@ class MediaManager(models.Manager):
         return params
 
 
+class ProgressUnit(models.TextChoices):
+    """Choices for progress measurement units."""
+
+    PAGES = "pages", "Pages"
+    PERCENTAGE = "percentage", "Percentage"
+
+
 class Status(models.TextChoices):
     """Choices for item status."""
 
@@ -899,13 +906,12 @@ class Media(models.Model):
         )
 
     def get_progress_unit(self):
-        """Return the progress unit for the media."""
-        # Check if instance has a specific progress_unit field (like Book)
-        return getattr(self, "progress_unit", None)
+        """Return the progress unit, or None if untracked."""
+        return
 
     def get_max_progress(self):
         """Return the progress value that counts as complete, if known."""
-        if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
+        if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
             return PERCENTAGE_MAX_PROGRESS
 
         return providers.services.get_media_metadata(
@@ -1936,25 +1942,34 @@ class Book(Media):
 
     tracker = FieldTracker()
 
+    # Unit of the stored progress; never resolved at read time.
     progress_unit = models.CharField(
         max_length=20,
-        blank=True,
-        default="",
+        choices=ProgressUnit,
+        default=ProgressUnit.PAGES,
     )
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["user", "item"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(progress_unit__in=ProgressUnit.values),
+                name="%(app_label)s_%(class)s_progress_unit_valid",
+            ),
+        ]
 
     @property
     def formatted_progress(self):
-        """Return the progress of the media in a formatted string."""
-        if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
+        """Return "N%" when tracked by percentage, else the base "N / max" form."""
+        if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
             return f"{self.progress}%"
         return super().formatted_progress
 
     def get_progress_unit(self):
-        """Return the progress unit for the book, falling back to user preference."""
-        unit = super().get_progress_unit()
-        if unit and unit != "":
-            return unit
-        return self.user.book_progress_unit
+        """Return the unit this book's progress is recorded in."""
+        return self.progress_unit
 
 
 class Comic(Media):

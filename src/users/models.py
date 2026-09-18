@@ -5,7 +5,7 @@ from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
-from app.models import Item, MediaTypes, Status
+from app.models import Item, MediaTypes, ProgressUnit, Status
 from users import helpers
 
 EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
@@ -91,13 +91,6 @@ class QuickWatchDateChoices(models.TextChoices):
     CURRENT_DATE = "current_date", "Current Date"
     RELEASE_DATE = "release_date", "Release Date"
     NO_DATE = "no_date", "No Date"
-
-
-class ProgressUnit(models.TextChoices):
-    """Choices for progress measurement units."""
-
-    PAGES = "pages", "Pages"
-    PERCENTAGE = "percentage", "Percentage"
 
 
 class DateFormatChoices(models.TextChoices):

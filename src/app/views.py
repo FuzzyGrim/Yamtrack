@@ -792,7 +792,7 @@ def create_entry(request):
     # Prepare and validate the media form
     updated_request = request.POST.copy()
     updated_request.update({"source": item.source, "media_id": item.media_id})
-    media_form = get_form_class(item.media_type)(updated_request)
+    media_form = get_form_class(item.media_type)(updated_request, user=request.user)
 
     if not media_form.is_valid():
         # Handle media form validation errors
