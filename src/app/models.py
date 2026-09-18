@@ -925,7 +925,7 @@ class Media(models.Model):
         return False
 
     def get_max_progress(self):
-        """Return the progress value that counts as complete, if known."""
+        """Return the value that means complete."""
         if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
             return PERCENTAGE_MAX_PROGRESS
 

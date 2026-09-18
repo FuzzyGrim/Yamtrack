@@ -576,8 +576,8 @@ def track_modal(
     elif request.GET.get("is_create"):
         media = None
     elif needs_max_progress:
-        # Annotations live on the cached instances, so index rather
-        # than re-query with first().
+        # Annotations live on the cached instances.
+        # Index rather than re-query with first().
         user_medias = BasicMedia.objects.filter_media_prefetch(
             request.user,
             media_id,

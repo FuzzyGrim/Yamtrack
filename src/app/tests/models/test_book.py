@@ -22,7 +22,7 @@ class BookModelTests(TestCase):
     """Test case for the Book model methods."""
 
     def setUp(self):
-        """Set up test data for Book model tests."""
+        """Set up test data for books."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
@@ -156,11 +156,11 @@ class BookModelTests(TestCase):
         book.save()
         self.assertEqual(book.progress, 100)
 
-        # Percentage needs no page count, so no provider lookup.
+        # Percentage needs no provider lookup.
         mock_metadata.assert_not_called()
 
     def test_formatted_progress_percentage(self, mock_metadata):
-        """Test formatting of progress when using percentage unit."""
+        """Test formatting a percentage progress."""
         mock_metadata.return_value = {"max_progress": 200}
         book = Book.objects.create(
             item=self.item,
@@ -172,7 +172,7 @@ class BookModelTests(TestCase):
         self.assertEqual(book.formatted_progress, "45%")
 
     def test_formatted_progress_pages(self, mock_metadata):
-        """Test formatting of progress when using pages unit."""
+        """Test formatting a pages progress."""
         mock_metadata.return_value = {"max_progress": 200}
         book = Book.objects.create(
             item=self.item,
@@ -181,6 +181,6 @@ class BookModelTests(TestCase):
             progress=150,
             progress_unit=ProgressUnit.PAGES,
         )
-        # Mock max_progress annotation which usually comes from MediaManager
+        # MediaManager normally sets this annotation.
         book.max_progress = 300
         self.assertEqual(book.formatted_progress, "150 / 300")

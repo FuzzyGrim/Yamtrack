@@ -39,7 +39,7 @@ def disable_user_messages():
 
 
 class _DisableUserMessages:
-    """Context manager for disabling toasts during bulk operations."""
+    """Context manager for disabling bulk toasts."""
 
     def __enter__(self):
         """Disable user messages for Media models."""

@@ -40,7 +40,7 @@ class TrackModalViewTests(TestCase):
 
     @patch("app.providers.services.get_media_metadata")
     def test_track_modal_book_uses_stored_unit(self, mock_metadata):
-        """Test the modal seeds a book's stored unit."""
+        """Test the modal seeds a stored unit."""
         mock_metadata.return_value = {"max_progress": 300, "title": "Test Book"}
         book_item = Item.objects.create(
             media_id="book1",
@@ -76,7 +76,7 @@ class TrackModalViewTests(TestCase):
 
     @patch("app.providers.services.get_media_metadata")
     def test_track_modal_new_book_uses_preference(self, mock_metadata):
-        """Test a new book seeds from the user preference."""
+        """Test a new book seeds the preference."""
         mock_metadata.return_value = {"max_progress": 300, "title": "Test Book"}
         self.user.book_progress_unit = ProgressUnit.PERCENTAGE
         self.user.save()

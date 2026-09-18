@@ -328,7 +328,7 @@ class BookForm(MediaForm):
             self.fields["progress"].widget.attrs["max"] = 100
 
     def default_progress_unit(self):
-        """Return the book's unit, else the preference."""
+        """Return the book's unit, else preference."""
         if self.instance and self.instance.pk:
             return self.instance.progress_unit
         if self.user:
