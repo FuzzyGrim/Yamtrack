@@ -5,9 +5,16 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
+from app import tmdb_rating_sync
 from app.models import UserMessage
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task(name="Refresh TMDB ratings")
+def refresh_tmdb_ratings(*, force=False):
+    """Backfill and periodically refresh TMDB ratings on movie/TV/season items."""
+    return tmdb_rating_sync.refresh_tmdb_ratings(force=force)
 
 
 @shared_task(name="Cleanup user messages")

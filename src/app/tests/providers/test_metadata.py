@@ -425,6 +425,81 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["country"], None)
         self.assertEqual(response["details"]["languages"], None)
 
+    @patch("app.providers.tmdb.services.api_request")
+    def test_fetch_vote_average_movie(self, mock_api_request):
+        """Test fetching a lightweight score for a movie without full metadata."""
+        mock_api_request.return_value = {"vote_average": 8.437}
+        item = Item(
+            media_id="550",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+        )
+
+        score = tmdb.fetch_vote_average(item)
+
+        self.assertEqual(score, 8.4)
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["params"], tmdb.base_params)
+        args, _ = mock_api_request.call_args
+        self.assertEqual(args[2], f"{tmdb.base_url}/movie/550")
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_fetch_vote_average_season(self, mock_api_request):
+        """Test fetching a lightweight score for a season via the parent TV id."""
+        mock_api_request.return_value = {"vote_average": 7.0}
+        item = Item(
+            media_id="1396",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            season_number=2,
+        )
+
+        score = tmdb.fetch_vote_average(item)
+
+        self.assertEqual(score, 7.0)
+        args, _ = mock_api_request.call_args
+        self.assertEqual(args[2], f"{tmdb.base_url}/tv/1396/season/2")
+
+    @patch("requests.Session.get")
+    def test_cached_score_uses_full_metadata_cache(self, mock_data):
+        """Test that cached_score reads from the existing metadata cache."""
+        with Path(mock_path / "metadata_movie_unknown.json").open() as file:
+            movie_response = json.load(file)
+        mock_data.return_value.json.return_value = movie_response
+        mock_data.return_value.status_code = 200
+
+        item = Item(
+            media_id="999999",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+        )
+
+        self.assertIsNone(tmdb.cached_score(item))
+
+        data = tmdb.movie("999999")
+        self.assertEqual(tmdb.cached_score(item), data["score"])
+
+    @patch("requests.Session.get")
+    def test_delete_metadata_cache_forces_refetch(self, mock_data):
+        """Test that delete_metadata_cache removes the cached full metadata."""
+        with Path(mock_path / "metadata_movie_unknown.json").open() as file:
+            movie_response = json.load(file)
+        mock_data.return_value.json.return_value = movie_response
+        mock_data.return_value.status_code = 200
+
+        item = Item(
+            media_id="999998",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+        )
+
+        tmdb.movie("999998")
+        self.assertIsNotNone(tmdb.cached_score(item))
+
+        tmdb.delete_metadata_cache(item)
+
+        self.assertIsNone(tmdb.cached_score(item))
+
     def test_games(self):
         """Test the metadata method for games."""
         response = igdb.game("1942")
