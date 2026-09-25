@@ -671,29 +671,40 @@ def get_collection(collection_response):
     ]
 
 
-def filter_providers(all_providers, region):
-    """Filter watch providers by region."""
-    if region == "":
-        return None
-
-    if not all_providers:
-        return []
-
-    # Create a dict to get rid of duplicates across different provider types
-    region_providers = all_providers.get(region, {})
-    flatrate_providers = region_providers.get("flatrate", [])
-    free_providers = region_providers.get("free", [])
+def _dedupe_and_sort_providers(*provider_lists):
+    """Merge provider lists, dedupe by id, add image URLs and sort by priority."""
     providers = {}
-    for provider in [*flatrate_providers, *free_providers]:
-        providers[provider.get("provider_id")] = provider
+    for provider_list in provider_lists:
+        for provider in provider_list:
+            providers[provider.get("provider_id")] = provider
 
-    # Convert dict back to list and add image URLs
     providers = list(providers.values())
     for provider in providers:
         provider["image"] = get_image_url(provider.get("logo_path"))
 
     providers.sort(key=lambda e: e.get("display_priority", 999))
     return providers
+
+
+def filter_providers(all_providers, region):
+    """Filter watch providers by region, grouped into no charge and paid tiers."""
+    if region == "":
+        return None
+
+    if not all_providers:
+        return {"no_charge": [], "paid": []}
+
+    region_providers = all_providers.get(region, {})
+    no_charge = _dedupe_and_sort_providers(
+        region_providers.get("flatrate", []),
+        region_providers.get("free", []),
+        region_providers.get("ads", []),
+    )
+    paid = _dedupe_and_sort_providers(
+        region_providers.get("buy", []),
+        region_providers.get("rent", []),
+    )
+    return {"no_charge": no_charge, "paid": paid}
 
 
 def process_episodes(season_metadata, episodes_in_db):

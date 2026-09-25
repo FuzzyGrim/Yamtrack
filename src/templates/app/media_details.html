@@ -559,19 +559,8 @@
             <div class="space-y-6">
               {% for episode in media.episodes %}
                 <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-                  <div class="flex flex-col md:flex-row" x-data="{ obfuscated:
-                    {% if user.obfuscate_unseen_episodes and not episode.history %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    , hasImage:
-                    {% if episode.image != IMG_NONE %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    }">
+                  <div class="flex flex-col md:flex-row"
+                       x-data="{ obfuscated: {% if user.obfuscate_unseen_episodes and not episode.history %} true {% else %} false {% endif %} , hasImage: {% if episode.image != IMG_NONE %} true {% else %} false {% endif %} }">
                     <img src="{{ IMG_NONE }}"
                          alt="E{{ episode.episode_number }}"
                          data-src="{{ episode.image }}"
@@ -678,7 +667,7 @@
 
         {# Streaming providers #}
         {% if media_type == MediaTypes.MOVIE.value or media_type == MediaTypes.TV.value %}
-          {% if watch_provider_region == "UNSET" or watch_providers %}
+          {% if watch_provider_region == "UNSET" or watch_providers.no_charge or watch_providers.paid %}
             <section class="mb-8" x-show="tab === 'overview' || tab === 'streaming'">
               <h2 class="text-xl font-bold mb-4">Streaming</h2>
               {% if watch_provider_region == "UNSET" %}
@@ -689,16 +678,38 @@
                      class="text-indigo-400 hover:text-indigo-300 hover:underline">preferences</a>.
                 </p>
               {% else %}
-                <div class="flex flex-wrap gap-3">
-                  {% for provider in watch_providers %}
-                    <div class="flex items-center gap-x-3 bg-[#2a2f35] rounded-lg p-2 pr-4">
-                      <img class="w-10 rounded-md"
-                           src="{{ provider.image }}"
-                           alt="{{ provider.provider_name }}" />
-                      <span class="text-sm font-medium text-gray-200">{{ provider.provider_name }}</span>
+                {% if watch_providers.no_charge %}
+                  <div class="mb-4">
+                    {% if watch_providers.paid %}
+                      <h3 class="text-sm font-semibold text-gray-400 mb-2">No charge</h3>
+                    {% endif %}
+                    <div class="flex flex-wrap gap-3">
+                      {% for provider in watch_providers.no_charge %}
+                        <div class="flex items-center gap-x-3 bg-[#2a2f35] rounded-lg p-2 pr-4">
+                          <img class="w-10 rounded-md"
+                               src="{{ provider.image }}"
+                               alt="{{ provider.provider_name }}" />
+                          <span class="text-sm font-medium text-gray-200">{{ provider.provider_name }}</span>
+                        </div>
+                      {% endfor %}
                     </div>
-                  {% endfor %}
-                </div>
+                  </div>
+                {% endif %}
+                {% if watch_providers.paid %}
+                  <div>
+                    <h3 class="text-sm font-semibold text-gray-400 mb-2">Paid</h3>
+                    <div class="flex flex-wrap gap-3">
+                      {% for provider in watch_providers.paid %}
+                        <div class="flex items-center gap-x-3 bg-[#2a2f35] rounded-lg p-2 pr-4">
+                          <img class="w-10 rounded-md"
+                               src="{{ provider.image }}"
+                               alt="{{ provider.provider_name }}" />
+                          <span class="text-sm font-medium text-gray-200">{{ provider.provider_name }}</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
               {% endif %}
             </section>
           {% endif %}

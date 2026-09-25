@@ -272,6 +272,8 @@ def preferences(request):
     else:
         request.user.watch_provider_region = WATCH_PROVIDER_REGION_UNSET
 
+    request.user.show_paid_providers = "show_paid_providers" in request.POST
+
     # Update user preferences for each media type
     for media_type in media_types:
         setattr(
