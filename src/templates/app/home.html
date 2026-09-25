@@ -15,17 +15,17 @@
           {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
           <span>Hide unreleased</span>
         </a>
-        {% if watch_provider_region == "UNSET" %}
+        {% if not watch_provider_region or watch_provider_region == "UNSET" %}
           <span title="Configure a watch provider region in Preferences to use this filter."
                 class="inline-flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-gray-500 cursor-not-allowed">
             {% include "app/icons/cast-off.svg" with classes="w-4 h-4" %}
-            <span>Hide unavailable to stream</span>
+            <span>Hide streamless</span>
           </span>
         {% else %}
           <a href="{% url 'home' %}?sort={{ current_sort }}{% if hide_unreleased %}&hide_unreleased=true{% endif %}{% if hide_unavailable %}&hide_unavailable=false{% else %}&hide_unavailable=true{% endif %}"
              class="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors {% if hide_unavailable %}border-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700{% else %}border-gray-700 bg-[#39404b] text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
             {% include "app/icons/cast-off.svg" with classes="w-4 h-4" %}
-            <span>Hide unavailable to stream</span>
+            <span>Hide streamless</span>
           </a>
         {% endif %}
         <div class="relative" x-data="{ open: false }">
