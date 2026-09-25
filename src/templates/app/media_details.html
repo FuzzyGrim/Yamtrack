@@ -559,19 +559,8 @@
             <div class="space-y-6">
               {% for episode in media.episodes %}
                 <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-                  <div class="flex flex-col md:flex-row" x-data="{ obfuscated:
-                    {% if user.obfuscate_unseen_episodes and not episode.history %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    , hasImage:
-                    {% if episode.image != IMG_NONE %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    }">
+                  <div class="flex flex-col md:flex-row"
+                       x-data="{ obfuscated: {% if user.obfuscate_unseen_episodes and not episode.history %} true {% else %} false {% endif %} , hasImage: {% if episode.image != IMG_NONE %} true {% else %} false {% endif %} }">
                     <img src="{{ IMG_NONE }}"
                          alt="E{{ episode.episode_number }}"
                          data-src="{{ episode.image }}"
@@ -699,6 +688,17 @@
                     </div>
                   {% endfor %}
                 </div>
+                <p class="text-xs text-gray-400 mt-3 flex items-center gap-x-1.5">
+                  Streaming information provided by
+                  <a href="https://www.justwatch.com"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     class="inline-flex items-center">
+                    <img src="https://www.justwatch.com/appassets/img/logo/JustWatch-logo-small.webp"
+                         alt="JustWatch"
+                         class="h-4" />
+                  </a>
+                </p>
               {% endif %}
             </section>
           {% endif %}
