@@ -141,6 +141,10 @@ class User(AbstractUser):
         default=False,
         help_text="Hide unreleased media from the home page",
     )
+    home_hide_unavailable_to_stream = models.BooleanField(
+        default=False,
+        help_text="Hide media that isn't available to stream from the home page",
+    )
 
     # Media type preferences: TV Shows
     tv_enabled = models.BooleanField(default=True)

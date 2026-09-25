@@ -14,7 +14,15 @@ from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from app.models import BasicMedia, Item, MediaTypes, Status
+from app import stream_availability
+from app.models import (
+    STREAM_AVAILABILITY_MEDIA_TYPES,
+    BasicMedia,
+    Item,
+    MediaTypes,
+    Sources,
+    Status,
+)
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
@@ -184,6 +192,22 @@ def refresh_item_image_if_missing(item, new_image):
         return
     item.image = new_image
     item.save(update_fields=["image"])
+
+
+def refresh_stream_availability(item, source, media_type, metadata):
+    """Persist watch-provider availability from already-fetched metadata."""
+    if (
+        source != Sources.TMDB.value
+        or media_type not in STREAM_AVAILABILITY_MEDIA_TYPES
+    ):
+        return
+
+    item.stream_availability = stream_availability.compute_stream_availability(
+        metadata.get("providers"),
+        stream_availability.configured_regions(),
+    )
+    item.stream_availability_updated_at = timezone.now()
+    item.save(update_fields=["stream_availability", "stream_availability_updated_at"])
 
 
 def enrich_items_with_user_data(request, items, section_name):

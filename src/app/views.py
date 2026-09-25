@@ -56,6 +56,11 @@ def home(request):
         "home_hide_unreleased",
         None if hide_unreleased_param is None else hide_unreleased_param == "true",
     )
+    hide_unavailable_param = request.GET.get("hide_unavailable")
+    hide_unavailable = request.user.update_preference(
+        "home_hide_unavailable_to_stream",
+        None if hide_unavailable_param is None else hide_unavailable_param == "true",
+    )
     items_limit = 14
 
     # If this is an HTMX request to load more items for a specific media type
@@ -67,6 +72,7 @@ def home(request):
             items_limit,
             media_type_to_load,
             hide_unreleased=hide_unreleased,
+            hide_unavailable=hide_unavailable,
         )
         return render(
             request,
@@ -89,6 +95,7 @@ def home(request):
                 section_key,
                 items_limit,
                 hide_unreleased=hide_unreleased,
+                hide_unavailable=hide_unavailable,
             ),
         )
         for section_key in (Status.IN_PROGRESS.value, Status.PLANNING.value)
@@ -99,6 +106,8 @@ def home(request):
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
         "hide_unreleased": hide_unreleased,
+        "hide_unavailable": hide_unavailable,
+        "watch_provider_region": request.user.watch_provider_region,
         "items_limit": items_limit,
     }
     return render(request, "app/home.html", context)
@@ -324,6 +333,9 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         helpers.refresh_item_image_if_missing(
             current_instance.item, media_metadata.get("image")
         )
+        helpers.refresh_stream_availability(
+            current_instance.item, source, media_type, media_metadata
+        )
 
     # Enrich related items with user tracking data
     if media_metadata.get("related"):
@@ -378,6 +390,9 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     if current_instance is not None:
         helpers.refresh_item_image_if_missing(
             current_instance.item, season_metadata.get("image")
+        )
+        helpers.refresh_stream_availability(
+            current_instance.item, source, MediaTypes.SEASON.value, season_metadata
         )
 
     if source == Sources.MANUAL.value:

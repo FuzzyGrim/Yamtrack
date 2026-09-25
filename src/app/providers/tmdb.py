@@ -696,6 +696,30 @@ def filter_providers(all_providers, region):
     return providers
 
 
+def fetch_watch_providers(item):
+    """Fetch raw watch-provider data for an item, without full metadata appends."""
+    if item.media_type == MediaTypes.SEASON.value:
+        url = (
+            f"{base_url}/tv/{item.media_id}/season/{item.season_number}/watch/providers"
+        )
+    elif item.media_type == MediaTypes.TV.value:
+        url = f"{base_url}/tv/{item.media_id}/watch/providers"
+    else:
+        url = f"{base_url}/movie/{item.media_id}/watch/providers"
+
+    try:
+        response = services.api_request(
+            Sources.TMDB.value,
+            "GET",
+            url,
+            params=base_params,
+        )
+    except requests.exceptions.HTTPError as error:
+        handle_error(error)
+
+    return response.get("results", {})
+
+
 def process_episodes(season_metadata, episodes_in_db):
     """Process the episodes for the selected season."""
     episodes_metadata = []

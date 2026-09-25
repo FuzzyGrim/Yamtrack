@@ -64,6 +64,13 @@ class MediaTypes(models.TextChoices):
     BOARDGAME = "boardgame", "Boardgame"
 
 
+STREAM_AVAILABILITY_MEDIA_TYPES = (
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.SEASON.value,
+)
+
+
 class Item(CalendarTriggerMixin, models.Model):
     """Model to store basic information about media items."""
 
@@ -82,6 +89,11 @@ class Item(CalendarTriggerMixin, models.Model):
     image = models.URLField()  # if add default, custom media entry will show the value
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
+    # Maps a watch-provider region code to a 2-bit availability mask:
+    # bit 1 (1) = no-charge (flatrate/free/ads) available, bit 2 (2) = paid
+    # (buy/rent) available. See app/stream_availability.py.
+    stream_availability = models.JSONField(default=dict, blank=True)
+    stream_availability_updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         """Meta options for the model."""
