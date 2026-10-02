@@ -18,6 +18,7 @@ from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdate
 from users.models import (
     WATCH_PROVIDER_REGION_UNSET,
     DateFormatChoices,
+    DefaultEditEntryDateChoices,
     QuickWatchDateChoices,
     TimeFormatChoices,
     WeekStartDayChoices,
@@ -229,6 +230,7 @@ def preferences(request):
             {
                 "media_types": media_types,
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
+                "default_edit_entry_date_choices": DefaultEditEntryDateChoices.choices,
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
                 "week_start_day_choices": WeekStartDayChoices.choices,
@@ -248,6 +250,9 @@ def preferences(request):
         "quick_watch_date",
         QuickWatchDateChoices.CURRENT_DATE,
     )
+    default_edit_entry_date = request.POST.get("default_edit_entry_date")
+    if default_edit_entry_date in DefaultEditEntryDateChoices.values:
+        request.user.default_edit_entry_date = default_edit_entry_date
     request.user.progress_bar = "progress_bar" in request.POST
     request.user.hide_completed_recommendations = (
         "hide_completed_recommendations" in request.POST

@@ -19,6 +19,7 @@ if (!window.__mediaFormRegistered) {
       const endDateField = this.$el.querySelector('[name="end_date"]');
       const startDateField = this.$el.querySelector('[name="start_date"]');
       const instanceIdField = this.$el.querySelector('[name="instance_id"]');
+      const noDefaultEndDate = this.$el.dataset.defaultEditEntryDate === "no_date";
 
       // Check if this is a new form (no instance_id) vs editing existing record
       const isNewForm = !instanceIdField || !instanceIdField.value;
@@ -36,6 +37,7 @@ if (!window.__mediaFormRegistered) {
       // For existing records, respect the saved values (even if empty)
       if (
         isNewForm &&
+        !noDefaultEndDate &&
         statusField &&
         statusField.value === "Completed" &&
         endDateField &&
@@ -87,6 +89,7 @@ if (!window.__mediaFormRegistered) {
           // Set new dates based on new status
           if (
             status === "Completed" &&
+            !noDefaultEndDate &&
             endDateField &&
             !endDateField.value &&
             !isReturningToOriginalCompleted
