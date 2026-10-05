@@ -71,7 +71,7 @@ urlpatterns = [
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/lists/(?P<list_id>\d+)/?$",
         views.MediaListDetailView.as_view(),
-        name="api_media_lists",
+        name="api_media_list_detail",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/recommendations/?$",
