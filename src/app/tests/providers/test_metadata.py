@@ -782,6 +782,55 @@ class Metadata(TestCase):
 
         self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
 
+    def test_handle_error_hardcover_unauthorized_description(self):
+        """Test the unauthorized message prefers the error description."""
+        mock_response = MagicMock()
+        mock_response.status_code = 401
+        mock_response.json.return_value = {
+            "error": "invalid_token",
+            "error_description": "Token is not associated with a user",
+        }
+
+        error = requests.exceptions.HTTPError("401 Unauthorized")
+        error.response = mock_response
+
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.handle_error(error)
+
+        self.assertIn("Token is not associated with a user", str(cm.exception))
+
+    def test_handle_error_hardcover_unauthorized_missing_error(self):
+        """Test the unauthorized handler when the error key is missing."""
+        mock_response = MagicMock()
+        mock_response.status_code = 401
+        mock_response.json.return_value = {"message": "Unauthorized"}
+
+        error = requests.exceptions.HTTPError("401 Unauthorized")
+        error.response = mock_response
+
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.handle_error(error)
+
+        self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
+
+    @patch("app.providers.hardcover.cache")
+    @patch("app.providers.services.api_request")
+    def test_hardcover_graphql_errors(self, mock_api_request, mock_cache):
+        """Test GraphQL errors returned with a 200 status are not cached."""
+        mock_cache.get.return_value = None
+        mock_api_request.return_value = {
+            "errors": [{"message": "field 'search' not found in type: 'query_root'"}],
+        }
+
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.search("dune", 1)
+        self.assertIn("field 'search' not found", str(cm.exception))
+
+        with self.assertRaises(services.ProviderAPIError):
+            hardcover.book("1")
+
+        mock_cache.set.assert_not_called()
+
     def test_handle_error_hardcover_other(self):
         """Test the handle_error function with Hardcover other error."""
         mock_response = MagicMock()
