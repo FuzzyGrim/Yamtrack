@@ -10,7 +10,7 @@
     - [x] GET: List upcoming calendar events
 - [x] `/api/v1/calendar/update/`
     - [x] POST: Update calendar events
-- [x] `/api/v1/changes_history/{media_type}/{history_id}`:
+- [x] `/api/v1/changes_history/{media_type}/{history_id}/`
     - [x] DELETE: Delete specific changes history entry
     - [x] GET: Get specific changes history entry
 - [x] `/api/v1/lists/`
@@ -44,7 +44,7 @@
     - [x] PATCH: Edit specific consumption entry
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/`
     - [x] GET: Lists where the tracked item is in
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}/`
     - [x] DELETE: Delete tracked item from specific list
     - [x] PUT: Add tracked item to specific list
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/recommendations/`
@@ -53,45 +53,45 @@
     - [x] GET: List seasons of tracked tv serie if media is tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/sync/`
     - [x] POST: Update metadata of tracked item
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/`
     - [x] DELETE: Delete tracked season if media is tv serie
     - [x] GET: Get tracked season if media is tv serie
     - [x] PATCH: Edit last consumption of tracked season
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/episodes/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/episodes/`
     - [x] GET: List episodes of tracked season if media is tv serie
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/changes_history/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/changes_history/`
     - [x] GET: Get changes history of tracked season
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/history/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/history/`
     - [x] GET: Get consumption history of tracked season
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/history/{consumption_id}/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/history/{consumption_id}/`
     - [x] DELETE: Delete specific consumption entry
     - [x] GET: Get specific consumption entry
     - [x] PATCH: Edit specific consumption entry
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/lists/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/lists/`
     - [x] GET: Lists where the tracked item is in
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/lists/{list_id}`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/lists/{list_id}/`
     - [x] DELETE: Delete tracked item from specific list
     - [x] PUT: Add tracked item to specific list
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/sync/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/sync/`
     - [x] POST: Update metadata of tracked season
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/`
     - [x] DELETE: Delete tracked episode if media is tv serie
     - [x] GET: Get tracked episode if media is tv serie
     - [x] PATCH: Edit last consumption of tracked episode
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/changes_history/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/changes_history/`
     - [x] GET: Get changes history of tracked episode
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/history/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/history/`
     - [x] GET: Get consumption history of tracked episode
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/history/{consumption_id}/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/history/{consumption_id}/`
     - [x] DELETE: Delete specific consumption entry
     - [x] GET: Get specific consumption entry
     - [x] PATCH: Edit specific consumption entry
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/lists/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/lists/`
     - [x] GET: Lists where the tracked item is in
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/lists/{list_id}`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/lists/{list_id}/`
     - [x] DELETE: Delete tracked item from specific list
     - [x] PUT: Add tracked item to specific list
-- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/sync/`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/sync/`
     - [x] POST: Update metadata of tracked episode (season)
 - [x] `/api/v1/search/{media_type}/`
     - [x] GET: Search for media using the specified provider
@@ -101,3 +101,7 @@
     - [x] GET: Health check endpoint
 - [x] `/api/v1/info/`
     - [x] GET: Get application info and version
+- [x] `/api/v1/schema/`
+    - [x] GET: Get the OpenAPI schema (only if the Swagger docs are enabled)
+- [x] `/api/v1/docs/`
+    - [x] GET: Swagger documentation (only if the Swagger docs are enabled)
