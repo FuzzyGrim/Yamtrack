@@ -24,6 +24,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -37,6 +41,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: "docker-compose"
     directory: "/"
@@ -50,3 +58,7 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
