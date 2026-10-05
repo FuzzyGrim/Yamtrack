@@ -117,6 +117,15 @@ class WeekStartDayChoices(models.TextChoices):
     SUNDAY = "sunday", "Sunday"
 
 
+class AutoExportIntervalUnitChoices(models.TextChoices):
+    """Choices for the automatic export reminder interval unit."""
+
+    DAYS = "days", "Days"
+    HOURS = "hours", "Hours"
+    MINUTES = "minutes", "Minutes"
+    SECONDS = "seconds", "Seconds"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -390,6 +399,22 @@ class User(AbstractUser):
         max_length=20,
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
+    )
+
+    # Export settings
+    auto_export_enabled = models.BooleanField(
+        default=False,
+        help_text="Prompt to export data automatically",
+    )
+    auto_export_interval_value = models.PositiveIntegerField(
+        default=7,
+        help_text="Number of units between automatic export reminders",
+    )
+    auto_export_interval_unit = models.CharField(
+        max_length=10,
+        default=AutoExportIntervalUnitChoices.DAYS,
+        choices=AutoExportIntervalUnitChoices,
+        help_text="Unit used for automatic export reminders",
     )
 
     # Notification settings

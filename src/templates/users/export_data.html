@@ -12,11 +12,79 @@
     </div>
     <p class="text-gray-400 mb-5 text-sm">Back up your data or export it for use with other services.</p>
     <p class="text-sm text-gray-400 mb-4">Your export will include all your media items.</p>
-    <form method="get" action="{% url 'export_csv' %}">
+    <form method="get" action="{% url 'export_csv' %}" data-export-csv>
       {% csrf_token %}
-      <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+      <button class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+        {% include "app/icons/export.svg" with classes="w-4 h-4 mr-2" %}
         Export as CSV
       </button>
     </form>
+
+    <div class="mt-6 pt-6 border-t border-[#39404b]">
+      <h3 class="text-base font-medium mb-2">Automatic export reminder</h3>
+      <p class="text-sm text-gray-400 mb-4">
+        Yamtrack can remind you to download a CSV backup while the app is open.
+        Selecting the reminder uses the same browser download flow as the manual export above.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-5">
+          <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+            <div class="flex-1">
+              <div class="flex items-center text-gray-200 mb-1">
+                {% include "app/icons/export.svg" with classes="w-5 h-5 mr-2" %}
+                <span class="text-sm font-medium">Automatic Export Reminders</span>
+              </div>
+              <p class="text-xs text-gray-400 ml-7">Remind me to download a CSV backup while Yamtrack is open.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer ml-4">
+              <input class="sr-only peer"
+                     type="checkbox"
+                     name="auto_export_enabled"
+                     {% if user.auto_export_enabled %}checked{% endif %}>
+              <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+            <div class="flex-1">
+              <div class="flex items-center text-gray-200 mb-1">
+                {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
+                <span class="text-sm font-medium">Reminder Interval</span>
+              </div>
+              <p class="text-xs text-gray-400 ml-7">Choose how often Yamtrack should remind you to export your data.</p>
+            </div>
+            <div class="flex items-center gap-2 ml-4">
+              <label class="sr-only" for="auto-export-interval">Reminder interval value</label>
+              <input id="auto-export-interval"
+                     type="number"
+                     name="auto_export_interval_value"
+                     min="1"
+                     value="{{ user.auto_export_interval_value }}"
+                     class="w-20 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              <label class="sr-only" for="auto-export-interval-unit">Reminder interval unit</label>
+              <select id="auto-export-interval-unit"
+                      name="auto_export_interval_unit"
+                      class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                {% for value, label in auto_export_interval_units %}
+                  <option value="{{ value }}"
+                          {% if user.auto_export_interval_unit == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="mt-5 pt-4 border-t border-gray-600">
+          <button type="submit"
+                  class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+            Save Settings
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 {% endblock settings_content %}

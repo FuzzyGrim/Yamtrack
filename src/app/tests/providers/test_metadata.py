@@ -475,7 +475,7 @@ class Metadata(TestCase):
         response = hardcover.book("377193")
         self.assertEqual(response["title"], "The Great Gatsby")
         self.assertEqual(response["details"]["author"], "F. Scott Fitzgerald")
-        self.assertIn("Fiction", response["genres"])
+        self.assertIn("Literary Fiction", response["genres"])
         self.assertIn("Young Adult", response["genres"])
         self.assertIn("Classics", response["genres"])
         self.assertAlmostEqual(response["score"], 7.4, delta=0.1)

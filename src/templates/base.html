@@ -53,7 +53,11 @@
 
   </head>
 
-  <body>
+  <body data-auto-export-enabled="{{ user.auto_export_enabled|yesno:'true,false' }}"
+        data-auto-export-interval-value="{{ user.auto_export_interval_value }}"
+        data-auto-export-interval-unit="{{ user.auto_export_interval_unit }}"
+        data-auto-export-url="{% url 'export_csv' %}"
+        data-auto-export-user="{{ user.pk }}">
     {% block body %}
       {# Main container for the layout #}
       <div class="flex min-h-screen bg-[#212529] text-gray-100"
@@ -346,5 +350,9 @@
 
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>
     <script src="{% static 'js/searchShortcut.js' %}{% get_static_file_mtime 'js/searchShortcut.js' %}"></script>
+    {% if user.is_authenticated %}
+      <script defer
+              src="{% static 'js/auto-export.js' %}{% get_static_file_mtime 'js/auto-export.js' %}"></script>
+    {% endif %}
   </body>
 </html>

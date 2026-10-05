@@ -1,6 +1,7 @@
 import csv
 from datetime import UTC, datetime
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -132,13 +133,17 @@ class ExportCSVTest(TestCase):
             title="Fantastic Mr. Fox",
             image="https://image.url",
         )
-        Book.objects.create(
-            item=item_book,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-            progress=120,
-            start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
-        )
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": None},
+        ):
+            Book.objects.create(
+                item=item_book,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                progress=120,
+                start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
+            )
 
     def test_export_csv(self):
         """Basic test exporting media to CSV."""

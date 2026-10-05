@@ -17,6 +17,7 @@ from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import (
     WATCH_PROVIDER_REGION_UNSET,
+    AutoExportIntervalUnitChoices,
     DateFormatChoices,
     QuickWatchDateChoices,
     TimeFormatChoices,
@@ -300,10 +301,50 @@ def import_data(request):
     return render(request, "users/import_data.html", {"import_tasks": import_tasks})
 
 
-@require_GET
+@require_http_methods(["GET", "POST"])
 def export_data(request):
     """Render the export data settings page."""
-    return render(request, "users/export_data.html")
+    if request.method == "POST":
+        if request.user.is_demo:
+            messages.error(request, "This section is view-only for demo accounts.")
+            return redirect("export_data")
+
+        try:
+            interval_value = int(
+                request.POST.get("auto_export_interval_value", 7),
+            )
+        except (TypeError, ValueError):
+            interval_value = 0
+
+        interval_unit = request.POST.get("auto_export_interval_unit")
+        if (
+            interval_value < 1
+            or interval_unit not in AutoExportIntervalUnitChoices.values
+        ):
+            messages.error(
+                request,
+                "Export interval must be a positive number with a valid unit.",
+            )
+            return redirect("export_data")
+
+        request.user.auto_export_enabled = "auto_export_enabled" in request.POST
+        request.user.auto_export_interval_value = interval_value
+        request.user.auto_export_interval_unit = interval_unit
+        request.user.save(
+            update_fields=[
+                "auto_export_enabled",
+                "auto_export_interval_value",
+                "auto_export_interval_unit",
+            ],
+        )
+        messages.success(request, "Automatic export settings updated.")
+        return redirect("export_data")
+
+    return render(
+        request,
+        "users/export_data.html",
+        {"auto_export_interval_units": AutoExportIntervalUnitChoices.choices},
+    )
 
 
 @require_GET
