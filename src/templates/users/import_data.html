@@ -362,6 +362,23 @@
           </form>
         </div>
 
+        {# Epic Games #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "epicgames" %}</div>
+          <p class="text-sm text-gray-400 mb-3">Import games from your Epic Games Store library</p>
+          <form method="post"
+                action="{% url 'import_epic_public' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <button type="submit"
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+              Connect with Epic Games & Import
+            </button>
+          </form>
+        </div>
+
         {# IMDB #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center justify-between mb-3">
