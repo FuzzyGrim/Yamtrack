@@ -9,6 +9,10 @@ updates:
       actions:
         patterns:
           - "*"
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: "uv"
     directory: "/"
