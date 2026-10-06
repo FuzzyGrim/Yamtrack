@@ -3,7 +3,7 @@
 
 <div class="space-y-6">
   {% for day, releases in release_dict.items %}
-    <div class="bg-[#343a40] rounded-lg overflow-hidden">
+    <div {% if day == today.day and month == today.month and year == today.year %}id="today" {% endif %}class="bg-[#343a40] rounded-lg overflow-hidden">
       <div class="px-4 py-3 font-medium flex items-center justify-between {% if day == today.day and month == today.month and year == today.year %}bg-indigo-600{% else %}bg-gray-600{% endif %}">
         <span>{% day_of_week day month year %}, {{ month_name }} {{ day }}</span>
         {% if day == today.day and month == today.month and year == today.year %}

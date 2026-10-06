@@ -464,3 +464,35 @@ class CalendarWeekStartDayTests(TestCase):
         # row places 1 in the Saturday column with all earlier columns empty.
         first_row = response.context["calendar"][0]
         self.assertEqual(first_row, [0, 0, 0, 0, 0, 0, 1])
+
+    @patch("events.models.Event.objects.get_user_events")
+    @patch.object(get_user_model(), "update_preference")
+    def test_today_button_targets_today_cell(
+        self,
+        mock_update_preference,
+        mock_get_user_events,
+    ):
+        """The Today button links to an anchor that exists in the current month."""
+        mock_update_preference.return_value = "grid"
+        mock_get_user_events.return_value = []
+
+        response = self.client.get(reverse("calendar"))
+        content = response.content.decode()
+
+        self.assertIn('#today">Today</a>', content)
+        self.assertEqual(content.count('id="today"'), 1)
+
+    @patch("events.models.Event.objects.get_user_events")
+    @patch.object(get_user_model(), "update_preference")
+    def test_today_anchor_absent_in_other_months(
+        self,
+        mock_update_preference,
+        mock_get_user_events,
+    ):
+        """Only the current month's grid has a today cell."""
+        mock_update_preference.return_value = "grid"
+        mock_get_user_events.return_value = []
+
+        response = self.client.get(reverse("calendar") + "?month=6&year=2000")
+
+        self.assertNotIn('id="today"', response.content.decode())
