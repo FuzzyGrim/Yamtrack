@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from app.models import MediaTypes, Sources
 from app.providers import services
-from events.models import Event
+from events.models import Event, SentinelDatetime
 
 from .other import process_other
 
@@ -23,10 +23,10 @@ def anilist_date_parser(start_date):
         start_date["year"],
         month,
         day,
-        hour=23,
-        minute=59,
-        second=59,
-        microsecond=999999,
+        hour=SentinelDatetime.HOUR,
+        minute=SentinelDatetime.MINUTE,
+        second=SentinelDatetime.SECOND,
+        microsecond=SentinelDatetime.MICROSECOND,
         tzinfo=ZoneInfo("UTC"),
     )
 
@@ -46,7 +46,7 @@ def process_anime_bulk(items, events_bulk):
         if episodes:
             for episode in episodes:
                 if episode["airingAt"] is None:
-                    episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+                    episode_datetime = SentinelDatetime.min_datetime()
                 else:
                     episode_datetime = datetime.fromtimestamp(
                         episode["airingAt"],

@@ -28,7 +28,6 @@ from app.statistics import (
     get_score_distribution,
     get_status_distribution,
     get_status_pie_chart_data,
-    get_timeline,
     get_user_media,
 )
 from events import tasks
@@ -55,6 +54,7 @@ from .helpers import (
     get_item_lists,
     get_media_status,
     get_sorts,
+    get_timeline,
     paginate_data,
     parse_excluded_items,
     parse_limit_offset,

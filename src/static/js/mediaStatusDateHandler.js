@@ -1,4 +1,7 @@
-document.addEventListener("alpine:init", () => {
+// Guard against re-registering when this script re-runs after an HTMX body swap.
+if (!window.__mediaFormRegistered) {
+  window.__mediaFormRegistered = true;
+  document.addEventListener("alpine:init", () => {
   Alpine.data("mediaForm", () => ({
     autoFilled: {
       start_date: false,
@@ -140,18 +143,16 @@ document.addEventListener("alpine:init", () => {
     },
 
     getCurrentDateTime(field) {
-      const date = new Date();
+      const now = new Date();
+      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
 
       if (field.type === "datetime-local") {
-        return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-          .toISOString()
-          .slice(0, 16);
-      } else if (field.type === "date") {
-        return date.toISOString().slice(0, 10);
+        return local.toISOString().slice(0, 16);
       }
 
-      // Fallback to date format
-      return date.toISOString().slice(0, 10);
+      // "date" type and fallback both use the local date.
+      return local.toISOString().slice(0, 10);
     },
   }));
-});
+  });
+}

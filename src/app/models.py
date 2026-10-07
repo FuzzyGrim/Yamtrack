@@ -232,7 +232,10 @@ class MediaManager(models.Manager):
             queryset = queryset.filter(status=status_filter)
 
         if search:
-            queryset = queryset.filter(item__title__icontains=search)
+            search_filter = Q(item__title__icontains=search)
+            if any(field.name == "notes" for field in model._meta.get_fields()):
+                search_filter |= Q(notes__icontains=search)
+            queryset = queryset.filter(search_filter)
 
         queryset = queryset.annotate(
             repeats=Window(

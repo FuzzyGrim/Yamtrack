@@ -67,6 +67,9 @@ class EmbyWebhookProcessor(BaseWebhookProcessor):
 
         return title
 
+    def _get_season_number(self, payload):
+        return payload["Item"].get("ParentIndexNumber")
+
     def _get_episode_number(self, payload):
         return payload["Item"].get("IndexNumber")
 

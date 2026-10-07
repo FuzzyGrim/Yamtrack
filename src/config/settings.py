@@ -211,6 +211,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
 
 if config("DB_HOST", default=None):
+    DB_POOL_MIN_SIZE = config("DB_POOL_MIN_SIZE", default=1, cast=int)
+    DB_POOL_MAX_SIZE = config("DB_POOL_MAX_SIZE", default=4, cast=int)
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -220,7 +223,10 @@ if config("DB_HOST", default=None):
             "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
             "PORT": config("DB_PORT"),
             "OPTIONS": {
-                "pool": True,
+                "pool": {
+                    "min_size": DB_POOL_MIN_SIZE,
+                    "max_size": DB_POOL_MAX_SIZE,
+                },
             },
         },
     }
@@ -238,6 +244,17 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db" / "db.sqlite3",
+            "OPTIONS": {
+                "timeout": 10,
+                "transaction_mode": "IMMEDIATE",
+                "init_command": (
+                    "PRAGMA journal_mode=WAL;"
+                    "PRAGMA synchronous=NORMAL;"
+                    "PRAGMA mmap_size=134217728;"
+                    "PRAGMA journal_size_limit=27103364;"
+                    "PRAGMA cache_size=2000;"
+                ),
+            },
         },
     }
 
@@ -251,7 +268,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 17,
+        "VERSION": 18,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -350,8 +367,8 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
-# For CSV imports
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+# For CSV imports and the Trakt export archive
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 MB
 
 VERSION = config("VERSION", default="dev")
 

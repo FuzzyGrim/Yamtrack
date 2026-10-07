@@ -2,21 +2,9 @@ import logging
 
 from celery import states
 from celery.signals import before_task_publish
-from django.db.backends.signals import connection_created
-from django.dispatch import receiver
 from django_celery_results.models import TaskResult
 
 logger = logging.getLogger(__name__)
-
-
-@receiver(connection_created)
-def setup_sqlite_pragmas(sender, connection, **kwargs):  # noqa: ARG001
-    """Set up SQLite pragmas for WAL mode and busy timeout on connection creation."""
-    if connection.vendor == "sqlite":
-        cursor = connection.cursor()
-        cursor.execute("PRAGMA journal_mode=wal;")
-        cursor.execute("PRAGMA busy_timeout=5000;")
-        cursor.close()
 
 
 @before_task_publish.connect
