@@ -7,6 +7,7 @@ from collections import defaultdict
 import requests
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django_celery_beat.models import PeriodicTask
 
@@ -214,6 +215,16 @@ class TraktImporter:
         # Track existing media to handle "new" mode correctly
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track existing seasons and watches to only add what is missing in "new" mode
+        self.existing_seasons = {}
+        self.existing_watches = {}
+        if mode == "new":
+            self.existing_seasons = helpers.get_existing_seasons(user)
+            self.existing_watches = helpers.get_existing_watches(user)
+
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -238,6 +249,11 @@ class TraktImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -364,6 +380,69 @@ class TraktImporter:
         )
         return None
 
+    def _get_existing(self, media_type, tmdb_id, season_number=None):
+        """Get the media already in Yamtrack, only tracked in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        if media_type == MediaTypes.SEASON.value:
+            return self.existing_seasons.get(
+                (Sources.TMDB.value, tmdb_id, season_number),
+            )
+
+        return self.existing_media[media_type][Sources.TMDB.value].get(tmdb_id)
+
+    def _should_process_watch(
+        self,
+        media_type,
+        tmdb_id,
+        end_date,
+        season_number=None,
+        episode_number=None,
+    ):
+        """Determine if a movie or episode watch should be processed based on mode."""
+        parent_type = (
+            MediaTypes.TV.value
+            if media_type == MediaTypes.EPISODE.value
+            else media_type
+        )
+
+        # Existing media only gets the watches it is missing
+        if self._get_existing(parent_type, tmdb_id):
+            watch_key = helpers.get_watch_key(
+                media_type,
+                Sources.TMDB.value,
+                tmdb_id,
+                season_number,
+                episode_number,
+            )
+            return not helpers.is_existing_watch(
+                self.existing_watches,
+                watch_key,
+                end_date,
+            )
+
+        return helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            parent_type,
+            Sources.TMDB.value,
+            tmdb_id,
+            self.mode,
+        )
+
+    def _reopen_status(self, media_type, media):
+        """Move completed existing media back to in progress."""
+        if helpers.reopen_status(media):
+            self.to_update[media_type][media.pk] = media
+
+    def _set_status(self, media_type, media, status):
+        """Set the status, only moving existing media forward."""
+        if media.pk is None:
+            media.status = status
+        elif helpers.advance_status(media, status):
+            self.to_update[media_type][media.pk] = media
+
     def _get_metadata(self, media_type, tmdb_id, title, season_number=None):
         """Get metadata for a media item."""
         try:
@@ -427,15 +506,24 @@ class TraktImporter:
         if not tmdb_id:
             return
 
+        watched_at = entry["watched_at"]
+        end_date = self._get_date(watched_at)
+
         # Check if we should process this movie based on mode
-        if not helpers.should_process_media(
-            self.existing_media,
-            self.to_delete,
-            MediaTypes.MOVIE.value,
-            Sources.TMDB.value,
-            tmdb_id,
-            self.mode,
+        if not self._should_process_watch(MediaTypes.MOVIE.value, tmdb_id, end_date):
+            return
+
+        # Complete the unwatched movie instead of adding another one
+        existing_movie = self._get_existing(MediaTypes.MOVIE.value, tmdb_id)
+        if (
+            existing_movie
+            and existing_movie.end_date is None
+            and helpers.advance_status(existing_movie, Status.COMPLETED.value)
         ):
+            existing_movie.end_date = end_date
+            existing_movie.progress = 1
+            existing_movie.progressed_at = timezone.now()
+            self.to_update[MediaTypes.MOVIE.value][existing_movie.pk] = existing_movie
             return
 
         metadata = self._get_metadata(MediaTypes.MOVIE.value, tmdb_id, movie["title"])
@@ -443,14 +531,13 @@ class TraktImporter:
             return
 
         item = self._get_or_create_item(MediaTypes.MOVIE.value, tmdb_id, metadata)
-        watched_at = entry["watched_at"]
 
         key = f"{tmdb_id}"
 
         movie_obj = app.models.Movie(
             item=item,
             user=self.user,
-            end_date=self._get_date(watched_at),
+            end_date=end_date,
             status=Status.COMPLETED.value,
             progress=1,
         )
@@ -475,20 +562,21 @@ class TraktImporter:
         if not tmdb_id:
             return
 
-        # Check if we should process this episode based on mode
-        if not helpers.should_process_media(
-            self.existing_media,
-            self.to_delete,
-            MediaTypes.TV.value,
-            Sources.TMDB.value,
-            tmdb_id,
-            self.mode,
-        ):
-            return
-
         # Extract episode data
         season_number = entry["episode"]["season"]
         episode_number = entry["episode"]["number"]
+        watched_at = entry["watched_at"]
+        end_date = self._get_date(watched_at)
+
+        # Check if we should process this episode based on mode
+        if not self._should_process_watch(
+            MediaTypes.EPISODE.value,
+            tmdb_id,
+            end_date,
+            season_number,
+            episode_number,
+        ):
+            return
 
         # Get TV metadata
         tv_metadata = self._get_metadata(MediaTypes.TV.value, tmdb_id, show["title"])
@@ -519,9 +607,82 @@ class TraktImporter:
             return
 
         episode_image = self._get_episode_image(episode_number, season_metadata)
-        watched_at = entry["watched_at"]
+
+        # An episode watched for the first time reopens its completed show
+        watch_key = helpers.get_watch_key(
+            MediaTypes.EPISODE.value,
+            Sources.TMDB.value,
+            tmdb_id,
+            season_number,
+            episode_number,
+        )
+        first_watch = watch_key not in self.existing_watches
 
         # Create or get TV show
+        tv_obj = self._get_watched_tv(
+            tmdb_id,
+            tv_metadata,
+            watched_at,
+            first_watch=first_watch,
+        )
+
+        # Create or get Season
+        season_obj = self._get_watched_season(
+            tmdb_id,
+            season_number,
+            season_metadata,
+            tv_obj,
+            watched_at,
+            first_watch=first_watch,
+        )
+
+        # Create Episode item and object
+        episode_metadata = {
+            "title": tv_metadata["title"],
+            "image": episode_image,
+        }
+        episode_item = self._get_or_create_item(
+            MediaTypes.EPISODE.value,
+            tmdb_id,
+            episode_metadata,
+            season_number,
+            episode_number,
+        )
+
+        ep_key = f"{tmdb_id}:{season_number}:{episode_number}"
+
+        episode_obj = app.models.Episode(
+            item=episode_item,
+            related_season=season_obj,
+            end_date=end_date,
+        )
+        episode_obj._history_date = parse_datetime(watched_at)
+        self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
+        self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
+
+        # Update status if this is the last episode
+        self._update_completion_status(
+            season_obj,
+            tv_obj,
+            season_number,
+            episode_number,
+            season_metadata,
+            tv_metadata,
+        )
+
+    def _get_watched_tv(self, tmdb_id, tv_metadata, watched_at, *, first_watch):
+        """Get or create the TV object of a watched episode."""
+        existing_tv = self._get_existing(MediaTypes.TV.value, tmdb_id)
+        if existing_tv:
+            if first_watch:
+                self._reopen_status(MediaTypes.TV.value, existing_tv)
+            self._set_status(
+                MediaTypes.TV.value,
+                existing_tv,
+                Status.IN_PROGRESS.value,
+            )
+            return existing_tv
+
         tv_item = self._get_or_create_item(MediaTypes.TV.value, tmdb_id, tv_metadata)
         tv_key = f"{tmdb_id}"
 
@@ -536,8 +697,34 @@ class TraktImporter:
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         else:
             tv_obj = self.media_instances[MediaTypes.TV.value][tv_key][0]
+        return tv_obj
 
-        # Create or get Season
+    def _get_watched_season(
+        self,
+        tmdb_id,
+        season_number,
+        season_metadata,
+        tv_obj,
+        watched_at,
+        *,
+        first_watch,
+    ):
+        """Get or create the Season object of a watched episode."""
+        existing_season = self._get_existing(
+            MediaTypes.SEASON.value,
+            tmdb_id,
+            season_number,
+        )
+        if existing_season:
+            if first_watch:
+                self._reopen_status(MediaTypes.SEASON.value, existing_season)
+            self._set_status(
+                MediaTypes.SEASON.value,
+                existing_season,
+                Status.IN_PROGRESS.value,
+            )
+            return existing_season
+
         season_item = self._get_or_create_item(
             MediaTypes.SEASON.value,
             tmdb_id,
@@ -558,40 +745,7 @@ class TraktImporter:
             self.media_instances[MediaTypes.SEASON.value][season_key] = [season_obj]
         else:
             season_obj = self.media_instances[MediaTypes.SEASON.value][season_key][0]
-
-        # Create Episode item and object
-        episode_metadata = {
-            "title": tv_metadata["title"],
-            "image": episode_image,
-        }
-        episode_item = self._get_or_create_item(
-            MediaTypes.EPISODE.value,
-            tmdb_id,
-            episode_metadata,
-            season_number,
-            episode_number,
-        )
-
-        ep_key = f"{tmdb_id}:{season_number}:{episode_number}"
-
-        episode_obj = app.models.Episode(
-            item=episode_item,
-            related_season=season_obj,
-            end_date=self._get_date(watched_at),
-        )
-        episode_obj._history_date = parse_datetime(watched_at)
-        self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
-        self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
-
-        # Update status if this is the last episode
-        self._update_completion_status(
-            season_obj,
-            tv_obj,
-            season_number,
-            episode_number,
-            season_metadata,
-            tv_metadata,
-        )
+        return season_obj
 
     def _update_completion_status(
         self,
@@ -604,11 +758,15 @@ class TraktImporter:
     ):
         """Update completion status for season and TV show if applicable."""
         if episode_number == season_metadata["max_progress"]:
-            season_obj.status = Status.COMPLETED.value
+            self._set_status(
+                MediaTypes.SEASON.value,
+                season_obj,
+                Status.COMPLETED.value,
+            )
 
             last_season = tv_metadata.get("last_episode_season")
             if last_season and last_season == season_number:
-                tv_obj.status = Status.COMPLETED.value
+                self._set_status(MediaTypes.TV.value, tv_obj, Status.COMPLETED.value)
 
     def process_watchlist(self):
         """Process watchlist from Trakt."""
@@ -725,10 +883,22 @@ class TraktImporter:
         if not tmdb_id:
             return
 
+        key = f"{tmdb_id}"
+        if media_type == MediaTypes.SEASON.value:
+            key = f"{key}:{season_number}"
+
+        # Existing media only gets the score and notes it is missing
+        existing = self._get_existing(media_type, tmdb_id, season_number)
+        if existing:
+            self._sync_existing(media_type, key, existing, defaults)
+            return
+
+        # A new season of an existing show is added to it
         parent_type = (
             MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
         )
-        if not helpers.should_process_media(
+        parent_exists = self._get_existing(parent_type, tmdb_id) is not None
+        if not parent_exists and not helpers.should_process_media(
             self.existing_media,
             self.to_delete,
             parent_type,
@@ -759,10 +929,6 @@ class TraktImporter:
                 return
             defaults["related_tv"] = tv_obj
 
-        key = f"{tmdb_id}"
-        if media_type == MediaTypes.SEASON.value:
-            key = f"{key}:{season_number}"
-
         item = self._get_or_create_item(media_type, tmdb_id, metadata, season_number)
 
         if key in self.media_instances[media_type]:
@@ -777,8 +943,21 @@ class TraktImporter:
             self.bulk_media[media_type].append(media_obj)
             self.media_instances[media_type][key] = [media_obj]
 
+    def _sync_existing(self, media_type, key, existing, defaults):
+        """Fill the missing score and notes of existing media."""
+        if helpers.fill_empty_fields(existing, defaults):
+            self.to_update[media_type][existing.pk] = existing
+
+        # Watches of the existing media added by this import
+        if key in self.media_instances[media_type]:
+            self._update_instance(media_type, key, defaults)
+
     def _get_tv_obj(self, tmdb_id, media_data, updated_at):
         """Get or create a TV object for the given season."""
+        existing_tv = self._get_existing(MediaTypes.TV.value, tmdb_id)
+        if existing_tv:
+            return existing_tv
+
         tv_metadata = self._get_metadata(
             MediaTypes.TV.value,
             tmdb_id,
