@@ -496,3 +496,54 @@ class CalendarWeekStartDayTests(TestCase):
         response = self.client.get(reverse("calendar") + "?month=6&year=2000")
 
         self.assertNotIn('id="today"', response.content.decode())
+
+    def _list_view_with_releases_on(self, days, today):
+        """Render list view for `today`'s month with one release on each day."""
+        item = Item(
+            id=1,
+            media_id="123",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Test Movie",
+            image="https://example.com/image.jpg",
+        )
+        events = [
+            Event(
+                item=item,
+                datetime=timezone.make_aware(
+                    timezone.datetime(today.year, today.month, day, 12, 0),
+                ),
+            )
+            for day in days
+        ]
+        with (
+            patch("events.models.Event.objects.get_user_events") as mock_events,
+            patch.object(get_user_model(), "update_preference") as mock_pref,
+            patch("events.views.timezone.localdate", return_value=today),
+        ):
+            mock_events.return_value = events
+            mock_pref.return_value = "list"
+            return self.client.get(reverse("calendar") + "?view=list")
+
+    def test_list_view_today_anchor_on_todays_releases(self):
+        """In list view the today anchor sits on today's releases."""
+        response = self._list_view_with_releases_on([5, 15, 20], date(2026, 10, 15))
+
+        self.assertEqual(response.context["list_anchor_day"], 15)
+        content = response.content.decode()
+        self.assertIn('#today">Today</a>', content)
+        self.assertEqual(content.count('id="today"'), 1)
+
+    def test_list_view_today_anchor_on_next_release_day(self):
+        """With no releases today, the anchor moves to the next day that has one."""
+        response = self._list_view_with_releases_on([5, 20, 25], date(2026, 10, 15))
+
+        self.assertEqual(response.context["list_anchor_day"], 20)
+        self.assertEqual(response.content.decode().count('id="today"'), 1)
+
+    def test_list_view_no_today_anchor_after_last_release(self):
+        """Once every release this month is past, there is nothing to scroll to."""
+        response = self._list_view_with_releases_on([5, 10], date(2026, 10, 15))
+
+        self.assertIsNone(response.context["list_anchor_day"])
+        self.assertNotIn('id="today"', response.content.decode())
