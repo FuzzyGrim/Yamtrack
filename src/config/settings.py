@@ -390,11 +390,13 @@ SPECTACULAR_SETTINGS = {
         "name": "GNU AFFERO GENERAL PUBLIC LICENSE v3.0",
         "url": "https://github.com/FuzzyGrim/Yamtrack/blob/dev/LICENSE",
     },
-    "SERVERS": [
+    "SERVERS": [{"url": BASE_URL}]
+    if BASE_URL
+    else [
         {
             "url": "http://localhost:8000/",
             "description": "Local development server",
-        },
+        }
     ],
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "SORT_OPERATIONS": True,
@@ -403,6 +405,10 @@ SPECTACULAR_SETTINGS = {
         "rest_framework.parsers.JSONParser",
     ],
     "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "api.schemas.polymorphic_any_of_hook",
+    ],
     "ENUM_NAME_OVERRIDES": {
         "MediaStatusEnum": "api.helpers.MEDIA_STATUS_CHOICES",
         "SourceEnum": "api.helpers.SOURCES_VALID_LIST",

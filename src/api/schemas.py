@@ -45,6 +45,24 @@ class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
         }
 
 
+def _one_of_to_any_of(node):
+    """Replace `oneOf` with `anyOf` in unions without a discriminator."""
+    if isinstance(node, list):
+        for child in node:
+            _one_of_to_any_of(child)
+    elif isinstance(node, dict):
+        if "oneOf" in node and "discriminator" not in node:
+            node["anyOf"] = node.pop("oneOf")
+        for child in node.values():
+            _one_of_to_any_of(child)
+
+
+def polymorphic_any_of_hook(result, generator, request, public):  # noqa: ARG001
+    """Postprocessing hook for polymorphic serializers without a discriminator."""
+    _one_of_to_any_of(result)
+    return result
+
+
 BadRequestResponse = OpenApiResponse(
     ApiErrorResponseSerializer,
     description="Bad request",
