@@ -21,6 +21,12 @@ def fetch_releases(user=None, items_to_process=None):
     if not items_to_process:
         return "No items to process"
 
+    logger.info(
+        "Processing %d items:\n%s",
+        len(items_to_process),
+        format_items(items_to_process),
+    )
+
     events_bulk = process_items(items_to_process)
     items_updated = save_events(events_bulk)
     cleanup_invalid_events(events_bulk)
@@ -103,16 +109,17 @@ def save_events(events_bulk):
     return items_updated
 
 
+def format_items(items):
+    """Format items as an indented list, one per line."""
+    return "\n".join(f"  - {item} ({item.get_media_type_display()})" for item in items)
+
+
 def generate_final_message(items_to_process, items_updated):
     """Generate the final message summarizing the results."""
-    processed_details = "\n".join(
-        f"  - {item} ({item.get_media_type_display()})" for item in items_to_process
-    )
+    processed_details = format_items(items_to_process)
 
     if items_updated:
-        success_details = "\n".join(
-            f"  - {item} ({item.get_media_type_display()})" for item in items_updated
-        )
+        success_details = format_items(items_updated)
         return (
             f"Processed {len(items_to_process)} items:\n{processed_details}\n\n"
             f"Releases updated for {len(items_updated)} items:\n{success_details}"

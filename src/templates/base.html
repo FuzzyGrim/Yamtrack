@@ -67,10 +67,10 @@
         {# Sidebar #}
         <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
                :class="isMobileMenuOpen ? 'translate-x-0' : ''">
-          <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
+          <div class="h-16 flex items-center px-6">
             <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
           </div>
-          <nav class="p-4 flex-1 overflow-y-auto">
+          <nav class="p-4 border-t border-[#2c3136] flex-1 overflow-y-auto">
             {% block sidebar_own_media %}
               <ul class="space-y-1 mb-6">
                 <li>
@@ -141,6 +141,21 @@
 
                       {% endif %}
                       <span>Statistics</span>
+                    </a>
+                  </li>
+
+                  {% url 'journal' as journal_url %}
+                  <li>
+                    <a href="{{ journal_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == journal_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:journal_url %}
+                        {% include "app/icons/history.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/history.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>Journal</span>
                     </a>
                   </li>
 
@@ -264,7 +279,7 @@
                         <button type="button"
                                 @click="isOpen = !isOpen"
                                 @click.away="isOpen = false"
-                                class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
+                                class="flex items-center justify-between max-w-27.5 sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
                           <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
                           {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
 

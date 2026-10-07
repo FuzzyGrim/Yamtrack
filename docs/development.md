@@ -67,6 +67,20 @@ uv run manage.py migrate
 
 ### Run the app
 
+The repository ships a `Procfile` that defines the web server, the Celery
+worker, and the Tailwind watcher. Run all three at once with
+[honcho](https://github.com/nickstenning/honcho):
+
+```bash
+uvx honcho -e /dev/null start
+```
+
+The `-e /dev/null` flag stops honcho from loading the `.env` file into the
+process environment; Yamtrack reads `.env` itself, so honcho should leave it
+alone.
+
+Alternatively, run each process in its own terminal.
+
 Run the Django development server:
 
 ```bash

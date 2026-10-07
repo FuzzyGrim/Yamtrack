@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from django.apps import apps
 from django.test import TestCase
 
-from events.models import Event
+from events.models import Event, SentinelDatetime
 from events.tests.calendar.utils import CalendarFixturesMixin
 
 migration_module = importlib.import_module(
@@ -13,6 +13,7 @@ migration_module = importlib.import_module(
 )
 
 LEGACY_MIN = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+LEGACY_MAX = datetime.max.replace(microsecond=0, tzinfo=ZoneInfo("UTC"))
 PAST = datetime(2008, 1, 20, 22, 0, tzinfo=ZoneInfo("UTC"))
 
 
@@ -71,3 +72,36 @@ class NormalizeUnknownDateEventsTests(CalendarFixturesMixin, TestCase):
 
         dated.refresh_from_db()
         self.assertEqual(dated.datetime, PAST)
+
+
+class ClampOutOfRangeDatetimesTests(CalendarFixturesMixin, TestCase):
+    """Migration 0015 pulls bound placeholders in range before reading rows."""
+
+    def _run_migration(self):
+        migration_module.normalize_unknown_date_events(apps, None)
+
+    def test_below_min_sentinel_is_clamped(self):
+        """A datetime.min placeholder moves to the sentinel time of day."""
+        event = Event.objects.create(
+            item=self.anime_item,
+            content_number=1,
+            datetime=LEGACY_MIN,
+        )
+
+        self._run_migration()
+
+        event.refresh_from_db()
+        self.assertEqual(event.datetime, SentinelDatetime.min_datetime())
+
+    def test_above_max_sentinel_is_clamped(self):
+        """An end-of-range placeholder moves to the sentinel time of day."""
+        event = Event.objects.create(
+            item=self.anime_item,
+            content_number=1,
+            datetime=LEGACY_MAX,
+        )
+
+        self._run_migration()
+
+        event.refresh_from_db()
+        self.assertEqual(event.datetime, SentinelDatetime.max_datetime())

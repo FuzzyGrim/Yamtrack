@@ -280,6 +280,9 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
     season_data["genres"] = tv_data["genres"]
     if season_data["synopsis"] == "No synopsis available.":
         season_data["synopsis"] = tv_data["synopsis"]
+    # seasons often have no poster of their own, use the show's instead
+    if season_data["image"] == settings.IMG_NONE:
+        season_data["image"] = tv_data["image"]
     return season_data
 
 
@@ -621,10 +624,14 @@ def get_related(related_medias, media_type, parent_response=None):
     """Return list of related media for the selected media."""
     related = []
     for media in related_medias:
+        poster_path = media["poster_path"]
+        if media_type == MediaTypes.SEASON.value and not poster_path:
+            poster_path = parent_response["poster_path"]
+
         data = {
             "source": Sources.TMDB.value,
             "media_type": media_type,
-            "image": get_image_url(media["poster_path"]),
+            "image": get_image_url(poster_path),
         }
         if media_type == MediaTypes.SEASON.value:
             data["media_id"] = parent_response["id"]

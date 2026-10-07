@@ -14,9 +14,43 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import app
-from app.models import MediaTypes
+from app.models import MediaTypes, Status
 
 logger = logging.getLogger(__name__)
+
+# Order in which an import can move the status of existing media forward.
+STATUS_PROGRESSION = (
+    Status.PLANNING.value,
+    Status.IN_PROGRESS.value,
+    Status.COMPLETED.value,
+)
+
+# Watches of the same movie or episode this close together are the same watch,
+# as other sources like media server webhooks record it at a slightly different time.
+WATCH_MATCH_TOLERANCE = datetime.timedelta(minutes=5)
+
+# Fields an import in "new" mode can change on existing media.
+EXISTING_MEDIA_UPDATE_FIELDS = {
+    MediaTypes.TV.value: ["status", "score", "notes"],
+    MediaTypes.SEASON.value: ["status", "score", "notes"],
+    MediaTypes.MOVIE.value: [
+        "status",
+        "score",
+        "notes",
+        "progress",
+        "progressed_at",
+        "start_date",
+        "end_date",
+    ],
+    MediaTypes.ANIME.value: [
+        "status",
+        "score",
+        "notes",
+        "progress",
+        "progressed_at",
+        "end_date",
+    ],
+}
 
 
 class MediaImportError(Exception):
@@ -48,6 +82,115 @@ def get_existing_media(user):
     ]
     logger.debug("Existing media for user %s: %s", user.username, ", ".join(counts))
     return existing
+
+
+def get_existing_seasons(user):
+    """Get the user's existing seasons by source, media ID and season number."""
+    return {
+        (season.item.source, season.item.media_id, season.item.season_number): season
+        for season in app.models.Season.objects.filter(user=user).select_related(
+            "item",
+        )
+    }
+
+
+def get_watch_key(
+    media_type, source, media_id, season_number=None, episode_number=None
+):
+    """Return the key that identifies a movie or episode in the existing watches."""
+    return (media_type, source, str(media_id), season_number, episode_number)
+
+
+def get_existing_watches(user):
+    """Get the dates of the movie and episode watches the user already has.
+
+    Used in "new" mode to import only the watches missing from Yamtrack, instead
+    of skipping every movie or show that already exists.
+    """
+    watches = defaultdict(list)
+
+    movies = app.models.Movie.objects.filter(user=user).values_list(
+        "item__source",
+        "item__media_id",
+        "end_date",
+    )
+    for source, media_id, end_date in movies:
+        watch_key = get_watch_key(MediaTypes.MOVIE.value, source, media_id)
+        watches[watch_key].append(end_date)
+
+    episodes = app.models.Episode.objects.filter(
+        related_season__user=user,
+    ).values_list(
+        "item__source",
+        "item__media_id",
+        "item__season_number",
+        "item__episode_number",
+        "end_date",
+    )
+    for source, media_id, season_number, episode_number, end_date in episodes:
+        watch_key = get_watch_key(
+            MediaTypes.EPISODE.value,
+            source,
+            media_id,
+            season_number,
+            episode_number,
+        )
+        watches[watch_key].append(end_date)
+
+    logger.debug("Existing watched items for user %s: %s", user.username, len(watches))
+    return watches
+
+
+def is_existing_watch(existing_watches, watch_key, end_date):
+    """Return whether the user already has a watch at around the same date."""
+    for existing_date in existing_watches.get(watch_key, ()):
+        if existing_date is None or end_date is None:
+            if existing_date == end_date:
+                return True
+        elif abs(existing_date - end_date) <= WATCH_MATCH_TOLERANCE:
+            return True
+    return False
+
+
+def advance_status(media, status):
+    """Move the status of existing media forward, return whether it changed.
+
+    Statuses outside of the progression, like paused or dropped, were set by the
+    user and are left untouched.
+    """
+    if media.status not in STATUS_PROGRESSION or status not in STATUS_PROGRESSION:
+        return False
+
+    if STATUS_PROGRESSION.index(status) <= STATUS_PROGRESSION.index(media.status):
+        return False
+
+    media.status = status
+    return True
+
+
+def reopen_status(media):
+    """Move completed media back to in progress, return whether it changed.
+
+    Used when existing media gets something that was never watched before, like
+    an episode of a new season.
+    """
+    if media.status != Status.COMPLETED.value:
+        return False
+
+    media.status = Status.IN_PROGRESS.value
+    return True
+
+
+def fill_empty_fields(media, values):
+    """Set the score and notes existing media is missing, return whether it changed."""
+    changed = False
+    for field in ("score", "notes"):
+        value = values.get(field)
+        if value in (None, "") or getattr(media, field) not in (None, ""):
+            continue
+        setattr(media, field, value)
+        changed = True
+    return changed
 
 
 def should_process_media(existing_media, to_delete, media_type, source, media_id, mode):
@@ -199,6 +342,10 @@ def bulk_update_media(bulk_media_list, fields_by_media_type, user):
         if not bulk_media:
             continue
 
+        # Media tracked by primary key to update each instance only once
+        if isinstance(bulk_media, dict):
+            bulk_media = list(bulk_media.values())  # noqa: PLW2901
+
         fields = fields_by_media_type.get(media_type)
         if not fields:
             logger.warning(
@@ -226,7 +373,7 @@ def create_import_schedule(
     frequency,
     import_time,
     source,
-    token=None,
+    *,
     task_kwargs=None,
 ):
     """Create an import schedule."""
@@ -263,8 +410,6 @@ def create_import_schedule(
         "mode": mode,
     }
 
-    if token:
-        kwargs["token"] = token
     if task_kwargs:
         kwargs.update(task_kwargs)
 

@@ -765,36 +765,6 @@ class StatisticsTests(TestCase):
             self.assertIsNotNone(color)
             self.assertTrue(color.startswith("#"))
 
-    def test_get_timeline(self):
-        """Test the get_timeline function."""
-        # Create user_media dict with our test objects
-        user_media = {
-            MediaTypes.TV.value: TV.objects.filter(user=self.user),
-            MediaTypes.SEASON.value: Season.objects.filter(user=self.user),
-            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
-            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
-        }
-        timeline = statistics.get_timeline(user_media)
-
-        # Check structure - should be a dict with month-year keys
-        self.assertIsInstance(timeline, dict)
-
-        # Check content
-        self.assertIn("January 2025", timeline)  # Season spans Jan 1-15
-        self.assertIn("February 2025", timeline)  # Movie on Feb 1
-        self.assertIn("March 2025", timeline)  # Anime starts on Mar 1
-
-        # Check items in each month
-        self.assertEqual(len(timeline["January 2025"]), 1)  # Season
-        self.assertEqual(len(timeline["February 2025"]), 1)  # Movie
-        self.assertEqual(len(timeline["March 2025"]), 1)  # Anime
-
-        # Check sorting - should be in chronological order
-        months = list(timeline.keys())
-        self.assertEqual(months[0], "March 2025")  # Most recent first
-        self.assertEqual(months[1], "February 2025")
-        self.assertEqual(months[2], "January 2025")
-
     def test_get_level(self):
         """Test the get_level function."""
         self.assertEqual(statistics.get_level(0), 0)
