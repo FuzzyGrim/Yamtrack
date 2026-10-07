@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
-from app.models import MediaTypes, Sources
+from app.models import TV, Episode, Item, MediaTypes, Season, Sources
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -15,6 +17,48 @@ from .helpers import (
 
 class MediaEpisodeTests(YamtrackApiTestCase):
     """Validate episode endpoint contracts."""
+
+    @staticmethod
+    def build_watch_metadata(
+        *,
+        media_id,
+        source=Sources.TMDB.value,
+        season_number=1,
+        episode_numbers=(1, 2, 3),
+    ):
+        """Build provider metadata used by the episode-watch workflow."""
+        episodes = [
+            {
+                "episode_number": episode_number,
+                "season_number": season_number,
+                "name": f"Episode {episode_number}",
+                "image": f"https://example.com/episode-{episode_number}.jpg",
+                "still_path": None,
+            }
+            for episode_number in episode_numbers
+        ]
+        season_metadata = {
+            "media_id": media_id,
+            "source": source,
+            "media_type": MediaTypes.SEASON.value,
+            "title": "API Test Show",
+            "season_title": f"Season {season_number}",
+            "image": "https://example.com/season.jpg",
+            "season_number": season_number,
+            "episodes": episodes,
+        }
+        return {
+            "media_id": media_id,
+            "source": source,
+            "media_type": MediaTypes.TV.value,
+            "title": "API Test Show",
+            "image": "https://example.com/tv.jpg",
+            "details": {"seasons": 1},
+            "related": {
+                "seasons": [{"season_number": season_number}],
+            },
+            f"season/{season_number}": season_metadata,
+        }
 
     def test_episode_endpoints_reject_non_tv_media_type(self):
         """Episode endpoints should return 400 when media_type is not tv."""
@@ -48,6 +92,12 @@ class MediaEpisodeTests(YamtrackApiTestCase):
                 "api_media_episode_consumption_history",
                 ("movie", "tmdb", 1, 1, 1),
                 None,
+            ),
+            (
+                "post",
+                "api_media_episode_consumption_history",
+                ("movie", "tmdb", 1, 1, 1),
+                {},
             ),
             (
                 "get",
@@ -211,6 +261,17 @@ class MediaEpisodeTests(YamtrackApiTestCase):
                     episode_item.episode_number,
                 ),
             )
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_episode_consumption_history_post_requires_authentication(self):
+        """Creating an episode consumption should require authentication."""
+        response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(MediaTypes.TV.value, Sources.TMDB.value, "94997", 1, 1),
+            payload={},
         )
 
         self.assertEqual(response.status_code, 403)
@@ -422,6 +483,278 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         )
         for entry in payload["results"]:
             check_consumption_structure(self, entry)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_episode_consumption_history_post_creates_consumption_and_reuses_season(
+        self,
+        mock_metadata,
+    ):
+        """POST should preserve end_date and reuse the authenticated user's Season."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season = self.season_medias[0]
+        episode_number = 2
+        supplied_end_date = "2026-07-29T17:30:00+02:00"
+        mock_metadata.return_value = self.build_watch_metadata(
+            media_id=tv_item.media_id,
+            source=tv_item.source,
+            season_number=season.item.season_number,
+        )
+        season_count = Season.objects.count()
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season.item.season_number,
+                episode_number,
+            ),
+            payload={"end_date": supplied_end_date},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertIn("consumption_id", payload)
+        consumption = Episode.objects.get(pk=payload["consumption_id"])
+        self.assertEqual(consumption.related_season_id, season.id)
+        self.assertEqual(Season.objects.count(), season_count)
+        self.assertEqual(
+            consumption.end_date,
+            parse_datetime(supplied_end_date),
+        )
+        self.assertEqual(
+            parse_datetime(payload["end_date"]),
+            parse_datetime(supplied_end_date),
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_episode_consumption_history_post_defaults_to_current_aware_time(
+        self,
+        mock_metadata,
+    ):
+        """Omitted end_date should use the current timezone-aware minute."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season = self.season_medias[0]
+        mock_metadata.return_value = self.build_watch_metadata(
+            media_id=tv_item.media_id,
+            source=tv_item.source,
+            season_number=season.item.season_number,
+        )
+        expected_minute = timezone.now().replace(second=0, microsecond=0)
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season.item.season_number,
+                2,
+            ),
+            payload={},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        watched_at = parse_datetime(response.json()["end_date"])
+        self.assertTrue(timezone.is_aware(watched_at))
+        self.assertEqual(watched_at, expected_minute)
+        self.assertEqual(watched_at.second, 0)
+        self.assertEqual(watched_at.microsecond, 0)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_episode_consumption_history_post_creates_missing_parents(
+        self,
+        mock_metadata,
+    ):
+        """POST should create source-correct TV and Season parents for the user."""
+        media_id = "94997"
+        source = Sources.MANUAL.value
+        mock_metadata.return_value = self.build_watch_metadata(
+            media_id=media_id,
+            source=source,
+        )
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(MediaTypes.TV.value, source, media_id, 1, 1),
+            payload={},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        consumption = Episode.objects.select_related(
+            "item",
+            "related_season__item",
+            "related_season__related_tv__item",
+        ).get(pk=response.json()["consumption_id"])
+        season = consumption.related_season
+        self.assertEqual(season.user, self.user1)
+        self.assertEqual(season.item.source, source)
+        self.assertEqual(season.related_tv.user, self.user1)
+        self.assertEqual(season.related_tv.item.source, source)
+        self.assertEqual(consumption.item.source, source)
+        self.assertTrue(
+            TV.objects.filter(
+                user=self.user1,
+                item__media_id=media_id,
+                item__source=source,
+            ).exists()
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_episode_consumption_history_post_creates_repeat_consumptions(
+        self,
+        mock_metadata,
+    ):
+        """Every POST should create another Episode row for the same episode."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season = self.season_medias[0]
+        mock_metadata.return_value = self.build_watch_metadata(
+            media_id=tv_item.media_id,
+            source=tv_item.source,
+            season_number=season.item.season_number,
+        )
+        args = (
+            MediaTypes.TV.value,
+            tv_item.source,
+            tv_item.media_id,
+            season.item.season_number,
+            2,
+        )
+
+        first_response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=args,
+            payload={},
+            headers=self.auth_headers,
+        )
+        second_response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=args,
+            payload={},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(first_response.status_code, 201)
+        self.assertEqual(second_response.status_code, 201)
+        self.assertNotEqual(
+            first_response.json()["consumption_id"],
+            second_response.json()["consumption_id"],
+        )
+        self.assertEqual(
+            Episode.objects.filter(
+                related_season=season,
+                item__episode_number=2,
+            ).count(),
+            3,
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_episode_consumption_history_post_is_scoped_to_authenticated_user(
+        self,
+        mock_metadata,
+    ):
+        """A consumption created by user1 should not be visible as user2's."""
+        media_id = "94998"
+        mock_metadata.return_value = self.build_watch_metadata(media_id=media_id)
+
+        create_response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(MediaTypes.TV.value, Sources.TMDB.value, media_id, 1, 1),
+            payload={},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(create_response.status_code, 201)
+        consumption_id = create_response.json()["consumption_id"]
+        self.assertTrue(
+            Episode.objects.filter(
+                id=consumption_id,
+                related_season__user=self.user1,
+            ).exists()
+        )
+        self.assertFalse(
+            Episode.objects.filter(
+                id=consumption_id,
+                related_season__user=self.user2,
+            ).exists()
+        )
+
+        user2_response = self.call_api(
+            "get",
+            "api_media_episode_consumption_history",
+            args=(MediaTypes.TV.value, Sources.TMDB.value, media_id, 1, 1),
+            headers=self.auth_headers2,
+        )
+        self.assertEqual(user2_response.status_code, 200)
+        self.assertEqual(user2_response.json()["results"], [])
+
+    def test_episode_consumption_history_post_rejects_invalid_end_date(self):
+        """Malformed end_date should return a field-level validation error."""
+        episode_count = Episode.objects.count()
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(MediaTypes.TV.value, Sources.TMDB.value, "94997", 1, 1),
+            payload={"end_date": "not-a-date"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("end_date", response.json()["errors"])
+        self.assertEqual(Episode.objects.count(), episode_count)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_episode_consumption_history_post_rejects_unknown_episode(
+        self,
+        mock_metadata,
+    ):
+        """Provider-confirmed unknown episodes should not create database rows."""
+        media_id = "94999"
+        unknown_episode_number = 999
+        mock_metadata.return_value = self.build_watch_metadata(
+            media_id=media_id,
+            episode_numbers=(1, 2, 3),
+        )
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(
+                MediaTypes.TV.value,
+                Sources.TMDB.value,
+                media_id,
+                1,
+                unknown_episode_number,
+            ),
+            payload={},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(
+            Item.objects.filter(
+                media_id=media_id,
+                source=Sources.TMDB.value,
+                episode_number=unknown_episode_number,
+            ).exists()
+        )
+        self.assertFalse(
+            Episode.objects.filter(
+                item__media_id=media_id,
+                item__episode_number=unknown_episode_number,
+            ).exists()
+        )
 
     def test_episode_consumption_history_invalid_media_id_returns_empty_results(self):
         """Episode history endpoint should return empty results for unknown media."""
@@ -808,3 +1141,43 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.services.get_media_metadata")
+    def test_season_episode_list_marks_watched_episode_as_tracked(
+        self,
+        mock_metadata,
+    ):
+        """A watched episode in a season listing should be marked as tracked."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+
+        mock_metadata.return_value = self.build_episode_metadata(
+            tv_item=tv_item,
+            season_number=season_item.season_number,
+            episode_number=episode_item.episode_number,
+            title=episode_item.title,
+            image=episode_item.image,
+        )
+
+        response = self.call_api(
+            "get",
+            "api_media_season_episodes",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+            ),
+            params={"limit": 200},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        result = response.json()["results"][0]
+        self.assertTrue(result["tracked"])
+        self.assertEqual(
+            result["consumption_id"],
+            self.episode_medias[0].id,
+        )
