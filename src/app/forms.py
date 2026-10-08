@@ -2,6 +2,7 @@ import math
 
 from django import forms
 from django.conf import settings
+from django.utils import timezone
 
 from app import config
 from app.models import (
@@ -339,6 +340,62 @@ class TvForm(MediaForm):
 
         model = TV
         fields = ["score", "status", "notes"]
+
+
+class RewatchForm(forms.ModelForm):
+    """Form to start, move or end a rewatch of a TV show."""
+
+    MODE_NOW = "now"
+    MODE_DATE = "date"
+    MODE_END = "end"
+
+    mode = forms.ChoiceField(
+        choices=[
+            (MODE_NOW, "Right now"),
+            (MODE_DATE, "Specific date"),
+            (MODE_END, "End rewatch"),
+        ],
+        widget=forms.HiddenInput(),
+        initial=MODE_NOW,
+    )
+
+    class Meta:
+        """Bind form to model."""
+
+        model = TV
+        fields = ["rewatch_since"]
+
+    def __init__(self, *args, **kwargs):
+        """Use an input the browser can prefill and the field can parse back."""
+        super().__init__(*args, **kwargs)
+
+        if settings.TRACK_TIME:
+            self.fields["rewatch_since"].widget = forms.DateTimeInput(
+                attrs={"type": "datetime-local"},
+                format="%Y-%m-%dT%H:%M",
+            )
+        else:
+            self.fields["rewatch_since"].widget = forms.DateInput(
+                attrs={"type": "date"},
+                format="%Y-%m-%d",
+            )
+
+    def clean(self):
+        """Resolve the rewatch date from the selected mode."""
+        cleaned_data = super().clean()
+        mode = cleaned_data.get("mode")
+
+        if mode == self.MODE_END:
+            cleaned_data["rewatch_since"] = None
+        elif mode == self.MODE_NOW:
+            cleaned_data["rewatch_since"] = timezone.now()
+        elif not cleaned_data.get("rewatch_since"):
+            self.add_error(
+                "rewatch_since",
+                "Enter when the rewatch started.",
+            )
+
+        return cleaned_data
 
 
 class SeasonForm(MediaForm):

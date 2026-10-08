@@ -19,7 +19,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import config, helpers, history_processor
 from app import home as home_helpers
 from app import statistics as stats
-from app.forms import EpisodeForm, ManualItemForm, get_form_class
+from app.forms import EpisodeForm, ManualItemForm, RewatchForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
@@ -674,6 +674,45 @@ def media_delete(request):
     logger.info("%s deleted successfully.", media)
 
     return helpers.redirect_back(request)
+
+
+@require_POST
+def rewatch_save(request, instance_id):
+    """Start, move or end a rewatch of a TV show."""
+    tv = helpers.get_owned_media_or_404(request, MediaTypes.TV.value, instance_id)
+    form = RewatchForm(request.POST, instance=tv)
+
+    if form.is_valid():
+        form.save()
+        if tv.rewatch_since:
+            logger.info("Rewatching %s since %s", tv, tv.rewatch_since)
+        else:
+            logger.info("Ended rewatch of %s", tv)
+    else:
+        helpers.form_error_messages(form, request)
+
+    return helpers.redirect_back(request)
+
+
+@require_GET
+def rewatch_modal(request, instance_id):
+    """Return the rewatch form for a TV show."""
+    tv = helpers.get_owned_media_or_404(request, MediaTypes.TV.value, instance_id)
+
+    form = RewatchForm(
+        instance=tv,
+        initial={"rewatch_since": tv.rewatch_since or timezone.now()},
+    )
+
+    return render(
+        request,
+        "app/components/fill_rewatch.html",
+        {
+            "form": form,
+            "media": tv,
+            "return_url": request.GET.get("return_url", ""),
+        },
+    )
 
 
 @require_POST
