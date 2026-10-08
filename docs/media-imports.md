@@ -82,6 +82,10 @@ Steam import requires a Steam API key and your Steam ID 64.
 - **Steam ID 64**: Instead of your Steam username, you must provide your Steam ID 64. You can find it on your Steam account details page under your username.
 - **Profile Visibility**: Your Steam profile must be public if the API key you are using is not linked to the Steam ID you are requesting.
 
+## Hardcover
+
+Import your books directly from Hardcover with a personal API token. Create one on the [Hardcover API token page](https://hardcover.app/account/api), then paste it into the Hardcover import form. The token is encrypted before it is queued or stored for a periodic import.
+
 ## Yamtrack CSV format
 
 Use this format to bulk-import media into YamTrack. Every row represents a single media instance.

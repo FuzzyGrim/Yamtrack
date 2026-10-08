@@ -1,0 +1,29 @@
+{
+  "data": {
+    "me": {
+      "user_books": [
+        {
+          "book_id": 12,
+          "status_id": 3,
+          "rating": 4.5,
+          "date_added": "2024-01-01T00:00:00+00:00",
+          "updated_at": "2024-03-01T00:00:00+00:00",
+          "private_notes": "Private note",
+          "review_raw": "Public review",
+          "book": {
+            "title": "Book 12",
+            "pages": 300,
+            "cached_image": "https://assets.hardcover.app/external_data/cover.jpeg"
+          },
+          "user_book_reads": [
+            {
+              "started_at": "2024-01-10T00:00:00+00:00",
+              "finished_at": "2024-02-01T00:00:00+00:00",
+              "progress_pages": 100
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
