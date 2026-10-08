@@ -6,7 +6,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from app import stream_availability
-from app.models import STREAM_AVAILABILITY_MEDIA_TYPES, Item, Sources
+from app.models import STREAM_AVAILABILITY_MEDIA_TYPES, Item, MediaTypes, Sources
 from app.providers import services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -50,8 +50,11 @@ def should_refresh_item(item, *, force=False, today=None):
 def refresh_item_stream_availability(item, regions):
     """Fetch and store watch-provider availability for a single item."""
     all_providers = tmdb.fetch_watch_providers(item)
+    fallback_providers = None
+    if item.media_type == MediaTypes.SEASON.value:
+        fallback_providers = tmdb.fetch_tv_watch_providers(item.media_id)
     item.stream_availability = stream_availability.compute_stream_availability(
-        all_providers, regions
+        all_providers, regions, fallback_providers
     )
     item.stream_availability_updated_at = timezone.now()
     item.save(update_fields=["stream_availability", "stream_availability_updated_at"])

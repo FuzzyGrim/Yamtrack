@@ -205,6 +205,7 @@ def refresh_stream_availability(item, source, media_type, metadata):
     item.stream_availability = stream_availability.compute_stream_availability(
         metadata.get("providers"),
         stream_availability.configured_regions(),
+        fallback_providers=metadata.get("tv_providers"),
     )
     item.stream_availability_updated_at = timezone.now()
     item.save(update_fields=["stream_availability", "stream_availability_updated_at"])

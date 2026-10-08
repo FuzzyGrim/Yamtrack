@@ -14,11 +14,18 @@ def bitmask_for_region(region_providers):
     return bitmask
 
 
-def compute_stream_availability(all_providers, regions):
-    """Build a {region: bitmask} map for the given regions from a raw providers dict."""
+def compute_stream_availability(all_providers, regions, fallback_providers=None):
+    """Build a {region: bitmask} map for the given regions from a raw providers dict.
+
+    ``fallback_providers`` (e.g. the parent show's providers for a season) is
+    OR-ed in, because TMDB often has no season-level provider data at all.
+    """
     all_providers = all_providers or {}
+    fallback_providers = fallback_providers or {}
     return {
-        region: bitmask_for_region(all_providers.get(region, {})) for region in regions
+        region: bitmask_for_region(all_providers.get(region, {}))
+        | bitmask_for_region(fallback_providers.get(region, {}))
+        for region in regions
     }
 
 
