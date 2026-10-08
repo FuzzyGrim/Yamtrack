@@ -12,6 +12,8 @@ from django.template.defaultfilters import pluralize
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
+from app import tasks as app_tasks
+from app import tmdb_rating_sync
 from app.models import Item, MediaTypes
 from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
@@ -403,5 +405,19 @@ def clear_search_cache(request):
         "Successfully cleared %s search entries",
         deleted,
     )
+
+    return redirect("advanced")
+
+
+@require_POST
+def refresh_tmdb_ratings(request):
+    """Queue a forced refresh of all TMDB movie/TV/season ratings."""
+    if cache.get(tmdb_rating_sync.REFRESH_LOCK_KEY):
+        messages.info(request, "A TMDB rating refresh is already queued or running.")
+        return redirect("advanced")
+
+    app_tasks.refresh_tmdb_ratings.delay(force=True)
+    messages.info(request, "The task to refresh TMDB ratings has been queued.")
+    logger.info("Queued forced TMDB rating refresh")
 
     return redirect("advanced")

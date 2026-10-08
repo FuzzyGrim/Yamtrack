@@ -250,6 +250,49 @@ def movie(media_id):
     return data
 
 
+def _metadata_cache_key(item):
+    """Return the cache key used for an Item's full TMDB metadata."""
+    if item.media_type == MediaTypes.SEASON.value:
+        return (
+            f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_"
+            f"{item.media_id}_{item.season_number}"
+        )
+    return f"{Sources.TMDB.value}_{item.media_type}_{item.media_id}"
+
+
+def cached_score(item):
+    """Return the score already cached from a full metadata fetch, if any."""
+    data = cache.get(_metadata_cache_key(item))
+    if data is None:
+        return None
+    return data.get("score")
+
+
+def delete_metadata_cache(item):
+    """Delete an item's cached full metadata so a forced refresh refetches it."""
+    cache.delete(_metadata_cache_key(item))
+
+
+def fetch_vote_average(item):
+    """Fetch a lightweight TMDB score for an item, without full metadata appends."""
+    if item.media_type == MediaTypes.SEASON.value:
+        url = f"{base_url}/tv/{item.media_id}/season/{item.season_number}"
+    else:
+        url = f"{base_url}/{item.media_type}/{item.media_id}"
+
+    try:
+        response = services.api_request(
+            Sources.TMDB.value,
+            "GET",
+            url,
+            params=base_params,
+        )
+    except requests.exceptions.HTTPError as error:
+        handle_error(error)
+
+    return get_score(response["vote_average"])
+
+
 def get_cached_seasons(media_id, season_numbers):
     """Check cache for seasons and return cached data and list of uncached seasons."""
     cached_data = {}
