@@ -493,8 +493,9 @@ def media_section_count(
         count += 1
     if media.get("episodes"):
         count += 1
-    has_streaming = (
-        watch_provider_region == WATCH_PROVIDER_REGION_UNSET or watch_providers
+    has_streaming = watch_provider_region == WATCH_PROVIDER_REGION_UNSET or (
+        watch_providers
+        and (watch_providers.get("no_charge") or watch_providers.get("paid"))
     )
     if (
         media.get("media_type") in (MediaTypes.MOVIE.value, MediaTypes.TV.value)
