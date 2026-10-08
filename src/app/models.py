@@ -400,6 +400,9 @@ class MediaManager(models.Manager):
                 models.functions.Lower("item__title"),
             )
 
+        if sort_filter == "score":
+            return queryset.order_by(models.F("newest_score").desc(nulls_last=True))
+
         # Handle sorting by Item fields
         item_fields = [f.name for f in Item._meta.fields]
         if sort_filter in item_fields:
