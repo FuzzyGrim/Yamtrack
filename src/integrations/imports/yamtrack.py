@@ -192,6 +192,7 @@ class YamtrackImporter:
                 row["title"],
                 1,
                 source,
+                show_adult_titles=self.user.show_adult_titles,
             )
 
             first_result = metadata["results"][0]

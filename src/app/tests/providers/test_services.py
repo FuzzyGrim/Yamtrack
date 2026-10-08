@@ -430,7 +430,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Anime"}])
 
-        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.ANIME.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.mangaupdates.search")
     def test_search_manga_mangaupdates(self, mock_search):
@@ -457,7 +459,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Manga"}])
 
-        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.MANGA.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.tmdb.search")
     def test_search_tv(self, mock_search):
@@ -468,7 +472,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test TV"}])
 
-        mock_search.assert_called_once_with(MediaTypes.TV.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.TV.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.tmdb.search")
     def test_search_movie(self, mock_search):
@@ -479,7 +485,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Movie"}])
 
-        mock_search.assert_called_once_with(MediaTypes.MOVIE.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.MOVIE.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.igdb.search")
     def test_search_game(self, mock_search):
@@ -490,7 +498,7 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Game"}])
 
-        mock_search.assert_called_once_with("test", 1)
+        mock_search.assert_called_once_with("test", 1, show_adult_titles=True)
 
     @patch("app.providers.hardcover.search")
     def test_search_hardcover_book(self, mock_search):
