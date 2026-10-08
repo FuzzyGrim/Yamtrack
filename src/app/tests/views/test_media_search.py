@@ -52,6 +52,7 @@ class MediaSearchViewTests(TestCase):
             "test",
             1,
             Sources.TMDB.value,
+            show_adult_titles=True,
         )
 
     def test_media_search_view_anilist(self):
