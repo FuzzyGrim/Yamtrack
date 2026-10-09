@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 24 24"
+     fill="currentColor"
+     class="{{ classes }}">
+    <circle cx="7" cy="7.5" r="2.7"/>
+    <circle cx="12" cy="5.5" r="3"/>
+    <circle cx="17" cy="7.5" r="2.7"/>
+    <circle cx="9.5" cy="10" r="2.4"/>
+    <circle cx="14.5" cy="10" r="2.4"/>
+    <path d="M5 11.5h14l-1.5 9.6a1 1 0 0 1-1 .9H7.5a1 1 0 0 1-1-.9z"/>
+</svg>
