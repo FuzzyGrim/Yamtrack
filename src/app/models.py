@@ -1798,8 +1798,20 @@ class Episode(models.Model):
         self.related_season.refresh_from_db()
 
         is_finale = self.item.episode_number == max_progress
+        if self.related_season.user.complete_season_on_last_episode:
+            completes_season = is_finale
+        else:
+            watched_episode_count = (
+                self.related_season.episodes.values_list(
+                    "item__episode_number",
+                    flat=True,
+                )
+                .distinct()
+                .count()
+            )
+            completes_season = watched_episode_count >= max_progress
         season_just_completed = False
-        if is_finale:
+        if completes_season:
             if self.related_season.status != Status.COMPLETED.value:
                 self.related_season.status = Status.COMPLETED.value
                 bulk_update_with_history(
@@ -1824,7 +1836,7 @@ class Episode(models.Model):
         if season_just_completed:
             self.related_season.related_tv._handle_completed_season(season_number)
         elif (
-            not is_finale
+            not completes_season
             and self.related_season.related_tv.status != Status.IN_PROGRESS.value
         ):
             self.related_season.related_tv.status = Status.IN_PROGRESS.value
