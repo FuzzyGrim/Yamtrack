@@ -276,6 +276,8 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
     )
     season_data["title"] = tv_data["title"]
     season_data["tvdb_id"] = tv_data["tvdb_id"]
+    # season-level provider data is frequently empty; keep the show's as fallback
+    season_data["tv_providers"] = tv_data.get("providers", {})
     season_data["external_links"] = tv_data["external_links"]
     season_data["genres"] = tv_data["genres"]
     if season_data["synopsis"] == "No synopsis available.":
@@ -694,6 +696,45 @@ def filter_providers(all_providers, region):
 
     providers.sort(key=lambda e: e.get("display_priority", 999))
     return providers
+
+
+def fetch_watch_providers(item):
+    """Fetch raw watch-provider data for an item, without full metadata appends."""
+    if item.media_type == MediaTypes.SEASON.value:
+        url = (
+            f"{base_url}/tv/{item.media_id}/season/{item.season_number}/watch/providers"
+        )
+    elif item.media_type == MediaTypes.TV.value:
+        url = f"{base_url}/tv/{item.media_id}/watch/providers"
+    else:
+        url = f"{base_url}/movie/{item.media_id}/watch/providers"
+
+    try:
+        response = services.api_request(
+            Sources.TMDB.value,
+            "GET",
+            url,
+            params=base_params,
+        )
+    except requests.exceptions.HTTPError as error:
+        handle_error(error)
+
+    return response.get("results", {})
+
+
+def fetch_tv_watch_providers(media_id):
+    """Fetch raw show-level watch-provider data for a TV show."""
+    try:
+        response = services.api_request(
+            Sources.TMDB.value,
+            "GET",
+            f"{base_url}/tv/{media_id}/watch/providers",
+            params=base_params,
+        )
+    except requests.exceptions.HTTPError as error:
+        handle_error(error)
+
+    return response.get("results", {})
 
 
 def process_episodes(season_metadata, episodes_in_db):

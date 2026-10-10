@@ -48,7 +48,7 @@
 
           {% if media_list.total > items_limit %}
             <div class="mt-5 flex justify-center">
-              <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_status={{ section.key }}&load_media_type={{ media_type }}{% if hide_unreleased %}&hide_unreleased=true{% endif %}"
+              <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_status={{ section.key }}&load_media_type={{ media_type }}{% if hide_unreleased %}&hide_unreleased=true{% endif %}{% if hide_unavailable %}&hide_unavailable=true{% endif %}"
                       hx-target="#media-grid-{{ section.id }}-{{ media_type }}"
                       hx-swap="beforeend"
                       hx-indicator="#loading-indicator-{{ section.id }}-{{ media_type }}"
