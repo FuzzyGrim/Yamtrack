@@ -61,6 +61,53 @@ class MediaDetailsViewTests(TestCase):
         )
 
     @patch("app.providers.services.get_media_metadata")
+    def test_media_details_related_anime_shows_relation_type(self, mock_get_metadata):
+        """Related anime entries render their relation type as a readable label."""
+        mock_get_metadata.return_value = {
+            "media_id": "1",
+            "title": "Test Anime",
+            "media_type": MediaTypes.ANIME.value,
+            "source": Sources.MAL.value,
+            "image": "http://example.com/image.jpg",
+            "related": {
+                "related_anime": [
+                    {
+                        "media_id": "2",
+                        "source": Sources.MAL.value,
+                        "media_type": MediaTypes.ANIME.value,
+                        "title": "Test Sequel",
+                        "image": "http://example.com/sequel.jpg",
+                        "relation_type": "sequel",
+                    },
+                    {
+                        "media_id": "3",
+                        "source": Sources.MAL.value,
+                        "media_type": MediaTypes.ANIME.value,
+                        "title": "Test Side Story",
+                        "image": "http://example.com/side_story.jpg",
+                        "relation_type": "side_story",
+                    },
+                ],
+            },
+        }
+
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.MAL.value,
+                    "media_type": MediaTypes.ANIME.value,
+                    "media_id": "1",
+                    "title": "test-anime",
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, ">Sequel</span>")
+        self.assertContains(response, ">Side Story</span>")
+
+    @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.tmdb.process_episodes")
     def test_season_details_view(self, mock_process_episodes, mock_get_metadata):
         """Test the season details view."""
