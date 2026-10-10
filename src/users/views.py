@@ -14,6 +14,7 @@ from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
 from app.providers import tmdb
+from app.seerr import check_connection
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import (
     WATCH_PROVIDER_REGION_UNSET,
@@ -405,3 +406,24 @@ def clear_search_cache(request):
     )
 
     return redirect("advanced")
+
+
+@require_POST
+def update_seerr_settings(request):
+    """Update Seerr integration settings for the user."""
+    seerr_url = request.POST.get("seerr_url", "").strip().rstrip("/")
+    seerr_api_key = request.POST.get("seerr_api_key", "").strip()
+
+    if not check_connection(seerr_url, seerr_api_key):
+        messages.error(
+            request,
+            "Could not connect to Seerr instance. Please check your URL and API key.",
+        )
+        return redirect("integrations")
+
+    request.user.seerr_url = seerr_url
+    request.user.seerr_api_key = seerr_api_key
+    request.user.save(update_fields=["seerr_url", "seerr_api_key"])
+
+    messages.success(request, "Seerr settings saved successfully.")
+    return redirect("integrations")
