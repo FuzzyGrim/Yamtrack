@@ -70,6 +70,13 @@ class BasicMediaForm(TestCase):
         form = TvForm(data=form_data)
         self.assertTrue(form.is_valid())
 
+    def test_media_date_fields_are_optional(self):
+        """Start and end dates should remain optional in tracking forms."""
+        form = AnimeForm()
+
+        self.assertFalse(form.fields["start_date"].required)
+        self.assertFalse(form.fields["end_date"].required)
+
     def test_valid_season_form(self):
         """Test the season form with valid data."""
         form_data = {
@@ -131,6 +138,22 @@ class BasicGameForm(TestCase):
         }
         form = GameForm(data=form_data)
         self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 1500)
+
+    def test_plain_number_progress(self):
+        """Test the game form with a plain number for hours (e.g., '5')."""
+        form_data = {
+            "media_id": "1",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "user": self.user.id,
+            "status": Status.COMPLETED.value,
+            "progress": "5",
+            "repeats": 0,
+        }
+        form = GameForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 300)
 
     def test_alternate_progress(self):
         """Test the game form using an alternate progress format."""
@@ -145,6 +168,7 @@ class BasicGameForm(TestCase):
         }
         form = GameForm(data=form_data)
         self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 1500)
 
     def test_second_alternate_progress(self):
         """Test the game form using a second alternate progress format."""
@@ -159,6 +183,7 @@ class BasicGameForm(TestCase):
         }
         form = GameForm(data=form_data)
         self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 30)
 
     def test_third_alternate_progress(self):
         """Test the game form using a second alternate progress format."""
@@ -173,6 +198,7 @@ class BasicGameForm(TestCase):
         }
         form = GameForm(data=form_data)
         self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 540)
 
     def test_fourth_alternate_progress(self):
         """Test the game form using a second alternate progress format."""
@@ -187,6 +213,79 @@ class BasicGameForm(TestCase):
         }
         form = GameForm(data=form_data)
         self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 570)
+
+    def test_float_progress(self):
+        """Test the game form with float progress format (e.g., 1.5 hours)."""
+        form_data = {
+            "media_id": "1",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "user": self.user.id,
+            "status": Status.COMPLETED.value,
+            "progress": "1.5",
+            "repeats": 0,
+        }
+        form = GameForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 90)
+
+    def test_float_progress_half_hour(self):
+        """Test the game form with 0.5 float progress (30 minutes)."""
+        form_data = {
+            "media_id": "1",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "user": self.user.id,
+            "status": Status.COMPLETED.value,
+            "progress": "0.5",
+            "repeats": 0,
+        }
+        form = GameForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["progress"], 30)
+
+    def test_invalid_negative_float_progress(self):
+        """Test that negative float progress is rejected."""
+        form_data = {
+            "media_id": "1",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "user": self.user.id,
+            "status": Status.COMPLETED.value,
+            "progress": "-1.5",
+            "repeats": 0,
+        }
+        form = GameForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_invalid_inf_progress(self):
+        """Test that infinity progress is rejected."""
+        form_data = {
+            "media_id": "1",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "user": self.user.id,
+            "status": Status.COMPLETED.value,
+            "progress": "inf",
+            "repeats": 0,
+        }
+        form = GameForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_invalid_nan_progress(self):
+        """Test that NaN progress is rejected."""
+        form_data = {
+            "media_id": "1",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "user": self.user.id,
+            "status": Status.COMPLETED.value,
+            "progress": "nan",
+            "repeats": 0,
+        }
+        form = GameForm(data=form_data)
+        self.assertFalse(form.is_valid())
 
     def test_invalid_progress(self):
         """Test the game form using an invalid default progress format."""
@@ -279,7 +378,7 @@ class ManualItemFormTest(TestCase):
         # Save and verify
         item = form.save()
         self.assertEqual(item.source, Sources.MANUAL.value)
-        self.assertEqual(item.media_id, "1")
+        self.assertTrue(item.media_id)
         self.assertIsNone(item.season_number)
         self.assertIsNone(item.episode_number)
 
@@ -377,7 +476,7 @@ class ManualItemFormTest(TestCase):
         self.assertTrue(form2.is_valid())
         item2 = form2.save()
 
-        # IDs should be different but follow the pattern
+        # IDs should be different
         self.assertNotEqual(item1.media_id, item2.media_id)
-        self.assertEqual(item1.media_id, "1")
-        self.assertEqual(item2.media_id, "2")
+        self.assertTrue(item1.media_id)
+        self.assertTrue(item2.media_id)

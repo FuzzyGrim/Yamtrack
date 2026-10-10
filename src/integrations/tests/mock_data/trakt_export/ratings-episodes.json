@@ -1,0 +1,122 @@
+[
+  {
+    "rated_at": "2024-09-11T08:38:24.000Z",
+    "rating": 7,
+    "type": "episode",
+    "episode": {
+      "season": 1,
+      "number": 1,
+      "title": "Pilot (1)",
+      "ids": {
+        "trakt": 342245,
+        "tvdb": 127131,
+        "imdb": "tt0636289",
+        "tmdb": 333924,
+        "tvrage": null
+      }
+    },
+    "show": {
+      "title": "Lost",
+      "year": 2004,
+      "ids": {
+        "trakt": 4583,
+        "slug": "lost-2004",
+        "tvdb": 73739,
+        "imdb": "tt0411008",
+        "tmdb": 4607,
+        "tvrage": null
+      },
+      "aired_episodes": 118
+    }
+  },
+  {
+    "rated_at": "2024-09-11T08:37:35.000Z",
+    "rating": 7,
+    "type": "episode",
+    "episode": {
+      "season": 1,
+      "number": 1,
+      "title": "I Will Make You Invite Me to a Movie / Kaguya Wants to Be Stopped / Kaguya Wants It",
+      "ids": {
+        "trakt": 3196949,
+        "tvdb": 6864635,
+        "imdb": "tt9640418",
+        "tmdb": 1594897,
+        "tvrage": null
+      }
+    },
+    "show": {
+      "title": "Kaguya-sama: Love is War",
+      "year": 2019,
+      "ids": {
+        "trakt": 138254,
+        "slug": "kaguya-sama-love-is-war",
+        "tvdb": 354198,
+        "imdb": "tt9522300",
+        "tmdb": 83121,
+        "tvrage": null
+      },
+      "aired_episodes": 37
+    }
+  },
+  {
+    "rated_at": "2024-07-25T20:16:29.000Z",
+    "rating": 8,
+    "type": "episode",
+    "episode": {
+      "season": 1,
+      "number": 2,
+      "title": "The One with the Sonogram at the End",
+      "ids": {
+        "trakt": 97993,
+        "tvdb": 303822,
+        "imdb": "tt0583647",
+        "tmdb": 86012,
+        "tvrage": null
+      }
+    },
+    "show": {
+      "title": "Friends",
+      "year": 1994,
+      "ids": {
+        "trakt": 1657,
+        "slug": "friends",
+        "tvdb": 79168,
+        "imdb": "tt0108778",
+        "tmdb": 1668,
+        "tvrage": null
+      },
+      "aired_episodes": 228
+    }
+  },
+  {
+    "rated_at": "2023-02-06T20:36:12.000Z",
+    "rating": 7,
+    "type": "episode",
+    "episode": {
+      "season": 1,
+      "number": 1,
+      "title": "Pilot",
+      "ids": {
+        "trakt": 97992,
+        "tvdb": 303821,
+        "imdb": "tt0583459",
+        "tmdb": 85987,
+        "tvrage": null
+      }
+    },
+    "show": {
+      "title": "Friends",
+      "year": 1994,
+      "ids": {
+        "trakt": 1657,
+        "slug": "friends",
+        "tvdb": 79168,
+        "imdb": "tt0108778",
+        "tmdb": 1668,
+        "tvrage": null
+      },
+      "aired_episodes": 228
+    }
+  }
+]

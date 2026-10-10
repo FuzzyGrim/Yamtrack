@@ -1,12 +1,16 @@
+import json
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from app.helpers import (
+    build_absolute_app_url,
     enrich_items_with_user_data,
     form_error_messages,
+    get_configured_app_url,
     minutes_to_hhmm,
     redirect_back,
 )
@@ -28,6 +32,37 @@ class HelpersTest(TestCase):
         # Test zero
         self.assertEqual(minutes_to_hhmm(0), "0min")
 
+    @override_settings(URLS=["https://yamtrack.example.com:8924"])
+    def test_get_configured_app_url_from_urls(self):
+        """Test configured public origin from URLS."""
+        self.assertEqual(
+            get_configured_app_url(),
+            "https://yamtrack.example.com:8924",
+        )
+
+    @override_settings(URLS=["https://yamtrack.example.com"])
+    def test_build_absolute_app_url_uses_configured_origin(self):
+        """Test absolute URL construction behind reverse proxies."""
+        request = MagicMock()
+
+        result = build_absolute_app_url(request, "/import/trakt/private")
+
+        self.assertEqual(result, "https://yamtrack.example.com/import/trakt/private")
+        request.build_absolute_uri.assert_not_called()
+
+    @override_settings(URLS=[])
+    def test_build_absolute_app_url_falls_back_to_request(self):
+        """Test request-based absolute URL construction without URLS."""
+        request = MagicMock()
+        request.build_absolute_uri.return_value = (
+            "http://testserver/import/trakt/private"
+        )
+
+        result = build_absolute_app_url(request, "/import/trakt/private")
+
+        self.assertEqual(result, "http://testserver/import/trakt/private")
+        request.build_absolute_uri.assert_called_once_with("/import/trakt/private")
+
     @patch("app.helpers.url_has_allowed_host_and_scheme")
     @patch("app.helpers.HttpResponseRedirect")
     @patch("app.helpers.redirect")
@@ -37,6 +72,7 @@ class HelpersTest(TestCase):
         mock_http_redirect.return_value = "redirected"
 
         request = MagicMock()
+        request.headers = {}
         request.GET = {"next": "http://example.com/path?page=2&sort=name"}
 
         result = redirect_back(request)
@@ -55,12 +91,45 @@ class HelpersTest(TestCase):
         mock_redirect.return_value = "home_redirect"
 
         request = MagicMock()
+        request.headers = {}
         request.GET = {}
 
         result = redirect_back(request)
 
         mock_redirect.assert_called_once_with("home")
         self.assertEqual(result, "home_redirect")
+
+    @patch("app.helpers.url_has_allowed_host_and_scheme")
+    def test_redirect_back_htmx_with_next(self, mock_url_check):
+        """HTMX requests get an HX-Location soft navigation instead of a reload."""
+        mock_url_check.return_value = True
+
+        request = MagicMock()
+        request.headers = {"HX-Request": "true"}
+        request.GET = {"next": "http://example.com/path?page=2&sort=name"}
+
+        result = redirect_back(request)
+
+        self.assertEqual(result.status_code, 204)
+        location = json.loads(result["HX-Location"])
+        self.assertEqual(location["path"], "http://example.com/path?sort=name")
+        self.assertEqual(location["target"], "body")
+        self.assertEqual(location["headers"]["X-Soft-Navigation"], "true")
+
+    @patch("app.helpers.url_has_allowed_host_and_scheme")
+    def test_redirect_back_htmx_without_next(self, mock_url_check):
+        """HTMX requests without a valid 'next' fall back to the home page."""
+        mock_url_check.return_value = False
+
+        request = MagicMock()
+        request.headers = {"HX-Request": "true"}
+        request.GET = {}
+
+        result = redirect_back(request)
+
+        self.assertEqual(result.status_code, 204)
+        location = json.loads(result["HX-Location"])
+        self.assertEqual(location["path"], reverse("home"))
 
     @patch("app.helpers.messages")
     def test_form_error_messages(self, mock_messages):

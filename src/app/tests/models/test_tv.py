@@ -13,6 +13,8 @@ from app.models import (
     Season,
     Sources,
     Status,
+    UserMessage,
+    UserMessageLevel,
 )
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
@@ -205,6 +207,13 @@ class TVStatusTests(TestCase):
     @patch("app.models.providers.services.get_media_metadata")
     def test_completed_status_creates_all_seasons(self, mock_get_metadata):
         """Test setting status to COMPLETED creates all seasons."""
+        released_episodes = [
+            {
+                "episode_number": episode_number,
+                "air_date": datetime(2020, 1, 1, tzinfo=UTC),
+            }
+            for episode_number in range(1, 11)
+        ]
         mock_metadata = {
             "max_progress": 10,
             "related": {
@@ -217,17 +226,17 @@ class TVStatusTests(TestCase):
             "season/1": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 1,
-                "episodes": [{"episode_number": 1}] * 10,
+                "episodes": released_episodes,
             },
             "season/2": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 2,
-                "episodes": [{"episode_number": 1}] * 10,
+                "episodes": released_episodes,
             },
             "season/3": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 3,
-                "episodes": [{"episode_number": 1}] * 10,
+                "episodes": released_episodes,
             },
         }
         mock_get_metadata.return_value = mock_metadata
@@ -243,6 +252,81 @@ class TVStatusTests(TestCase):
 
         for season in self.tv.seasons.all():
             self.assertTrue(season.episodes.exists())
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_skips_unaired_episodes_and_future_seasons(
+        self,
+        mock_get_metadata,
+    ):
+        """Completed TV should only mark already aired content as watched."""
+        mock_get_metadata.return_value = {
+            "max_progress": 4,
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "image": "img1.jpg"},
+                    {"season_number": 2, "image": "img2.jpg"},
+                    {"season_number": 3, "image": "img3.jpg"},
+                ],
+            },
+            "season/1": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 1,
+                "episodes": [
+                    {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
+                ],
+            },
+            "season/2": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 2,
+                "episodes": [
+                    {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
+                    {"episode_number": 2, "air_date": datetime(2999, 1, 1, tzinfo=UTC)},
+                ],
+            },
+            "season/3": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 3,
+                "episodes": [
+                    {"episode_number": 1, "air_date": None},
+                ],
+            },
+        }
+
+        self.tv.status = Status.COMPLETED.value
+        self.tv.save()
+
+        season1 = self.tv.seasons.get(item__season_number=1)
+        season2 = self.tv.seasons.get(item__season_number=2)
+        season3 = self.tv.seasons.get(item__season_number=3)
+
+        self.tv.refresh_from_db()
+        season1.refresh_from_db()
+        season2.refresh_from_db()
+        season3.refresh_from_db()
+
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+        self.assertEqual(season1.status, Status.COMPLETED.value)
+        self.assertEqual(season2.status, Status.IN_PROGRESS.value)
+        self.assertEqual(season3.status, Status.PLANNING.value)
+        self.assertEqual(season2.episodes.count(), 1)
+        self.assertEqual(season2.progress, 1)
+        self.assertFalse(season3.episodes.exists())
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.WARNING,
+                message=f"{self.tv} was left in progress because unreleased "
+                "episodes or seasons remain.",
+            ).exists(),
+        )
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message=f"{self.tv} had 2 released episodes marked as watched "
+                "automatically.",
+            ).exists(),
+        )
 
     def test_dropped_status_marks_in_progress_seasons_dropped(self):
         """Test setting status to DROPPED marks in-progress seasons as dropped."""
@@ -275,10 +359,25 @@ class TVStatusTests(TestCase):
         )
 
     @patch("app.models.providers.services.get_media_metadata")
-    def test_in_progress_status_activates_next_season(self, _):
+    def test_in_progress_status_activates_next_season(self, mock_get_metadata):
         """Test setting status to IN_PROGRESS activates next available season."""
         self.season1.status = Status.COMPLETED.value
         self.season1.save()
+
+        mock_get_metadata.return_value = {
+            "related": {
+                "seasons": [
+                    {
+                        "season_number": 1,
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                    {
+                        "season_number": 2,
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                ],
+            },
+        }
 
         self.tv.status = Status.IN_PROGRESS.value
         self.tv.save()
@@ -297,9 +396,21 @@ class TVStatusTests(TestCase):
         mock_metadata = {
             "related": {
                 "seasons": [
-                    {"season_number": 1, "image": "img1.jpg"},
-                    {"season_number": 2, "image": "img2.jpg"},
-                    {"season_number": 3, "image": "img3.jpg"},
+                    {
+                        "season_number": 1,
+                        "image": "img1.jpg",
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                    {
+                        "season_number": 2,
+                        "image": "img2.jpg",
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                    {
+                        "season_number": 3,
+                        "image": "img3.jpg",
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
                 ],
             },
         }

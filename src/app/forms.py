@@ -1,3 +1,5 @@
+import math
+
 from django import forms
 from django.conf import settings
 
@@ -33,14 +35,18 @@ class CustomDurationField(forms.CharField):
 
         Supported formats:
         - Plain number (hours only): "5"
+        - Plain float number (hours and minutes): "1.5"
         - HH:MM: "5:30"
         - Nh Nmin: "5h 30min"
         - NhNmin: "5h30min"
         - Nmin: "30min"
         - Nh: "5h"
         """
-        if value.isdigit():  # hours only
-            return int(value), 0
+        if value.isdigit() or "." in value:  # e.g. "5" or "3.5" for 3h 30min
+            converted_to_float = float(value)
+            if math.isfinite(converted_to_float) and converted_to_float >= 0:
+                frac, hours = math.modf(converted_to_float)
+                return int(hours), int(frac * 60)
 
         if ":" in value:  # hh:mm format
             hours, minutes = value.split(":")
@@ -59,6 +65,7 @@ class CustomDurationField(forms.CharField):
 
         if "h" in value:  # [n]h format
             return int(value.strip("h")), 0
+
         msg = "Invalid time format"
         raise ValueError(msg)
 
@@ -80,7 +87,7 @@ class CustomDurationField(forms.CharField):
             self._validate_minutes(minutes)
             return hours * 60 + minutes
         except ValueError as e:
-            msg = "Invalid time played format. Please use hh:mm, [n]h [n]min or [n]h[n]min format."  # noqa: E501
+            msg = "Invalid time format. Provide duration in hours (e.g., '5', '1.5'), hours and minutes (e.g., '5:30', '5h 30min'), or just minutes (e.g., '30min')."  # noqa: E501
             raise forms.ValidationError(msg) from e
 
 
@@ -184,7 +191,7 @@ class ManualItemForm(forms.ModelForm):
             instance.media_id = parent_season.item.media_id
             instance.season_number = parent_season.item.season_number
         else:
-            instance.media_id = Item.generate_manual_id(instance.media_type)
+            instance.media_id = Item.generate_manual_id()
 
         if commit:
             instance.save()

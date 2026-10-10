@@ -35,4 +35,9 @@ urlpatterns = [
         views.update_plex_usernames,
         name="update_plex_usernames",
     ),
+    path(
+        "update_jellyfin_webhook_events",
+        views.update_jellyfin_webhook_events,
+        name="update_jellyfin_webhook_events",
+    ),
 ]

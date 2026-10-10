@@ -3,36 +3,41 @@ repos:
     hooks:
       - id: check-migrations
         name: check-migrations
-        entry: python src/manage.py makemigrations --check
+        entry: uv run python src/manage.py makemigrations --check
         language: system
         pass_filenames: false
         always_run: true
+      - id: uv-lock-check
+        name: uv-lock-check
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
       - id: django-upgrade
         name: django-upgrade
-        entry: django-upgrade
+        entry: uv run django-upgrade
         language: system
         types: [python]
       - id: ruff
         name: ruff
-        entry: ruff check --fix
+        entry: uv run ruff check --fix
         language: system
         types: [python]
         require_serial: true
       - id: ruff-format
         name: ruff-format
-        entry: ruff format
+        entry: uv run ruff format
         language: system
         types: [python]
         require_serial: true
       - id: djlint-lint
         name: djlint-lint
-        entry: djlint --lint
+        entry: uv run djlint --lint
         language: system
         types: [html]
         require_serial: true
       - id: djlint-reformat
         name: djlint-reformat
-        entry: djlint --reformat
+        entry: uv run djlint --reformat
         language: system
         types: [html]
         require_serial: true

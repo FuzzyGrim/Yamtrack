@@ -14,7 +14,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from events import tasks
 from events.models import Event
-from users.models import User
+from users.models import User, WeekStartDayChoices
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +60,19 @@ def calendar(request):
     ) - timedelta(days=1)
 
     # Get calendar data
-    calendar_format = cal.monthcalendar(year, month)
+    first_weekday = (
+        6 if request.user.week_start_day == WeekStartDayChoices.SUNDAY else 0
+    )
+    c = cal.Calendar(firstweekday=first_weekday)
+    calendar_format = c.monthdayscalendar(year, month)
     month_name = cal.month_name[month]
+
+    # Build weekday headers based on user preference
+    days = list(cal.day_abbr)
+    sunday = 6
+    weekday_headers = (
+        [days[sunday], *days[0:sunday]] if first_weekday == sunday else days
+    )
 
     # Get events and organize by day
     releases = Event.objects.get_user_events(request.user, first_day, last_day)
@@ -80,6 +91,7 @@ def calendar(request):
 
     context = {
         "calendar": calendar_format,
+        "weekday_headers": weekday_headers,
         "month": month,
         "month_name": month_name,
         "year": year,

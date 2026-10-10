@@ -1,0 +1,7 @@
+{% if messages or persistent_messages %}
+  <div id="messages-list" hx-swap-oob="beforeend">{% include "app/components/messages/messages_stack.html" %}</div>
+{% endif %}
+
+<div id="persistent-messages-actions" hx-swap-oob="true">
+  {% include "app/components/messages/persistent_messages_actions.html" %}
+</div>

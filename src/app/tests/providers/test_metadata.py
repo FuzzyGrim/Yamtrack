@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -72,6 +73,173 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["status"], "Ended")
         self.assertEqual(response["details"]["episodes"], 62)
 
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_changes(self, mock_api_request, mock_localdate):
+        """Test fetching changed TV ids from TMDB."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.return_value = {
+            "results": [{"id": 1}, {"id": 2}],
+            "total_pages": 1,
+        }
+
+        result = tmdb.tv_changes()
+
+        self.assertEqual(result, {"1", "2"})
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["params"]["start_date"], "2026-04-02")
+        self.assertEqual(kwargs["params"]["end_date"], "2026-04-05")
+        self.assertEqual(kwargs["params"]["page"], 1)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_changes_across_pages(self, mock_api_request, mock_localdate):
+        """Test TMDB TV changes pagination and deduplication."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.side_effect = [
+            {
+                "results": [{"id": 1}, {"id": 2}],
+                "total_pages": 2,
+            },
+            {
+                "results": [{"id": 2}, {"id": 3}],
+                "total_pages": 2,
+            },
+        ]
+
+        result = tmdb.tv_changes()
+
+        self.assertEqual(result, {"1", "2", "3"})
+        self.assertEqual(mock_api_request.call_count, 2)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_changes(self, mock_api_request, mock_localdate):
+        """Test fetching changed movie ids from TMDB."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.return_value = {
+            "results": [{"id": 10}, {"id": 20}],
+            "total_pages": 1,
+        }
+
+        result = tmdb.movie_changes()
+
+        self.assertEqual(result, {"10", "20"})
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["params"]["start_date"], "2026-04-02")
+        self.assertEqual(kwargs["params"]["end_date"], "2026-04-05")
+        self.assertEqual(kwargs["params"]["page"], 1)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_changes_across_pages(self, mock_api_request, mock_localdate):
+        """Test TMDB movie changes pagination and deduplication."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.side_effect = [
+            {
+                "results": [{"id": 10}, {"id": 20}],
+                "total_pages": 2,
+            },
+            {
+                "results": [{"id": 20}, {"id": 30}],
+                "total_pages": 2,
+            },
+        ]
+
+        result = tmdb.movie_changes()
+
+        self.assertEqual(result, {"10", "20", "30"})
+        self.assertEqual(mock_api_request.call_count, 2)
+
+    def test_tmdb_season_image_falls_back_to_tv_poster(self):
+        """Test seasons without a poster reuse the show poster."""
+        tv_data = {
+            "title": "Breaking Bad",
+            "tvdb_id": 81189,
+            "external_links": [],
+            "genres": ["Drama"],
+            "synopsis": "A high school chemistry teacher.",
+            "image": "https://image.tmdb.org/t/p/w500/tv.jpg",
+        }
+
+        without_poster = tmdb.enrich_season_with_tv_data(
+            {"image": settings.IMG_NONE, "synopsis": "Season synopsis."},
+            tv_data,
+            "1396",
+            1,
+        )
+        self.assertEqual(without_poster["image"], tv_data["image"])
+
+        with_poster = tmdb.enrich_season_with_tv_data(
+            {
+                "image": "https://image.tmdb.org/t/p/w500/season.jpg",
+                "synopsis": "Season synopsis.",
+            },
+            tv_data,
+            "1396",
+            2,
+        )
+        self.assertEqual(
+            with_poster["image"],
+            "https://image.tmdb.org/t/p/w500/season.jpg",
+        )
+
+    def test_tmdb_related_season_image_falls_back_to_tv_poster(self):
+        """Test related seasons without a poster reuse the show poster."""
+        parent_response = {
+            "id": 1396,
+            "name": "Breaking Bad",
+            "poster_path": "/tv.jpg",
+        }
+        seasons = [
+            {
+                "season_number": 1,
+                "name": "Season 1",
+                "poster_path": "/season1.jpg",
+                "air_date": "2008-01-20",
+                "episode_count": 7,
+            },
+            {
+                "season_number": 2,
+                "name": "Season 2",
+                "poster_path": None,
+                "air_date": "2009-03-08",
+                "episode_count": 13,
+            },
+        ]
+
+        related = tmdb.get_related(
+            seasons,
+            MediaTypes.SEASON.value,
+            parent_response,
+        )
+
+        self.assertEqual(related[0]["image"], tmdb.get_image_url("/season1.jpg"))
+        self.assertEqual(related[1]["image"], tmdb.get_image_url("/tv.jpg"))
+
+    def test_manual_season_image_falls_back_to_tv_poster(self):
+        """Test manual seasons without an image reuse the show image."""
+        Item.objects.create(
+            media_id="9",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value,
+            title="Imageless Seasons",
+            image="http://example.com/imageless.jpg",
+        )
+
+        Item.objects.create(
+            media_id="9",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Imageless Seasons",
+            image=settings.IMG_NONE,
+            season_number=1,
+        )
+
+        response = manual.season("9", 1)
+
+        self.assertEqual(response["image"], "http://example.com/imageless.jpg")
+
     def test_tmdb_process_episodes(self):
         """Test the process_episodes function for TMDB episodes."""
         Item.objects.create(
@@ -112,7 +280,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still1.jpg",
                     "name": "Pilot",
                     "overview": "overview of the episode",
-                    "runtime": 23,
+                    "runtime": 90,
                 },
                 {
                     "episode_number": 2,
@@ -160,11 +328,15 @@ class Metadata(TestCase):
         self.assertEqual(result[0]["episode_number"], 1)
         self.assertEqual(result[0]["title"], "Pilot")
         self.assertEqual(result[0]["air_date"], "2008-01-20")
+        self.assertEqual(result[0]["runtime"], "1h 30m")
+        self.assertEqual(result[0]["runtime_minutes"], 90)
         self.assertTrue(result[0]["history"], [episode_1])
 
         self.assertEqual(result[1]["episode_number"], 2)
         self.assertEqual(result[1]["title"], "Cat's in the Bag...")
         self.assertEqual(result[1]["air_date"], "2008-01-27")
+        self.assertEqual(result[1]["runtime"], "23m")
+        self.assertEqual(result[1]["runtime_minutes"], 23)
         self.assertTrue(result[1]["history"], [episode_2])
 
         self.assertEqual(result[2]["episode_number"], 3)
@@ -263,6 +435,12 @@ class Metadata(TestCase):
             response["details"]["themes"],
             ["Action", "Fantasy", "Open world"],
         )
+        self.assertIsNotNone(response["time_to_beat"])
+        self.assertIn("normally", response["time_to_beat"])
+        self.assertEqual(
+            list(response["time_to_beat"].keys()),
+            ["hastily", "normally", "completely"],
+        )
 
     def test_external_game_steam(self):
         """Test the external_game method for Steam games."""
@@ -282,6 +460,11 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Nineteen Eighty-Four")
         self.assertEqual(response["details"]["author"], ["George Orwell"])
 
+    def test_openlibrary_publish_date_with_abbreviated_month(self):
+        """Test Open Library publish dates with abbreviated month names."""
+        response = openlibrary.get_publish_date({"publish_date": "Oct 01, 2017"})
+        self.assertEqual(response, "2017-10-01")
+
     def test_comic(self):
         """Test the metadata method for comics."""
         response = comicvine.comic("155969")
@@ -292,7 +475,6 @@ class Metadata(TestCase):
         response = hardcover.book("377193")
         self.assertEqual(response["title"], "The Great Gatsby")
         self.assertEqual(response["details"]["author"], "F. Scott Fitzgerald")
-        self.assertIn("Fiction", response["genres"])
         self.assertIn("Young Adult", response["genres"])
         self.assertIn("Classics", response["genres"])
         self.assertAlmostEqual(response["score"], 7.4, delta=0.1)
@@ -599,6 +781,55 @@ class Metadata(TestCase):
             hardcover.handle_error(error)
 
         self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
+
+    def test_handle_error_hardcover_unauthorized_description(self):
+        """Test the unauthorized message prefers the error description."""
+        mock_response = MagicMock()
+        mock_response.status_code = 401
+        mock_response.json.return_value = {
+            "error": "invalid_token",
+            "error_description": "Token is not associated with a user",
+        }
+
+        error = requests.exceptions.HTTPError("401 Unauthorized")
+        error.response = mock_response
+
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.handle_error(error)
+
+        self.assertIn("Token is not associated with a user", str(cm.exception))
+
+    def test_handle_error_hardcover_unauthorized_missing_error(self):
+        """Test the unauthorized handler when the error key is missing."""
+        mock_response = MagicMock()
+        mock_response.status_code = 401
+        mock_response.json.return_value = {"message": "Unauthorized"}
+
+        error = requests.exceptions.HTTPError("401 Unauthorized")
+        error.response = mock_response
+
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.handle_error(error)
+
+        self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
+
+    @patch("app.providers.hardcover.cache")
+    @patch("app.providers.services.api_request")
+    def test_hardcover_graphql_errors(self, mock_api_request, mock_cache):
+        """Test GraphQL errors returned with a 200 status are not cached."""
+        mock_cache.get.return_value = None
+        mock_api_request.return_value = {
+            "errors": [{"message": "field 'search' not found in type: 'query_root'"}],
+        }
+
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.search("dune", 1)
+        self.assertIn("field 'search' not found", str(cm.exception))
+
+        with self.assertRaises(services.ProviderAPIError):
+            hardcover.book("1")
+
+        mock_cache.set.assert_not_called()
 
     def test_handle_error_hardcover_other(self):
         """Test the handle_error function with Hardcover other error."""

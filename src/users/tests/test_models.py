@@ -11,6 +11,7 @@ from users.models import (
     HomeSortChoices,
     MediaTypes,
     QuickWatchDateChoices,
+    WeekStartDayChoices,
 )
 
 
@@ -165,6 +166,24 @@ class UserUpdatePreferenceTests(TestCase):
         # Should change the value
         self.user.refresh_from_db()
         self.assertEqual(self.user.release_notifications_enabled, False)
+
+    def test_update_preference_obfuscate_unseen_episodes(self):
+        """Test update_preference with obfuscate_unseen_episodes field."""
+        # Set initial value
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        # Call update_preference with new value
+        result = self.user.update_preference(
+            field_name="obfuscate_unseen_episodes",
+            new_value=True,
+        )
+
+        # Should return new value
+        self.assertEqual(result, True)
+        # Should change the value
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.obfuscate_unseen_episodes, True)
 
 
 class UserGetImportTasksTests(TestCase):
@@ -411,3 +430,21 @@ class UserResolveWatchDateTests(TestCase):
         result = self.user.resolve_watch_date(self.now, self.release_date)
 
         self.assertEqual(result, self.now)
+
+
+class UserWeekStartDayTests(TestCase):
+    """Tests for the User.week_start_day field."""
+
+    def test_update_preference_valid(self):
+        """update_preference accepts a valid week_start_day choice."""
+        credentials = {"username": "weekstart", "password": "testpassword"}
+        user = get_user_model().objects.create_user(**credentials)
+        self.assertEqual(user.week_start_day, WeekStartDayChoices.MONDAY)
+
+        result = user.update_preference(
+            "week_start_day",
+            WeekStartDayChoices.SUNDAY,
+        )
+        self.assertEqual(result, WeekStartDayChoices.SUNDAY)
+        user.refresh_from_db()
+        self.assertEqual(user.week_start_day, WeekStartDayChoices.SUNDAY)

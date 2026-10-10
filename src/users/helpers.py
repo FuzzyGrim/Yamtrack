@@ -8,21 +8,6 @@ from django.utils import timezone
 import integrations
 
 
-def get_client_ip(request):
-    """Return the client's IP address.
-
-    Used when logging for user registration and login.
-    """
-    # get the user's IP address
-    ip_address = request.headers.get("x-forwarded-for")
-
-    # if the IP address is not available in HTTP_X_FORWARDED_FOR
-    if not ip_address:
-        ip_address = request.META.get("REMOTE_ADDR")
-
-    return ip_address
-
-
 def process_task_result(task):
     """Process task result based on status and format appropriately."""
     if task.status == "FAILURE":

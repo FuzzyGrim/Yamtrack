@@ -1,3 +1,4 @@
+import json
 import logging
 
 import requests
@@ -11,6 +12,25 @@ from app.providers import services
 logger = logging.getLogger(__name__)
 
 base_url = "https://api.hardcover.app/v1/graphql"
+MAX_SEARCH_QUERY_LENGTH = 50
+
+
+def cap_search_query(query):
+    """Limit long book queries before sending them to Hardcover search."""
+    query = str(query or "")
+
+    if len(query) <= MAX_SEARCH_QUERY_LENGTH:
+        return query
+
+    capped_query = query[:MAX_SEARCH_QUERY_LENGTH]
+    if query[MAX_SEARCH_QUERY_LENGTH].isspace():
+        return capped_query.rstrip()
+
+    word_boundary = capped_query.rfind(" ")
+    if word_boundary == -1:
+        return capped_query
+
+    return capped_query[:word_boundary].rstrip()
 
 
 def handle_error(error):
@@ -25,14 +45,49 @@ def handle_error(error):
         raise services.ProviderAPIError(Sources.HARDCOVER.value, error) from json_error
 
     if status_code == requests.codes.unauthorized:
-        details = error_json["error"]
+        details = error_json.get("error_description") or error_json.get("error")
         raise services.ProviderAPIError(Sources.HARDCOVER.value, error, details)
 
     raise services.ProviderAPIError(Sources.HARDCOVER.value, error)
 
 
+def graphql_request(query, variables):
+    """Make a GraphQL request to Hardcover and return the response."""
+    try:
+        response = services.api_request(
+            Sources.HARDCOVER.value,
+            "POST",
+            base_url,
+            params={"query": query, "variables": variables},
+            headers={"Authorization": settings.HARDCOVER_API},
+        )
+    except requests.exceptions.HTTPError as error:
+        handle_error(error)
+
+    # GraphQL errors are returned with a 200 status code
+    errors = response.get("errors")
+    if errors:
+        mock_response = type(
+            "obj",
+            (object,),
+            {
+                "status_code": requests.codes.ok,
+                "text": json.dumps(errors),
+            },
+        )()
+        mock_error = requests.exceptions.HTTPError(response=mock_response)
+        raise services.ProviderAPIError(
+            Sources.HARDCOVER.value,
+            mock_error,
+            errors[0].get("message"),
+        )
+
+    return response
+
+
 def search(query, page):
     """Search for books on Hardcover."""
+    query = cap_search_query(query)
     cache_key = (
         f"search_{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{query}_{page}"
     )
@@ -58,16 +113,7 @@ def search(query, page):
             "page": page,
         }
 
-        try:
-            response = services.api_request(
-                Sources.HARDCOVER.value,
-                "POST",
-                base_url,
-                params={"query": search_query, "variables": variables},
-                headers={"Authorization": settings.HARDCOVER_API},
-            )
-        except requests.exceptions.HTTPError as error:
-            response = handle_error(error)
+        response = graphql_request(search_query, variables)
 
         hits = response["data"]["search"]["results"]["hits"]
         results = [
@@ -131,16 +177,7 @@ def book(media_id):
             "book_id": int(media_id),
         }
 
-        try:
-            response = services.api_request(
-                Sources.HARDCOVER.value,
-                "POST",
-                base_url,
-                params={"query": book_query, "variables": variables},
-                headers={"Authorization": settings.HARDCOVER_API},
-            )
-        except requests.exceptions.HTTPError as error:
-            handle_error(error)
+        response = graphql_request(book_query, variables)
 
         book_data = response["data"]["books_by_pk"]
 

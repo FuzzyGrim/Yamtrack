@@ -416,3 +416,15 @@ class EmbyWebhookTests(TestCase):
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)
+
+    def test_get_episode_number(self):
+        """Test extracting episode number from Emby payload."""
+        payload = {
+            "Item": {
+                "IndexNumber": 7,
+            },
+        }
+
+        result = EmbyWebhookProcessor()._get_episode_number(payload)
+
+        self.assertEqual(result, 7)

@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -79,6 +79,16 @@ class AppTagsTests(TestCase):
         mock_stat.side_effect = OSError()
         result = app_tags.get_static_file_mtime("nonexistent.css")
         self.assertEqual(result, "")
+
+    @override_settings(URLS=["https://yamtrack.example.com:8924"])
+    def test_absolute_app_url(self):
+        """Test the absolute_app_url tag."""
+        result = app_tags.absolute_app_url({}, "/webhook/jellyfin/token")
+
+        self.assertEqual(
+            result,
+            "https://yamtrack.example.com:8924/webhook/jellyfin/token",
+        )
 
     def test_no_underscore(self):
         """Test the no_underscore filter."""
@@ -171,6 +181,7 @@ class AppTagsTests(TestCase):
             # Check that it returns a non-empty string
             self.assertTrue(isinstance(result, str))
 
+    @override_settings(TRACK_TIME=False)
     def test_natural_day(self):
         """Test the natural_day filter."""
         # Create mock user with date_format preference
@@ -201,7 +212,7 @@ class AppTagsTests(TestCase):
                 0,
                 tzinfo=timezone.get_current_timezone(),
             )
-            self.assertEqual(app_tags.natural_day(today, mock_user), "Today")
+            self.assertEqual(app_tags.natural_day(today, mock_user), "Today 15:00")
 
             # Test tomorrow
             tomorrow = timezone.datetime(
@@ -213,7 +224,10 @@ class AppTagsTests(TestCase):
                 0,
                 tzinfo=timezone.get_current_timezone(),
             )
-            self.assertEqual(app_tags.natural_day(tomorrow, mock_user), "Tomorrow")
+            self.assertEqual(
+                app_tags.natural_day(tomorrow, mock_user),
+                "Tomorrow 15:00",
+            )
 
             # Test further away
             further = timezone.datetime(
@@ -375,3 +389,31 @@ class AppTagsTests(TestCase):
         self.assertTrue(app_tags.show_media_score(1, mock_user_hide))
         self.assertFalse(app_tags.show_media_score(0, mock_user_hide))
         self.assertFalse(app_tags.show_media_score(None, mock_user_hide))
+
+    def test_seconds_to_duration(self):
+        """Test conversion of seconds to human-readable duration."""
+        self.assertIsNone(app_tags.seconds_to_duration(None))
+        self.assertIsNone(app_tags.seconds_to_duration(0))
+
+        cases = [
+            (5 * 60, "5m"),  # exactly 5m
+            (10 * 60, "10m"),  # exactly 10m
+            (12 * 60, "10m"),  # 12m -> 10m (< 13m)
+            (13 * 60, "15m"),  # 13m -> 15m
+            (15 * 60, "15m"),  # exactly 15m
+            (20 * 60, "20m"),  # exactly 20m
+            (25 * 60, "25m"),  # exactly 25m
+            (27 * 60, "25m"),  # 27m -> 25m (< 28m)
+            (28 * 60, "30m"),  # 28m -> 30m
+            (30 * 60, "30m"),  # exactly 30m
+            (40 * 60, "30m"),  # 40m -> 30m (< 45m)
+            (45 * 60, "1h"),  # 45m -> 1h
+            (60 * 60, "1h"),  # exactly 1h
+            (65 * 60, "1h"),  # 1h 5m -> 1h
+            (75 * 60, "1h 30m"),  # 1h 15m -> 1h 30m
+            (90 * 60, "1h 30m"),  # exactly 1h 30m
+            (105 * 60, "2h"),  # 1h 45m -> 2h
+        ]
+        for seconds, expected in cases:
+            with self.subTest(seconds=seconds):
+                self.assertEqual(app_tags.seconds_to_duration(seconds), expected)

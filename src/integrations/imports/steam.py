@@ -49,6 +49,7 @@ class SteamImporter:
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
         self.bulk_media = defaultdict(list)
+        self.bulk_media_updates = defaultdict(list)
 
         logger.info(
             "Initialized Steam importer for Steam ID %s with mode %s",
@@ -69,11 +70,17 @@ class SteamImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.bulk_media_updates,
+            {MediaTypes.GAME.value: ["progress", "status"]},
+            self.user,
+        )
 
-        imported_counts = {
-            media_type: len(media_list)
-            for media_type, media_list in self.bulk_media.items()
-        }
+        created_games = len(self.bulk_media[MediaTypes.GAME.value])
+        updated_games = len(self.bulk_media_updates[MediaTypes.GAME.value])
+        imported_counts = {}
+        if created_games or updated_games:
+            imported_counts[MediaTypes.GAME.value] = created_games + updated_games
 
         logger.info(
             "Steam import completed for user %s: %s",
@@ -174,12 +181,25 @@ class SteamImporter:
                 )
                 return
 
+            media_id = str(igdb_game["media_id"])
+            existing_game = self.existing_media[MediaTypes.GAME.value][
+                Sources.IGDB.value
+            ].get(media_id)
+
+            if existing_game and self.mode == "overwrite":
+                self._queue_existing_game_update(
+                    existing_game,
+                    playtime_forever,
+                    playtime_2weeks,
+                )
+                return
+
             if not helpers.should_process_media(
                 self.existing_media,
                 self.to_delete,
                 MediaTypes.GAME.value,
                 Sources.IGDB.value,
-                str(igdb_game["media_id"]),
+                media_id,
                 self.mode,
             ):
                 return
@@ -233,6 +253,31 @@ class SteamImporter:
             logger.warning("Failed to process Steam game %s (%s): %s", name, appid, e)
             self.warnings.append(f"{name} ({appid}): {e!s}")
 
+    def _queue_existing_game_update(self, game, playtime_forever, playtime_2weeks):
+        """Queue updates for an existing game when Steam overwrite is used."""
+        changed = False
+
+        if game.progress != playtime_forever:
+            game.progress = playtime_forever
+            changed = True
+
+        new_status = self._determine_game_status(playtime_forever, playtime_2weeks)
+        if (
+            game.status
+            in [
+                Status.PLANNING.value,
+                Status.IN_PROGRESS.value,
+                Status.PAUSED.value,
+            ]
+            and game.status != new_status
+        ):
+            game.status = new_status
+            changed = True
+
+        if changed:
+            self.bulk_media_updates[MediaTypes.GAME.value].append(game)
+            logger.debug("Queued Steam update for existing game %s", game)
+
     def _determine_game_status(self, playtime_forever, playtime_2weeks):
         """Determine game status based on Steam playtime data.
 
@@ -270,6 +315,19 @@ class SteamImporter:
             Sources.IGDB.value,
         )
 
+        logger.debug(
+            "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
+            game_name,
+            steam_appid,
+            igdb_game_id,
+        )
+        return {
+            "media_id": igdb_game_id,
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "title": game_details.get("title", game_name),
+            "image": game_details["image"],
+        }
         logger.debug(
             "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
             game_name,

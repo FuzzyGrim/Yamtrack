@@ -25,6 +25,16 @@
   clip-path: inset(0 50% 0 0);
 }
 
+/* Keep horizontal scrolling but hide the scrollbar so it doesn't
+   overlap content (e.g. the active-tab underline on section navs). */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 
 .media-grid {
   @apply grid grid-cols-2 xs:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4;

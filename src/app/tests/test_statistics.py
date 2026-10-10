@@ -16,6 +16,7 @@ from app.models import (
     Sources,
     Status,
 )
+from users.models import WeekStartDayChoices
 
 User = get_user_model()
 
@@ -715,6 +716,47 @@ class StatisticsTests(TestCase):
             7.5,
         )  # Movie should be second
 
+    def test_get_score_distribution_dedupes_repeated_media(self):
+        """A rewatched/repeated item should only appear once, using the latest score."""
+        Movie.objects.filter(pk=self.movie.pk).update(
+            created_at=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+        )
+
+        newer_movie = Movie.objects.create(
+            user=self.user,
+            item=self.movie_item,
+            status=Status.COMPLETED.value,
+            score=9.5,
+        )
+        Movie.objects.filter(pk=newer_movie.pk).update(
+            created_at=datetime.datetime(2025, 6, 1, tzinfo=datetime.UTC),
+        )
+
+        user_media = {
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+        }
+
+        _, top_rated = statistics.get_score_distribution(user_media)
+
+        self.assertEqual(len(top_rated), 1)
+        self.assertEqual(top_rated[0].score, 9.5)  # The more recent watch
+
+    def test_get_score_distribution_keeps_tv_and_season_separate(self):
+        """A show and a scored season of that same show are distinct ratings."""
+        tv = TV.objects.get(user=self.user, item__media_id="1668")
+        TV.objects.filter(pk=tv.pk).update(score=6.0)
+
+        user_media = {
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.SEASON.value: Season.objects.filter(user=self.user),
+        }
+
+        _, top_rated = statistics.get_score_distribution(user_media)
+
+        self.assertEqual(len(top_rated), 2)
+        scores = sorted(media.score for media in top_rated)
+        self.assertEqual(scores, [6.0, self.season.score])
+
     def test_get_status_color(self):
         """Test the get_status_color function."""
         # Test all status colors
@@ -722,36 +764,6 @@ class StatisticsTests(TestCase):
             color = statistics.get_status_color(status)
             self.assertIsNotNone(color)
             self.assertTrue(color.startswith("#"))
-
-    def test_get_timeline(self):
-        """Test the get_timeline function."""
-        # Create user_media dict with our test objects
-        user_media = {
-            MediaTypes.TV.value: TV.objects.filter(user=self.user),
-            MediaTypes.SEASON.value: Season.objects.filter(user=self.user),
-            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
-            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
-        }
-        timeline = statistics.get_timeline(user_media)
-
-        # Check structure - should be a dict with month-year keys
-        self.assertIsInstance(timeline, dict)
-
-        # Check content
-        self.assertIn("January 2025", timeline)  # Season spans Jan 1-15
-        self.assertIn("February 2025", timeline)  # Movie on Feb 1
-        self.assertIn("March 2025", timeline)  # Anime starts on Mar 1
-
-        # Check items in each month
-        self.assertEqual(len(timeline["January 2025"]), 1)  # Season
-        self.assertEqual(len(timeline["February 2025"]), 1)  # Movie
-        self.assertEqual(len(timeline["March 2025"]), 1)  # Anime
-
-        # Check sorting - should be in chronological order
-        months = list(timeline.keys())
-        self.assertEqual(months[0], "March 2025")  # Most recent first
-        self.assertEqual(months[1], "February 2025")
-        self.assertEqual(months[2], "January 2025")
 
     def test_get_level(self):
         """Test the get_level function."""
@@ -956,3 +968,63 @@ class StatisticsTests(TestCase):
         )
         self.assertEqual(current_streak, 0)
         self.assertEqual(longest_streak, 0)
+
+
+class GetActivityDataWeekStartTests(TestCase):
+    """Tests verifying get_activity_data respects the user's week_start_day."""
+
+    def setUp(self):
+        """Create users with different week-start preferences."""
+        mon_credentials = {"username": "mon_user", "password": "testpassword"}
+        sun_credentials = {"username": "sun_user", "password": "testpassword"}
+        self.user_monday = get_user_model().objects.create_user(
+            **mon_credentials,
+            week_start_day=WeekStartDayChoices.MONDAY,
+        )
+        self.user_sunday = get_user_model().objects.create_user(
+            **sun_credentials,
+            week_start_day=WeekStartDayChoices.SUNDAY,
+        )
+
+    @patch("app.statistics.get_filtered_historical_data")
+    def test_monday_week_start_labels_and_alignment(self, mock_get_filtered_data):
+        """Monday-start users get Monday-led weekday labels."""
+        mock_get_filtered_data.return_value = []
+        # Wednesday -> Friday range; Monday alignment back to Dec 30, 2024
+        start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 1, 17, 0, 0, tzinfo=datetime.UTC)
+
+        result = statistics.get_activity_data(
+            self.user_monday,
+            start_date,
+            end_date,
+        )
+
+        self.assertEqual(
+            result["weekday_labels"],
+            ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        )
+        # First day of first calendar week should be the aligned Monday
+        first_day = result["calendar_weeks"][0][0]["date"]
+        self.assertEqual(first_day, "2024-12-30")
+
+    @patch("app.statistics.get_filtered_historical_data")
+    def test_sunday_week_start_labels_and_alignment(self, mock_get_filtered_data):
+        """Sunday-start users get Sunday-led weekday labels and Sunday alignment."""
+        mock_get_filtered_data.return_value = []
+        # Wednesday start -> aligns back to Sunday 2024-12-29
+        start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 1, 17, 0, 0, tzinfo=datetime.UTC)
+
+        result = statistics.get_activity_data(
+            self.user_sunday,
+            start_date,
+            end_date,
+        )
+
+        self.assertEqual(
+            result["weekday_labels"],
+            ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        )
+        first_day = result["calendar_weeks"][0][0]["date"]
+        self.assertEqual(first_day, "2024-12-29")

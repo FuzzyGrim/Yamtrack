@@ -184,8 +184,11 @@ def list_detail(request, list_id):
         "status_choices": MediaStatusChoices.choices,
     }
 
-    # Additional context for full page render
-    if not request.headers.get("HX-Request"):
+    # Additional context for full page render. Soft-navigation body swaps (e.g.
+    # after saving from an edit modal) also need the full page, not the partial.
+    if not request.headers.get("HX-Request") or request.headers.get(
+        "X-Soft-Navigation"
+    ):
         context.update(
             {
                 "form": CustomListForm(instance=custom_list),

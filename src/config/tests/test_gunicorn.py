@@ -1,10 +1,14 @@
 import sys
-from unittest import mock
+from unittest import mock, skipIf
 
 from django.test import SimpleTestCase
-from gunicorn.app.wsgiapp import run
+
+# gunicorn is not available on Windows
+if sys.platform != "win32":
+    from gunicorn.app.wsgiapp import run
 
 
+@skipIf(sys.platform == "win32", "gunicorn is not fully supported on Windows")
 class GunicornConfigTests(SimpleTestCase):
     """Test Gunicorn configuration."""
 

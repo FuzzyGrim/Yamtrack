@@ -8,7 +8,7 @@ register_converter(converters.SourceChecker, "source")
 
 urlpatterns = [
     path("", views.home, name="home"),
-    path("medialist/<media_type:media_type>", views.media_list, name="medialist"),
+    path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path(
         "details/<source:source>/<media_type:media_type>/<str:media_id>/<str:title>",
@@ -52,6 +52,11 @@ urlpatterns = [
     ),
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
+    path(
+        "user_messages/mark_shown",
+        views.mark_user_messages_shown,
+        name="mark_user_messages_shown",
+    ),
     path("episode_save", views.episode_save, name="episode_save"),
     path(
         "history_modal/<source:source>/<media_type:media_type>/<str:media_id>",
@@ -81,5 +86,6 @@ urlpatterns = [
         name="search_parent_season",
     ),
     path("statistics", views.statistics, name="statistics"),
+    path("journal", views.journal, name="journal"),
     path("serviceworker.js", views.service_worker, name="service_worker"),
 ]

@@ -5,7 +5,7 @@ import requests
 from defusedxml import ElementTree
 from django.conf import settings
 from pyrate_limiter import RedisBucket
-from redis import ConnectionPool
+from redis import Redis
 from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
@@ -25,22 +25,22 @@ from app.providers import (
 logger = logging.getLogger(__name__)
 
 
-def get_redis_connection():
-    """Return a Redis connection pool."""
+def get_redis_client():
+    """Return a Redis client."""
     if settings.TESTING:
         import fakeredis  # noqa: PLC0415
 
-        return fakeredis.FakeStrictRedis().connection_pool
-    return ConnectionPool.from_url(settings.REDIS_URL)
+        return fakeredis.FakeRedis()
+    return Redis.from_url(settings.REDIS_URL)
 
 
-redis_pool = get_redis_connection()
-bucket_name = f"{settings.REDIS_PREFIX}_api" if settings.REDIS_PREFIX else "api"
+redis_db = get_redis_client()
+bucket_key = f"{settings.REDIS_PREFIX}_api" if settings.REDIS_PREFIX else "api"
 
 session = LimiterSession(
     per_second=5,
     bucket_class=RedisBucket,
-    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": bucket_name},
+    bucket_kwargs={"redis": redis_db, "bucket_key": bucket_key},
 )
 
 session.mount("http://", HTTPAdapter(max_retries=3))
@@ -86,18 +86,21 @@ class ProviderAPIError(Exception):
     def __init__(self, provider, error, details=None):
         """Initialize the exception with the provider name."""
         self.provider = provider
-        self.status_code = error.response.status_code
+        response = getattr(error, "response", None)
+        self.status_code = getattr(response, "status_code", None)
         try:
-            provider = Sources(provider).label
+            provider_label = Sources(provider).label
         except ValueError:
-            provider = provider.title()
+            provider_label = provider.title()
 
-        logger.error("%s error: %s", provider, error.response.text)
+        error_text = getattr(response, "text", str(error))
+        logger.error("%s error: %s", provider_label, error_text)
 
-        message = (
-            f"There was an error contacting the {provider} API "
-            f"(HTTP {self.status_code})"
-        )
+        message = f"There was an error contacting the {provider_label} API"
+        if self.status_code is None:
+            message += " (network error)"
+        else:
+            message += f" (HTTP {self.status_code})"
         if details:
             message += f": {details}"
         message += ". Check the logs for more details."
@@ -134,6 +137,7 @@ def api_request(
     provider,
     method,
     url,
+    *,
     params=None,
     data=None,
     headers=None,

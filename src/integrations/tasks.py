@@ -52,7 +52,14 @@ def format_import_message(imported_counts, warning_messages=None):
     return info_message
 
 
-def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
+def import_media(
+    importer_func,
+    identifier,
+    user_id,
+    mode,
+    oauth_username=None,
+    **kwargs,
+):
     """Handle the import process for different media services."""
     user = get_user_model().objects.get(id=user_id)
 
@@ -62,6 +69,7 @@ def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
                 identifier,
                 user,
                 mode,
+                **kwargs,
             )
         else:
             imported_counts, warnings = importer_func(
@@ -69,6 +77,7 @@ def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
                 user,
                 mode,
                 username=oauth_username,
+                **kwargs,
             )
 
     events.tasks.reload_calendar.delay()
@@ -77,12 +86,23 @@ def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
 
 
 @shared_task(name="Import from Trakt")
-def import_trakt(user_id, mode, token=None, username=None):
+def import_trakt(
+    user_id, mode, token=None, file=None, username=None, redirect_uri=None
+):
     """Celery task for importing media data from Trakt.
 
-    Can import using either OAuth (token provided) or public username.
+    Can import using OAuth (token provided), public username, or the contents of
+    an export archive downloaded from the Trakt website.
     """
-    return import_media(trakt.importer, token, user_id, mode, username)
+    return import_media(
+        trakt.importer,
+        token,
+        user_id,
+        mode,
+        username,
+        redirect_uri=redirect_uri,
+        file=file,
+    )
 
 
 @shared_task(name="Import from SIMKL")

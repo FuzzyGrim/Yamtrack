@@ -1,0 +1,92 @@
+[project]
+site_name = "Yamtrack Documentation"
+site_url = "https://FuzzyGrim.github.io/Yamtrack/"
+site_author = "FuzzyGrim"
+site_description = "Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games."
+repo_name = "FuzzyGrim/Yamtrack"
+repo_url = "https://github.com/FuzzyGrim/Yamtrack"
+copyright = "Copyright &copy; 2022 - 2026 FuzzyGrim"
+edit_uri = "edit/dev/docs/"
+extra_css = ["stylesheets/extra.css"]
+
+nav = [
+  { "Home" = "index.md" },
+  { "Setup" = "setup.md" },
+  { "Development" = "development.md" },
+  { "Environment Variables" = "env-variables.md" },
+  { "Media Imports" = "media-imports.md" },
+  { "Social Auth" = "social-auth.md" },
+  { "Administration" = "administration.md" },
+]
+
+[project.theme]
+variant = "modern"
+language = "en"
+logo = "assets/logo.png"
+favicon = "assets/logo.png"
+features = [
+  "content.action.edit",
+  "content.action.view",
+  "content.code.annotate",
+  "content.code.copy",
+  "header.autohide",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.sections",
+  "navigation.tabs",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+  "search.share",
+  "search.suggest",
+  "toc.follow",
+  "toc.integrate",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+primary = "indigo"
+accent = "indigo"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+primary = "indigo"
+accent = "indigo"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+primary = "indigo"
+accent = "indigo"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+[project.extra.version]
+provider = "mike"
+default = "release"
+alias = true
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/FuzzyGrim/Yamtrack"
+
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.tables]
+[project.markdown_extensions.toc]
+permalink = true
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+
+[project.markdown_extensions.pymdownx.snippets]
+base_path = ["."]
+check_paths = true
+
+[project.markdown_extensions.pymdownx.superfences]

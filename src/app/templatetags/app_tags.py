@@ -8,8 +8,9 @@ from django.utils.dateparse import parse_date
 from django.utils.html import format_html
 from unidecode import unidecode
 
-from app import config
+from app import config, helpers
 from app.models import MediaTypes, Sources, Status
+from users.models import WATCH_PROVIDER_REGION_UNSET
 
 register = template.Library()
 
@@ -25,6 +26,12 @@ def get_static_file_mtime(file_path):
         return ""
     else:
         return f"?{mtime}"
+
+
+@register.simple_tag(takes_context=True)
+def absolute_app_url(context, path):
+    """Return an absolute app URL for links copied into external services."""
+    return helpers.build_absolute_app_url(context.get("request"), path)
 
 
 @register.filter
@@ -223,9 +230,27 @@ def media_color(media_type):
 
 
 @register.filter
+def journal_accent(accent):
+    """Return the badge background class and icon template for a journal accent."""
+    return config.get_journal_accent(accent)
+
+
+@register.filter
+def status_config(status):
+    """Return the config dict for a status, or None if it is unrecognized."""
+    return config.get_status_config(status)
+
+
+@register.filter
 def status_color(status):
     """Return the color associated with the status."""
     return config.get_status_text_color(status)
+
+
+@register.filter
+def status_icon(status):
+    """Return the icon template associated with the status."""
+    return config.get_status_icon(status)
 
 
 @register.filter
@@ -237,22 +262,23 @@ def status_background_color(status):
 @register.filter
 def natural_day(datetime, user):
     """Format date with natural language (Today, Tomorrow, etc.)."""
+    if not datetime:
+        return None
+
     today = timezone.localdate()
 
     local_dt = timezone.localtime(datetime)
     datetime_date = local_dt.date()
-
-    # Calculate the difference in days
-    diff = datetime_date - today
-    days = diff.days
+    formatted_date = formats.date_format(local_dt, user.date_format)
+    formatted_time = formats.time_format(local_dt, user.time_format)
+    days = (datetime_date - today).days
 
     if days == 0:
-        return "Today"
+        return f"Today {formatted_time}"
     if days == 1:
-        return "Tomorrow"
+        return f"Tomorrow {formatted_time}"
 
-    # For dates further away
-    return datetime_format(datetime, user)
+    return f"{formatted_date} {formatted_time}"
 
 
 @register.filter
@@ -448,3 +474,52 @@ def show_media_score(rating, user):
         True if we should show the media score
     """
     return rating is not None and (not user.hide_zero_rating or rating > 0)
+
+
+@register.simple_tag
+def media_section_count(
+    media,
+    user_medias,
+    watch_providers=None,
+    watch_provider_region=None,
+):
+    """Return the number of content sections on the media details page."""
+    count = 0
+    if media.get("cast"):
+        count += 1
+    related = media.get("related") or {}
+    count += sum(1 for related_items in related.values() if related_items)
+    if len(user_medias) > 1:
+        count += 1
+    if media.get("episodes"):
+        count += 1
+    has_streaming = (
+        watch_provider_region == WATCH_PROVIDER_REGION_UNSET or watch_providers
+    )
+    if (
+        media.get("media_type") in (MediaTypes.MOVIE.value, MediaTypes.TV.value)
+        and has_streaming
+    ):
+        count += 1
+    if media.get("time_to_beat"):
+        count += 1
+    return count
+
+
+@register.filter
+def seconds_to_duration(seconds):
+    """Convert seconds to human-readable duration.
+
+    Under 30 min: rounds to nearest 5 min. 30 min and above: rounds to nearest 30 min.
+    """
+    if not seconds:
+        return None
+    total_minutes = seconds // 60
+    if total_minutes < 30:  # noqa: PLR2004
+        return f"{max(5, round(total_minutes / 5) * 5)}m"
+    hours, minutes = divmod(total_minutes, 60)
+    if hours == 0:
+        return "30m" if minutes < 45 else "1h"  # noqa: PLR2004
+    if minutes >= 45:  # noqa: PLR2004
+        return f"{hours + 1}h"
+    return f"{hours}h" if minutes < 15 else f"{hours}h 30m"  # noqa: PLR2004

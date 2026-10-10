@@ -1,6 +1,7 @@
 """Django settings for Yamtrack project."""
 
 import json
+import sys
 import warnings
 import zoneinfo
 from pathlib import Path
@@ -17,6 +18,7 @@ from decouple import (
     undefined,
 )
 from django.core.cache import CacheKeyWarning
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
@@ -125,12 +127,6 @@ INSTALLED_APPS = [
     "simple_history",
     "widget_tweaks",
     "health_check",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.celery_ping",
-    "health_check.contrib.redis",
-    "health_check.contrib.db_heartbeat",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -152,6 +148,12 @@ MIDDLEWARE = [
     "app.middleware.ProviderAPIErrorMiddleware",
 ]
 
+YAMTRACK_AUTO_LOGIN_USERNAME = config("YAMTRACK_AUTO_LOGIN_USERNAME", default=None)
+if YAMTRACK_AUTO_LOGIN_USERNAME:
+    _index = MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
+    # This allows auto-login if the user is not already authenticated.
+    MIDDLEWARE.insert(_index + 1, "app.middleware.AutoLoginMiddleware")
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
@@ -168,6 +170,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "app.context_processors.export_vars",
                 "app.context_processors.media_enums",
+                "app.context_processors.persistent_messages",
                 "django.template.context_processors.request",
             ],
         },
@@ -188,6 +191,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
 
 if config("DB_HOST", default=None):
+    DB_POOL_MIN_SIZE = config("DB_POOL_MIN_SIZE", default=1, cast=int)
+    DB_POOL_MAX_SIZE = config("DB_POOL_MAX_SIZE", default=4, cast=int)
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -197,7 +203,10 @@ if config("DB_HOST", default=None):
             "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
             "PORT": config("DB_PORT"),
             "OPTIONS": {
-                "pool": True,
+                "pool": {
+                    "min_size": DB_POOL_MIN_SIZE,
+                    "max_size": DB_POOL_MAX_SIZE,
+                },
             },
         },
     }
@@ -215,6 +224,17 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db" / "db.sqlite3",
+            "OPTIONS": {
+                "timeout": 10,
+                "transaction_mode": "IMMEDIATE",
+                "init_command": (
+                    "PRAGMA journal_mode=WAL;"
+                    "PRAGMA synchronous=NORMAL;"
+                    "PRAGMA mmap_size=134217728;"
+                    "PRAGMA journal_size_limit=27103364;"
+                    "PRAGMA cache_size=2000;"
+                ),
+            },
         },
     }
 
@@ -228,7 +248,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 15,
+        "VERSION": 18,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -327,8 +347,8 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
-# For CSV imports
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+# For CSV imports and the Trakt export archive
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 MB
 
 VERSION = config("VERSION", default="dev")
 
@@ -352,6 +372,14 @@ TMDB_API = config(
 )
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
+
+TVDB_API = config(
+    "TVDB_API",
+    default=secret(
+        "TVDB_API_FILE",
+        "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
+    ),
+)
 
 MAL_API = config(
     "MAL_API",
@@ -401,16 +429,23 @@ HARDCOVER_API = config(
     "HARDCOVER_API",
     default=secret(
         "HARDCOVER_API_FILE",
-        "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0"
-        "aSI6ImJhNGNjZmUwLTgwZmQtNGI3NC1hZDdhLTlkNDM5ZTA5YWMzOSIsImFwcGxpY2F0aW9uSWQi"
-        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJbiI6dHJ1ZSwi"
-        "aWF0IjoxNzQ2OTc3ODc3LCJleHAiOjE3Nzg1MTM4NzcsImh0dHBzOi8vaGFzdXJhLmlvL2p3dC9j"
-        "bGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1"
-        "bHQtcm9sZSI6InVzZXIiLCJ4LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQi"
-        "OiIzNDk1MSJ9LCJ1c2VyIjp7ImlkIjozNDk1MX19.edcEqLAeO3uH5xxBTFDKtyWwi-B-WfXX_yi"
-        "LFdOAJ3c",
+        "Bearer "
+        "eyJhbGciOiJIUzI1NiJ9."
+        "eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0aSI6IjMzNDhiNGE1"
+        "LWIzYTUtNDAxMy1hODU3LWQ4NGI1OTdmYmI3ZCIsImFwcGxpY2F0aW9uSWQi"
+        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJ"
+        "biI6dHJ1ZSwiaWF0IjoxNzc4ODQzMTE1LCJleHAiOjE4MTAzNzkxMTUsImh0dHBz"
+        "Oi8vaGFzdXJhLmlvL2p3dC9jbGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xl"
+        "cyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InVzZXIiLCJ4"
+        "LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQiOiIzNDk1MSJ9"
+        "LCJ1c2VyIjp7ImlkIjozNDk1MX19."
+        "j4MVAEi_-w2N7DuiMgAxkfVc6RuKd88AHrOyzF5xLyU",
     ),
 )
+HARDCOVER_API = HARDCOVER_API.strip()
+if not HARDCOVER_API.startswith("Bearer "):
+    msg = "HARDCOVER_API must start with 'Bearer '."
+    raise ImproperlyConfigured(msg)
 
 COMICVINE_API = config(
     "COMICVINE_API",
@@ -533,6 +568,11 @@ DAILY_DIGEST_HOUR = config(
     default=8,
     cast=int,
 )
+USER_MESSAGE_RETENTION_DAYS = config(
+    "USER_MESSAGE_RETENTION_DAYS",
+    default=30,
+    cast=int,
+)
 CELERY_BEAT_SCHEDULE = {
     "reload_calendar": {
         "task": "Reload calendar",
@@ -546,8 +586,15 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Send daily digest",
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
     },
+    "cleanup_user_messages": {
+        "task": "Cleanup user messages",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
 }
-# Allauth settings
+
+IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))
+if IS_PROD:
+    ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "X-Real-IP"
 if CSRF_TRUSTED_ORIGINS:
     # Check if all origins start with http:// or https://
     all_http = all(
@@ -611,3 +658,5 @@ if not REGISTRATION:
     ACCOUNT_ADAPTER = "users.account_adapter.NoNewUsersAccountAdapter"
 
 REDIRECT_LOGIN_TO_SSO = config("REDIRECT_LOGIN_TO_SSO", default=False, cast=bool)
+
+SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=60 * 60 * 24 * 14, cast=int)
