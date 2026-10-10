@@ -138,7 +138,7 @@ class ImportTrakt(TestCase):
             "show": {"title": "Watchlist Show", "ids": {"tmdb": 54321}},
         }
 
-        mock_make_request.return_value = [watchlist_entry]
+        mock_make_request.side_effect = [[watchlist_entry], []]
         mock_get_metadata.return_value = {
             "title": "Watchlist Show",
             "image": "show_image.jpg",
@@ -146,6 +146,11 @@ class ImportTrakt(TestCase):
 
         trakt_importer = TraktImporter("testuser", self.user, "new")
         trakt_importer.process_watchlist()
+
+        calls = mock_make_request.call_args_list
+        self.assertEqual(len(calls), 2)
+        self.assertIn("?page=1&limit=1000", calls[0].args[0])  # First page
+        self.assertIn("?page=2&limit=1000", calls[1].args[0])  # Second page
 
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.TV.value]), 1)
         tv_obj = trakt_importer.bulk_media[MediaTypes.TV.value][0]
@@ -162,7 +167,7 @@ class ImportTrakt(TestCase):
             "rating": 8,
         }
 
-        mock_make_request.return_value = [rating_entry]
+        mock_make_request.side_effect = [[rating_entry], []]
         mock_get_metadata.return_value = {
             "title": "Rated Movie",
             "image": "movie_image.jpg",
@@ -170,6 +175,11 @@ class ImportTrakt(TestCase):
 
         trakt_importer = TraktImporter("testuser", self.user, "new")
         trakt_importer.process_ratings()
+
+        calls = mock_make_request.call_args_list
+        self.assertEqual(len(calls), 2)
+        self.assertIn("?page=1&limit=1000", calls[0].args[0])  # First page
+        self.assertIn("?page=2&limit=1000", calls[1].args[0])  # Second page
 
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value]), 1)
         movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]
@@ -230,6 +240,8 @@ class ImportTrakt(TestCase):
                     "watched_at": "2023-01-01T00:00:00.000Z",
                 },
             ],
+            [],  # Empty watchlist
+            [],  # Empty ratings
             [],  # Empty comments
         ]
 
@@ -263,6 +275,8 @@ class ImportTrakt(TestCase):
                     "watched_at": "2023-01-01T00:00:00.000Z",
                 },
             ],
+            [],  # Empty watchlist
+            [],  # Empty ratings
             [],  # Empty comments
         ]
 
