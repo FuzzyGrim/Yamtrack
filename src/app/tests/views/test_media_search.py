@@ -52,4 +52,5 @@ class MediaSearchViewTests(TestCase):
             "test",
             1,
             Sources.TMDB.value,
+            show_adult_titles=True,
         )
