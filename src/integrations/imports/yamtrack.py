@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from csv import DictReader
+from io import StringIO
 
 from django.apps import apps
 from django.conf import settings
@@ -57,12 +58,12 @@ class YamtrackImporter:
     def import_data(self):
         """Import all user data from the CSV file."""
         try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
+            decoded_file = self.file.read().decode("utf-8")
         except UnicodeDecodeError as e:
             msg = "Invalid file format. Please upload a CSV file."
             raise MediaImportError(msg) from e
 
-        reader = DictReader(decoded_file)
+        reader = DictReader(StringIO(decoded_file, newline=""))
 
         for row in reader:
             try:
