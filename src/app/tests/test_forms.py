@@ -97,6 +97,7 @@ class BasicMediaForm(TestCase):
         """Test the episode form with valid data."""
         form_data = {
             "end_date": "2023-06-01",
+            "notes": "Great episode",
         }
         form = EpisodeForm(data=form_data)
         self.assertTrue(form.is_valid())
@@ -105,6 +106,7 @@ class BasicMediaForm(TestCase):
         """Test the episode form with valid data."""
         form_data = {
             "end_date": "2023-06-01T12:00:00Z",
+            "notes": "Great episode",
         }
         form = EpisodeForm(data=form_data)
         self.assertTrue(form.is_valid())

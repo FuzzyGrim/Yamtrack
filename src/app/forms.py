@@ -364,9 +364,12 @@ class EpisodeForm(forms.ModelForm):
         """Bind form to model."""
 
         model = Episode
-        fields = ("end_date",)
+        fields = ("end_date", "notes")
         widgets = {
             "end_date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(
+                attrs={"placeholder": "Add any notes or comments...", "rows": "3"},
+            ),
         }
 
     def __init__(self, *args, **kwargs):
