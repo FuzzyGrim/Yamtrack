@@ -44,7 +44,7 @@ See [media-imports](media-imports.md).
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PUID`                          | User ID for the app. Default to `1000`.                                                                                                                               |
 | `PGID`                          | Group ID for the app. Default to `1000`.                                                                                                                              |
-| `TZ`                            | Timezone (e.g., `Europe/Berlin`). Default to `UTC`.                                                                                                                   |
+| `TZ`                            | Server timezone (e.g., `Europe/Berlin`). Default to `UTC`. Only affects scheduled tasks and notification text.                                                  |
 | `WEB_CONCURRENCY`               | Number of web server processes. Default to `1`.                                                                                                                       |
 | `SOCIAL_PROVIDERS`              | Comma-separated list of social authentication providers to enable (e.g., `allauth.socialaccount.providers.openid_connect,allauth.socialaccount.providers.github`).    |
 | `SOCIALACCOUNT_PROVIDERS`       | JSON configuration for social providers. See the [Docs](social-auth.md) for an OIDC configuration example.                                                            |

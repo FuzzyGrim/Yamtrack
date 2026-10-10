@@ -798,7 +798,12 @@ class StatisticsTests(TestCase):
             {"date": datetime.date(2025, 3, 31), "count": 3},  # Last day
         ]
 
-        result = statistics.get_activity_data(self.user, start_date, end_date)
+        result = statistics.get_activity_data(
+            self.user,
+            start_date,
+            end_date,
+            datetime.UTC,
+        )
 
         # Check that the function returns the expected structure
         self.assertIn("calendar_weeks", result)
@@ -862,7 +867,12 @@ class StatisticsTests(TestCase):
             fake_model1 if name == "historicalmodel1" else fake_model2
         )
 
-        result = statistics.get_filtered_historical_data(start, end, self.user)
+        result = statistics.get_filtered_historical_data(
+            start,
+            end,
+            self.user,
+            datetime.UTC,
+        )
 
         expected = [
             {"date": datetime.date(2025, 1, 5), "count": 2},
@@ -998,6 +1008,7 @@ class GetActivityDataWeekStartTests(TestCase):
             self.user_monday,
             start_date,
             end_date,
+            datetime.UTC,
         )
 
         self.assertEqual(
@@ -1006,7 +1017,7 @@ class GetActivityDataWeekStartTests(TestCase):
         )
         # First day of first calendar week should be the aligned Monday
         first_day = result["calendar_weeks"][0][0]["date"]
-        self.assertEqual(first_day, "2024-12-30")
+        self.assertEqual(first_day, datetime.date(2024, 12, 30))
 
     @patch("app.statistics.get_filtered_historical_data")
     def test_sunday_week_start_labels_and_alignment(self, mock_get_filtered_data):
@@ -1020,6 +1031,7 @@ class GetActivityDataWeekStartTests(TestCase):
             self.user_sunday,
             start_date,
             end_date,
+            datetime.UTC,
         )
 
         self.assertEqual(
@@ -1027,4 +1039,4 @@ class GetActivityDataWeekStartTests(TestCase):
             ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         )
         first_day = result["calendar_weeks"][0][0]["date"]
-        self.assertEqual(first_day, "2024-12-29")
+        self.assertEqual(first_day, datetime.date(2024, 12, 29))

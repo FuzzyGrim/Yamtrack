@@ -74,20 +74,14 @@ def calendar(request):
         [days[sunday], *days[0:sunday]] if first_weekday == sunday else days
     )
 
-    # Get events and organize by day
-    releases = Event.objects.get_user_events(request.user, first_day, last_day)
-
-    release_dict = {}
-    for release in releases:
-        # Convert UTC datetime to user's timezone and extract day
-        local_datetime = timezone.localtime(release.datetime)
-        day = local_datetime.day
-        if day not in release_dict:
-            release_dict[day] = []
-        release_dict[day].append(release)
-
-    # Get today's date for highlighting
-    today = timezone.localdate()
+    # The browser decides which cell each release lands in, so hand it every
+    # event the month can touch: an instant near a month edge falls into an
+    # adjacent month for zones far enough from the server's.
+    releases = Event.objects.get_user_events(
+        request.user,
+        first_day - timedelta(days=1),
+        last_day + timedelta(days=1),
+    )
 
     context = {
         "calendar": calendar_format,
@@ -99,8 +93,7 @@ def calendar(request):
         "prev_year": prev_year,
         "next_month": next_month,
         "next_year": next_year,
-        "release_dict": release_dict,
-        "today": today,
+        "releases": releases,
         "view_type": view_type,
     }
     return render(request, "events/calendar.html", context)

@@ -900,7 +900,6 @@ def history_modal(
                     history,
                     media_type,
                     media_entry_number,
-                    request.user,
                 ),
             )
     return render(
@@ -949,7 +948,10 @@ def delete_history_record(request, media_type, history_id):
 @require_GET
 def statistics(request):
     """Return the statistics page."""
-    start_date, end_date = stats.parse_activity_date_range(request)
+    start_date, end_date = stats.parse_activity_date_range(
+        request,
+        stats.bucketing_timezone_from_request(request),
+    )
 
     # Get all user media data in a single operation
     user_media, media_count = stats.get_user_media(
@@ -999,7 +1001,10 @@ def statistics(request):
 @require_GET
 def journal(request):
     """Return the journal page: a global feed of the user's tracking activity."""
-    start_date, end_date = stats.parse_activity_date_range(request)
+    start_date, end_date = stats.parse_activity_date_range(
+        request,
+        stats.bucketing_timezone_from_request(request),
+    )
 
     items_per_page = 20
     # Keyset pagination: the cursor points just past the previous page's last
@@ -1013,8 +1018,7 @@ def journal(request):
         limit=items_per_page,
         cursor=cursor,
     )
-    entries = history_processor.build_journal_entries(page_rows, request.user)
-    journal_days = history_processor.build_journal_days(entries, request.user)
+    entries = history_processor.build_journal_entries(page_rows)
 
     # Preserve the active date range when the feed paginates via HTMX.
     date_params = {
@@ -1031,17 +1035,10 @@ def journal(request):
         next_params["cursor_type"] = last_type
         next_params["cursor_id"] = last_id
 
-    prev_day = request.GET.get("last_day", "")
-
     context = {
+        # Sent flat and newest-first; localTime.js inserts the day separators,
+        # because which day an entry falls on depends on the viewer.
         "entries": entries,
-        "journal_days": journal_days,
-        # The previous page's last day, so a day split across pages isn't
-        # relabelled; the last day on this page, forwarded to the next page.
-        # Falls back to prev_day when this page rendered no days, so a day that
-        # spans an all-filtered page isn't shown twice.
-        "prev_day": prev_day,
-        "last_day": journal_days[-1]["day_iso"] if journal_days else prev_day,
         "has_next": has_next,
         "next_query": urlencode(next_params),
         "filter_query": urlencode(date_params),
@@ -1049,8 +1046,8 @@ def journal(request):
         "end_date": end_date,
     }
 
-    # The activity dashboard only appears on the full page, so skip its queries
-    # on the HTMX partial requests that load additional feed pages. Soft
+    # The activity dashboard is fetched separately (it needs the viewer's
+    # timezone), so the feed's own pagination requests skip it. Soft
     # navigations (body swaps) still need the full page.
     if request.headers.get("HX-Request") and not request.headers.get(
         "X-Soft-Navigation"
@@ -1059,11 +1056,6 @@ def journal(request):
 
     context.update(
         {
-            "activity_data": stats.get_activity_data(
-                request.user,
-                start_date,
-                end_date,
-            ),
             "activity_total": history_processor.get_journal_count(
                 request.user,
                 start_date,
@@ -1073,6 +1065,36 @@ def journal(request):
         },
     )
     return render(request, "app/journal.html", context)
+
+
+@require_GET
+def journal_activity(request):
+    """Return the activity dashboard, bucketed on the viewer's timezone.
+
+    Split out of the journal page because it is the only part of the site the
+    browser cannot localize itself: the per-day counts, streaks and week
+    columns are aggregated before the response exists.
+    """
+    bucketing_timezone = stats.bucketing_timezone_from_request(request)
+    start_date, end_date = stats.parse_activity_date_range(request, bucketing_timezone)
+
+    return render(
+        request,
+        "app/components/journal_activity.html",
+        {
+            "activity_data": stats.get_activity_data(
+                request.user,
+                start_date,
+                end_date,
+                bucketing_timezone,
+            ),
+            "activity_total": history_processor.get_journal_count(
+                request.user,
+                start_date,
+                end_date,
+            ),
+        },
+    )
 
 
 @require_GET

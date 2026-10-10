@@ -1,3 +1,4 @@
+import datetime
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -1148,3 +1149,40 @@ class NotificationTests(TestCase):
 
         # Verify the result message
         self.assertEqual(result, "Daily digest sent for 5 releases")
+
+
+class NotificationTimezoneTests(TestCase):
+    """Notification text names the zone it is written in.
+
+    These have no browser to localize them, so the server's timezone decides --
+    that is what TZ is for. Naming it stops a bare "14:00" being read as the
+    recipient's local time.
+    """
+
+    def setUp(self):
+        """Create an event at a known instant."""
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Test Anime",
+        )
+        self.event = Event.objects.create(
+            item=item,
+            content_number=5,
+            datetime=datetime.datetime(2026, 1, 17, 22, 25, tzinfo=datetime.UTC),
+        )
+
+    @override_settings(TIME_ZONE="Europe/Paris")
+    def test_time_is_labelled_with_the_server_zone(self):
+        """A reader can tell which clock the time belongs to."""
+        timezone.deactivate()
+
+        self.assertIn("(23:25 CET)", format_notification([self.event]))
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_utc_deployments_say_so(self):
+        """The default deployment labels its times too."""
+        timezone.deactivate()
+
+        self.assertIn("(22:25 UTC)", format_notification([self.event]))

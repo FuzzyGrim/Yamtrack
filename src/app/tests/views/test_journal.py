@@ -208,14 +208,25 @@ class JournalViewTests(TestCase):
         items = {entry["item"] for entry in response.context["entries"]}
         self.assertNotIn(other_item, items)
 
-    def test_journal_context_has_activity_dashboard(self):
-        """The journal exposes the activity dashboard data and date range."""
+    def test_journal_context_has_activity_total(self):
+        """The journal page still carries the totals and the date range."""
         response = self.client.get(reverse("journal"))
 
-        self.assertIn("activity_data", response.context)
-        self.assertIn("stats", response.context["activity_data"])
         self.assertGreater(response.context["activity_total"], 0)
         self.assertIn("date_format_values", response.context)
+        # The dashboard itself is fetched separately, with the viewer's zone.
+        self.assertNotIn("activity_data", response.context)
+
+    def test_activity_dashboard_is_its_own_request(self):
+        """The dashboard endpoint returns the aggregated data."""
+        response = self.client.get(
+            reverse("journal_activity"),
+            {"tz": "Europe/Paris"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("stats", response.context["activity_data"])
+        self.assertGreater(response.context["activity_total"], 0)
 
     def test_journal_date_range_excludes_activity(self):
         """A past date range with no activity yields an empty feed."""
@@ -247,43 +258,17 @@ class JournalViewTests(TestCase):
             "start-date=all&end-date=all",
         )
 
-    def test_journal_groups_entries_by_day(self):
-        """Entries are grouped into day buckets labelled Today/Yesterday."""
+    def test_journal_sends_instants_not_day_buckets(self):
+        """Entries go out flat with their instants; localTime.js groups them.
+
+        Which day an entry falls on -- and whether that day is "Today" --
+        depends on the viewer, so the server does not decide it.
+        """
         response = self.client.get(reverse("journal"))
 
-        labels = [day["label"] for day in response.context["journal_days"]]
-        self.assertEqual(labels, ["Today"])
-        self.assertContains(response, "Today")
-
-    def test_journal_day_header_not_repeated_across_pages(self):
-        """A day continued on the next page suppresses its repeated header."""
-        # Next page continuing the same day as the previous page's last entry.
-        response = self.client.get(
-            reverse("journal") + f"?last_day={timezone.localdate().isoformat()}",
-            headers={"HX-Request": "true"},
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["prev_day"], timezone.localdate().isoformat())
-
-    def test_journal_empty_page_forwards_prev_day(self):
-        """A page that renders no days forwards the incoming day, not ''."""
-        # A far-future cursor yields no rows, so last_day must fall back to the
-        # incoming day rather than reset to "" and duplicate the header later.
-        today = timezone.localdate().isoformat()
-        # A cursor older than every row returns nothing after it, so the page
-        # is empty and last_day must fall back to the incoming day.
-        response = self.client.get(
-            reverse("journal")
-            + "?cursor_date=2000-01-01T00:00:00%2B00:00"
-            + f"&cursor_type={MediaTypes.MOVIE.value}&cursor_id=1"
-            + f"&last_day={today}",
-            headers={"HX-Request": "true"},
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context["entries"]), 0)
-        self.assertEqual(response.context["last_day"], today)
+        self.assertNotIn("journal_days", response.context)
+        self.assertGreater(len(response.context["entries"]), 0)
+        self.assertContains(response, "data-journal-instant=")
 
     def test_journal_keyset_pagination_covers_all_rows(self):
         """Following the cursor yields every entry exactly once."""

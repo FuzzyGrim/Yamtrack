@@ -253,14 +253,14 @@
               {% if current_instance.start_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Started:</span>
-                  <span class="text-gray-200">{{ current_instance.start_date|datetime_format:user }}</span>
+                  <span class="text-gray-200">{{ current_instance.start_date|datetime_format }}</span>
                 </div>
               {% endif %}
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Ended:</span>
-                  <span class="text-gray-200">{{ current_instance.end_date|datetime_format:user }}</span>
+                  <span class="text-gray-200">{{ current_instance.end_date|datetime_format }}</span>
                 </div>
               {% endif %}
 
@@ -380,9 +380,9 @@
                 <h3 class="text-xs font-semibold text-gray-400 uppercase shrink-0 mt-0.5">{{ key|no_underscore }}</h3>
                 <div class="text-sm text-gray-200 text-right">
                   {% if value|is_list %}
-                    {% for item in value %}<p>{{ item|iso_date_format:request.user }}</p>{% endfor %}
+                    {% for item in value %}<p>{{ item|detail_value:request.user }}</p>{% endfor %}
                   {% else %}
-                    <p>{{ value|default_if_none:"Unknown"|iso_date_format:request.user }}</p>
+                    <p>{{ value|default_if_none:"Unknown"|detail_value:request.user }}</p>
                   {% endif %}
                 </div>
               </div>
@@ -520,11 +520,11 @@
                   {% if user_media.start_date or user_media.end_date %}
                     <p class="text-xs text-gray-400 mt-0.5">
                       {% if user_media.start_date and user_media.end_date %}
-                        {{ user_media.start_date|datetime_format:user }} – {{ user_media.end_date|datetime_format:user }}
+                        {{ user_media.start_date|datetime_format }} – {{ user_media.end_date|datetime_format }}
                       {% elif user_media.start_date %}
-                        Started {{ user_media.start_date|datetime_format:user }}
+                        Started {{ user_media.start_date|datetime_format }}
                       {% else %}
-                        Finished {{ user_media.end_date|datetime_format:user }}
+                        Finished {{ user_media.end_date|datetime_format }}
                       {% endif %}
                     </p>
                   {% endif %}
@@ -661,7 +661,7 @@
                         <p class="text-xs text-gray-400 mt-2 px-4">
                           Last watched:
                           {% if episode.history.0.end_date %}
-                            {{ episode.history.0.end_date|datetime_format:user }}
+                            {{ episode.history.0.end_date|datetime_format }}
                           {% else %}
                             No date provided
                           {% endif %}

@@ -255,7 +255,7 @@ def get_publish_date(response):
                 parsed_date = datetime.strptime(publish_date, date_format).replace(
                     tzinfo=ZoneInfo("UTC"),
                 )
-                return parsed_date.strftime("%Y-%m-%d")
+                return parsed_date.date().isoformat()
             except ValueError:
                 continue
         # If no format matches, return the original string

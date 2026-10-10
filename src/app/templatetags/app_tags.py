@@ -1,9 +1,11 @@
+import datetime
+from datetime import UTC
 from pathlib import Path
 
 from django import template
 from django.conf import settings
 from django.urls import reverse
-from django.utils import formats, timezone
+from django.utils import formats
 from django.utils.dateparse import parse_date
 from django.utils.html import format_html
 from unidecode import unidecode
@@ -62,26 +64,58 @@ def slug(arg1):
     return cleaned
 
 
-@register.filter
-def date_format(datetime, user):
-    """Format a datetime using user's preferred date format (date only, no time).
+def _utc_time_element(value, kind):
+    """Render an instant as UTC markup for the browser to localize.
 
-    Args:
-        datetime: The datetime object to format
-        user: User object to get preferred date format
+    The server never decides which wall clock a viewer is on: it emits the UTC
+    instant and tags the element with the format wanted, and ``localTime.js``
+    rewrites the text using the browser's own timezone.
+
+    The text is the same ISO instant as the attribute rather than anything
+    formatted: choosing a human format is the browser's job, and a server-side
+    one would render the *server's* wall clock in the user's preferred style,
+    making a wrong time look like a right one. CSS hides the element until the
+    script has rewritten it, so this is only ever seen without JavaScript.
     """
-    if not datetime:
-        return None
-    local_dt = timezone.localtime(datetime)
-    return formats.date_format(local_dt, user.date_format)
+    if not value:
+        return ""
+
+    utc_value = value.astimezone(UTC).isoformat()
+    return format_html(
+        '<time datetime="{}" data-yt="{}">{}</time>',
+        utc_value,
+        kind,
+        utc_value,
+    )
+
+
+@register.filter
+def utc_iso(value):
+    """Render an instant as a bare UTC timestamp, for datetime attributes."""
+    if not value:
+        return ""
+    return value.astimezone(UTC).isoformat()
+
+
+@register.filter
+def date_format(value):
+    """Render a datetime for the browser to show as a date."""
+    return _utc_time_element(value, "date")
 
 
 @register.filter
 def iso_date_format(value, user):
-    """Format an ISO date string (YYYY-MM-DD) using user's preferred date format.
+    """Format a date, or an ISO date string, using the user's date format.
 
-    If value is not a valid ISO date string, returns the original value.
+    A bare date has no timezone to convert, so this one stays on the server --
+    it is the only place the server still formats a date for display.
+
+    If value is neither a date nor a valid ISO date string, it is returned
+    unchanged.
     """
+    if isinstance(value, datetime.date) and not isinstance(value, datetime.datetime):
+        return formats.date_format(value, user.date_format)
+
     if isinstance(value, str):
         date_obj = parse_date(value)
         if date_obj:
@@ -91,33 +125,29 @@ def iso_date_format(value, user):
 
 
 @register.filter
-def time_format(datetime, user):
-    """Format a datetime using user's preferred time format (time only, no date)."""
-    if not datetime:
-        return None
-    local_dt = timezone.localtime(datetime)
-    return formats.time_format(local_dt, user.time_format)
+def detail_value(value, user):
+    """Render one provider metadata detail.
+
+    Most are plain strings or bare dates the server can format, but an instant
+    (an anime's broadcast slot) has to be localized in the browser like every
+    other timestamp -- including which weekday it lands on.
+    """
+    if isinstance(value, datetime.datetime):
+        return _utc_time_element(value, "weekday-time")
+
+    return iso_date_format(value, user)
 
 
 @register.filter
-def datetime_format(datetime, user):
-    """Format a datetime using user's preferred formats.
+def time_format(value):
+    """Render a datetime for the browser to show as a time."""
+    return _utc_time_element(value, "time")
 
-    Includes time only if TRACK_TIME setting is enabled.
 
-    Args:
-        datetime: The datetime object to format
-        user: User object to get preferred date/time format
-    """
-    if not datetime:
-        return None
-    local_dt = timezone.localtime(datetime)
-    formatted_date = formats.date_format(local_dt, user.date_format)
-
-    if settings.TRACK_TIME:
-        formatted_time = formats.time_format(local_dt, user.time_format)
-        return f"{formatted_date} {formatted_time}"
-    return formatted_date
+@register.filter
+def datetime_format(value):
+    """Render a datetime for the browser to show as a date and time."""
+    return _utc_time_element(value, "datetime")
 
 
 @register.filter
@@ -260,25 +290,13 @@ def status_background_color(status):
 
 
 @register.filter
-def natural_day(datetime, user):
-    """Format date with natural language (Today, Tomorrow, etc.)."""
-    if not datetime:
-        return None
+def natural_day(value):
+    """Render a datetime the browser shows as Today/Tomorrow plus a time.
 
-    today = timezone.localdate()
-
-    local_dt = timezone.localtime(datetime)
-    datetime_date = local_dt.date()
-    formatted_date = formats.date_format(local_dt, user.date_format)
-    formatted_time = formats.time_format(local_dt, user.time_format)
-    days = (datetime_date - today).days
-
-    if days == 0:
-        return f"Today {formatted_time}"
-    if days == 1:
-        return f"Tomorrow {formatted_time}"
-
-    return f"{formatted_date} {formatted_time}"
+    Which day "today" is depends on the viewer, so the comparison belongs in
+    the browser alongside the formatting.
+    """
+    return _utc_time_element(value, "natural-day")
 
 
 @register.filter

@@ -1,36 +1,34 @@
 {% load app_tags %}
-{% load events_tags %}
 
-<div class="space-y-6">
-  {% for day, releases in release_dict.items %}
-    <div class="bg-[#343a40] rounded-lg overflow-hidden">
-      <div class="px-4 py-3 font-medium flex items-center justify-between {% if day == today.day and month == today.month and year == today.year %}bg-indigo-600{% else %}bg-gray-600{% endif %}">
-        <span>{% day_of_week day month year %}, {{ month_name }} {{ day }}</span>
-        {% if day == today.day and month == today.month and year == today.year %}
-          <span class="text-sm bg-white text-indigo-600 px-2 py-0.5 rounded-full">Today</span>
-        {% endif %}
-      </div>
+{% comment %}
+  Sections are built by localTime.js: which day a release falls on, and which
+  day is today, are the viewer's questions.
+{% endcomment %}
+<div class="space-y-6"
+     data-calendar-list
+     data-month="{{ month }}"
+     data-year="{{ year }}"
+     data-month-name="{{ month_name }}"></div>
 
-      <div class="p-4 space-y-3">
-        {% for release in releases %}
-          <a href="{{ release.item|media_url }}" class="block">
-            <div class="flex items-center gap-3 p-2 rounded-md hover:bg-[#454d5a] transition-colors">
-              <img alt="{{ release }}"
-                   class="w-10 h-10 object-cover rounded-md shrink-0"
-                   src="{{ release.item.image }}">
-              <div class="flex-1 min-w-0">
-                <h4 class="font-medium text-sm line-clamp-1">{{ release.item }}</h4>
-                <div class="flex items-center">
-                  <span class="text-xs text-gray-400 me-2">{{ release.item.media_type|media_type_readable }}</span>
-                  {% if release.readable_content_number %}
-                    <span class="text-xs text-indigo-400">{{ release.readable_content_number }} at {{ release.datetime|time_format:user }}</span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          </a>
-        {% endfor %}
+<template data-calendar-releases>
+  {% for release in releases %}
+    <a href="{{ release.item|media_url }}"
+       class="block"
+       data-release-instant="{{ release.datetime|utc_iso }}">
+      <div class="flex items-center gap-3 p-2 rounded-md hover:bg-[#454d5a] transition-colors">
+        <img alt="{{ release }}"
+             class="w-10 h-10 object-cover rounded-md shrink-0"
+             src="{{ release.item.image }}">
+        <div class="flex-1 min-w-0">
+          <h4 class="font-medium text-sm line-clamp-1">{{ release.item }}</h4>
+          <div class="flex items-center">
+            <span class="text-xs text-gray-400 me-2">{{ release.item.media_type|media_type_readable }}</span>
+            {% if release.readable_content_number %}
+              <span class="text-xs text-indigo-400">{{ release.readable_content_number }} at {{ release.datetime|time_format }}</span>
+            {% endif %}
+          </div>
+        </div>
       </div>
-    </div>
+    </a>
   {% endfor %}
-</div>
+</template>

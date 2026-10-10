@@ -1,12 +1,12 @@
 import logging
 from collections import defaultdict
 from csv import DictReader
-from datetime import datetime
 
 from django.apps import apps
 from django.utils import timezone
 
 import app
+import app.helpers
 from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from integrations.imports import helpers
@@ -229,12 +229,8 @@ class GoodReadsImporter:
         if not date_str:
             return None
 
-        return datetime.strptime(date_str, "%Y/%m/%d").replace(
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
-        )
+        # GoodReads uses slashes; the helper takes ISO.
+        return app.helpers.date_only_instant(date_str.replace("/", "-"))
 
     def _create_media_instance(self, item, row):
         """Create media instance with all parameters."""

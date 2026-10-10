@@ -1,3 +1,4 @@
+import datetime
 import logging
 from collections import defaultdict
 from datetime import UTC
@@ -342,12 +343,6 @@ class AniListImporter:
         month = date_dict["month"] or 1
         day = date_dict["day"] or 1
 
-        return timezone.datetime(
-            year=date_dict["year"],
-            month=month,
-            day=day,
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
+        return app_helpers.date_only_instant(
+            datetime.date(date_dict["year"], month, day),
         )

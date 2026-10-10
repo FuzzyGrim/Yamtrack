@@ -402,6 +402,26 @@ class UserResolveWatchDateTests(TestCase):
 
         self.assertEqual(result, self.release_date)
 
+    def test_resolve_watch_date_anchors_a_provider_day_string(self):
+        """Providers give bare days, which have to become an instant.
+
+        Passing the string through let Django localize a naive midnight, which
+        warned and landed a day early for viewers west of the server.
+        """
+        self.user.quick_watch_date = self.QuickWatchDateChoices.RELEASE_DATE
+        self.user.save()
+
+        result = self.user.resolve_watch_date(self.now, "2008-01-20")
+
+        self.assertEqual(result, datetime(2008, 1, 20, 12, tzinfo=UTC))
+
+    def test_resolve_watch_date_ignores_an_unusable_release_date(self):
+        """Metadata without a usable date yields nothing to store."""
+        self.user.quick_watch_date = self.QuickWatchDateChoices.RELEASE_DATE
+        self.user.save()
+
+        self.assertIsNone(self.user.resolve_watch_date(self.now, "not a date"))
+
     def test_resolve_watch_date_release_date_none(self):
         """Test resolve_watch_date returns None when release_date is None."""
         self.user.quick_watch_date = self.QuickWatchDateChoices.RELEASE_DATE

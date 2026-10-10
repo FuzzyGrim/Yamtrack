@@ -55,7 +55,13 @@ class CalendarViewTests(TestCase):
         else:
             last_day = date(today.year, today.month + 1, 1) - timedelta(days=1)
 
-        mock_get_user_events.assert_called_once_with(self.user, first_day, last_day)
+        # A day either side of the month: a month-edge instant belongs to an
+        # adjacent month for viewers far enough from the server's zone.
+        mock_get_user_events.assert_called_once_with(
+            self.user,
+            first_day - timedelta(days=1),
+            last_day + timedelta(days=1),
+        )
 
         # Check context data
         self.assertEqual(response.context["month"], today.month)
@@ -65,7 +71,8 @@ class CalendarViewTests(TestCase):
             calendar.month_name[today.month],
         )
         self.assertEqual(response.context["view_type"], "month")
-        self.assertEqual(response.context["today"], today)
+        # Which day is "today" depends on the viewer, so localTime.js marks it.
+        self.assertNotIn("today", response.context)
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
@@ -92,7 +99,11 @@ class CalendarViewTests(TestCase):
         # Verify date range for June 2024
         first_day = date(2024, 6, 1)
         last_day = date(2024, 7, 1) - timedelta(days=1)
-        mock_get_user_events.assert_called_once_with(self.user, first_day, last_day)
+        mock_get_user_events.assert_called_once_with(
+            self.user,
+            first_day - timedelta(days=1),
+            last_day + timedelta(days=1),
+        )
 
         # Check context data
         self.assertEqual(response.context["month"], 6)
@@ -257,11 +268,11 @@ class CalendarViewTests(TestCase):
         # Check response
         self.assertEqual(response.status_code, 200)
 
-        # Check release_dict in context
-        release_dict = response.context["release_dict"]
-        self.assertEqual(len(release_dict), 2)  # Two days with events
-        self.assertEqual(len(release_dict[15]), 2)  # Two events on the 15th
-        self.assertEqual(len(release_dict[20]), 1)  # One event on the 20th
+        # Releases go out flat with their instants; which day cell each lands
+        # in is decided in the browser, against the viewer's timezone.
+        self.assertNotIn("release_dict", response.context)
+        self.assertEqual(len(response.context["releases"]), 3)
+        self.assertContains(response, "data-release-instant=")
 
     @patch("events.tasks.reload_calendar.delay")
     def test_reload_calendar(self, mock_reload_task):
