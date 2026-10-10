@@ -183,7 +183,7 @@
 
           {# User score #}
           {% if user_medias %}
-            <div x-data="{ showRatingPopup: false, rating: {{ current_instance.score|default:'null' }}, hoverRating: null, isHovering: false }"
+            <div x-data="{ showRatingPopup: false, rating: {{ current_instance.formatted_newest_score|default:'null' }}, hoverRating: null, isHovering: false }"
                  class="relative">
               <!-- Rating display -->
               <div @click="showRatingPopup = !showRatingPopup"
@@ -559,19 +559,8 @@
             <div class="space-y-6">
               {% for episode in media.episodes %}
                 <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-                  <div class="flex flex-col md:flex-row" x-data="{ obfuscated:
-                    {% if user.obfuscate_unseen_episodes and not episode.history %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    , hasImage:
-                    {% if episode.image != IMG_NONE %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    }">
+                  <div class="flex flex-col md:flex-row"
+                       x-data="{ obfuscated: {% if user.obfuscate_unseen_episodes and not episode.history %} true {% else %} false {% endif %} , hasImage: {% if episode.image != IMG_NONE %} true {% else %} false {% endif %} }">
                     <img src="{{ IMG_NONE }}"
                          alt="E{{ episode.episode_number }}"
                          data-src="{{ episode.image }}"
