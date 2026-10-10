@@ -34,6 +34,9 @@ from app.mixins import CalendarTriggerMixin
 
 logger = logging.getLogger(__name__)
 
+# Media tracked by percentage is complete at 100.
+PERCENTAGE_MAX_PROGRESS = 100
+
 
 class Sources(models.TextChoices):
     """Choices for the source of the item."""
@@ -563,7 +566,11 @@ class MediaManager(models.Manager):
                 max_progress_dict[item_id] = max(current_max, content_number)
 
         for media in media_list:
-            media.max_progress = max_progress_dict.get(media.item.id)
+            # Percentage scales to 100, not pages.
+            if media.get_progress_unit() == ProgressUnit.PERCENTAGE:
+                media.max_progress = PERCENTAGE_MAX_PROGRESS
+            else:
+                media.max_progress = max_progress_dict.get(media.item.id)
 
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
@@ -768,6 +775,13 @@ class MediaManager(models.Manager):
         return params
 
 
+class ProgressUnit(models.TextChoices):
+    """Choices for progress measurement units."""
+
+    PAGES = "pages", "Pages"
+    PERCENTAGE = "percentage", "Percentage"
+
+
 class Status(models.TextChoices):
     """Choices for item status."""
 
@@ -824,6 +838,8 @@ class UserMessage(models.Model):
 class Media(models.Model):
     """Abstract model for all media types."""
 
+    _disable_user_messages = False  # Set by disable_user_messages()
+
     history = HistoricalRecords(
         cascade_delete_history=True,
         inherit=True,
@@ -873,7 +889,7 @@ class Media(models.Model):
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
-        if self.tracker.has_changed("progress"):
+        if self.tracker.has_changed("progress") or self.progress_unit_changed():
             self.process_progress()
 
         if self.tracker.has_changed("status"):
@@ -887,6 +903,11 @@ class Media(models.Model):
         if message_context and not message.startswith(message_context):
             message = f"{message_context} {message}"
 
+        if self._disable_user_messages:
+            # Bulk work reports through its own summary.
+            logger.info("Skipping user message for %s: %s", self.user, message)
+            return
+
         logger.info("Creating user message for %s: %s", self.user, message)
 
         UserMessage.objects.create(
@@ -895,34 +916,61 @@ class Media(models.Model):
             message=message,
         )
 
-    def process_progress(self):
-        """Update fields depending on the progress of the media."""
-        if self.progress < 0:
-            self.progress = 0
-        elif self.status == Status.IN_PROGRESS.value:
-            max_progress = providers.services.get_media_metadata(
+    def get_progress_unit(self):
+        """Return the progress unit, or None."""
+        return
+
+    def progress_unit_changed(self):
+        """Return whether the recorded unit changed."""
+        return False
+
+    def get_max_progress(self):
+        """Return the value that means complete."""
+        if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
+            return PERCENTAGE_MAX_PROGRESS
+
+        try:
+            metadata = providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
                 self.item.source,
-            )["max_progress"]
+            )
+        except providers.services.ProviderAPIError:
+            # Keep the edit; the cap is optional.
+            self.create_user_message(
+                "was saved without checking its total because the provider "
+                "did not respond.",
+                level=UserMessageLevel.WARNING,
+            )
+            return None
 
-            if max_progress:
-                self.progress = min(self.progress, max_progress)
+        return metadata["max_progress"]
 
-                if self.progress == max_progress:
-                    self.status = Status.COMPLETED.value
+    def process_progress(self):
+        """Update fields depending on the progress of the media."""
+        self.progress = max(self.progress, 0)
 
-                    now = timezone.now().replace(second=0, microsecond=0)
-                    self.end_date = now
+        # Out of range in any status.
+        if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
+            self.progress = min(self.progress, PERCENTAGE_MAX_PROGRESS)
+
+        if self.status != Status.IN_PROGRESS.value:
+            return
+
+        max_progress = self.get_max_progress()
+        if not max_progress:
+            return
+
+        self.progress = min(self.progress, max_progress)
+
+        if self.progress == max_progress:
+            self.status = Status.COMPLETED.value
+            self.end_date = timezone.now().replace(second=0, microsecond=0)
 
     def process_status(self):
         """Update fields depending on the status of the media."""
         if self.status == Status.COMPLETED.value:
-            max_progress = providers.services.get_media_metadata(
-                self.item.media_type,
-                self.item.media_id,
-                self.item.source,
-            )["max_progress"]
+            max_progress = self.get_max_progress()
 
             if max_progress:
                 self.progress = max_progress
@@ -942,8 +990,12 @@ class Media(models.Model):
 
     @property
     def formatted_progress(self):
-        """Return the progress of the media in a formatted string."""
-        return str(self.progress)
+        """Return progress, with the max when annotated."""
+        display = str(self.progress)
+        max_progress = getattr(self, "max_progress", None)
+        if max_progress and self.item.media_type != MediaTypes.MOVIE.value:
+            display += f" / {max_progress}"
+        return display
 
     def increase_progress(self):
         """Increase the progress of the media by one."""
@@ -1919,6 +1971,38 @@ class Book(Media):
     """Model for books."""
 
     tracker = FieldTracker()
+
+    # Unit of the stored progress, never inherited.
+    progress_unit = models.CharField(
+        max_length=20,
+        choices=ProgressUnit,
+        default=ProgressUnit.PAGES,
+    )
+
+    class Meta(Media.Meta):
+        """Meta options for the model."""
+
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(progress_unit__in=ProgressUnit.values),
+                name="%(app_label)s_%(class)s_progress_unit_valid",
+            ),
+        ]
+
+    @property
+    def formatted_progress(self):
+        """Return "N%", else the base form."""
+        if self.get_progress_unit() == ProgressUnit.PERCENTAGE:
+            return f"{self.progress}%"
+        return super().formatted_progress
+
+    def get_progress_unit(self):
+        """Return the book's recorded unit."""
+        return self.progress_unit
+
+    def progress_unit_changed(self):
+        """Return whether the recorded unit changed."""
+        return self.tracker.has_changed("progress_unit")
 
 
 class Comic(Media):

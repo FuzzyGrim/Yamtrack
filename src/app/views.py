@@ -558,24 +558,29 @@ def track_modal(
 ):
     """Return the tracking form for a media item."""
     instance_id = request.GET.get("instance_id")
+    # Only books read the max_progress annotation.
+    if media_type == MediaTypes.BOOK.value:
+        get_media = BasicMedia.objects.get_media_prefetch
+        filter_media = BasicMedia.objects.filter_media_prefetch
+    else:
+        get_media = BasicMedia.objects.get_media
+        filter_media = BasicMedia.objects.filter_media
+
     if instance_id:
-        media = BasicMedia.objects.get_media(
-            request.user,
-            media_type,
-            instance_id,
-        )
+        media = get_media(request.user, media_type, instance_id)
     elif request.GET.get("is_create"):
         media = None
     else:
         # no specific instance, try to find the first one
-        user_medias = BasicMedia.objects.filter_media(
+        user_medias = filter_media(
             request.user,
             media_id,
             media_type,
             source,
             season_number=season_number,
         )
-        media = user_medias.first()
+        # Annotations live on the cached instances.
+        media = user_medias[0] if user_medias else None
         if media:
             instance_id = media.id
 
@@ -591,17 +596,24 @@ def track_modal(
         title = media.item
         if media_type == MediaTypes.GAME.value:
             initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
+        max_progress = getattr(media, "max_progress", None)
     else:
-        title = services.get_media_metadata(
+        metadata = services.get_media_metadata(
             media_type,
             media_id,
             source,
             [season_number],
-        )["title"]
+        )
+        title = metadata["title"]
+        max_progress = metadata.get("max_progress")
         if media_type == MediaTypes.SEASON.value:
             title += f" S{season_number}"
 
-    form = get_form_class(media_type)(instance=media, initial=initial_data)
+    form = get_form_class(media_type)(
+        instance=media,
+        initial=initial_data,
+        user=request.user,
+    )
 
     return render(
         request,
@@ -610,6 +622,8 @@ def track_modal(
             "title": title,
             "form": form,
             "media": media,
+            "media_type": media_type,
+            "max_progress": max_progress,
             "return_url": request.GET["return_url"],
         },
     )
@@ -648,7 +662,7 @@ def media_save(request):
 
     # Validate the form and save the instance if it's valid
     form_class = get_form_class(media_type)
-    form = form_class(request.POST, instance=instance)
+    form = form_class(request.POST, instance=instance, user=request.user)
     if form.is_valid():
         form.save()
         logger.info("%s saved successfully.", form.instance)
@@ -783,7 +797,7 @@ def create_entry(request):
     # Prepare and validate the media form
     updated_request = request.POST.copy()
     updated_request.update({"source": item.source, "media_id": item.media_id})
-    media_form = get_form_class(item.media_type)(updated_request)
+    media_form = get_form_class(item.media_type)(updated_request, user=request.user)
 
     if not media_form.is_valid():
         # Handle media form validation errors

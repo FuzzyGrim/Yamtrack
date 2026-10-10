@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -7,10 +8,12 @@ from django.urls import reverse
 from app.models import (
     TV,
     Anime,
+    Book,
     Episode,
     Item,
     MediaTypes,
     Movie,
+    ProgressUnit,
     Season,
     Sources,
     Status,
@@ -54,6 +57,66 @@ class CreateMedia(TestCase):
         self.assertEqual(
             Anime.objects.filter(item__media_id="1", user=self.user).exists(),
             True,
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_create_book_with_percentage(self, mock_metadata):
+        """Test creating a book tracked by percentage."""
+        mock_metadata.return_value = {
+            "max_progress": 300,
+            "title": "Test Book",
+            "image": "http://example.com/image.jpg",
+        }
+        Item.objects.create(
+            media_id="book1",
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Test Book",
+        )
+        self.client.post(
+            reverse("media_save"),
+            {
+                "media_id": "book1",
+                "source": Sources.OPENLIBRARY.value,
+                "media_type": MediaTypes.BOOK.value,
+                "status": Status.IN_PROGRESS.value,
+                "progress": 40,
+                "progress_unit": ProgressUnit.PERCENTAGE,
+            },
+        )
+
+        book = Book.objects.get(item__media_id="book1", user=self.user)
+        self.assertEqual(book.progress_unit, ProgressUnit.PERCENTAGE)
+        self.assertEqual(book.progress, 40)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_create_book_rejects_percentage_over_100(self, mock_metadata):
+        """Test a percentage above 100 is rejected."""
+        mock_metadata.return_value = {
+            "max_progress": 300,
+            "title": "Test Book",
+            "image": "http://example.com/image.jpg",
+        }
+        Item.objects.create(
+            media_id="book2",
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Test Book",
+        )
+        self.client.post(
+            reverse("media_save"),
+            {
+                "media_id": "book2",
+                "source": Sources.OPENLIBRARY.value,
+                "media_type": MediaTypes.BOOK.value,
+                "status": Status.IN_PROGRESS.value,
+                "progress": 150,
+                "progress_unit": ProgressUnit.PERCENTAGE,
+            },
+        )
+
+        self.assertFalse(
+            Book.objects.filter(item__media_id="book2", user=self.user).exists(),
         )
 
     @override_settings(MEDIA_ROOT=("create_media"))
