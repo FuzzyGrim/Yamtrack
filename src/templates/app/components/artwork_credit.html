@@ -1,0 +1,12 @@
+{% if artwork %}
+  <details class="text-xs text-gray-400 mt-2 break-words text-left" {% if expanded %}open{% endif %}>
+    <summary class="cursor-pointer">Image credit</summary>
+    <p><a href="{{ artwork.source_url }}" rel="noopener noreferrer" target="_blank" class="underline">{{ artwork.title }}</a>{% if artwork.artist %} by {{ artwork.artist }}{% endif %}</p>
+    {% if artwork.credit %}<p>{{ artwork.credit }}</p>{% endif %}
+    {% if artwork.attribution %}<p>{{ artwork.attribution }}</p>{% endif %}
+    {% if artwork.permission %}<p>{{ artwork.permission }}</p>{% endif %}
+    {% if artwork.notices %}<p>{{ artwork.notices }}</p>{% endif %}
+    {% if artwork.article_url %}<p><a href="{{ artwork.article_url }}" rel="noopener noreferrer" target="_blank" class="underline">Wikipedia article</a></p>{% endif %}
+    <a href="{{ artwork.license_url }}" rel="noopener noreferrer" target="_blank" class="underline">{{ artwork.license }}</a>
+  </details>
+{% endif %}

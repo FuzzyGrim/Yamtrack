@@ -137,6 +137,37 @@ class NotificationTests(TestCase):
         self.assertNotContains(response, "Test Anime")
         self.assertContains(response, "Test Manga")
 
+    def test_stage_thumbnails_in_search_and_exclusions(self):
+        """Stage artwork does not hide thumbnails in notification settings."""
+        item = Item.objects.create(
+            media_id="Q19320959",
+            source=Sources.WIKIDATA.value,
+            media_type=MediaTypes.STAGE.value,
+            title="Hamilton",
+            image="https://upload.wikimedia.org/wikipedia/en/hamilton.jpg",
+            stage_forms=["musical"],
+            stage_artwork={"schema": "stage-artwork-1", "work_id": "Q19320959"},
+        )
+        thumbnail = (
+            f'<img alt="Hamilton" class="w-8 h-10 object-cover rounded mr-2" '
+            f'src="{item.image}">'
+        )
+        response = self.client.get(
+            reverse("search_notification_items"),
+            {"q": "Hamilton"},
+            headers={"hx-request": "true"},
+        )
+        self.assertContains(response, thumbnail, html=True)
+        response = self.client.post(
+            reverse("exclude_notification_item"),
+            {"item_id": item.id},
+            headers={"hx-request": "true"},
+        )
+        self.assertContains(response, thumbnail, html=True)
+        self.assertTrue(
+            self.user.notification_excluded_items.filter(pk=item.pk).exists()
+        )
+
     def test_search_items_short_query(self):
         """Test searching with a query that's too short."""
         response = self.client.get(

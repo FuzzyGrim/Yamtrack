@@ -15,8 +15,9 @@
              class="group relative flex gap-4 bg-[#2a2f35] rounded-xl p-3 ring-1 ring-white/5 hover:ring-indigo-500/40 hover:bg-[#30363d] transition-all duration-200">
       <a href="{{ entry.item|media_url }}" class="relative shrink-0">
         <img alt="{{ entry.item.title }}"
-             class="lazyload w-30 aspect-2/3 rounded-lg object-cover bg-[#3e454d] shadow-md group-hover:opacity-90 transition-opacity"
+             class="lazyload w-30 aspect-2/3 rounded-lg {% if entry.item.stage_artwork %}object-contain{% else %}object-cover{% endif %} bg-[#3e454d] shadow-md group-hover:opacity-90 transition-opacity"
              data-src="{{ entry.item.image }}"
+             {% if entry.item.stage_artwork %}onerror="this.onerror=null; this.src='{{ IMG_NONE|escapejs }}'"{% endif %}
              src="{{ IMG_NONE }}">
         {% include "app/components/journal_badge.html" with accent=entry.accent %}
       </a>
@@ -36,6 +37,7 @@
           {{ entry.media_type|media_type_readable }}
         </span>
         {% for change in entry.changes %}<p class="mt-1 text-sm text-gray-200">{{ change.description }}</p>{% endfor %}
+        {% include "app/components/artwork_credit.html" with artwork=entry.item.stage_artwork only %}
         <time class="mt-auto self-end pt-2 text-xs text-gray-500"
               title="{{ entry.date|datetime_format:user }}">{{ entry.date|naturaltime }}</time>
       </div>

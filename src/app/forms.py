@@ -18,6 +18,8 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    Stage,
+    StageForms,
 )
 
 
@@ -94,6 +96,12 @@ class CustomDurationField(forms.CharField):
 class ManualItemForm(forms.ModelForm):
     """Form for adding items to the database."""
 
+    stage_forms = forms.MultipleChoiceField(
+        choices=StageForms.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
     parent_tv = forms.ModelChoiceField(
         required=False,
         queryset=TV.objects.none(),
@@ -118,6 +126,7 @@ class ManualItemForm(forms.ModelForm):
             "image",
             "season_number",
             "episode_number",
+            "stage_forms",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -143,6 +152,12 @@ class ManualItemForm(forms.ModelForm):
         cleaned_data = super().clean()
         image = cleaned_data.get("image")
         media_type = cleaned_data.get("media_type")
+
+        if media_type == MediaTypes.STAGE.value:
+            if not cleaned_data.get("stage_forms"):
+                self.add_error("stage_forms", "Select at least one stage form.")
+        else:
+            cleaned_data["stage_forms"] = []
 
         if not image:
             cleaned_data["image"] = settings.IMG_NONE
@@ -271,6 +286,31 @@ class MovieForm(MediaForm):
             "end_date",
             "notes",
         ]
+
+
+class StageForm(MovieForm):
+    """Track a stage work through the standalone media form."""
+
+    end_date = forms.DateTimeField(
+        required=False,
+        label="Date Seen",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+
+    class Meta(MovieForm.Meta):
+        """Bind personal tracking fields."""
+
+        model = Stage
+        fields = [
+            "score",
+            "status",
+            "end_date",
+            "venue",
+            "location",
+            "production",
+            "notes",
+        ]
+        labels = {"location": "City / Location", "production": "Production / Company"}
 
 
 class GameForm(MediaForm):

@@ -382,7 +382,7 @@ def _consumed_value_and_unit(media_type, queryset, item_count):
         # ``episodes`` are prefetched in get_user_media, so this reuses the
         # cache instead of issuing a query per season.
         value = sum(len(season.episodes.all()) for season in queryset)
-    elif media_type == MediaTypes.MOVIE.value:
+    elif media_type in {MediaTypes.MOVIE.value, MediaTypes.STAGE.value}:
         # Whole movies are counted; reuse the count get_user_media already ran.
         value = item_count
     else:

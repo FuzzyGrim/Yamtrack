@@ -7,8 +7,8 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
-from app import helpers
-from app.models import Item, MediaManager, MediaTypes
+from app import helpers, stage
+from app.models import Item, MediaManager, MediaTypes, Sources
 from app.providers import services
 from lists.forms import CustomListForm
 from lists.models import CustomList, CustomListItem
@@ -258,6 +258,8 @@ def lists_modal(
     episode_number=None,
 ):
     """Return the modal showing all custom lists and allowing to add to them."""
+    if media_type == MediaTypes.STAGE.value and source == Sources.WIKIDATA.value:
+        media_id = stage.canonical_id(media_id)
     try:
         item = Item.objects.get(
             media_id=media_id,
@@ -274,14 +276,18 @@ def lists_modal(
             [season_number],
             episode_number,
         )
-        item = Item.objects.create(
-            media_id=media_id,
+        item, _ = Item.objects.get_or_create(
+            media_id=metadata.get("media_id", media_id),
             source=source,
             media_type=media_type,
             season_number=season_number,
             episode_number=episode_number,
-            title=metadata["title"],
-            image=metadata["image"],
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+                "stage_forms": metadata.get("stage_forms", []),
+                "stage_artwork": metadata.get("stage_artwork", {}),
+            },
         )
 
     custom_lists = CustomList.objects.get_user_lists_with_item(request.user, item)

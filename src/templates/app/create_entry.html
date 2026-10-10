@@ -64,6 +64,10 @@
           return ['parentSeason', 'image', 'episodeNumber', 'endDate'].includes(field);
         }
     
+        else if (this.mediaType === 'stage') {
+          return ['title', 'image', 'score', 'status', 'endDate', 'notes'].includes(field);
+        }
+
         // Movie, Anime, Manga, Game, Book fields
         else {
           return ['title', 'image', 'score', 'progress', 'status', 'startDate', 'endDate', 'notes'].includes(field);
@@ -130,6 +134,15 @@
                  type="text"
                  value="">
         </div>
+
+        <fieldset x-show="mediaType === 'stage'" x-cloak>
+          <legend class="block text-sm font-medium mb-2 text-gray-300">Stage Forms</legend>
+          <div class="flex flex-wrap gap-4">
+            {% for checkbox in form.stage_forms %}
+              <label class="flex items-center gap-2 text-sm text-gray-300">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </fieldset>
 
         <!-- Parent TV Show field (Season) -->
         <div x-show="showField('parentShow')">
@@ -327,11 +340,41 @@
 
         <!-- End Date field (Episode, Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('endDate')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300"
+                 for="entry-end-date"
+                 x-text="mediaType === 'stage' ? 'Date Seen' : 'End Date'">End Date</label>
           <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+                 id="entry-end-date"
                  name="end_date"
                  type="date"
                  value="">
+        </div>
+
+        <div x-show="mediaType === 'stage'" x-cloak class="space-y-4">
+          <div>
+            <label for="entry-venue"
+                   class="block text-sm font-medium mb-2 text-gray-300">Venue</label>
+            <input id="entry-venue"
+                   name="venue"
+                   maxlength="255"
+                   class="w-full p-2 bg-[#39404b] rounded-md border border-gray-600">
+          </div>
+          <div>
+            <label for="entry-location"
+                   class="block text-sm font-medium mb-2 text-gray-300">City / Location</label>
+            <input id="entry-location"
+                   name="location"
+                   maxlength="255"
+                   class="w-full p-2 bg-[#39404b] rounded-md border border-gray-600">
+          </div>
+          <div>
+            <label for="entry-production"
+                   class="block text-sm font-medium mb-2 text-gray-300">Production / Company</label>
+            <input id="entry-production"
+                   name="production"
+                   maxlength="500"
+                   class="w-full p-2 bg-[#39404b] rounded-md border border-gray-600">
+          </div>
         </div>
 
         <!-- Notes field (TV, Movie, Anime, Manga, Game, Book, Season) -->
@@ -351,5 +394,5 @@
       </button>
     </div>
   </form>
-</div>
+  </div>
 {% endblock content %}

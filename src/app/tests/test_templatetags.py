@@ -126,7 +126,11 @@ class AppTagsTests(TestCase):
             singular = label
 
             # Special cases that don't change in plural form
-            if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
+            if media_type in (
+                MediaTypes.ANIME.value,
+                MediaTypes.MANGA.value,
+                MediaTypes.STAGE.value,
+            ):
                 expected = singular
             else:
                 expected = f"{singular}s"

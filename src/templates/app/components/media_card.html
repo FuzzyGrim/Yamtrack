@@ -5,8 +5,9 @@
   <div class="relative">
     <a href="{{ item|media_url }}">
       <img alt="{{ title }}"
-           class="lazyload w-full {% if from_grid %}aspect-2/3{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
+           class="lazyload w-full {% if from_grid %}aspect-2/3{% else %}h-48{% endif %} bg-[#3e454d] {% if item.stage_artwork %}object-contain{% elif item.image != IMG_NONE %}object-cover{% endif %}"
            data-src="{{ item.image }}"
+           {% if item.stage_artwork %}onerror="this.onerror=null; this.src='{{ IMG_NONE|escapejs }}'"{% endif %}
            src="{{ IMG_NONE }}">
     </a>
     {% with user=target_user|default:user %}
@@ -35,7 +36,7 @@
       {% endif %}
     {% endwith %}
 
-    {% if media.progress and media_type != MediaTypes.MOVIE.value %}
+    {% if media.progress and item.media_type != MediaTypes.MOVIE.value and item.media_type != MediaTypes.STAGE.value %}
       <div class="absolute bottom-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         <span class="text-sm text-white">
           {{ media.formatted_progress }}
@@ -103,6 +104,9 @@
     <a href="{{ item|media_url }}"
        class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
        title="{{ title }}">{{ title }}</a>
+    {% if item.media_type == MediaTypes.STAGE.value and item.stage_forms %}
+      <p class="text-xs text-gray-400 mt-1">{{ item.stage_forms|join:", "|title }}</p>
+    {% endif %}
   </div>
 
   {% if item.media_type == MediaTypes.EPISODE.value %}

@@ -91,6 +91,12 @@ class CustomList(models.Model):
         """Return the image of the first item in the list."""
         return self.items.first().image if self.items.first() else settings.IMG_NONE
 
+    @property
+    def stage_artwork(self):
+        """Keep the list cover's image credit attached to its source item."""
+        item = self.items.first()
+        return item.stage_artwork if item else {}
+
 
 class CustomListItemManager(models.Manager):
     """Manager for custom list items."""

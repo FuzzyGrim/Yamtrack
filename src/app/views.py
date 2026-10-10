@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import config, helpers, history_processor
+from app import config, helpers, history_processor, stage
 from app import home as home_helpers
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
@@ -31,7 +31,7 @@ from app.models import (
     Status,
     UserMessage,
 )
-from app.providers import manual, services, tmdb
+from app.providers import commons, manual, services, tmdb, wikipedia
 from app.templatetags import app_tags
 from events.models import Event
 from users.models import (
@@ -237,7 +237,9 @@ def media_list(request, username, media_type):
 
     context = {
         "media_type": media_type,
-        "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
+        "media_type_plural": "stage works"
+        if media_type == MediaTypes.STAGE.value
+        else app_tags.media_type_readable_plural(media_type).lower(),
         "media_list": media_page,
         "current_layout": layout,
         "layout_class": ".media-grid" if layout == "grid" else "tbody",
@@ -312,6 +314,8 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
+    if media_type == MediaTypes.STAGE.value:
+        media_id = media_metadata["media_id"]
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
@@ -321,8 +325,11 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     current_instance = user_medias[0] if user_medias else None
 
     if current_instance is not None:
-        helpers.refresh_item_image_if_missing(
-            current_instance.item, media_metadata.get("image")
+        helpers.preserve_stage_artwork(media_metadata, current_instance.item)
+        helpers.refresh_item_artwork(
+            current_instance.item,
+            media_metadata.get("image"),
+            media_metadata.get("stage_artwork"),
         )
 
     # Enrich related items with user tracking data
@@ -376,7 +383,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     episodes_in_db = current_instance.episodes.all() if current_instance else []
 
     if current_instance is not None:
-        helpers.refresh_item_image_if_missing(
+        helpers.refresh_item_artwork(
             current_instance.item, season_metadata.get("image")
         )
 
@@ -451,6 +458,11 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             headers={"HX-Redirect": request.POST.get("next", "/")},
         )
 
+    media_id = (
+        stage.canonical_id(media_id)
+        if source == Sources.WIKIDATA.value and media_type == MediaTypes.STAGE.value
+        else media_id
+    )
     cache_key = f"{source}_{media_type}_{media_id}"
     if media_type == MediaTypes.SEASON.value:
         cache_key += f"_{season_number}"
@@ -464,6 +476,8 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
         logger.error(msg)
     else:
         deleted = cache.delete(cache_key)
+        cache.delete(commons.cache_key(media_id))
+        wikipedia.invalidate(source, media_type, media_id)
         logger.debug("%s - Old cache deleted: %s", cache_key, deleted)
 
         metadata = services.get_media_metadata(
@@ -472,6 +486,17 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             source,
             [season_number],
         )
+        helpers.preserve_stage_artwork(metadata)
+        stage_defaults = (
+            {
+                "stage_forms": metadata["stage_forms"],
+                "stage_artwork": metadata.get("stage_artwork", {}),
+            }
+            if media_type == MediaTypes.STAGE.value
+            else {}
+        )
+        media_id = metadata["media_id"] if stage_defaults else media_id
+        commons.require_available(metadata)
         item, _ = Item.objects.update_or_create(
             media_id=media_id,
             source=source,
@@ -480,6 +505,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
+                **stage_defaults,
             },
         )
         title = metadata["title"]
@@ -557,6 +583,12 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
+    if (
+        media_type == MediaTypes.STAGE.value
+        and source == Sources.WIKIDATA.value
+        and not request.GET.get("instance_id")
+    ):
+        media_id = services.get_media_metadata(media_type, media_id, source)["media_id"]
     instance_id = request.GET.get("instance_id")
     if instance_id:
         media = BasicMedia.objects.get_media(
@@ -633,6 +665,11 @@ def media_save(request):
             source,
             [season_number],
         )
+        stage_defaults = {}
+        if media_type == MediaTypes.STAGE.value:
+            media_id = metadata["media_id"]
+            stage_defaults["stage_forms"] = metadata["stage_forms"]
+            stage_defaults["stage_artwork"] = metadata.get("stage_artwork", {})
         item, _ = Item.objects.get_or_create(
             media_id=media_id,
             source=source,
@@ -641,6 +678,7 @@ def media_save(request):
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
+                **stage_defaults,
             },
         )
         model = apps.get_model(app_label="app", model_name=media_type)
@@ -755,7 +793,11 @@ def create_entry(request):
     """Return the form for manually adding media items."""
     if request.method == "GET":
         media_types = MediaTypes.values
-        return render(request, "app/create_entry.html", {"media_types": media_types})
+        return render(
+            request,
+            "app/create_entry.html",
+            {"media_types": media_types, "form": ManualItemForm(user=request.user)},
+        )
 
     # Process the form submission
     form = ManualItemForm(request.POST, user=request.user)

@@ -10,8 +10,9 @@
     <div class="relative">
       <a href="{{ media.item|media_url }}">
         <img alt="{{ media }}"
-             class="lazyload w-full aspect-2/3 {% if media.item.image != IMG_NONE %}object-cover{% endif %}"
+             class="lazyload w-full aspect-2/3 {% if media.item.stage_artwork %}object-contain{% elif media.item.image != IMG_NONE %}object-cover{% endif %}"
              data-src="{{ media.item.image }}"
+             {% if media.item.stage_artwork %}onerror="this.onerror=null; this.src='{{ IMG_NONE|escapejs }}'"{% endif %}
              src="{{ IMG_NONE }}">
       </a>
 

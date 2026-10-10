@@ -1,15 +1,19 @@
+import json
 import logging
 from collections import defaultdict
 from csv import DictReader
+from io import StringIO
 
+from django import forms
 from django.apps import apps
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils.dateparse import parse_datetime
 
 import app
-from app import config
+from app import config, stage
 from app.models import MediaTypes, Sources
-from app.providers import services
+from app.providers import commons, services
 from app.templatetags import app_tags
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
@@ -57,7 +61,7 @@ class YamtrackImporter:
     def import_data(self):
         """Import all user data from the CSV file."""
         try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
+            decoded_file = StringIO(self.file.read().decode("utf-8"))
         except UnicodeDecodeError as e:
             msg = "Invalid file format. Please upload a CSV file."
             raise MediaImportError(msg) from e
@@ -92,6 +96,10 @@ class YamtrackImporter:
     def _process_row(self, row):
         """Process a single row from the CSV file."""
         media_type = row["media_type"]
+
+        stage_defaults = self._stage_defaults(row)
+        if stage_defaults is None:
+            return
 
         season_number = (
             int(row["season_number"]) if row["season_number"] != "" else None
@@ -128,7 +136,12 @@ class YamtrackImporter:
                 episode_number,
             )
 
-        item, _ = app.models.Item.objects.update_or_create(
+        item_writer = (
+            app.models.Item.objects.get_or_create
+            if media_type == MediaTypes.STAGE.value
+            else app.models.Item.objects.update_or_create
+        )
+        item, _ = item_writer(
             media_id=row["media_id"],
             source=row["source"],
             media_type=media_type,
@@ -137,6 +150,7 @@ class YamtrackImporter:
             defaults={
                 "title": row["title"],
                 "image": row["image"],
+                **stage_defaults,
             },
         )
 
@@ -163,6 +177,76 @@ class YamtrackImporter:
             error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
             self.warnings.append(error_msg)
             logger.error(error_msg)
+
+    @staticmethod
+    def _stage_identity_error(row):
+        """Identify unsupported or malformed standalone Stage identities."""
+        if any(row.get(field) for field in ("season_number", "episode_number")):
+            return "Stage import cannot include season or episode numbers."
+        if row.get("source") not in {Sources.MANUAL.value, Sources.WIKIDATA.value}:
+            return "Stage import requires a manual or Wikidata source."
+        if row["source"] == Sources.WIKIDATA.value:
+            try:
+                forms.RegexField(
+                    regex=r"\AQ[1-9][0-9]*\Z", max_length=36, strip=False
+                ).clean(row.get("media_id"))
+            except ValidationError:
+                return "Stage import requires a valid Wikidata work ID."
+        return ""
+
+    def _stage_defaults(self, row):
+        """Validate Stage before overwrite bookkeeping or shared item changes."""
+        if row["media_type"] != MediaTypes.STAGE.value:
+            return {}
+        identity_error = self._stage_identity_error(row)
+        if identity_error:
+            self.warnings.append(identity_error)
+            return None
+        if not row.get("title", "").strip():
+            self.warnings.append("Stage import requires a work title.")
+            return None
+        try:
+            work_forms = forms.MultipleChoiceField(
+                choices=app.models.StageForms.choices,
+            ).clean(json.loads(row.get("stage_forms") or "[]"))
+        except (ValueError, TypeError, ValidationError):
+            self.warnings.append(f"{row['title']} (stage): Invalid stage forms.")
+            return None
+        attendance = app.forms.StageForm(row)
+        if not attendance.is_valid():
+            self.warnings.append(
+                f"{row['title']} (stage): {attendance.errors.as_json()}",
+            )
+            return None
+        if not row.get("image"):
+            row["image"] = settings.IMG_NONE
+        artwork = self._stage_artwork(row)
+        if row["source"] == Sources.WIKIDATA.value:
+            row["media_id"] = stage.canonical_id(row["media_id"])
+            if artwork:
+                artwork = stage.retarget_artwork(artwork, row["media_id"])
+        return {"stage_forms": work_forms, "stage_artwork": artwork}
+
+    def _stage_artwork(self, row):
+        """Restore current source credits without loading development formats."""
+        if row["source"] != Sources.WIKIDATA.value:
+            return {}
+        try:
+            record = json.loads(row.get("stage_artwork") or "{}")
+            artwork = commons.restored_artwork(
+                record,
+                row["media_id"],
+                row["image"],
+            )
+        except (ValueError, TypeError):
+            artwork = {}
+        if not artwork and row["image"] != settings.IMG_NONE:
+            self.warnings.append(
+                f"{row['title']}: Artwork omitted because its credit is "
+                "missing or invalid."
+            )
+            row["image"] = settings.IMG_NONE
+        return artwork
 
     def _handle_missing_metadata(self, row, media_type, season_number, episode_number):
         """Handle missing metadata by fetching from provider."""

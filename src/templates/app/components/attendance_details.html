@@ -1,0 +1,20 @@
+<dl class="text-sm text-gray-300 mt-2 space-y-1 break-words">
+  {% if attendance.venue %}
+    <dt class="text-gray-400">Venue</dt>
+    <dd>
+      {{ attendance.venue }}
+    </dd>
+  {% endif %}
+  {% if attendance.location %}
+    <dt class="text-gray-400">City / Location</dt>
+    <dd>
+      {{ attendance.location }}
+    </dd>
+  {% endif %}
+  {% if attendance.production %}
+    <dt class="text-gray-400">Production / Company</dt>
+    <dd>
+      {{ attendance.production }}
+    </dd>
+  {% endif %}
+</dl>

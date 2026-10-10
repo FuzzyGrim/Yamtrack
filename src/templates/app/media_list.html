@@ -144,7 +144,7 @@
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             {% include "app/icons/edit.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
-          <h3 class="text-xl font-semibold mb-2">No {{ media_type|media_type_readable_plural }} Tracked Yet</h3>
+          <h3 class="text-xl font-semibold mb-2">No {% if media_type == MediaTypes.STAGE.value %}Stage Works{% else %}{{ media_type|media_type_readable_plural }}{% endif %} Tracked Yet</h3>
           {% if request.user == target_user %}
             <p class="text-gray-400 mb-6">
               Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
@@ -166,7 +166,7 @@
               <th class="p-2 w-15"></th>
               <th class="p-2 pe-8 w-2/5">Title</th>
               <th class="p-2 text-center">Score</th>
-              {% if media_type != MediaTypes.MOVIE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
+              {% if media_type != MediaTypes.MOVIE.value and media_type != MediaTypes.STAGE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
               {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">Last Watched</th>{% endif %}
               <th class="p-2 text-center">Status</th>
               <th class="p-2 text-center">Start Date</th>

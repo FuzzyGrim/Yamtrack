@@ -1,8 +1,15 @@
+import base64
+import json
 import os
 from datetime import date
+from pathlib import Path
+from unittest.mock import patch
 
+import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.core.cache import cache
 from django.utils import timezone
 from playwright.sync_api import expect, sync_playwright
 
@@ -39,6 +46,291 @@ class IntegrationTest(StaticLiveServerTestCase):
         super().tearDownClass()
         cls.browser.close()
         cls.playwright.stop()
+
+    def test_manual_stage_desktop_and_mobile(self):
+        """Create and inspect an imageless hybrid work at both viewport sizes."""
+        for width in (1280, 390):
+            with self.subTest(width=width):
+                self.page.set_viewport_size({"width": width, "height": 900})
+                self.page.goto(f"{self.live_server_url}/create")
+                self.page.get_by_role("button", name="Stage", exact=True).click()
+                self.page.get_by_placeholder("Enter title").fill(f"Local Work {width}")
+                self.page.get_by_label("Play", exact=True).check()
+                self.page.get_by_label("Musical", exact=True).check()
+                self.page.get_by_label("Venue", exact=True).fill("First Theatre")
+                self.page.get_by_label("Date Seen", exact=True).fill("2026-09-01")
+                self.page.get_by_role("button", name="Create Entry").click()
+                expect(self.page.locator("body")).to_contain_text(
+                    f"Local Work {width} added successfully.",
+                )
+                self.page.goto(f"{self.live_server_url}/test/stage")
+                self.page.get_by_title(f"Local Work {width}", exact=True).click()
+                expect(self.page.get_by_role("main")).to_contain_text("Play, Musical")
+                expect(self.page.get_by_role("main")).to_contain_text("First Theatre")
+                first_visit = json.loads(
+                    self.page.locator(
+                        "button[hx-get*='track_modal']"
+                    ).first.get_attribute("hx-vals")
+                )["instance_id"]
+                self._click_settled(self.page.get_by_title("More tracking options"))
+                self._click_settled(
+                    self.page.get_by_role("button", name="Add new entry")
+                )
+                self.page.get_by_label("Venue", exact=True).fill("Second Theatre")
+                self._click_settled(
+                    self.page.get_by_role("button", name="Add", exact=True)
+                )
+                expect(self.page.get_by_role("main")).to_contain_text("Second Theatre")
+                expect(self.page.get_by_role("main")).to_contain_text("First Theatre")
+                self._click_settled(
+                    self.page.locator(
+                        "button[hx-get*='track_modal']"
+                        f'[hx-vals*=\'"instance_id": "{first_visit}"\']'
+                    )
+                )
+                expect(self.page.get_by_label("Venue", exact=True)).to_have_value(
+                    "First Theatre"
+                )
+                self.page.get_by_label("Venue", exact=True).fill("Revised Theatre")
+                self.page.get_by_label("Notes", exact=True).fill(
+                    "Earlier visit corrected"
+                )
+                self._click_settled(
+                    self.page.get_by_role("button", name="Update", exact=True)
+                )
+                expect(self.page.get_by_role("main")).to_contain_text("Revised Theatre")
+                expect(self.page.get_by_role("main")).to_contain_text("Second Theatre")
+                self.page.goto(f"{self.live_server_url}/journal")
+                expect(self.page.get_by_role("main")).to_contain_text(
+                    "Updated venue from First Theatre to Revised Theatre",
+                )
+                self.assertTrue(
+                    self.page.evaluate(
+                        "document.documentElement.scrollWidth <= window.innerWidth",
+                    ),
+                )
+        self.page.set_viewport_size({"width": 1280, "height": 720})
+
+    def _click_settled(self, control):
+        """Wait for injected controls to be initialized before interacting."""
+        expect(control).to_be_visible()
+        expect(self.page.locator(".htmx-settling")).to_have_count(0)
+        control.click()
+
+    def test_stage_wikipedia_poster_search_to_library(self):
+        """Display exact-article posters and non-free credits on both sizes."""
+        fixture = json.loads(
+            (Path(__file__).parent / "mock_data/stage_artwork.json").read_text()
+        )
+        work = {
+            **fixture["work"],
+            "id": "Q19320959",
+            "labels": {"en": {"value": "Hamilton"}},
+            "sitelinks": {"enwiki": {"title": "Hamilton (musical)"}},
+        }
+        poster = fixture["wikipedia"]
+        image_url = poster["file"]["imageinfo"][0]["thumburl"]
+        image = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII="
+        )
+
+        def source_response(url, params, **_kwargs):
+            if url == "https://en.wikipedia.org/w/api.php":
+                payload = {
+                    "query": {
+                        "pages": [
+                            poster["article"]
+                            if params["prop"] == "pageprops|pageimages|info"
+                            else poster["file"]
+                        ]
+                    }
+                }
+            elif url == "https://commons.wikimedia.org/w/api.php":
+                payload = {"query": {"search": []}}
+            elif params["action"] == "query":
+                payload = {"query": {"search": [{"title": "Q19320959"}]}}
+            else:
+                payload = {"entities": {"Q19320959": work}}
+            response = requests.Response()
+            response.status_code = 200
+            response._content = json.dumps(payload).encode()
+            return response
+
+        cache.clear()
+        self.page.route(
+            image_url, lambda route: route.fulfill(body=image, content_type="image/png")
+        )
+        try:
+            with patch(
+                "app.providers.services.session.get", side_effect=source_response
+            ):
+                for visit, width in enumerate((1280, 390)):
+                    self.page.set_viewport_size({"width": width, "height": 900})
+                    self.page.goto(
+                        f"{self.live_server_url}/search?media_type=stage&q=Hamilton"
+                    )
+                    picture = self.page.get_by_role("img", name="Hamilton", exact=True)
+                    expect(picture).to_have_attribute("src", image_url)
+                    expect(picture).to_have_js_property("naturalWidth", 1)
+                    expect(picture).to_have_css("object-fit", "contain")
+                    expect(
+                        self.page.get_by_text("Image credit", exact=True)
+                    ).to_have_count(0)
+                    self.page.get_by_title("Hamilton", exact=True).click()
+                    expect(
+                        self.page.get_by_text("Article fair use", exact=False)
+                    ).to_be_visible()
+                    expect(
+                        self.page.get_by_role(
+                            "link", name="Wikipedia article", exact=True
+                        )
+                    ).to_be_visible()
+                    self.assertTrue(
+                        self.page.evaluate(
+                            "document.documentElement.scrollWidth <= innerWidth"
+                        )
+                    )
+                    if visit == 0:
+                        self.page.get_by_role(
+                            "button", name="Add to tracker", exact=True
+                        ).click()
+                        self.page.get_by_label("Venue", exact=True).fill(
+                            "Local Theatre"
+                        )
+                        with self.page.expect_response(
+                            lambda response: (
+                                "/media_save" in response.url
+                                and response.request.method == "POST"
+                            )
+                        ) as saved:
+                            self._click_settled(
+                                self.page.get_by_role("button", name="Add", exact=True)
+                            )
+                        self.assertTrue(saved.value.ok)
+                    self.page.goto(f"{self.live_server_url}/test/stage")
+                    expect(
+                        self.page.get_by_role("img", name="Hamilton", exact=True)
+                    ).to_have_attribute("src", image_url)
+        finally:
+            self.page.unroute(image_url)
+            self.page.set_viewport_size({"width": 1280, "height": 720})
+            cache.clear()
+
+    def test_stage_search_artwork_and_tracking(self):
+        """Provider search and saved artwork retain readable credits on both sizes."""
+        fixture = json.loads(
+            (Path(__file__).parent / "mock_data/stage_artwork.json").read_text()
+        )
+        poster = fixture["poster"]
+        fixture["work"]["claims"]["P18"] = [
+            {"mainsnak": {"datavalue": {"value": "Work poster.png"}}}
+        ]
+        image_url = poster["imageinfo"][0]["url"]
+        image = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII="
+        )
+
+        cache.clear()
+        self.page.route(
+            image_url, lambda route: route.fulfill(body=image, content_type="image/png")
+        )
+        try:
+            with patch(
+                "app.providers.services.session.get",
+                side_effect=lambda url, params, **_kwargs: self._poster_source_response(
+                    fixture, url, params
+                ),
+            ):
+                desktop_width = 1280
+                for width in (desktop_width, 390):
+                    with self.subTest(width=width):
+                        self.page.set_viewport_size({"width": width, "height": 900})
+                        self.page.goto(
+                            f"{self.live_server_url}/search?media_type=stage&q=Bernarda"
+                        )
+                        picture = self.page.get_by_role(
+                            "img", name="The House of Bernarda Alba", exact=True
+                        )
+                        picture.scroll_into_view_if_needed()
+                        expect(picture).to_have_attribute("src", image_url)
+                        expect(picture).to_have_js_property("naturalWidth", 1)
+                        expect(picture).to_have_css("object-fit", "contain")
+                        expect(
+                            self.page.get_by_text("Image credit", exact=True)
+                        ).to_have_count(0)
+                        self.page.get_by_title(
+                            "The House of Bernarda Alba", exact=True
+                        ).click()
+                        expect(
+                            self.page.get_by_text("Poster Artist", exact=False)
+                        ).to_be_visible()
+                        if width == desktop_width:
+                            self.page.get_by_role(
+                                "button", name="Add to tracker", exact=True
+                            ).click()
+                            self.page.get_by_label("Venue", exact=True).fill(
+                                "Local Theatre"
+                            )
+                            self.page.get_by_role(
+                                "button", name="Add", exact=True
+                            ).click()
+                        expect(self.page.get_by_role("main")).to_contain_text(
+                            "Local Theatre"
+                        )
+                        self.page.goto(f"{self.live_server_url}/test/stage")
+                        expect(
+                            self.page.get_by_text("Image credit", exact=True)
+                        ).to_have_count(0)
+                        self.page.get_by_title(
+                            "The House of Bernarda Alba", exact=True
+                        ).click()
+                        expect(
+                            self.page.get_by_role(
+                                "link", name="CC BY-SA 4.0", exact=True
+                            )
+                        ).to_be_visible()
+                        self.assertTrue(
+                            self.page.evaluate(
+                                "document.documentElement.scrollWidth"
+                                " <= window.innerWidth"
+                            )
+                        )
+            self._assert_failed_stage_image_keeps_frame(image_url)
+        finally:
+            self.page.unroute(image_url)
+            self.page.set_viewport_size({"width": 1280, "height": 720})
+            cache.clear()
+
+    def _assert_failed_stage_image_keeps_frame(self, image_url):
+        """Verify an unavailable image leaves the saved card's frame stable."""
+        picture = self.page.get_by_role(
+            "img", name="The House of Bernarda Alba", exact=True
+        )
+        frame = picture.bounding_box()
+        self.page.route(image_url, lambda route: route.abort())
+        self.page.reload()
+        picture.scroll_into_view_if_needed()
+        expect(picture).to_have_attribute("src", settings.IMG_NONE)
+        self.assertEqual(picture.bounding_box()["height"], frame["height"])
+
+    def _poster_source_response(self, fixture, url, params):
+        """Serve work-linked photo and poster metadata without discovery."""
+        poster = fixture["poster"]
+        if url == "https://commons.wikimedia.org/w/api.php":
+            self.assertNotIn("list", params)
+            self.assertEqual(params["action"], "query")
+            if "Work poster.png" in params.get("titles", ""):
+                payload = {"query": {"pages": {"124": poster}}}
+            else:
+                payload = fixture["commons"]
+        elif params["action"] == "query":
+            payload = {"query": {"search": [{"title": "Q822850"}]}}
+        else:
+            payload = {"entities": {"Q822850": fixture["work"]}}
+        response = requests.Response()
+        response.status_code = 200
+        response._content = json.dumps(payload).encode()
+        return response
 
     def test_season_progress_edit(self):
         """Test the progress edit of a season."""

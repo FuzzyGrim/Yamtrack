@@ -46,6 +46,7 @@ class Sources(models.TextChoices):
     HARDCOVER = "hardcover", "Hardcover"
     COMICVINE = "comicvine", "Comic Vine"
     BGG = "bgg", "BoardGameGeek"
+    WIKIDATA = "wikidata", "Wikidata"
     MANUAL = "manual", "Manual"
 
 
@@ -62,6 +63,52 @@ class MediaTypes(models.TextChoices):
     BOOK = "book", "Book"
     COMIC = "comic", "Comic"
     BOARDGAME = "boardgame", "Boardgame"
+    STAGE = "stage", "Stage"
+
+
+class StageForms(models.TextChoices):
+    """Classifications of a stage work."""
+
+    PLAY = "play", "Play"
+    MUSICAL = "musical", "Musical"
+    OPERA = "opera", "Opera"
+    BALLET = "ballet", "Ballet"
+    OTHER = "other", "Other"
+
+
+class StageRedirect(models.Model):
+    """Observed Wikidata redirects, independent of mutable catalog metadata."""
+
+    alias_id = models.CharField(max_length=36, unique=True)
+    canonical_id = models.CharField(max_length=36)
+    revision = models.PositiveBigIntegerField()
+    observed_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        """Display the provider identity edge in admin."""
+        return f"{self.alias_id} -> {self.canonical_id}"
+
+    @classmethod
+    def resolve(cls, media_id):
+        """Follow bounded observed edges without rewriting their provenance."""
+        visited = set()
+        for _step in range(32):
+            if media_id in visited:
+                break
+            visited.add(media_id)
+            target = (
+                cls.objects.filter(alias_id=media_id)
+                .values_list("canonical_id", flat=True)
+                .first()
+            )
+            if target is None:
+                return media_id
+            media_id = target
+        raise providers.services.ProviderAPIError(
+            Sources.WIKIDATA.value,
+            ValueError(),
+            "Conflicting Stage redirect chain",
+        )
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -82,6 +129,8 @@ class Item(CalendarTriggerMixin, models.Model):
     image = models.URLField()  # if add default, custom media entry will show the value
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
+    stage_forms = models.JSONField(default=list, blank=True)
+    stage_artwork = models.JSONField(default=dict, blank=True)
 
     class Meta:
         """Meta options for the model."""
@@ -749,6 +798,8 @@ class MediaManager(models.Manager):
         episode_number=None,
     ):
         """Get the common filter parameters for media queries."""
+        if media_type == MediaTypes.STAGE.value and source == Sources.WIKIDATA.value:
+            media_id = StageRedirect.resolve(media_id)
         params = {
             "item__media_type": media_type,
             "item__source": source,
@@ -1890,6 +1941,30 @@ class Movie(Media):
     """Model for movies."""
 
     tracker = FieldTracker()
+
+
+class Stage(Media):
+    """Personal tracking of a stage work."""
+
+    venue = models.CharField(max_length=255, blank=True, default="")
+    location = models.CharField(max_length=255, blank=True, default="")
+    production = models.CharField(max_length=500, blank=True, default="")
+    tracker = FieldTracker()
+
+    class Meta(Media.Meta):
+        """Keep the Stage category name unchanged in admin navigation."""
+
+        abstract = False
+        verbose_name_plural = "stage"
+
+    def process_status(self):
+        """Record attendance completion without external metadata."""
+        if self.status == Status.COMPLETED.value:
+            self.progress = 1
+
+    def process_progress(self):
+        """Attendance has no incremental progress or inferred date seen."""
+        self.progress = 1 if self.status == Status.COMPLETED.value else 0
 
 
 class Game(Media):

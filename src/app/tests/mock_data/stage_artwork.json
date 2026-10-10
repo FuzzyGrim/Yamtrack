@@ -1,0 +1,70 @@
+{
+  "work": {
+    "id": "Q822850",
+    "lastrevid": 100,
+    "labels": {"en": {"value": "The House of Bernarda Alba"}},
+    "descriptions": {"en": {"value": "play by Federico Garcia Lorca"}},
+    "claims": {
+      "P7937": [{"mainsnak": {"datavalue": {"value": {"id": "Q25379"}}}}],
+      "P18": [{"mainsnak": {"datavalue": {"value": "Test stage photograph.jpg"}}}]
+    }
+  },
+  "wikipedia": {
+    "article": {"pageid": 45433681, "ns": 0, "title": "Hamilton (musical)", "lastrevid": 100,
+      "pageprops": {"wikibase_item": "Q19320959"}, "pageimage": "Hamilton-poster.jpg"},
+    "file": {"pageid": 55278676, "ns": 6, "title": "File:Hamilton-poster.jpg", "lastrevid": 101,
+      "imagerepository": "local", "imageinfo": [{
+        "thumburl": "https://upload.wikimedia.org/wikipedia/en/thumb/a/ab/Hamilton-poster.jpg/250px-Hamilton-poster.jpg",
+        "thumbwidth": 250, "thumbheight": 370, "width": 267, "height": 373,
+        "mime": "image/jpeg", "sha1": "poster-hash",
+        "descriptionurl": "https://en.wikipedia.org/wiki/File:Hamilton-poster.jpg",
+        "extmetadata": {"LicenseShortName": {"value": "Fair use"}, "NonFree": {"value": "true"},
+          "Copyrighted": {"value": "True"}, "UsageTerms": {"value": "Article fair use"}}
+      }]}
+  },
+  "poster": {
+    "pageid": 124,
+    "lastrevid": 201,
+    "title": "File:Work poster.png",
+    "imageinfo": [{
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/work-poster.png",
+      "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/work-poster.png",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Work_poster.png",
+      "width": 600,
+      "height": 900,
+      "mime": "image/png",
+      "sha1": "test-poster-hash",
+      "extmetadata": {
+        "ImageDescription": {"value": "Poster for The House of Bernarda Alba, a play"},
+        "Artist": {"value": "Poster Artist"},
+        "Credit": {"value": "Own work"},
+        "LicenseShortName": {"value": "CC BY-SA 4.0"},
+        "LicenseUrl": {"value": "https://creativecommons.org/licenses/by-sa/4.0/"},
+        "Restrictions": {"value": ""}
+      }
+    }]
+  },
+  "commons": {
+    "query": {"pages": {"123": {
+      "pageid": 123,
+      "lastrevid": 200,
+      "title": "File:Test stage photograph.jpg",
+      "imageinfo": [{
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/test-stage.png",
+        "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/test-stage.png",
+        "descriptionurl": "https://commons.wikimedia.org/wiki/File:Test_stage_photograph.jpg",
+        "width": 600,
+        "height": 900,
+        "mime": "image/png",
+        "sha1": "test-image-hash",
+        "extmetadata": {
+          "Artist": {"value": "Test Photographer"},
+          "Credit": {"value": "Own work"},
+          "LicenseShortName": {"value": "CC BY-SA 4.0"},
+          "LicenseUrl": {"value": "https://creativecommons.org/licenses/by-sa/4.0/"},
+          "Restrictions": {"value": ""}
+        }
+      }]
+    }}}
+  }
+}

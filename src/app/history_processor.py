@@ -355,7 +355,10 @@ def organize_changes(changes, media_type, user):
     end_date_change = None
 
     for change in changes:
-        if change.field == "progress" and media_type == MediaTypes.MOVIE.value:
+        if change.field == "progress" and media_type in {
+            MediaTypes.MOVIE.value,
+            MediaTypes.STAGE.value,
+        }:
             continue
 
         change_data = {
@@ -399,7 +402,10 @@ def collect_creation_changes(new_record, history_model, media_type, user):
             field.name.startswith("history_")
             or field.name == "id"
             or not hasattr(new_record, field.attname)
-            or (field.name == "progress" and media_type == MediaTypes.MOVIE.value)
+            or (
+                field.name == "progress"
+                and media_type in {MediaTypes.MOVIE.value, MediaTypes.STAGE.value}
+            )
         ):
             continue
 

@@ -15,8 +15,10 @@
       {# Poster #}
       <div class="w-full md:w-1/4 max-w-62.5 mx-auto md:mx-0">
         <img alt="{{ media.title }}"
-             class="w-full rounded-lg shadow-lg bg-[#2a2f35] object-cover"
+               class="w-full rounded-lg shadow-lg bg-[#2a2f35] {% if media.stage_artwork %}aspect-2/3 object-contain{% else %}object-cover{% endif %}"
+               {% if media.stage_artwork %}onerror="this.onerror=null; this.src='{{ IMG_NONE|escapejs }}'"{% endif %}
              src="{{ media.image }}">
+             {% include "app/components/artwork_credit.html" with artwork=media.stage_artwork expanded=True only %}
 
         <div class="mt-4 relative flex items-stretch"
              x-data="{ trackOpen: false, createOpen: false, menuOpen: false }"
@@ -245,7 +247,7 @@
       {# Sidebar #}
       <div class="w-full md:w-1/4 md:max-w-62.5 mx-auto lg:mx-0">
         {# Your History #}
-        {% if current_instance.start_date or current_instance.end_date or current_instance.notes or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
+        {% if current_instance.start_date or current_instance.end_date or current_instance.notes or current_instance.venue or current_instance.location or current_instance.production or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
           <h2 class="text-xl font-bold mb-4">Your History</h2>
 
           <div class="bg-[#2a2f35] p-4 rounded-lg mb-6 text-center md:text-start">
@@ -259,12 +261,12 @@
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Ended:</span>
-                  <span class="text-gray-200">{{ current_instance.end_date|datetime_format:user }}</span>
+                  <span class="text-gray-400">{% if media_type == MediaTypes.STAGE.value %}Date seen:{% else %}Ended:{% endif %}</span>
+                  <span class="text-gray-200">{% if media_type == MediaTypes.STAGE.value %}{{ current_instance.end_date|date:user.date_format }}{% else %}{{ current_instance.end_date|datetime_format:user }}{% endif %}</span>
                 </div>
               {% endif %}
 
-              {% if media_type != MediaTypes.MOVIE.value %}
+              {% if media_type != MediaTypes.MOVIE.value and media_type != MediaTypes.STAGE.value %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Progress:</span>
                   <span class="text-gray-200">
@@ -274,6 +276,10 @@
                 </div>
               {% endif %}
             </div>
+
+            {% if media_type == MediaTypes.STAGE.value %}
+              {% include "app/components/attendance_details.html" with attendance=current_instance %}
+            {% endif %}
 
             {# Your notes #}
             {% if current_instance.notes %}
@@ -508,7 +514,7 @@
                     </div>
                   </div>
 
-                  {% if media.media_type != MediaTypes.MOVIE.value %}
+                  {% if media.media_type != MediaTypes.MOVIE.value and media_type != MediaTypes.STAGE.value %}
                     <p class="text-xs text-gray-400 mt-1">
                       {{ user_media.formatted_progress }}
                       {% if media.media_type != MediaTypes.GAME.value %}
@@ -529,6 +535,9 @@
                     </p>
                   {% endif %}
 
+                  {% if media_type == MediaTypes.STAGE.value %}
+                    {% include "app/components/attendance_details.html" with attendance=user_media %}
+                  {% endif %}
                   {% if user_media.notes %}
                     <div class="flex items-start mt-2"
                          x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.notesText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
@@ -559,19 +568,8 @@
             <div class="space-y-6">
               {% for episode in media.episodes %}
                 <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-                  <div class="flex flex-col md:flex-row" x-data="{ obfuscated:
-                    {% if user.obfuscate_unseen_episodes and not episode.history %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    , hasImage:
-                    {% if episode.image != IMG_NONE %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    }">
+                  <div class="flex flex-col md:flex-row"
+                       x-data="{ obfuscated: {% if user.obfuscate_unseen_episodes and not episode.history %} true {% else %} false {% endif %} , hasImage: {% if episode.image != IMG_NONE %} true {% else %} false {% endif %} }">
                     <img src="{{ IMG_NONE }}"
                          alt="E{{ episode.episode_number }}"
                          data-src="{{ episode.image }}"
