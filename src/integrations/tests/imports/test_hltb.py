@@ -1,5 +1,8 @@
+from csv import DictReader, DictWriter
 from datetime import UTC, datetime
+from io import BytesIO, StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -39,3 +42,36 @@ class ImportHowLongToBeat(TestCase):
             game.history.first().history_date,
             datetime(2024, 2, 9, 15, 54, 48, tzinfo=UTC),
         )
+
+
+class ImportHowLongToBeatMultilineNotes(TestCase):
+    """Test importing HowLongToBeat rows whose quoted fields span several lines."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    @patch("integrations.imports.hltb.HowLongToBeatImporter._search_game")
+    def test_multiline_notes_are_preserved(self, mock_search_game):
+        """Test that quoted multiline notes keep embedded newlines."""
+        mock_search_game.return_value = {
+            "media_id": "19562",
+            "title": "Resident Evil 7: Biohazard",
+            "image": "https://example.com/image.jpg",
+        }
+
+        with Path(mock_path / "import_hltb_game.csv").open(newline="") as file:
+            reader = DictReader(file)
+            row = next(reader)
+        row["General Notes"] = "line one\r\nline two"
+
+        buffer = StringIO(newline="")
+        writer = DictWriter(buffer, fieldnames=reader.fieldnames)
+        writer.writeheader()
+        writer.writerow(row)
+
+        hltb.importer(BytesIO(buffer.getvalue().encode()), self.user, "new")
+
+        game = Game.objects.get(user=self.user)
+        self.assertIn("line one\r\nline two", game.notes)
