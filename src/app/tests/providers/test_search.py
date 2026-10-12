@@ -92,6 +92,20 @@ class Search(TestCase):
         )
         self.assertEqual(the_matrix["release_year"], 1999)
 
+    def test_tmdb_release_year(self):
+        """Test the release year is read from movie and TV date fields."""
+        self.assertEqual(tmdb.get_release_year({"release_date": "1999-03-31"}), 1999)
+        self.assertEqual(
+            tmdb.get_release_year({"first_air_date": "2008-01-20"}),
+            2008,
+        )
+
+    def test_tmdb_release_year_unknown(self):
+        """Test the release year is None when the date is empty or missing."""
+        self.assertIsNone(tmdb.get_release_year({"release_date": ""}))
+        self.assertIsNone(tmdb.get_release_year({"first_air_date": ""}))
+        self.assertIsNone(tmdb.get_release_year({}))
+
     def test_games(self):
         """Test the search method for games.
 
