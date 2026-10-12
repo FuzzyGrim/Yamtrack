@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Yamtrack: start dev stack",
+      "detail": "Runs web, Celery and Tailwind from the Procfile via honcho",
+      "type": "shell",
+      // Only auto-start inside the dev container; a plain host checkout may not have uv/Redis.
+      "command": "if [ \"$REMOTE_CONTAINERS\" = \"true\" ]; then uvx honcho -e /dev/null start; else echo 'Not in the dev container; skipping. Run uvx honcho -e /dev/null start manually.'; fi",
+      "windows": {
+        "command": "Write-Host 'Open the folder in the dev container to auto-start Yamtrack.'"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true },
+      "runOptions": { "runOn": "folderOpen" }
+    }
+  ]
+}

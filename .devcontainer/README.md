@@ -4,7 +4,7 @@ Opens Yamtrack in a Python 3.12 container with uv, Node (for the Tailwind CLI) a
 
 1. In VS Code run **Dev Containers: Reopen in Container**, or **Clone Repository in Container Volume** for faster file watching on Windows/macOS.
 2. `postCreateCommand` installs uv and the Tailwind CLI, runs `uv sync` and applies migrations.
-3. Start web, Celery and Tailwind together:
+3. VS Code starts web, Celery and Tailwind automatically via the **Yamtrack: start dev stack** task (`.vscode/tasks.json`, runs on folder open). Restart it with **Tasks: Restart Running Task**. Elsewhere, run:
 
    ```bash
    uvx honcho -e /dev/null start

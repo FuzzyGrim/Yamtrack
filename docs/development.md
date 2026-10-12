@@ -8,7 +8,7 @@ The repository includes a [dev container](https://containers.dev/) with Python 3
 
 1. Open the repository in VS Code and run **Dev Containers: Reopen in Container**. On Windows and macOS, **Dev Containers: Clone Repository in Container Volume** keeps the source inside Docker and makes file watching much faster.
 2. On first start the container installs uv and the Tailwind CLI, runs `uv sync` and applies migrations.
-3. Start the web server, Celery worker and Tailwind watcher:
+3. Start the web server, Celery worker and Tailwind watcher. In VS Code this happens automatically: the **Yamtrack: start dev stack** task in `.vscode/tasks.json` runs on folder open (VS Code asks once to allow automatic tasks). Use **Tasks: Restart Running Task** to restart it, for example after changing Celery task code, dependencies or migrations. In other clients, run it yourself:
 
    ```bash
    uvx honcho -e /dev/null start

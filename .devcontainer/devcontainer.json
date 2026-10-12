@@ -13,6 +13,8 @@
   },
   "forwardPorts": [8000],
   "portsAttributes": { "8000": { "label": "Yamtrack", "onAutoForward": "openBrowser" } },
+  // Hold the VS Code window until setup finishes so the folder-open task finds uv.
+  "waitFor": "postCreateCommand",
   "postCreateCommand": "sudo chown vscode /home/vscode/.venv && curl -LsSf https://astral.sh/uv/install.sh | sh && npm i -g tailwindcss @tailwindcss/cli && ~/.local/bin/uv sync && ~/.local/bin/uv run src/manage.py migrate",
   "customizations": {
     "vscode": {
