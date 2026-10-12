@@ -74,6 +74,11 @@ urlpatterns = [
         name="api_media_consumption_entry_detail",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/images/?$",
+        views.MediaImagesView.as_view(),
+        name="api_media_images",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/lists/?$",
         views.MediaListsView.as_view(),
         name="api_media_lists",
@@ -127,6 +132,11 @@ urlpatterns = [
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/history/(?P<consumption_id>\d+)/?$",
         views.MediaSeasonConsumptionEntryDetailView.as_view(),
         name="api_media_season_consumption_entry_detail",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/images/?$",
+        views.MediaSeasonImagesView.as_view(),
+        name="api_media_season_images",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/lists/?$",

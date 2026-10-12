@@ -5499,6 +5499,154 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/images/:
+    get:
+      operationId: season_images_get
+      description: Retrieve the posters of a specific season of a tv serie.
+      summary: Get season images
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - backdrops
+          - logos
+          - posters
+        description: 'Only return images of this type, others are empty (default:
+          all).'
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaImagesResponse'
+              examples:
+                RetrieveImagesExample:
+                  value:
+                    posters:
+                    - image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      original: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      width: 2000
+                      height: 3000
+                      aspect_ratio: 0.667
+                      language: en
+                      vote_average: 5.8
+                      vote_count: 20
+                    backdrops:
+                    - image: https://image.tmdb.org/t/p/w500/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      original: https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      width: 3840
+                      height: 2160
+                      aspect_ratio: 1.778
+                      language: null
+                      vote_average: 5.6
+                      vote_count: 12
+                    logos: []
+                  summary: Retrieve images example
+                  description: Retrieve images example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/lists/:
     get:
       operationId: season_lists_get
@@ -7051,6 +7199,148 @@ paths:
       responses:
         '204':
           description: Consumption entry deleted successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/images/:
+    get:
+      operationId: media_images_get
+      description: Retrieve the posters, backdrops and logos of a movie or tv serie.
+      summary: Get media images
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - backdrops
+          - logos
+          - posters
+        description: 'Only return images of this type, others are empty (default:
+          all).'
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaImagesResponse'
+              examples:
+                RetrieveImagesExample:
+                  value:
+                    posters:
+                    - image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      original: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      width: 2000
+                      height: 3000
+                      aspect_ratio: 0.667
+                      language: en
+                      vote_average: 5.8
+                      vote_count: 20
+                    backdrops:
+                    - image: https://image.tmdb.org/t/p/w500/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      original: https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      width: 3840
+                      height: 2160
+                      aspect_ratio: 1.778
+                      language: null
+                      vote_average: 5.6
+                      vote_count: 12
+                    logos: []
+                  summary: Retrieve images example
+                  description: Retrieve images example
+          description: Successful response
         '400':
           content:
             application/json:
@@ -9784,6 +10074,65 @@ components:
       - score
       - start_date
       - tracked
+    MediaImage:
+      type: object
+      description: Serializer for a single media image.
+      properties:
+        image:
+          type: string
+          format: uri
+        original:
+          type: string
+          format: uri
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        aspect_ratio:
+          type: number
+          format: double
+          nullable: true
+        vote_average:
+          type: number
+          format: double
+          nullable: true
+        vote_count:
+          type: integer
+          nullable: true
+        language:
+          type: string
+          nullable: true
+      required:
+      - aspect_ratio
+      - height
+      - image
+      - language
+      - original
+      - vote_average
+      - vote_count
+      - width
+    MediaImagesResponse:
+      type: object
+      description: Serializer for media images endpoint.
+      properties:
+        posters:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
+        backdrops:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
+        logos:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
+      required:
+      - backdrops
+      - logos
+      - posters
     MediaStatusEnum:
       enum:
       - 0

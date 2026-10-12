@@ -43,6 +43,7 @@ from .changes_history_processor import (
     get_changes_history_entry,
 )
 from .helpers import (
+    IMAGE_TYPES,
     MEDIA_TYPE_COMPLETE_MODEL_MAP,
     SOURCES_VALID_LIST,
     apply_aggregated_sort,
@@ -52,6 +53,7 @@ from .helpers import (
     check_valid_type,
     fetch_results_all_types,
     fetch_results_for_type,
+    filter_images,
     filter_known_for,
     get_item_lists,
     get_media_status,
@@ -77,6 +79,7 @@ from .schemas import (
     ListSearchParam,
     ListSortParam,
     MediaIdParam,
+    MediaImageTypeParam,
     MediaTypeCompleteParam,
     MediaTypeCompleteQueryParam,
     MediaTypeParam,
@@ -104,6 +107,7 @@ from .serializers import (
     ListMinimizedSerializer,
     ListSerializer,
     ListUpdateRequestSerializer,
+    MediaImagesResponseSerializer,
     MediaSerializer,
     MixedMediaSerializer,
     PaginatedCastSerializer,
@@ -3328,6 +3332,116 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
         return Response(serialized_data, status=HTTP.OK)
 
 
+# /api/v1/media/[media_type]/[source]/[media_id]/images/
+class MediaImagesView(drf_views.APIView):
+    """Media images view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MediaImagesResponseSerializer
+
+    @extend_schema(
+        operation_id="media_images_get",
+        summary="Get media images",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            MediaImageTypeParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                MediaImagesResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve images example",
+                        description="Retrieve images example",
+                        summary="Retrieve images example",
+                        value={
+                            "posters": [
+                                {
+                                    "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                                    "original": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                                    "width": 2000,
+                                    "height": 3000,
+                                    "aspect_ratio": 0.667,
+                                    "language": "en",
+                                    "vote_average": 5.8,
+                                    "vote_count": 20,
+                                },
+                            ],
+                            "backdrops": [
+                                {
+                                    "image": "https://image.tmdb.org/t/p/w500/ncEsesgOJDNrTUED89hYbA117wo.jpg",
+                                    "original": "https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg",
+                                    "width": 3840,
+                                    "height": 2160,
+                                    "aspect_ratio": 1.778,
+                                    "language": None,
+                                    "vote_average": 5.6,
+                                    "vote_count": 12,
+                                },
+                            ],
+                            "logos": [],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Retrieve the posters, backdrops and logos of a movie or tv serie."""
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+            return Response(
+                {
+                    "detail": (
+                        "Images are supported only for 'movie' and 'tv' media types."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        type_filter = request.GET.get("type")
+        if type_filter and type_filter not in IMAGE_TYPES:
+            return Response(
+                {"detail": "type must be 'posters', 'backdrops' or 'logos'."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            images = tmdb.media_images(media_type, media_id)
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        images = filter_images(images, type_filter)
+        return Response(MediaImagesResponseSerializer(images).data, status=HTTP.OK)
+
+
 # /api/v1/media/[media_type]/[source]/[media_id]/lists/
 class MediaListsView(drf_views.APIView):
     """Media lists view."""
@@ -5467,6 +5581,119 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
 
         serialized_data = HistorySerializer(consumption).data
         return Response(serialized_data, status=HTTP.OK)
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/images/
+class MediaSeasonImagesView(drf_views.APIView):
+    """Season images view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MediaImagesResponseSerializer
+
+    @extend_schema(
+        operation_id="season_images_get",
+        summary="Get season images",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            MediaImageTypeParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                MediaImagesResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve images example",
+                        description="Retrieve images example",
+                        summary="Retrieve images example",
+                        value={
+                            "posters": [
+                                {
+                                    "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                                    "original": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                                    "width": 2000,
+                                    "height": 3000,
+                                    "aspect_ratio": 0.667,
+                                    "language": "en",
+                                    "vote_average": 5.8,
+                                    "vote_count": 20,
+                                },
+                            ],
+                            "backdrops": [
+                                {
+                                    "image": "https://image.tmdb.org/t/p/w500/ncEsesgOJDNrTUED89hYbA117wo.jpg",
+                                    "original": "https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg",
+                                    "width": 3840,
+                                    "height": 2160,
+                                    "aspect_ratio": 1.778,
+                                    "language": None,
+                                    "vote_average": 5.6,
+                                    "vote_count": 12,
+                                },
+                            ],
+                            "logos": [],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id, season_number):
+        """Retrieve the posters of a specific season of a tv serie."""
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if media_type != MediaTypes.TV.value:
+            return Response(
+                {
+                    "detail": "Seasons are supported only for 'tv' media type.",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        type_filter = request.GET.get("type")
+        if type_filter and type_filter not in IMAGE_TYPES:
+            return Response(
+                {"detail": "type must be 'posters', 'backdrops' or 'logos'."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            images = tmdb.media_images(
+                media_type,
+                media_id,
+                season_number=season_number,
+            )
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        images = filter_images(images, type_filter)
+        return Response(MediaImagesResponseSerializer(images).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/lists/

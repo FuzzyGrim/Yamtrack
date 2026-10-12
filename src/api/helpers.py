@@ -126,6 +126,8 @@ MEDIA_TYPE_VALID_LIST = list(MEDIA_TYPE_MODEL_MAP.keys())
 
 MAX_RESULT_LIMIT = 200
 
+IMAGE_TYPES = ["posters", "backdrops", "logos"]
+
 
 MEDIA_EXISTING_SORTS = [
     "start_date",
@@ -397,6 +399,13 @@ def group_watch_providers(all_providers, region):
         "no_charge": merge("flatrate", "free", "ads"),
         "paid": merge("buy", "rent"),
     }
+
+
+def filter_images(images, image_type=None):
+    """Keep only the images of the given type, emptying the others."""
+    if not image_type:
+        return images
+    return {key: (value if key == image_type else []) for key, value in images.items()}
 
 
 def filter_known_for(known_for, media_type=None, department=None):

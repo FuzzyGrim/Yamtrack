@@ -1000,23 +1000,99 @@ def person_images(person_id):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        data = [
-            {
-                "image": get_image_url(profile.get("file_path")),
-                "original": f"https://image.tmdb.org/t/p/original{profile['file_path']}",
-                "width": profile.get("width"),
-                "height": profile.get("height"),
-                "aspect_ratio": profile.get("aspect_ratio"),
-                "vote_average": profile.get("vote_average"),
-                "vote_count": profile.get("vote_count"),
-            }
-            for profile in response.get("profiles", [])
-            if profile.get("file_path")
-        ]
+        data = process_images(response.get("profiles", []))
 
         cache.set(cache_key, data)
 
     return data
+
+
+def media_images(media_type, media_id, season_number=None):
+    """Return the posters, backdrops and logos for a movie, tv show or season."""
+    cache_key = f"{Sources.TMDB.value}_{media_type}_{media_id}_images"
+    if season_number is not None:
+        cache_key += f"_{season_number}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        if media_type == MediaTypes.MOVIE.value:
+            url = f"{base_url}/movie/{media_id}/images"
+        elif season_number is not None:
+            url = f"{base_url}/tv/{media_id}/season/{season_number}/images"
+        else:
+            url = f"{base_url}/tv/{media_id}/images"
+
+        # Without include_image_language TMDB only returns images in the
+        # requested language, include textless and english images too
+        language = settings.TMDB_LANG.split("-")[0]
+        image_languages = list(dict.fromkeys([language, "en", "null"]))
+        params = {
+            **base_params,
+            "include_image_language": ",".join(image_languages),
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = {
+            # Prefer images in the user's language for posters and logos
+            "posters": sort_images(
+                process_images(response.get("posters", [])),
+                [language, None, "en"],
+            ),
+            # Prefer textless backdrops
+            "backdrops": sort_images(
+                process_images(response.get("backdrops", [])),
+                [None, language, "en"],
+            ),
+            "logos": sort_images(
+                process_images(response.get("logos", [])),
+                [language, "en", None],
+            ),
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def process_images(images):
+    """Process the images from a TMDB images response."""
+    return [
+        {
+            "image": get_image_url(image["file_path"]),
+            "original": f"https://image.tmdb.org/t/p/original{image['file_path']}",
+            "width": image.get("width"),
+            "height": image.get("height"),
+            "aspect_ratio": image.get("aspect_ratio"),
+            "language": image.get("iso_639_1"),
+            "vote_average": image.get("vote_average"),
+            "vote_count": image.get("vote_count"),
+        }
+        for image in images
+        if image.get("file_path")
+    ]
+
+
+def sort_images(images, language_priority):
+    """Sort images by language priority, then by votes."""
+
+    def sort_key(image):
+        language = image["language"]
+        if language in language_priority:
+            priority = language_priority.index(language)
+        else:
+            priority = len(language_priority)
+        return (priority, -(image["vote_average"] or 0), -(image["vote_count"] or 0))
+
+    return sorted(images, key=sort_key)
 
 
 def person_known_for(person_id):

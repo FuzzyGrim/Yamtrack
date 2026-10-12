@@ -66,6 +66,7 @@ def get_endpoint_cases() -> list[EndpointCase]:
         EndpointCase("delete", "api_media_detail", args=("movie", "tmdb", 1)),
         EndpointCase("get", "api_media_cast", args=("movie", "tmdb", 1)),
         EndpointCase("get", "api_media_crew", args=("movie", "tmdb", 1)),
+        EndpointCase("get", "api_media_images", args=("movie", "tmdb", 1)),
         EndpointCase(
             "get",
             "api_media_changes_history",
@@ -166,6 +167,11 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "delete",
             "api_media_season_consumption_entry_detail",
             args=("tv", "tmdb", 1, 1, 1),
+        ),
+        EndpointCase(
+            "get",
+            "api_media_season_images",
+            args=("tv", "tmdb", 1, 1),
         ),
         EndpointCase("get", "api_media_season_lists", args=("tv", "tmdb", 1, 1)),
         EndpointCase(

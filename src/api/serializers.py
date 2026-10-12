@@ -1506,6 +1506,20 @@ class PaginatedPersonImagesSerializer(serializers.Serializer):
     results = PersonImageSerializer(many=True)
 
 
+class MediaImageSerializer(PersonImageSerializer):
+    """Serializer for a single media image."""
+
+    language = serializers.CharField(allow_null=True)
+
+
+class MediaImagesResponseSerializer(serializers.Serializer):
+    """Serializer for media images endpoint."""
+
+    posters = MediaImageSerializer(many=True)
+    backdrops = MediaImageSerializer(many=True)
+    logos = MediaImageSerializer(many=True)
+
+
 class KnownForSerializer(serializers.Serializer):
     """Serializer for a media a person is known for."""
 

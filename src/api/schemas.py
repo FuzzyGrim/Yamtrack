@@ -278,3 +278,12 @@ KnownForDepartmentParam = OpenApiParameter(
     ),
     required=False,
 )
+
+MediaImageTypeParam = OpenApiParameter(
+    name="type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Only return images of this type, others are empty (default: all).",
+    required=False,
+    enum=["posters", "backdrops", "logos"],
+)

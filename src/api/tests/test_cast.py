@@ -909,3 +909,191 @@ class PersonImagesTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 500)
+
+
+def build_image(file_path, language, vote_average, width=1000, height=1500):
+    """Build a fake TMDB image entry."""
+    return {
+        "file_path": file_path,
+        "iso_639_1": language,
+        "width": width,
+        "height": height,
+        "aspect_ratio": round(width / height, 3),
+        "vote_average": vote_average,
+        "vote_count": 10,
+    }
+
+
+MEDIA_IMAGES_RESPONSE = {
+    "id": 603,
+    "posters": [
+        build_image("/poster_fr.jpg", "fr", 9.0),
+        build_image("/poster_null.jpg", None, 7.0),
+        build_image("/poster_en_low.jpg", "en", 4.0),
+        build_image("/poster_en_high.jpg", "en", 6.0),
+    ],
+    "backdrops": [
+        build_image("/backdrop_en.jpg", "en", 9.0, 3840, 2160),
+        build_image("/backdrop_null.jpg", None, 5.0, 3840, 2160),
+    ],
+    "logos": [
+        build_image("/logo_null.png", None, 8.0, 500, 200),
+        build_image("/logo_en.png", "en", 5.0, 500, 200),
+        build_image(None, "en", 5.0, 500, 200),
+    ],
+}
+
+
+class MediaImagesTests(YamtrackApiTestCase):
+    """Validate media images endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_images_returns_sorted_image_groups(self, mock_request):
+        """Images endpoint should group images and sort them by language."""
+        mock_request.return_value = MEDIA_IMAGES_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.MOVIE.value, "tmdb", 603),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            [image["image"].rsplit("/", 1)[1] for image in payload["posters"]],
+            [
+                "poster_en_high.jpg",
+                "poster_en_low.jpg",
+                "poster_null.jpg",
+                "poster_fr.jpg",
+            ],
+        )
+        self.assertEqual(
+            [image["language"] for image in payload["backdrops"]],
+            [None, "en"],
+        )
+        self.assertEqual(
+            [image["language"] for image in payload["logos"]],
+            ["en", None],
+        )
+        self.assertEqual(
+            payload["backdrops"][0],
+            {
+                "image": "https://image.tmdb.org/t/p/w500/backdrop_null.jpg",
+                "original": "https://image.tmdb.org/t/p/original/backdrop_null.jpg",
+                "width": 3840,
+                "height": 2160,
+                "aspect_ratio": 1.778,
+                "language": None,
+                "vote_average": 5.0,
+                "vote_count": 10,
+            },
+        )
+        self.assertTrue(mock_request.call_args.args[2].endswith("/movie/603/images"))
+        self.assertEqual(
+            mock_request.call_args.kwargs["params"]["include_image_language"],
+            "en,null",
+        )
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_images_filters_by_type(self, mock_request):
+        """Images endpoint should only return the requested image type."""
+        mock_request.return_value = MEDIA_IMAGES_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.TV.value, "tmdb", 1396),
+            params={"type": "backdrops"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["posters"], [])
+        self.assertEqual(payload["logos"], [])
+        self.assertEqual(len(payload["backdrops"]), 2)
+        self.assertTrue(mock_request.call_args.args[2].endswith("/tv/1396/images"))
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_season_images_returns_season_posters(self, mock_request):
+        """Season images endpoint should query the season images."""
+        mock_request.return_value = {
+            "id": 3572,
+            "posters": [build_image("/season.jpg", "en", 5.0)],
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_season_images",
+            args=(MediaTypes.TV.value, "tmdb", 1396, 1),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload["posters"]), 1)
+        self.assertEqual(payload["backdrops"], [])
+        self.assertEqual(payload["logos"], [])
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/tv/1396/season/1/images"),
+        )
+
+    def test_images_invalid_type_returns_bad_request(self):
+        """Images endpoints should reject unknown image types."""
+        requests = [
+            ("api_media_images", (MediaTypes.MOVIE.value, "tmdb", 603)),
+            ("api_media_season_images", (MediaTypes.TV.value, "tmdb", 1396, 1)),
+        ]
+
+        for url_name, args in requests:
+            response = self.call_api(
+                "get",
+                url_name,
+                args=args,
+                params={"type": "stills"},
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    def test_images_unsupported_media_type_returns_bad_request(self):
+        """Images endpoints should reject media types without images."""
+        requests = [
+            ("api_media_images", ("invalid", "tmdb", 1)),
+            ("api_media_images", (MediaTypes.ANIME.value, "mal", 1)),
+            ("api_media_images", (MediaTypes.MOVIE.value, "manual", 1)),
+            ("api_media_season_images", (MediaTypes.MOVIE.value, "tmdb", 1, 1)),
+        ]
+
+        for url_name, args in requests:
+            response = self.call_api(
+                "get",
+                url_name,
+                args=args,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.media_images", side_effect=Exception("boom"))
+    def test_images_provider_error_returns_internal_server_error(self, _mock_images):
+        """Images endpoints should surface provider lookup failures."""
+        requests = [
+            ("api_media_images", (MediaTypes.MOVIE.value, "tmdb", 999999)),
+            ("api_media_season_images", (MediaTypes.TV.value, "tmdb", 999999, 1)),
+        ]
+
+        for url_name, args in requests:
+            response = self.call_api(
+                "get",
+                url_name,
+                args=args,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 500)

@@ -46,6 +46,8 @@
     - [x] DELETE: Delete specific consumption entry
     - [x] GET: Get specific consumption entry
     - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/images/`
+    - [x] GET: Get posters, backdrops and logos of a movie or tv serie, optionally filtered by `type`
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/`
     - [x] GET: Lists where the tracked item is in
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}`
@@ -73,6 +75,8 @@
     - [x] DELETE: Delete specific consumption entry
     - [x] GET: Get specific consumption entry
     - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/images/`
+    - [x] GET: Get posters of a season if media is tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/lists/`
     - [x] GET: Lists where the tracked item is in
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/lists/{list_id}`
