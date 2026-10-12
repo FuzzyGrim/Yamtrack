@@ -2,7 +2,7 @@
 
 {% if media.status and user.progress_bar %}
   <div>
-    {% if media.status == 'In progress' %}
+    {% if media.status == 'In progress' or media.status == 'Rewatching' %}
       {% if media.max_progress and media.max_progress > 0 %}
         {% widthratio media.progress media.max_progress 100 as progress_width %}
         <div class="{{ media.status|status_background_color }} h-1.25"

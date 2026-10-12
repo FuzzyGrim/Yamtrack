@@ -22,6 +22,12 @@ COLORS = {
         "background_strong": "bg-indigo-500",
         "hex": "#6366f1",
     },
+    "violet": {
+        "text": "text-violet-400",
+        "background": "bg-violet-400",
+        "background_strong": "bg-violet-500",
+        "hex": "#7c3aed",
+    },
     "orange": {
         "text": "text-orange-400",
         "background": "bg-orange-400",
@@ -241,6 +247,13 @@ STATUS_CONFIG = {
         "background_color": COLORS["indigo"]["background"],
         "background_color_strong": COLORS["indigo"]["background_strong"],
         "icon": "app/icons/states/in-progress.svg",
+    },
+    Status.REWATCHING.value: {
+        "text_color": COLORS["violet"]["text"],
+        "stats_color": COLORS["violet"]["hex"],
+        "background_color": COLORS["violet"]["background"],
+        "background_color_strong": COLORS["violet"]["background_strong"],
+        "icon": "app/icons/states/rewatching.svg",
     },
     Status.PAUSED.value: {
         "text_color": COLORS["orange"]["text"],

@@ -13,6 +13,11 @@
              class="lazyload w-full aspect-2/3 {% if media.item.image != IMG_NONE %}object-cover{% endif %}"
              data-src="{{ media.item.image }}"
              src="{{ IMG_NONE }}">
+        {% if media.status == Status.REWATCHING.value %}
+          <div class="absolute bottom-2 flex right-2 h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#39404b] {{ Status.REWATCHING.value|status_color }}">
+            {% include "app/icons/states/rewatching.svg" with classes="w-4 h-4 text-violet-400" %}
+          </div>
+        {% endif %}
       </a>
 
       {% if media.next_event and not media.next_event.is_max_datetime %}
@@ -72,7 +77,7 @@
       {% if user.progress_bar %}<div class="h-1.25 {{ Status.PLANNING.value|status_background_color }}"></div>{% endif %}
     {% else %}
       <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
-        {% include "app/components/progress_changer.html" with media=media user=user csrf_token=csrf_token MediaTypes=MediaTypes home_status=home_status only %}
+        {% include "app/components/progress_changer.html" with media=media user=user csrf_token=csrf_token MediaTypes=MediaTypes home_status=media.status only %}
       </div>
     {% endif %}
 
