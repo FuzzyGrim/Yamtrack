@@ -822,6 +822,70 @@ def media_cast(media_type, media_id):
     return data
 
 
+def search_people(query, page):
+    """Search for people on TMDB."""
+    cache_key = f"search_{Sources.TMDB.value}_person_{query}_{page}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/search/person"
+
+        params = {
+            **base_params,
+            "query": query,
+            "page": page,
+        }
+
+        if settings.TMDB_NSFW:
+            params["include_adult"] = "true"
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        results = [
+            {
+                "person_id": person["id"],
+                "source": Sources.TMDB.value,
+                "name": person.get("name"),
+                "image": get_image_url(person.get("profile_path")),
+                "known_for_department": person.get("known_for_department") or None,
+                "known_for": [
+                    {
+                        "source": Sources.TMDB.value,
+                        "media_type": media.get("media_type"),
+                        "media_id": media["id"],
+                        "title": get_title(media),
+                        "image": get_image_url(media.get("poster_path")),
+                    }
+                    for media in person.get("known_for", [])
+                    if media.get("media_type")
+                    in (MediaTypes.MOVIE.value, MediaTypes.TV.value)
+                ],
+            }
+            for person in response["results"]
+        ]
+
+        total_results = response["total_results"]
+        per_page = 20  # TMDB always returns 20 results per page
+        data = helpers.format_search_response(
+            page,
+            per_page,
+            total_results,
+            results,
+        )
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def person(person_id):
     """Return the details for the selected person from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_person_{person_id}"

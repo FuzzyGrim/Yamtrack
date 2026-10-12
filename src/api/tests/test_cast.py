@@ -393,3 +393,146 @@ class PersonDetailTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 500)
+
+
+def build_people_search_page(page, total_results, count):
+    """Build a fake TMDB person search response page."""
+    return {
+        "page": page,
+        "total_results": total_results,
+        "results": [
+            {
+                "id": (page - 1) * 20 + index,
+                "name": f"Person {(page - 1) * 20 + index}",
+                "profile_path": None,
+                "known_for_department": "Acting",
+                "known_for": [
+                    {
+                        "id": 603,
+                        "media_type": "movie",
+                        "title": "The Matrix",
+                        "poster_path": "/matrix.jpg",
+                    },
+                    {
+                        "id": 1399,
+                        "media_type": "tv",
+                        "name": "Game of Thrones",
+                        "poster_path": "/got.jpg",
+                    },
+                ],
+            }
+            for index in range(count)
+        ],
+    }
+
+
+class PeopleSearchTests(YamtrackApiTestCase):
+    """Validate people search endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_people_search_returns_paginated_people(self, mock_request):
+        """People search should return paginated people with known for media."""
+        mock_request.return_value = build_people_search_page(1, 2, 2)
+
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 2)
+        person = payload["results"][0]
+        self.assertEqual(person["person_id"], 0)
+        self.assertEqual(person["source"], "tmdb")
+        self.assertEqual(person["name"], "Person 0")
+        self.assertEqual(person["known_for_department"], "Acting")
+        self.assertEqual(
+            person["known_for"],
+            [
+                {
+                    "source": "tmdb",
+                    "media_type": "movie",
+                    "media_id": "603",
+                    "title": "The Matrix",
+                    "image": "https://image.tmdb.org/t/p/w500/matrix.jpg",
+                },
+                {
+                    "source": "tmdb",
+                    "media_type": "tv",
+                    "media_id": "1399",
+                    "title": "Game of Thrones",
+                    "image": "https://image.tmdb.org/t/p/w500/got.jpg",
+                },
+            ],
+        )
+        self.assertTrue(mock_request.call_args.args[2].endswith("/search/person"))
+        self.assertEqual(mock_request.call_args.kwargs["params"]["query"], "keanu")
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_people_search_fetches_next_provider_page(self, mock_request):
+        """People search should fetch provider pages until the offset is covered."""
+        mock_request.side_effect = [
+            build_people_search_page(1, 25, 20),
+            build_people_search_page(2, 25, 5),
+        ]
+
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu", "limit": 5, "offset": 20},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["pagination"]["total"], 25)
+        self.assertEqual(
+            [person["person_id"] for person in payload["results"]],
+            [20, 21, 22, 23, 24],
+        )
+        self.assertEqual(mock_request.call_count, 2)
+
+    def test_people_search_without_query_returns_bad_request(self):
+        """People search should require a search query."""
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_people_search_unsupported_source_returns_bad_request(self):
+        """People search should reject sources without people data."""
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu", "source": "mal"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.search_people", side_effect=Exception("boom"))
+    def test_people_search_provider_error_returns_internal_server_error(
+        self,
+        _mock_search,
+    ):
+        """People search should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)

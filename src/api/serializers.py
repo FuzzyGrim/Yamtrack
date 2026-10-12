@@ -1433,6 +1433,24 @@ class PaginatedCastSerializer(serializers.Serializer):
     results = CastMemberSerializer(many=True)
 
 
+class SearchPersonSerializer(serializers.Serializer):
+    """Serializer for individual people in search results."""
+
+    person_id = serializers.IntegerField()
+    source = MediaSourceChoiceField()
+    name = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    known_for_department = serializers.CharField(allow_null=True)
+    known_for = RelatedResponseSerializer(many=True)
+
+
+class SearchPeopleResponseSerializer(serializers.Serializer):
+    """Serializer for people search endpoint results."""
+
+    pagination = PaginationSerializer()
+    results = SearchPersonSerializer(many=True)
+
+
 class PersonSerializer(serializers.Serializer):
     """Serializer for person details."""
 

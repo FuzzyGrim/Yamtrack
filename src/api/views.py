@@ -114,6 +114,7 @@ from .serializers import (
     PaginatedMediaSerializer,
     PersonSerializer,
     RelatedResponseSerializer,
+    SearchPeopleResponseSerializer,
     SearchResponseSerializer,
     StatisticsResponseSerializer,
     TimelineItemSerializer,
@@ -7494,6 +7495,138 @@ class MediaEpisodeSyncView(drf_views.APIView):
             source=source,
             media_id=media_id,
             season_number=season_number,
+        )
+
+
+# /api/v1/people/search/
+class PeopleSearchView(drf_views.APIView):
+    """People search view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SearchPeopleResponseSerializer
+
+    @extend_schema(
+        operation_id="people_search_get",
+        summary="Search for people",
+        parameters=[
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Search query",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="source",
+                type=OpenApiTypes.STR,
+                enum=["tmdb"],
+                location=OpenApiParameter.QUERY,
+                description="Source of person data (default: tmdb).",
+            ),
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                SearchPeopleResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Search people example",
+                        description="Search people example",
+                        summary="Search people example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "person_id": 6384,
+                                    "source": "tmdb",
+                                    "name": "Keanu Reeves",
+                                    "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                                    "known_for_department": "Acting",
+                                    "known_for": [
+                                        {
+                                            "source": "tmdb",
+                                            "media_type": "movie",
+                                            "media_id": "603",
+                                            "title": "The Matrix",
+                                            "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request):
+        """Search for people using the specified provider."""
+        search = request.GET.get("search", "").strip()
+        source = request.GET.get("source") or Sources.TMDB.value
+        limit, offset, err = parse_limit_offset(request)
+        if err:
+            return err
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {"detail": f"Cannot query `{source}` for people"},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if not search:
+            return Response(
+                {"detail": "search parameter is required."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        results_accum = []
+        page = 1
+        last_response = None
+
+        try:
+            while True:
+                last_response = tmdb.search_people(search, page)
+                page_results = last_response.get("results", []) or []
+                results_accum.extend(page_results)
+                if len(results_accum) >= offset + limit:
+                    break
+                total_pages = last_response.get("total_pages")
+                if total_pages and page >= total_pages:
+                    break
+                if not page_results:
+                    break
+
+                page += 1
+
+        except Exception:  # noqa: BLE001
+            return Response(
+                {"detail": HTTP.INTERNAL_SERVER_ERROR.phrase},
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        total = last_response.get("total_results") or len(results_accum)
+        paginated_data = paginate_data(
+            request,
+            results_accum,
+            limit,
+            offset,
+            total=total,
+        )
+        return Response(
+            SearchPeopleResponseSerializer(paginated_data).data,
+            status=HTTP.OK,
         )
 
 
