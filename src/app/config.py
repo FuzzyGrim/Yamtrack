@@ -265,6 +265,28 @@ STATUS_CONFIG = {
     },
 }
 
+# --- Related Media Relation Type Configuration ---
+# Raw relation types from MAL/AniList mapped to human-readable labels. The
+# set is mostly fixed but occasionally expands, so unknown values fall back
+# to a title-cased version of the raw string instead of erroring.
+RELATION_TYPE_LABELS = {
+    "adaptation": "Adaptation",
+    "alternative_setting": "Alternative Setting",
+    "alternative_version": "Alternative Version",
+    "character": "Character",
+    "compilation": "Compilation",
+    "contains": "Contains",
+    "full_story": "Full Story",
+    "other": "Other",
+    "parent_story": "Parent Story",
+    "prequel": "Prequel",
+    "sequel": "Sequel",
+    "side_story": "Side Story",
+    "source": "Source",
+    "spin_off": "Spin-off",
+    "summary": "Summary",
+}
+
 # --- Journal Accent Configuration ---
 # The journal badge is a filled circle with a white icon, so it uses each
 # status's stronger background and its icon from STATUS_CONFIG. Only the
@@ -411,3 +433,18 @@ def get_journal_accent(accent):
             "icon": status["icon"],
         }
     return JOURNAL_ACCENT_EXTRA.get(accent, JOURNAL_ACCENT_EXTRA["default"])
+
+
+def get_relation_type_label(relation_type):
+    """Return the human-readable label for a raw related media relation type.
+
+    Known relation types are looked up in :data:`RELATION_TYPE_LABELS`,
+    unknown ones are title-cased instead of raising, and missing values
+    return ``None`` so callers can omit the label entirely.
+    """
+    if not relation_type:
+        return None
+    return RELATION_TYPE_LABELS.get(
+        relation_type,
+        relation_type.replace("_", " ").title(),
+    )

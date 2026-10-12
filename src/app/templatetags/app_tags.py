@@ -157,6 +157,12 @@ def media_status_readable(media_status):
 
 
 @register.filter
+def relation_type_readable(relation_type):
+    """Return the readable label for a related media relation type."""
+    return config.get_relation_type_label(relation_type)
+
+
+@register.filter
 def default_source(media_type):
     """Return the default source for the media type."""
     return config.get_default_source_name(media_type).label

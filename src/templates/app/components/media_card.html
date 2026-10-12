@@ -33,6 +33,12 @@
           <span class="text-sm text-white">{{ media.formatted_score }}</span>
         </div>
       {% endif %}
+
+      {% if item.relation_type %}
+        <div class="absolute left-2 {% if media.status %}{% if media.score|show_media_score:user %}top-18{% else %}top-10{% endif %}{% else %}top-2{% endif %} bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+          <span class="text-sm text-white">{{ item.relation_type|relation_type_readable }}</span>
+        </div>
+      {% endif %}
     {% endwith %}
 
     {% if media.progress and media_type != MediaTypes.MOVIE.value %}
