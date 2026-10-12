@@ -21,7 +21,7 @@ from rest_framework.response import Response
 
 from app.forms import ManualItemForm, get_form_class
 from app.models import BasicMedia, Item, MediaTypes, Sources
-from app.providers import services, tmdb
+from app.providers import igdb, services, tmdb
 from app.statistics import (
     get_activity_data,
     get_media_type_distribution,
@@ -43,6 +43,8 @@ from .changes_history_processor import (
     get_changes_history_entry,
 )
 from .helpers import (
+    GAME_COMPANY_ROLES,
+    IMAGE_SOURCES,
     IMAGE_TYPES,
     MEDIA_TYPE_COMPLETE_MODEL_MAP,
     SOURCES_VALID_LIST,
@@ -70,6 +72,7 @@ from .helpers import (
 )
 from .schemas import (
     BadRequestResponse,
+    CompanyRoleParam,
     CrewDepartmentParam,
     EpisodeNumberParam,
     ForbiddenResponse,
@@ -112,6 +115,7 @@ from .serializers import (
     MixedMediaSerializer,
     PaginatedCastSerializer,
     PaginatedChangesHistoryResponseSerializer,
+    PaginatedCompaniesSerializer,
     PaginatedCrewSerializer,
     PaginatedEpisodesSerializer,
     PaginatedEventsSerializer,
@@ -2794,6 +2798,112 @@ class MediaChangesHistoryView(drf_views.APIView):
         return Response(paginated_data, status=HTTP.OK)
 
 
+# /api/v1/media/[media_type]/[source]/[media_id]/companies/
+class MediaCompaniesView(drf_views.APIView):
+    """Media companies view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedCompaniesSerializer
+
+    @extend_schema(
+        operation_id="media_companies_get",
+        summary="Get media companies",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            CompanyRoleParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedCompaniesSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve companies example",
+                        description="Retrieve companies example",
+                        summary="Retrieve companies example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "company_id": 908,
+                                    "name": "CD Projekt RED",
+                                    "logo": "https://images.igdb.com/igdb/image/upload/t_logo_med/cl6np.png",
+                                    "roles": ["developer", "publisher"],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Retrieve the companies involved in a game."""
+        limit, offset, err = parse_limit_offset(request)
+        if err:
+            return err
+
+        if media_type != MediaTypes.GAME.value:
+            return Response(
+                {
+                    "detail": "Companies are supported only for 'game' media type.",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if source != Sources.IGDB.value:
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        role = request.GET.get("role")
+        if role and role not in GAME_COMPANY_ROLES:
+            return Response(
+                {
+                    "detail": (
+                        "role must be 'developer', 'publisher', 'porting' or "
+                        "'supporting'."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            companies = igdb.game_extras(media_id)["companies"]
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        if role:
+            companies = [company for company in companies if role in company["roles"]]
+
+        paginated = paginate_data(request, companies, limit, offset)
+        return Response(PaginatedCompaniesSerializer(paginated).data, status=HTTP.OK)
+
+
 # /api/v1/media/[media_type]/[source]/[media_id]/crew/
 class MediaCrewView(drf_views.APIView):
     """Media crew view."""
@@ -3383,6 +3493,7 @@ class MediaImagesView(drf_views.APIView):
                                     "vote_count": 12,
                                 },
                             ],
+                            "screenshots": [],
                             "logos": [],
                         },
                     )
@@ -3395,24 +3506,25 @@ class MediaImagesView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the posters, backdrops and logos of a movie or tv serie."""
+        """Retrieve the images of a movie, tv serie or game."""
         if not check_valid_type(media_type):
             return Response(
                 {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
 
-        if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+        if media_type not in IMAGE_SOURCES:
             return Response(
                 {
                     "detail": (
-                        "Images are supported only for 'movie' and 'tv' media types."
+                        "Images are supported only for 'movie', 'tv' and 'game' "
+                        "media types."
                     ),
                 },
                 status=HTTP.BAD_REQUEST,
             )
 
-        if source != Sources.TMDB.value:
+        if source != IMAGE_SOURCES[media_type]:
             return Response(
                 {
                     "detail": f"Cannot query `{source}` for `{media_type}` media type",
@@ -3423,12 +3535,19 @@ class MediaImagesView(drf_views.APIView):
         type_filter = request.GET.get("type")
         if type_filter and type_filter not in IMAGE_TYPES:
             return Response(
-                {"detail": "type must be 'posters', 'backdrops' or 'logos'."},
+                {
+                    "detail": (
+                        "type must be 'posters', 'backdrops', 'screenshots' or 'logos'."
+                    ),
+                },
                 status=HTTP.BAD_REQUEST,
             )
 
         try:
-            images = tmdb.media_images(media_type, media_id)
+            if source == Sources.IGDB.value:
+                images = igdb.game_extras(media_id)["images"]
+            else:
+                images = tmdb.media_images(media_type, media_id)
         except Exception as e:  # noqa: BLE001
             return Response(
                 {
@@ -5635,6 +5754,7 @@ class MediaSeasonImagesView(drf_views.APIView):
                                     "vote_count": 12,
                                 },
                             ],
+                            "screenshots": [],
                             "logos": [],
                         },
                     )
@@ -5673,7 +5793,11 @@ class MediaSeasonImagesView(drf_views.APIView):
         type_filter = request.GET.get("type")
         if type_filter and type_filter not in IMAGE_TYPES:
             return Response(
-                {"detail": "type must be 'posters', 'backdrops' or 'logos'."},
+                {
+                    "detail": (
+                        "type must be 'posters', 'backdrops', 'screenshots' or 'logos'."
+                    ),
+                },
                 status=HTTP.BAD_REQUEST,
             )
 

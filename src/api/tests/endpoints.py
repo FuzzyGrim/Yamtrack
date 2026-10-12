@@ -65,6 +65,7 @@ def get_endpoint_cases() -> list[EndpointCase]:
         ),
         EndpointCase("delete", "api_media_detail", args=("movie", "tmdb", 1)),
         EndpointCase("get", "api_media_cast", args=("movie", "tmdb", 1)),
+        EndpointCase("get", "api_media_companies", args=("game", "igdb", 1)),
         EndpointCase("get", "api_media_crew", args=("movie", "tmdb", 1)),
         EndpointCase("get", "api_media_images", args=("movie", "tmdb", 1)),
         EndpointCase(

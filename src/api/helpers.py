@@ -126,7 +126,16 @@ MEDIA_TYPE_VALID_LIST = list(MEDIA_TYPE_MODEL_MAP.keys())
 
 MAX_RESULT_LIMIT = 200
 
-IMAGE_TYPES = ["posters", "backdrops", "logos"]
+IMAGE_TYPES = ["posters", "backdrops", "screenshots", "logos"]
+
+# Sources that provide images for each media type
+IMAGE_SOURCES = {
+    MediaTypes.MOVIE.value: Sources.TMDB.value,
+    MediaTypes.TV.value: Sources.TMDB.value,
+    MediaTypes.GAME.value: Sources.IGDB.value,
+}
+
+GAME_COMPANY_ROLES = ["developer", "publisher", "porting", "supporting"]
 
 
 MEDIA_EXISTING_SORTS = [
@@ -402,10 +411,11 @@ def group_watch_providers(all_providers, region):
 
 
 def filter_images(images, image_type=None):
-    """Keep only the images of the given type, emptying the others."""
-    if not image_type:
-        return images
-    return {key: (value if key == image_type else []) for key, value in images.items()}
+    """Return every image type, keeping only the given type if one is set."""
+    return {
+        key: (images.get(key, []) if image_type in (None, key) else [])
+        for key in IMAGE_TYPES
+    }
 
 
 def filter_known_for(known_for, media_type=None, department=None):

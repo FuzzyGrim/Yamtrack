@@ -1517,7 +1517,24 @@ class MediaImagesResponseSerializer(serializers.Serializer):
 
     posters = MediaImageSerializer(many=True)
     backdrops = MediaImageSerializer(many=True)
+    screenshots = MediaImageSerializer(many=True)
     logos = MediaImageSerializer(many=True)
+
+
+class CompanySerializer(serializers.Serializer):
+    """Serializer for a company involved in a media."""
+
+    company_id = serializers.IntegerField()
+    name = serializers.CharField()
+    logo = serializers.URLField(allow_null=True)
+    roles = serializers.ListField(child=serializers.CharField())
+
+
+class PaginatedCompaniesSerializer(serializers.Serializer):
+    """Paginated response serializer for companies."""
+
+    pagination = PaginationSerializer()
+    results = CompanySerializer(many=True)
 
 
 class KnownForSerializer(serializers.Serializer):

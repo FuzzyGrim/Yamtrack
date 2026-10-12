@@ -1097,3 +1097,256 @@ class MediaImagesTests(YamtrackApiTestCase):
                 headers=self.auth_headers,
             )
             self.assertEqual(response.status_code, 500)
+
+
+GAME_EXTRAS_RESPONSE = [
+    {
+        "id": 1942,
+        "cover": {"id": 1, "image_id": "co1wyy", "width": 600, "height": 800},
+        "artworks": [
+            {"id": 2, "image_id": "ar5l8", "width": 1920, "height": 1080},
+        ],
+        "screenshots": [
+            {"id": 3, "image_id": "sc8ojm", "width": 1280, "height": 720},
+            {"id": 4, "image_id": "sc8ojn"},
+        ],
+        "involved_companies": [
+            {
+                "id": 10,
+                "company": {"id": 1012, "name": "WB Games"},
+                "developer": False,
+                "publisher": True,
+                "porting": False,
+                "supporting": False,
+            },
+            {
+                "id": 11,
+                "company": {
+                    "id": 908,
+                    "name": "CD Projekt RED",
+                    "logo": {"id": 5, "image_id": "cl6np"},
+                },
+                "developer": True,
+                "publisher": False,
+                "porting": False,
+                "supporting": False,
+            },
+            {
+                "id": 12,
+                "company": {
+                    "id": 908,
+                    "name": "CD Projekt RED",
+                    "logo": {"id": 5, "image_id": "cl6np"},
+                },
+                "developer": False,
+                "publisher": True,
+                "porting": False,
+                "supporting": False,
+            },
+            {
+                "id": 13,
+                "company": {"id": 3020, "name": "Saber Interactive"},
+                "developer": False,
+                "publisher": False,
+                "porting": True,
+                "supporting": False,
+            },
+        ],
+    },
+]
+
+
+@patch("app.providers.igdb.get_access_token", return_value="token")
+class GameExtrasTests(YamtrackApiTestCase):
+    """Validate game images and companies endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_images_returns_cover_artworks_and_screenshots(
+        self,
+        mock_request,
+        _mock_token,
+    ):
+        """Game images should map cover, artworks and screenshots."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["posters"],
+            [
+                {
+                    "image": "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/co1wyy.jpg",
+                    "original": "https://images.igdb.com/igdb/image/upload/t_original/co1wyy.jpg",
+                    "width": 600,
+                    "height": 800,
+                    "aspect_ratio": 0.75,
+                    "language": None,
+                    "vote_average": None,
+                    "vote_count": None,
+                },
+            ],
+        )
+        self.assertEqual(
+            payload["backdrops"][0]["image"],
+            "https://images.igdb.com/igdb/image/upload/t_720p/ar5l8.jpg",
+        )
+        self.assertEqual(len(payload["screenshots"]), 2)
+        self.assertIsNone(payload["screenshots"][1]["aspect_ratio"])
+        self.assertEqual(payload["logos"], [])
+        self.assertTrue(mock_request.call_args.args[2].endswith("/games"))
+        self.assertIn("where id = 1942;", mock_request.call_args.kwargs["data"])
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_images_filters_screenshots(self, mock_request, _mock_token):
+        """Game images should support the screenshots type filter."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            params={"type": "screenshots"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["posters"], [])
+        self.assertEqual(payload["backdrops"], [])
+        self.assertEqual(len(payload["screenshots"]), 2)
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_companies_merges_roles(self, mock_request, _mock_token):
+        """Game companies should merge roles and list developers first."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_companies",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(
+            payload["results"],
+            [
+                {
+                    "company_id": 908,
+                    "name": "CD Projekt RED",
+                    "logo": "https://images.igdb.com/igdb/image/upload/t_logo_med/cl6np.png",
+                    "roles": ["developer", "publisher"],
+                },
+                {
+                    "company_id": 1012,
+                    "name": "WB Games",
+                    "logo": None,
+                    "roles": ["publisher"],
+                },
+                {
+                    "company_id": 3020,
+                    "name": "Saber Interactive",
+                    "logo": None,
+                    "roles": ["porting"],
+                },
+            ],
+        )
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_companies_filters_by_role(self, mock_request, _mock_token):
+        """Game companies should filter by role."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_companies",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            params={"role": "publisher"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [company["name"] for company in response.json()["results"]],
+            ["CD Projekt RED", "WB Games"],
+        )
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_images_and_companies_share_cached_request(
+        self,
+        mock_request,
+        _mock_token,
+    ):
+        """Game images and companies should reuse the same provider request."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        for url_name in ("api_media_images", "api_media_companies"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.GAME.value, "igdb", 1942),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        mock_request.assert_called_once()
+
+    @patch("app.providers.igdb.services.api_request", return_value=[])
+    def test_game_not_found_returns_internal_server_error(
+        self,
+        _mock_request,
+        _mock_token,
+    ):
+        """Game endpoints should surface missing games as provider errors."""
+        for url_name in ("api_media_images", "api_media_companies"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.GAME.value, "igdb", 999999),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 500)
+
+    def test_companies_invalid_requests_return_bad_request(self, _mock_token):
+        """Companies should reject unsupported media types, sources and roles."""
+        requests = [
+            (("invalid", "igdb", 1), None),
+            ((MediaTypes.MOVIE.value, "tmdb", 1), None),
+            ((MediaTypes.GAME.value, "manual", 1), None),
+            ((MediaTypes.GAME.value, "igdb", 1), {"role": "artist"}),
+        ]
+
+        for args, params in requests:
+            response = self.call_api(
+                "get",
+                "api_media_companies",
+                args=args,
+                params=params,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    def test_game_images_wrong_source_returns_bad_request(self, _mock_token):
+        """Game images should only be queried from IGDB."""
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.GAME.value, "tmdb", 1942),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)

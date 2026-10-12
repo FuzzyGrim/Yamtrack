@@ -283,7 +283,20 @@ MediaImageTypeParam = OpenApiParameter(
     name="type",
     type=OpenApiTypes.STR,
     location=OpenApiParameter.QUERY,
-    description="Only return images of this type, others are empty (default: all).",
+    description=(
+        "Only return images of this type, others are empty (default: all). "
+        "Screenshots are only available for games, logos only for movies and "
+        "tv series."
+    ),
     required=False,
-    enum=["posters", "backdrops", "logos"],
+    enum=["posters", "backdrops", "screenshots", "logos"],
+)
+
+CompanyRoleParam = OpenApiParameter(
+    name="role",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Only return companies with this role (default: all).",
+    required=False,
+    enum=["developer", "publisher", "porting", "supporting"],
 )

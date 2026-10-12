@@ -5556,8 +5556,10 @@ paths:
           - backdrops
           - logos
           - posters
+          - screenshots
         description: 'Only return images of this type, others are empty (default:
-          all).'
+          all). Screenshots are only available for games, logos only for movies and
+          tv series.'
       tags:
       - media
       security:
@@ -5590,6 +5592,7 @@ paths:
                       language: null
                       vote_average: 5.6
                       vote_count: 12
+                    screenshots: []
                     logos: []
                   summary: Retrieve images example
                   description: Retrieve images example
@@ -6593,6 +6596,156 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/companies/:
+    get:
+      operationId: media_companies_get
+      description: Retrieve the companies involved in a game.
+      summary: Get media companies
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - developer
+          - porting
+          - publisher
+          - supporting
+        description: 'Only return companies with this role (default: all).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCompanies'
+              examples:
+                RetrieveCompaniesExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - company_id: 908
+                      name: CD Projekt RED
+                      logo: https://images.igdb.com/igdb/image/upload/t_logo_med/cl6np.png
+                      roles:
+                      - developer
+                      - publisher
+                  summary: Retrieve companies example
+                  description: Retrieve companies example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/crew/:
     get:
       operationId: media_crew_get
@@ -7255,7 +7408,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/images/:
     get:
       operationId: media_images_get
-      description: Retrieve the posters, backdrops and logos of a movie or tv serie.
+      description: Retrieve the images of a movie, tv serie or game.
       summary: Get media images
       parameters:
       - in: path
@@ -7303,8 +7456,10 @@ paths:
           - backdrops
           - logos
           - posters
+          - screenshots
         description: 'Only return images of this type, others are empty (default:
-          all).'
+          all). Screenshots are only available for games, logos only for movies and
+          tv series.'
       tags:
       - media
       security:
@@ -7337,6 +7492,7 @@ paths:
                       language: null
                       vote_average: 5.6
                       vote_count: 12
+                    screenshots: []
                     logos: []
                   summary: Retrieve images example
                   description: Retrieve images example
@@ -9263,6 +9419,27 @@ components:
           items:
             type: object
             additionalProperties: {}
+    Company:
+      type: object
+      description: Serializer for a company involved in a media.
+      properties:
+        company_id:
+          type: integer
+        name:
+          type: string
+        logo:
+          type: string
+          format: uri
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+      required:
+      - company_id
+      - logo
+      - name
+      - roles
     CompleteEpisode:
       type: object
       description: Serializer that builds a CompleteEpisode response.
@@ -10125,6 +10302,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MediaImage'
+        screenshots:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
         logos:
           type: array
           items:
@@ -10133,6 +10314,7 @@ components:
       - backdrops
       - logos
       - posters
+      - screenshots
     MediaStatusEnum:
       enum:
       - 0
@@ -10242,6 +10424,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChangesHistoryEntry'
+      required:
+      - pagination
+      - results
+    PaginatedCompanies:
+      type: object
+      description: Paginated response serializer for companies.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Company'
       required:
       - pagination
       - results
