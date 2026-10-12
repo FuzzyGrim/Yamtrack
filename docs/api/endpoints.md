@@ -35,17 +35,17 @@
     - [x] GET: Get tracked item
     - [x] PATCH: Edit last consumption of tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/cast/`
-    - [x] GET: Get cast of a movie or tv serie
+    - [x] GET: Get cast of a movie or tv serie (TMDB), or voice actors of an anime (MAL, via AniList)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/changes_history/`
     - [x] GET: Get changes history of tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/characters/`
-    - [x] GET: Get characters appearing in a comic
+    - [x] GET: Get characters of an anime or manga (MAL, via AniList) or comic (ComicVine)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/companies/`
-    - [x] GET: Get companies involved in a game, optionally filtered by `role`
+    - [x] GET: Get companies involved in a game (IGDB) or publishers of a board game (BGG), optionally filtered by `role`
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/creators/`
-    - [x] GET: Get creators (writers, artists, etc.) of a comic
+    - [x] GET: Get creators of a manga (MAL via AniList, MangaUpdates), book (Open Library, Hardcover), comic (ComicVine) or board game (BGG)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/crew/`
-    - [x] GET: Get crew of a movie or tv serie, optionally filtered by `department`
+    - [x] GET: Get crew of a movie or tv serie (TMDB), optionally filtered by `department`, or staff of an anime (MAL, via AniList)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/`
     - [x] GET: Get consumption history of tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/{consumption_id}/`
@@ -53,7 +53,7 @@
     - [x] GET: Get specific consumption entry
     - [x] PATCH: Edit specific consumption entry
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/images/`
-    - [x] GET: Get images of a movie or tv serie (posters, backdrops, logos), game (cover, artworks, screenshots) or comic (volume and issue covers), optionally filtered by `type`
+    - [x] GET: Get images of any media type except manual items: movie and tv serie (posters, backdrops, logos), game (cover, artworks, screenshots), comic (volume and issue covers), anime, manga, book and board game (covers), optionally filtered by `type`
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/`
     - [x] GET: Lists where the tracked item is in
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}`

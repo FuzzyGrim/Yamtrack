@@ -21,7 +21,7 @@ from rest_framework.response import Response
 
 from app.forms import ManualItemForm, get_form_class
 from app.models import BasicMedia, Item, MediaTypes, Sources
-from app.providers import comicvine, igdb, services, tmdb
+from app.providers import services, tmdb
 from app.statistics import (
     get_activity_data,
     get_media_type_distribution,
@@ -43,6 +43,9 @@ from .changes_history_processor import (
     get_changes_history_entry,
 )
 from .helpers import (
+    CAST_CREW_SOURCES,
+    COMPANY_SOURCES,
+    CREDIT_SOURCES,
     GAME_COMPANY_ROLES,
     IMAGE_SOURCES,
     IMAGE_TYPES,
@@ -52,7 +55,13 @@ from .helpers import (
     apply_list_sort,
     build_lists_by_item_id,
     check_source_type,
+    check_supported_source,
     check_valid_type,
+    fetch_cast,
+    fetch_companies,
+    fetch_credits,
+    fetch_crew,
+    fetch_images,
     fetch_results_all_types,
     fetch_results_for_type,
     filter_images,
@@ -115,8 +124,8 @@ from .serializers import (
     MixedMediaSerializer,
     PaginatedCastSerializer,
     PaginatedChangesHistoryResponseSerializer,
-    PaginatedComicCreditsSerializer,
     PaginatedCompaniesSerializer,
+    PaginatedCreditsSerializer,
     PaginatedCrewSerializer,
     PaginatedEpisodesSerializer,
     PaginatedEventsSerializer,
@@ -2627,37 +2636,17 @@ class MediaCastView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the cast of a specific movie or tv serie."""
+        """Retrieve the cast of a specific movie, tv serie or anime."""
         limit, offset, err = parse_limit_offset(request)
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
-            return Response(
-                {
-                    "detail": (
-                        "Cast is supported only for 'movie' and 'tv' media types."
-                    ),
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if source != Sources.TMDB.value:
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        err = check_supported_source(CAST_CREW_SOURCES, media_type, source, "cast")
+        if err:
+            return err
 
         try:
-            cast = tmdb.media_credits(media_type, media_id)["cast"]
+            cast = fetch_cast(media_type, source, media_id)
         except Exception as e:  # noqa: BLE001
             return Response(
                 {
@@ -2799,33 +2788,23 @@ class MediaChangesHistoryView(drf_views.APIView):
         return Response(paginated_data, status=HTTP.OK)
 
 
-def comic_credits_response(request, media_type, source, media_id, credit_type):
-    """Return the paginated creators or characters of a comic."""
+def credits_response(request, media_type, source, media_id, credit_type):
+    """Return the paginated creators or characters of a media."""
     limit, offset, err = parse_limit_offset(request)
     if err:
         return err
 
-    if media_type != MediaTypes.COMIC.value:
-        return Response(
-            {
-                "detail": (
-                    f"{credit_type.capitalize()} are supported only for 'comic' "
-                    "media type."
-                ),
-            },
-            status=HTTP.BAD_REQUEST,
-        )
-
-    if source != Sources.COMICVINE.value:
-        return Response(
-            {
-                "detail": f"Cannot query `{source}` for `{media_type}` media type",
-            },
-            status=HTTP.BAD_REQUEST,
-        )
+    err = check_supported_source(
+        CREDIT_SOURCES[credit_type],
+        media_type,
+        source,
+        credit_type,
+    )
+    if err:
+        return err
 
     try:
-        credits_data = comicvine.comic_credits(media_id)[credit_type]
+        credits_data = fetch_credits(credit_type, media_type, source, media_id)
     except Exception as e:  # noqa: BLE001
         return Response(
             {
@@ -2836,7 +2815,7 @@ def comic_credits_response(request, media_type, source, media_id, credit_type):
         )
 
     paginated = paginate_data(request, credits_data, limit, offset)
-    return Response(PaginatedComicCreditsSerializer(paginated).data, status=HTTP.OK)
+    return Response(PaginatedCreditsSerializer(paginated).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/characters/
@@ -2845,7 +2824,7 @@ class MediaCharactersView(drf_views.APIView):
 
     authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = PaginatedComicCreditsSerializer
+    serializer_class = PaginatedCreditsSerializer
 
     @extend_schema(
         operation_id="media_characters_get",
@@ -2859,7 +2838,7 @@ class MediaCharactersView(drf_views.APIView):
         ],
         responses={
             200: OpenApiResponse(
-                PaginatedComicCreditsSerializer,
+                PaginatedCreditsSerializer,
                 description="Successful response",
                 examples=[
                     OpenApiExample(
@@ -2876,8 +2855,10 @@ class MediaCharactersView(drf_views.APIView):
                             },
                             "results": [
                                 {
-                                    "id": 1699,
+                                    "id": "1699",
                                     "name": "Batman",
+                                    "roles": [],
+                                    "image": None,
                                     "issue_count": 52,
                                     "source_url": "https://comicvine.gamespot.com/batman/4005-1699/",
                                 },
@@ -2893,8 +2874,8 @@ class MediaCharactersView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the characters appearing in a comic."""
-        return comic_credits_response(
+        """Retrieve the characters of an anime, manga or comic."""
+        return credits_response(
             request,
             media_type,
             source,
@@ -2958,26 +2939,19 @@ class MediaCompaniesView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the companies involved in a game."""
+        """Retrieve the companies involved in a game or board game."""
         limit, offset, err = parse_limit_offset(request)
         if err:
             return err
 
-        if media_type != MediaTypes.GAME.value:
-            return Response(
-                {
-                    "detail": "Companies are supported only for 'game' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if source != Sources.IGDB.value:
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        err = check_supported_source(
+            COMPANY_SOURCES,
+            media_type,
+            source,
+            "companies",
+        )
+        if err:
+            return err
 
         role = request.GET.get("role")
         if role and role not in GAME_COMPANY_ROLES:
@@ -2992,7 +2966,7 @@ class MediaCompaniesView(drf_views.APIView):
             )
 
         try:
-            companies = igdb.game_extras(media_id)["companies"]
+            companies = fetch_companies(source, media_id)
         except Exception as e:  # noqa: BLE001
             return Response(
                 {
@@ -3015,7 +2989,7 @@ class MediaCreatorsView(drf_views.APIView):
 
     authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = PaginatedComicCreditsSerializer
+    serializer_class = PaginatedCreditsSerializer
 
     @extend_schema(
         operation_id="media_creators_get",
@@ -3029,7 +3003,7 @@ class MediaCreatorsView(drf_views.APIView):
         ],
         responses={
             200: OpenApiResponse(
-                PaginatedComicCreditsSerializer,
+                PaginatedCreditsSerializer,
                 description="Successful response",
                 examples=[
                     OpenApiExample(
@@ -3046,8 +3020,10 @@ class MediaCreatorsView(drf_views.APIView):
                             },
                             "results": [
                                 {
-                                    "id": 40439,
+                                    "id": "40439",
                                     "name": "Scott Snyder",
+                                    "roles": [],
+                                    "image": None,
                                     "issue_count": 52,
                                     "source_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
                                 },
@@ -3063,8 +3039,8 @@ class MediaCreatorsView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the creators (writers, artists, etc.) of a comic."""
-        return comic_credits_response(
+        """Retrieve the creators of a manga, book, comic or board game."""
+        return credits_response(
             request,
             media_type,
             source,
@@ -3130,37 +3106,17 @@ class MediaCrewView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the crew of a specific movie or tv serie."""
+        """Retrieve the crew of a specific movie, tv serie or anime."""
         limit, offset, err = parse_limit_offset(request)
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
-            return Response(
-                {
-                    "detail": (
-                        "Crew is supported only for 'movie' and 'tv' media types."
-                    ),
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if source != Sources.TMDB.value:
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        err = check_supported_source(CAST_CREW_SOURCES, media_type, source, "crew")
+        if err:
+            return err
 
         try:
-            crew = tmdb.media_credits(media_type, media_id)["crew"]
+            crew = fetch_crew(media_type, source, media_id)
         except Exception as e:  # noqa: BLE001
             return Response(
                 {
@@ -3675,31 +3631,10 @@ class MediaImagesView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the images of a movie, tv serie, game or comic."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type not in IMAGE_SOURCES:
-            return Response(
-                {
-                    "detail": (
-                        "Images are supported only for 'movie', 'tv', 'game' and "
-                        "'comic' media types."
-                    ),
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if source != IMAGE_SOURCES[media_type]:
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        """Retrieve the images of a media."""
+        err = check_supported_source(IMAGE_SOURCES, media_type, source, "images")
+        if err:
+            return err
 
         type_filter = request.GET.get("type")
         if type_filter and type_filter not in IMAGE_TYPES:
@@ -3713,12 +3648,7 @@ class MediaImagesView(drf_views.APIView):
             )
 
         try:
-            if source == Sources.IGDB.value:
-                images = igdb.game_extras(media_id)["images"]
-            elif source == Sources.COMICVINE.value:
-                images = comicvine.comic_images(media_id)
-            else:
-                images = tmdb.media_images(media_type, media_id)
+            images = fetch_images(media_type, source, media_id)
         except Exception as e:  # noqa: BLE001
             return Response(
                 {

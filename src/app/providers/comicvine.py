@@ -376,6 +376,8 @@ def get_credits(entries):
         {
             "id": entry.get("id"),
             "name": entry.get("name"),
+            "roles": [],
+            "image": None,
             "issue_count": get_count(entry.get("count")),
             "source_url": entry.get("site_detail_url"),
         }

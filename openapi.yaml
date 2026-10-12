@@ -5558,8 +5558,8 @@ paths:
           - posters
           - screenshots
         description: 'Only return images of this type, others are empty (default:
-          all). Screenshots are only available for games, logos only for movies and
-          tv series, comics only have posters (volume and issue covers).'
+          all). Backdrops are only available for movies, tv series and games, screenshots
+          only for games and logos only for movies and tv series.'
       tags:
       - media
       security:
@@ -6306,7 +6306,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/cast/:
     get:
       operationId: media_cast_get
-      description: Retrieve the cast of a specific movie or tv serie.
+      description: Retrieve the cast of a specific movie, tv serie or anime.
       summary: Get media cast
       parameters:
       - in: query
@@ -6599,7 +6599,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/characters/:
     get:
       operationId: media_characters_get
-      description: Retrieve the characters appearing in a comic.
+      description: Retrieve the characters of an anime, manga or comic.
       summary: Get media characters
       parameters:
       - in: query
@@ -6663,7 +6663,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedComicCredits'
+                $ref: '#/components/schemas/PaginatedCredits'
               examples:
                 RetrieveCharactersExample:
                   value:
@@ -6674,8 +6674,10 @@ paths:
                       next: null
                       previous: null
                     results:
-                    - id: 1699
+                    - id: '1699'
                       name: Batman
+                      roles: []
+                      image: null
                       issue_count: 52
                       source_url: https://comicvine.gamespot.com/batman/4005-1699/
                   summary: Retrieve characters example
@@ -6737,7 +6739,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/companies/:
     get:
       operationId: media_companies_get
-      description: Retrieve the companies involved in a game.
+      description: Retrieve the companies involved in a game or board game.
       summary: Get media companies
       parameters:
       - in: query
@@ -6887,7 +6889,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/creators/:
     get:
       operationId: media_creators_get
-      description: Retrieve the creators (writers, artists, etc.) of a comic.
+      description: Retrieve the creators of a manga, book, comic or board game.
       summary: Get media creators
       parameters:
       - in: query
@@ -6951,7 +6953,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedComicCredits'
+                $ref: '#/components/schemas/PaginatedCredits'
               examples:
                 RetrieveCreatorsExample:
                   value:
@@ -6962,8 +6964,10 @@ paths:
                       next: null
                       previous: null
                     results:
-                    - id: 40439
+                    - id: '40439'
                       name: Scott Snyder
+                      roles: []
+                      image: null
                       issue_count: 52
                       source_url: https://comicvine.gamespot.com/scott-snyder/4040-40439/
                   summary: Retrieve creators example
@@ -7025,7 +7029,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/crew/:
     get:
       operationId: media_crew_get
-      description: Retrieve the crew of a specific movie or tv serie.
+      description: Retrieve the crew of a specific movie, tv serie or anime.
       summary: Get media crew
       parameters:
       - in: query
@@ -7033,7 +7037,7 @@ paths:
         schema:
           type: string
         description: Only return crew of this department, case-insensitive (e.g. Directing,
-          Writing, Production, Sound, Camera).
+          Writing, Production, Sound, Camera). Anime staff have no department.
       - in: query
         name: limit
         schema:
@@ -7684,7 +7688,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/images/:
     get:
       operationId: media_images_get
-      description: Retrieve the images of a movie, tv serie, game or comic.
+      description: Retrieve the images of a media.
       summary: Get media images
       parameters:
       - in: path
@@ -7734,8 +7738,8 @@ paths:
           - posters
           - screenshots
         description: 'Only return images of this type, others are empty (default:
-          all). Screenshots are only available for games, logos only for movies and
-          tv series, comics only have posters (volume and issue covers).'
+          all). Backdrops are only available for movies, tv series and games, screenshots
+          only for games and logos only for movies and tv series.'
       tags:
       - media
       security:
@@ -9656,26 +9660,6 @@ components:
             $ref: '#/components/schemas/ChangesHistoryChange'
       required:
       - changes
-    ComicCredit:
-      type: object
-      description: Serializer for a creator or character of a comic.
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        issue_count:
-          type: integer
-          nullable: true
-        source_url:
-          type: string
-          format: uri
-          nullable: true
-      required:
-      - id
-      - issue_count
-      - name
-      - source_url
     ComicDetails:
       type: object
       description: Schema serializer for comic details.
@@ -9918,6 +9902,37 @@ components:
       - $ref: '#/components/schemas/GameRelated'
       - $ref: '#/components/schemas/SeasonRelated'
       - $ref: '#/components/schemas/TVRelated'
+    Credit:
+      type: object
+      description: Serializer for a creator or character of a media.
+      properties:
+        id:
+          type: string
+          nullable: true
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        issue_count:
+          type: integer
+          nullable: true
+        source_url:
+          type: string
+          format: uri
+          nullable: true
+      required:
+      - id
+      - image
+      - issue_count
+      - name
+      - roles
+      - source_url
     CrewMember:
       type: object
       description: Serializer for a single crew member.
@@ -10723,19 +10738,6 @@ components:
       required:
       - pagination
       - results
-    PaginatedComicCredits:
-      type: object
-      description: Paginated response serializer for comic creators or characters.
-      properties:
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ComicCredit'
-      required:
-      - pagination
-      - results
     PaginatedCompanies:
       type: object
       description: Paginated response serializer for companies.
@@ -10746,6 +10748,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Company'
+      required:
+      - pagination
+      - results
+    PaginatedCredits:
+      type: object
+      description: Paginated response serializer for creators or characters.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Credit'
       required:
       - pagination
       - results

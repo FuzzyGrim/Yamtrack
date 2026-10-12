@@ -136,6 +136,20 @@ def form_error_messages(form, request):
             )
 
 
+def build_image_entry(image, original=None, width=None, height=None):
+    """Build an image entry in the format shared by the API images endpoints."""
+    return {
+        "image": image,
+        "original": original or image,
+        "width": width,
+        "height": height,
+        "aspect_ratio": round(width / height, 3) if width and height else None,
+        "language": None,
+        "vote_average": None,
+        "vote_count": None,
+    }
+
+
 def format_search_response(page, per_page, total_results, results):
     """Format the search response for pagination."""
     return {

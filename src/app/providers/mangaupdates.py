@@ -247,3 +247,63 @@ async def fetch_series_data(session, url, item):
                 "image": image,
             }
     return None
+
+
+def manga_extras(media_id):
+    """Return the cover and the authors of a manga from MangaUpdates."""
+    cache_key = (
+        f"{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{media_id}_extras"
+    )
+    data = cache.get(cache_key)
+
+    if data is None:
+        try:
+            response = services.api_request(
+                Sources.MANGAUPDATES.value,
+                "GET",
+                f"{base_url}/series/{media_id}",
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        image_url = response.get("image", {}).get("url", {})
+        posters = []
+        if image_url.get("original"):
+            posters.append(
+                helpers.build_image_entry(
+                    image_url.get("thumb") or image_url["original"],
+                    image_url["original"],
+                    response["image"].get("width"),
+                    response["image"].get("height"),
+                ),
+            )
+
+        # An author can be credited both as author and artist
+        creators = {}
+        for author in response.get("authors") or []:
+            key = author.get("author_id") or author.get("name")
+            entry = creators.setdefault(
+                key,
+                {
+                    "id": author.get("author_id"),
+                    "name": author.get("name"),
+                    "roles": [],
+                    "image": None,
+                    "issue_count": None,
+                    "source_url": (
+                        f"https://www.mangaupdates.com/author/{author['author_id']}"
+                        if author.get("author_id")
+                        else None
+                    ),
+                },
+            )
+            if author.get("type") and author["type"] not in entry["roles"]:
+                entry["roles"].append(author["type"])
+
+        data = {
+            "images": {"posters": posters},
+            "creators": list(creators.values()),
+        }
+        cache.set(cache_key, data)
+
+    return data

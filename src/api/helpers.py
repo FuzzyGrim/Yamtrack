@@ -25,7 +25,17 @@ from app.models import (
     Season,
     Sources,
 )
-from app.providers import tmdb
+from app.providers import (
+    anilist,
+    bgg,
+    comicvine,
+    hardcover,
+    igdb,
+    mal,
+    mangaupdates,
+    openlibrary,
+    tmdb,
+)
 from lists.models import CustomListItem
 from users.models import WATCH_PROVIDER_REGION_UNSET, MediaStatusChoices
 
@@ -130,10 +140,42 @@ IMAGE_TYPES = ["posters", "backdrops", "screenshots", "logos"]
 
 # Sources that provide images for each media type
 IMAGE_SOURCES = {
-    MediaTypes.MOVIE.value: Sources.TMDB.value,
-    MediaTypes.TV.value: Sources.TMDB.value,
-    MediaTypes.GAME.value: Sources.IGDB.value,
-    MediaTypes.COMIC.value: Sources.COMICVINE.value,
+    MediaTypes.MOVIE.value: [Sources.TMDB.value],
+    MediaTypes.TV.value: [Sources.TMDB.value],
+    MediaTypes.ANIME.value: [Sources.MAL.value],
+    MediaTypes.MANGA.value: [Sources.MAL.value, Sources.MANGAUPDATES.value],
+    MediaTypes.GAME.value: [Sources.IGDB.value],
+    MediaTypes.BOOK.value: [Sources.OPENLIBRARY.value, Sources.HARDCOVER.value],
+    MediaTypes.COMIC.value: [Sources.COMICVINE.value],
+    MediaTypes.BOARDGAME.value: [Sources.BGG.value],
+}
+
+# Sources that provide cast and crew for each media type
+CAST_CREW_SOURCES = {
+    MediaTypes.MOVIE.value: [Sources.TMDB.value],
+    MediaTypes.TV.value: [Sources.TMDB.value],
+    MediaTypes.ANIME.value: [Sources.MAL.value],
+}
+
+# Sources that provide creators or characters for each media type
+CREDIT_SOURCES = {
+    "creators": {
+        MediaTypes.MANGA.value: [Sources.MAL.value, Sources.MANGAUPDATES.value],
+        MediaTypes.BOOK.value: [Sources.OPENLIBRARY.value, Sources.HARDCOVER.value],
+        MediaTypes.COMIC.value: [Sources.COMICVINE.value],
+        MediaTypes.BOARDGAME.value: [Sources.BGG.value],
+    },
+    "characters": {
+        MediaTypes.ANIME.value: [Sources.MAL.value],
+        MediaTypes.MANGA.value: [Sources.MAL.value],
+        MediaTypes.COMIC.value: [Sources.COMICVINE.value],
+    },
+}
+
+# Sources that provide companies for each media type
+COMPANY_SOURCES = {
+    MediaTypes.GAME.value: [Sources.IGDB.value],
+    MediaTypes.BOARDGAME.value: [Sources.BGG.value],
 }
 
 GAME_COMPANY_ROLES = ["developer", "publisher", "porting", "supporting"]
@@ -409,6 +451,134 @@ def group_watch_providers(all_providers, region):
         "no_charge": merge("flatrate", "free", "ads"),
         "paid": merge("buy", "rent"),
     }
+
+
+def check_supported_source(supported_sources, media_type, source, feature):
+    """Return an error response if the media type or source is not supported."""
+    if media_type not in supported_sources:
+        supported = ", ".join(f"'{key}'" for key in supported_sources)
+        return Response(
+            {
+                "detail": (
+                    f"No {feature} available for `{media_type}` media type. "
+                    f"Supported media types: {supported}."
+                ),
+            },
+            status=HTTP.BAD_REQUEST,
+        )
+
+    if source not in supported_sources[media_type]:
+        return Response(
+            {
+                "detail": f"Cannot query `{source}` for `{media_type}` media type",
+            },
+            status=HTTP.BAD_REQUEST,
+        )
+
+    return None
+
+
+def fetch_images(media_type, source, media_id):
+    """Return the images of a media from its source."""
+    fetchers = {
+        Sources.TMDB.value: lambda: tmdb.media_images(media_type, media_id),
+        Sources.MAL.value: lambda: mal.media_pictures(media_type, media_id),
+        Sources.MANGAUPDATES.value: lambda: mangaupdates.manga_extras(media_id)[
+            "images"
+        ],
+        Sources.IGDB.value: lambda: igdb.game_extras(media_id)["images"],
+        Sources.OPENLIBRARY.value: lambda: openlibrary.book_extras(media_id)["images"],
+        Sources.HARDCOVER.value: lambda: hardcover.book_extras(media_id)["images"],
+        Sources.COMICVINE.value: lambda: comicvine.comic_images(media_id),
+        Sources.BGG.value: lambda: bgg.boardgame_extras(media_id)["images"],
+    }
+    return fetchers[source]()
+
+
+def fetch_cast(media_type, source, media_id):
+    """Return the cast of a movie, tv serie or anime from its source."""
+    if source == Sources.TMDB.value:
+        return tmdb.media_credits(media_type, media_id)["cast"]
+
+    # Anime cast are the voice actors of each character
+    characters = anilist.media_credits(media_type, media_id)["characters"]
+    return [
+        {
+            "person_id": actor["id"],
+            "name": actor["name"],
+            "character": character["name"],
+            "image": actor["image"],
+            "order": order,
+            "episode_count": None,
+        }
+        for order, character in enumerate(characters)
+        for actor in character["voice_actors"]
+    ]
+
+
+def fetch_crew(media_type, source, media_id):
+    """Return the crew of a movie, tv serie or anime from its source."""
+    if source == Sources.TMDB.value:
+        return tmdb.media_credits(media_type, media_id)["crew"]
+
+    staff = anilist.media_credits(media_type, media_id)["staff"]
+    return [
+        {
+            "person_id": person["id"],
+            "name": person["name"],
+            "department": None,
+            "jobs": person["roles"],
+            "image": person["image"],
+            "episode_count": None,
+        }
+        for person in staff
+    ]
+
+
+def fetch_credits(credit_type, media_type, source, media_id):
+    """Return the creators or characters of a media from its source."""
+    fetchers = {
+        Sources.MAL.value: lambda: get_anilist_credits(
+            credit_type,
+            media_type,
+            media_id,
+        ),
+        Sources.MANGAUPDATES.value: lambda: mangaupdates.manga_extras(media_id)[
+            "creators"
+        ],
+        Sources.OPENLIBRARY.value: lambda: openlibrary.book_extras(media_id)[
+            "creators"
+        ],
+        Sources.HARDCOVER.value: lambda: hardcover.book_extras(media_id)["creators"],
+        Sources.COMICVINE.value: lambda: comicvine.comic_credits(media_id)[credit_type],
+        Sources.BGG.value: lambda: bgg.boardgame_extras(media_id)["creators"],
+    }
+    return fetchers[source]()
+
+
+def get_anilist_credits(credit_type, media_type, media_id):
+    """Return the staff or characters of an anime or manga from AniList."""
+    anilist_credits = anilist.media_credits(media_type, media_id)
+    if credit_type == "creators":
+        return [{**person, "issue_count": None} for person in anilist_credits["staff"]]
+    return [
+        {
+            "id": character["id"],
+            "name": character["name"],
+            "roles": [character["role"]] if character["role"] else [],
+            "image": character["image"],
+            "issue_count": None,
+            "source_url": character["source_url"],
+        }
+        for character in anilist_credits["characters"]
+    ]
+
+
+def fetch_companies(source, media_id):
+    """Return the companies of a game or board game from its source."""
+    if source == Sources.IGDB.value:
+        return igdb.game_extras(media_id)["companies"]
+    return bgg.boardgame_extras(media_id)["companies"]
 
 
 def filter_images(images, image_type=None):

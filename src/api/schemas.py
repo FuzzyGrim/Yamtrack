@@ -263,7 +263,8 @@ CrewDepartmentParam = OpenApiParameter(
     location=OpenApiParameter.QUERY,
     description=(
         "Only return crew of this department, case-insensitive "
-        "(e.g. Directing, Writing, Production, Sound, Camera)."
+        "(e.g. Directing, Writing, Production, Sound, Camera). "
+        "Anime staff have no department."
     ),
     required=False,
 )
@@ -285,8 +286,8 @@ MediaImageTypeParam = OpenApiParameter(
     location=OpenApiParameter.QUERY,
     description=(
         "Only return images of this type, others are empty (default: all). "
-        "Screenshots are only available for games, logos only for movies and "
-        "tv series, comics only have posters (volume and issue covers)."
+        "Backdrops are only available for movies, tv series and games, "
+        "screenshots only for games and logos only for movies and tv series."
     ),
     required=False,
     enum=["posters", "backdrops", "screenshots", "logos"],

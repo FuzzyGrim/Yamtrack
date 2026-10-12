@@ -256,7 +256,7 @@ class MediaCastTests(YamtrackApiTestCase):
         """Cast endpoint should reject media types without cast."""
         requests = [
             ("invalid", "tmdb", 1),
-            (MediaTypes.ANIME.value, "mal", 1),
+            (MediaTypes.BOOK.value, "openlibrary", 1),
             (MediaTypes.SEASON.value, "tmdb", 1),
             (MediaTypes.MOVIE.value, "manual", 1),
         ]
@@ -378,7 +378,7 @@ class MediaCrewTests(YamtrackApiTestCase):
         """Crew endpoint should reject media types without crew."""
         requests = [
             ("invalid", "tmdb", 1),
-            (MediaTypes.ANIME.value, "mal", 1),
+            (MediaTypes.BOOK.value, "openlibrary", 1),
             (MediaTypes.SEASON.value, "tmdb", 1),
             (MediaTypes.MOVIE.value, "manual", 1),
         ]
@@ -1067,7 +1067,7 @@ class MediaImagesTests(YamtrackApiTestCase):
         """Images endpoints should reject media types without images."""
         requests = [
             ("api_media_images", ("invalid", "tmdb", 1)),
-            ("api_media_images", (MediaTypes.ANIME.value, "mal", 1)),
+            ("api_media_images", (MediaTypes.SEASON.value, "tmdb", 1)),
             ("api_media_images", (MediaTypes.MOVIE.value, "manual", 1)),
             ("api_media_season_images", (MediaTypes.MOVIE.value, "tmdb", 1, 1)),
         ]
@@ -1427,8 +1427,10 @@ class ComicExtrasTests(YamtrackApiTestCase):
         self.assertEqual(
             payload["results"][0],
             {
-                "id": 40439,
+                "id": "40439",
                 "name": "Scott Snyder",
+                "roles": [],
+                "image": None,
                 "issue_count": 52,
                 "source_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
             },
