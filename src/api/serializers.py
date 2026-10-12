@@ -8,6 +8,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import serializers
 
+from app.helpers import apply_custom_image
 from app.models import (
     TV,
     Anime,
@@ -1167,6 +1168,22 @@ class CompleteMediaSerializer(serializers.Serializer):
 
         media_metadata["related"]["episodes"] = processed_episodes
 
+    def _apply_custom_cover(self, media_metadata):
+        """Replace the image with the custom cover chosen for the media, if any."""
+        # Episodes have no cover to customize
+        if (
+            media_metadata.get("media_id") is None
+            or media_metadata.get("media_type") == MediaTypes.EPISODE.value
+        ):
+            return media_metadata
+        return apply_custom_image(
+            media_metadata,
+            media_metadata["media_type"],
+            str(media_metadata["media_id"]),
+            media_metadata.get("source"),
+            season_number=media_metadata.get("season_number"),
+        )
+
     def to_representation(self, instance):
         """Transform media_metadata and user data into CompleteMedia response."""
         media_metadata = instance.get("media_metadata", {})
@@ -1179,6 +1196,7 @@ class CompleteMediaSerializer(serializers.Serializer):
         elif media_type == MediaTypes.SEASON.value:
             self._process_episodes(media_metadata, instance.get("episodes"))
 
+        media_metadata = self._apply_custom_cover(media_metadata)
         temp_media = type("TempMedia", (), media_metadata)()
 
         details = media_metadata.get("details", {})
@@ -1574,6 +1592,30 @@ class PaginatedCreditsSerializer(serializers.Serializer):
 
     pagination = PaginationSerializer()
     results = CreditSerializer(many=True)
+
+
+class CoverSerializer(serializers.Serializer):
+    """Serializer for the cover of a media."""
+
+    image = serializers.URLField(
+        allow_null=True,
+        help_text="Cover shown for the media, the custom one if set.",
+    )
+    custom_image = serializers.URLField(
+        allow_null=True,
+        help_text="Custom cover chosen for the media, null if none.",
+    )
+
+
+class CoverUpdateSerializer(serializers.Serializer):
+    """Serializer for setting a custom cover."""
+
+    image = serializers.URLField(
+        help_text=(
+            "URL of one of the images returned by the media images endpoint, "
+            "either its `image` or `original` URL."
+        ),
+    )
 
 
 class KnownForSerializer(serializers.Serializer):

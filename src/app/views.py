@@ -310,6 +310,12 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
+    media_metadata = helpers.apply_custom_image(
+        media_metadata,
+        media_type,
+        media_id,
+        source,
+    )
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
@@ -360,7 +366,13 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         source,
         [season_number],
     )
-    season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+    season_metadata = helpers.apply_custom_image(
+        tv_with_seasons_metadata[f"season/{season_number}"],
+        MediaTypes.SEASON.value,
+        media_id,
+        source,
+        season_number=season_number,
+    )
 
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,

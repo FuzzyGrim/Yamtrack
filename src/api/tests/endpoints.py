@@ -76,6 +76,14 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "api_media_creators",
             args=("comic", "comicvine", 1),
         ),
+        EndpointCase("get", "api_media_cover", args=("movie", "tmdb", 1)),
+        EndpointCase(
+            "put",
+            "api_media_cover",
+            args=("movie", "tmdb", 1),
+            payload={"image": "https://example.com/cover.jpg"},
+        ),
+        EndpointCase("delete", "api_media_cover", args=("movie", "tmdb", 1)),
         EndpointCase("get", "api_media_crew", args=("movie", "tmdb", 1)),
         EndpointCase("get", "api_media_images", args=("movie", "tmdb", 1)),
         EndpointCase(
@@ -178,6 +186,11 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "delete",
             "api_media_season_consumption_entry_detail",
             args=("tv", "tmdb", 1, 1, 1),
+        ),
+        EndpointCase(
+            "get",
+            "api_media_season_cover",
+            args=("tv", "tmdb", 1, 1),
         ),
         EndpointCase(
             "get",

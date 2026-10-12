@@ -69,6 +69,11 @@ urlpatterns = [
         name="api_media_companies",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/cover/?$",
+        views.MediaCoverView.as_view(),
+        name="api_media_cover",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/creators/?$",
         views.MediaCreatorsView.as_view(),
         name="api_media_creators",
@@ -167,6 +172,11 @@ urlpatterns = [
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/providers/?$",
         views.MediaSeasonWatchProvidersView.as_view(),
         name="api_media_season_providers",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/cover/?$",
+        views.MediaSeasonCoverView.as_view(),
+        name="api_media_season_cover",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/sync/?$",

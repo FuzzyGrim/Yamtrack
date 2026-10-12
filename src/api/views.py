@@ -112,6 +112,8 @@ from .serializers import (
     ChangesHistoryEntrySerializer,
     CompleteEpisodeSerializer,
     CompleteMediaSerializer,
+    CoverSerializer,
+    CoverUpdateSerializer,
     EpisodeSerializer,
     EventSerializer,
     HealthResponseSerializer,
@@ -2999,6 +3001,237 @@ class MediaCompaniesView(drf_views.APIView):
 
         paginated = paginate_data(request, companies, limit, offset)
         return Response(PaginatedCompaniesSerializer(paginated).data, status=HTTP.OK)
+
+
+def get_cover_state(item, provider_image):
+    """Return the current cover of a media and whether it is a custom one."""
+    custom_image = item.custom_image if item else ""
+    return {
+        "image": custom_image or provider_image,
+        "custom_image": custom_image or None,
+    }
+
+
+def get_cover_metadata(media_type, source, media_id, season_number=None):
+    """Return the metadata and the available images of a media or season."""
+    if season_number is not None:
+        metadata = services.get_media_metadata(
+            MediaTypes.SEASON.value,
+            media_id,
+            source,
+            [season_number],
+        )
+        images = tmdb.media_images(media_type, media_id, season_number=season_number)
+    else:
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        images = fetch_images(media_type, source, media_id)
+    return metadata, images
+
+
+def set_custom_cover(item_filter, metadata, images, new_image):
+    """Set the custom cover of a media, returning the item or an error response."""
+    # Only images offered by the media images endpoint can be chosen
+    available = {
+        url
+        for image_list in images.values()
+        for image in image_list
+        for url in (image["image"], image["original"])
+    }
+    if new_image not in available:
+        return None, Response(
+            {
+                "detail": (
+                    "image must be one of the images returned by the media "
+                    "images endpoint."
+                ),
+            },
+            status=HTTP.BAD_REQUEST,
+        )
+
+    item = Item.objects.filter(**item_filter, episode_number=None).first()
+    if item is None:
+        item = Item.objects.create(
+            **item_filter,
+            title=metadata.get("title"),
+            image=new_image,
+            custom_image=new_image,
+        )
+    else:
+        item.custom_image = new_image
+        item.save()
+    return item, None
+
+
+def cover_response(request, media_type, source, media_id, season_number=None):
+    """Get, set or reset the custom cover of a media or season."""
+    err = check_supported_source(IMAGE_SOURCES, media_type, source, "covers")
+    if err:
+        return err
+
+    if season_number is not None and media_type != MediaTypes.TV.value:
+        return Response(
+            {"detail": "Seasons are supported only for 'tv' media type."},
+            status=HTTP.BAD_REQUEST,
+        )
+
+    new_image = (request.data or {}).get("image")
+    if request.method == "PUT" and (not new_image or not isinstance(new_image, str)):
+        return Response(
+            {"detail": "image is required."},
+            status=HTTP.BAD_REQUEST,
+        )
+
+    try:
+        metadata, images = get_cover_metadata(
+            media_type,
+            source,
+            media_id,
+            season_number,
+        )
+    except Exception as e:  # noqa: BLE001
+        return Response(
+            {
+                "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                "errors": str(e),
+            },
+            status=HTTP.INTERNAL_SERVER_ERROR,
+        )
+
+    item_filter = {
+        "media_id": media_id,
+        "source": source,
+        "media_type": (
+            MediaTypes.SEASON.value if season_number is not None else media_type
+        ),
+        "season_number": season_number,
+    }
+    item = Item.objects.filter(**item_filter, episode_number=None).first()
+
+    if request.method == "PUT":
+        item, err = set_custom_cover(item_filter, metadata, images, new_image)
+        if err:
+            return err
+    elif request.method == "DELETE" and item is not None and item.custom_image:
+        item.custom_image = ""
+        item.image = metadata.get("image") or settings.IMG_NONE
+        item.save(update_fields=["custom_image", "image"])
+
+    return Response(
+        CoverSerializer(get_cover_state(item, metadata.get("image"))).data,
+        status=HTTP.OK,
+    )
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/cover/
+class MediaCoverView(drf_views.APIView):
+    """Media cover view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CoverSerializer
+
+    @extend_schema(
+        operation_id="media_cover_get",
+        summary="Get the current cover of a media",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                CoverSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Cover example",
+                        description="Cover example",
+                        summary="Cover example",
+                        value={
+                            "image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                            "custom_image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Get the current cover of a media."""
+        return cover_response(request, media_type, source, media_id)
+
+    @extend_schema(
+        operation_id="media_cover_put",
+        summary="Set a custom cover for a media",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+        ],
+        request=CoverUpdateSerializer,
+        responses={
+            200: OpenApiResponse(
+                CoverSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Cover example",
+                        description="Cover example",
+                        summary="Cover example",
+                        value={
+                            "image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                            "custom_image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def put(self, request, media_type, source, media_id):
+        """Set a custom cover for a media."""
+        return cover_response(request, media_type, source, media_id)
+
+    @extend_schema(
+        operation_id="media_cover_delete",
+        summary="Reset the cover of a media",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                CoverSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Cover example",
+                        description="Cover example",
+                        summary="Cover example",
+                        value={
+                            "image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                            "custom_image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def delete(self, request, media_type, source, media_id):
+        """Reset the cover of a media to the provider image."""
+        return cover_response(request, media_type, source, media_id)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/creators/
@@ -6334,6 +6567,139 @@ class MediaSeasonWatchProvidersView(drf_views.APIView):
 
         providers = group_watch_providers(season_metadata.get("providers"), region)
         return Response(providers, status=HTTP.OK)
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/cover/
+class MediaSeasonCoverView(drf_views.APIView):
+    """Season cover view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CoverSerializer
+
+    @extend_schema(
+        operation_id="season_cover_get",
+        summary="Get the current cover of a season",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                CoverSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Cover example",
+                        description="Cover example",
+                        summary="Cover example",
+                        value={
+                            "image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                            "custom_image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id, season_number):
+        """Get the current cover of a season."""
+        return cover_response(
+            request,
+            media_type,
+            source,
+            media_id,
+            season_number=season_number,
+        )
+
+    @extend_schema(
+        operation_id="season_cover_put",
+        summary="Set a custom cover for a season",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        request=CoverUpdateSerializer,
+        responses={
+            200: OpenApiResponse(
+                CoverSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Cover example",
+                        description="Cover example",
+                        summary="Cover example",
+                        value={
+                            "image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                            "custom_image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def put(self, request, media_type, source, media_id, season_number):
+        """Set a custom cover for a season."""
+        return cover_response(
+            request,
+            media_type,
+            source,
+            media_id,
+            season_number=season_number,
+        )
+
+    @extend_schema(
+        operation_id="season_cover_delete",
+        summary="Reset the cover of a season",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                CoverSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Cover example",
+                        description="Cover example",
+                        summary="Cover example",
+                        value={
+                            "image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                            "custom_image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def delete(self, request, media_type, source, media_id, season_number):
+        """Reset the cover of a season to the provider image."""
+        return cover_response(
+            request,
+            media_type,
+            source,
+            media_id,
+            season_number=season_number,
+        )
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/sync/

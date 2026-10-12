@@ -4803,6 +4803,373 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/cover/:
+    get:
+      operationId: season_cover_get
+      description: Get the current cover of a season.
+      summary: Get the current cover of a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                CoverExample:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover example
+                  description: Cover example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    put:
+      operationId: season_cover_put
+      description: Set a custom cover for a season.
+      summary: Set a custom cover for a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoverUpdateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                CoverExample:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover example
+                  description: Cover example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    delete:
+      operationId: season_cover_delete
+      description: Reset the cover of a season to the provider image.
+      summary: Reset the cover of a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                CoverExample:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover example
+                  description: Cover example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/episodes/:
     get:
       operationId: season_episodes_get
@@ -6849,6 +7216,355 @@ paths:
                       - publisher
                   summary: Retrieve companies example
                   description: Retrieve companies example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/cover/:
+    get:
+      operationId: media_cover_get
+      description: Get the current cover of a media.
+      summary: Get the current cover of a media
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                CoverExample:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover example
+                  description: Cover example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    put:
+      operationId: media_cover_put
+      description: Set a custom cover for a media.
+      summary: Set a custom cover for a media
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoverUpdateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                CoverExample:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover example
+                  description: Cover example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    delete:
+      operationId: media_cover_delete
+      description: Reset the cover of a media to the provider image.
+      summary: Reset the cover of a media
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                CoverExample:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover example
+                  description: Cover example
           description: Successful response
         '400':
           content:
@@ -9933,6 +10649,35 @@ components:
       - $ref: '#/components/schemas/GameRelated'
       - $ref: '#/components/schemas/SeasonRelated'
       - $ref: '#/components/schemas/TVRelated'
+    Cover:
+      type: object
+      description: Serializer for the cover of a media.
+      properties:
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Cover shown for the media, the custom one if set.
+        custom_image:
+          type: string
+          format: uri
+          nullable: true
+          description: Custom cover chosen for the media, null if none.
+      required:
+      - custom_image
+      - image
+    CoverUpdateRequest:
+      type: object
+      description: Serializer for setting a custom cover.
+      properties:
+        image:
+          type: string
+          format: uri
+          minLength: 1
+          description: URL of one of the images returned by the media images endpoint,
+            either its `image` or `original` URL.
+      required:
+      - image
     Credit:
       type: object
       description: Serializer for a creator or character of a media.

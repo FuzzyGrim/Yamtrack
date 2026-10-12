@@ -42,6 +42,10 @@
     - [x] GET: Get characters of an anime or manga (MAL, via AniList) or comic (ComicVine)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/companies/`
     - [x] GET: Get companies involved in a game (IGDB) or publishers of a board game (BGG), optionally filtered by `role`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/cover/`
+    - [x] DELETE: Reset the cover to the provider image
+    - [x] GET: Get the current cover
+    - [x] PUT: Set one of the media images as the cover for every user of the server
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/creators/`
     - [x] GET: Get creators of a manga (MAL via AniList, MangaUpdates), book (Open Library, Hardcover), comic (ComicVine) or board game (BGG)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/crew/`
@@ -71,6 +75,10 @@
     - [x] DELETE: Delete tracked season if media is tv serie
     - [x] GET: Get tracked season if media is tv serie
     - [x] PATCH: Edit last consumption of tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/cover/`
+    - [x] DELETE: Reset the season cover to the provider image
+    - [x] GET: Get the current season cover
+    - [x] PUT: Set one of the season images as the cover for every user of the server
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/episodes/`
     - [x] GET: List episodes of tracked season if media is tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/changes_history/`

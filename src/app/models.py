@@ -80,6 +80,8 @@ class Item(CalendarTriggerMixin, models.Model):
     )
     title = models.TextField()
     image = models.URLField()  # if add default, custom media entry will show the value
+    # Cover chosen by a user, shown instead of the provider image when set
+    custom_image = models.URLField(blank=True, default="")
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -167,6 +169,16 @@ class Item(CalendarTriggerMixin, models.Model):
             if self.episode_number is not None:
                 name += f"E{self.episode_number}"
         return name
+
+    def save(self, *args, **kwargs):
+        """Keep the custom cover as the image when one is set."""
+        # Metadata syncs overwrite the image with the provider one
+        if self.custom_image:
+            self.image = self.custom_image
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, "image"}
+        super().save(*args, **kwargs)
 
     @classmethod
     def generate_manual_id(cls):

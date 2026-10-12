@@ -196,6 +196,25 @@ def _needs_image_refresh(item, new_image):
     return not item.image or item.image == settings.IMG_NONE
 
 
+def apply_custom_image(metadata, media_type, media_id, source, season_number=None):
+    """Return the metadata with its image replaced by the custom cover, if any."""
+    custom_image = (
+        Item.objects.filter(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            season_number=season_number,
+            episode_number=None,
+        )
+        .exclude(custom_image="")
+        .values_list("custom_image", flat=True)
+        .first()
+    )
+    if not custom_image:
+        return metadata
+    return {**metadata, "image": custom_image}
+
+
 def refresh_item_image_if_missing(item, new_image):
     """Update an Item's stored image when it's missing and a real one is available."""
     if not _needs_image_refresh(item, new_image):
