@@ -17,6 +17,8 @@
     --color-red-900: oklch(39.6% 0.141 25.723);
     --color-orange-400: oklch(75% 0.183 55.934);
     --color-orange-500: oklch(70.5% 0.213 47.604);
+    --color-orange-600: oklch(64.6% 0.222 41.116);
+    --color-orange-700: oklch(55.3% 0.195 38.402);
     --color-amber-300: oklch(87.9% 0.169 91.605);
     --color-amber-400: oklch(82.8% 0.189 84.429);
     --color-amber-500: oklch(76.9% 0.188 70.08);
@@ -301,9 +303,6 @@
   .inset-0 {
     inset: 0px;
   }
-  .inset-x-0 {
-    inset-inline: 0px;
-  }
   .inset-y-0 {
     inset-block: 0px;
   }
@@ -348,9 +347,6 @@
   }
   .-bottom-1\.5 {
     bottom: calc(var(--spacing) * -1.5);
-  }
-  .bottom-0 {
-    bottom: 0px;
   }
   .bottom-2 {
     bottom: calc(var(--spacing) * 2);
@@ -1429,6 +1425,12 @@
   .bg-orange-500 {
     background-color: var(--color-orange-500);
   }
+  .bg-orange-600\/90 {
+    background-color: color-mix(in srgb, oklch(64.6% 0.222 41.116) 90%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-orange-600) 90%, transparent);
+    }
+  }
   .bg-purple-400 {
     background-color: var(--color-purple-400);
   }
@@ -1457,6 +1459,12 @@
     background-color: color-mix(in srgb, oklch(57.7% 0.245 27.325) 50%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-red-600) 50%, transparent);
+    }
+  }
+  .bg-red-600\/90 {
+    background-color: color-mix(in srgb, oklch(57.7% 0.245 27.325) 90%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-red-600) 90%, transparent);
     }
   }
   .bg-red-700 {
@@ -2242,6 +2250,9 @@
     }
     .hover\:bg-indigo-700:hover {
       background-color: var(--color-indigo-700);
+    }
+    .hover\:bg-orange-700:hover {
+      background-color: var(--color-orange-700);
     }
     .hover\:bg-red-400\/10:hover {
       background-color: color-mix(in srgb, oklch(70.4% 0.191 22.216) 10%, transparent);
