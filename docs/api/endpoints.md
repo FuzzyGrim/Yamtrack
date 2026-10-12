@@ -38,8 +38,12 @@
     - [x] GET: Get cast of a movie or tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/changes_history/`
     - [x] GET: Get changes history of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/characters/`
+    - [x] GET: Get characters appearing in a comic
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/companies/`
     - [x] GET: Get companies involved in a game, optionally filtered by `role`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/creators/`
+    - [x] GET: Get creators (writers, artists, etc.) of a comic
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/crew/`
     - [x] GET: Get crew of a movie or tv serie, optionally filtered by `department`
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/`
@@ -49,7 +53,7 @@
     - [x] GET: Get specific consumption entry
     - [x] PATCH: Edit specific consumption entry
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/images/`
-    - [x] GET: Get images of a movie or tv serie (posters, backdrops, logos) or game (cover, artworks, screenshots), optionally filtered by `type`
+    - [x] GET: Get images of a movie or tv serie (posters, backdrops, logos), game (cover, artworks, screenshots) or comic (volume and issue covers), optionally filtered by `type`
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/`
     - [x] GET: Lists where the tracked item is in
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}`

@@ -1350,3 +1350,181 @@ class GameExtrasTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+
+def build_comicvine_image(name):
+    """Build a fake ComicVine image entry."""
+    return {
+        "medium_url": f"https://comicvine.gamespot.com/a/uploads/scale_medium/{name}",
+        "original_url": f"https://comicvine.gamespot.com/a/uploads/original/{name}",
+    }
+
+
+COMIC_VOLUME_CREDITS_RESPONSE = {
+    "results": {
+        "people": [
+            {
+                "id": 1,
+                "name": "Greg Capullo",
+                "count": "40",
+                "site_detail_url": "https://comicvine.gamespot.com/greg-capullo/4040-1/",
+            },
+            {
+                "id": 40439,
+                "name": "Scott Snyder",
+                "count": "52",
+                "site_detail_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
+            },
+            {"id": 3, "name": "Unknown Count", "count": None},
+        ],
+        "characters": [
+            {
+                "id": 1699,
+                "name": "Batman",
+                "count": "52",
+                "site_detail_url": "https://comicvine.gamespot.com/batman/4005-1699/",
+            },
+        ],
+    },
+}
+
+COMIC_VOLUME_IMAGE_RESPONSE = {
+    "results": {"image": build_comicvine_image("issue1.jpg")},
+}
+
+COMIC_ISSUES_RESPONSE = {
+    "results": [
+        {"id": 10, "issue_number": "1", "image": build_comicvine_image("issue1.jpg")},
+        {"id": 11, "issue_number": "2", "image": build_comicvine_image("issue2.jpg")},
+        {"id": 12, "issue_number": "3", "image": None},
+    ],
+}
+
+
+class ComicExtrasTests(YamtrackApiTestCase):
+    """Validate comic images, creators and characters endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.comicvine.services.api_request")
+    def test_comic_creators_sorted_by_issue_count(self, mock_request):
+        """Creators should be sorted by the number of issues they worked on."""
+        mock_request.return_value = COMIC_VOLUME_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_creators",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(
+            payload["results"][0],
+            {
+                "id": 40439,
+                "name": "Scott Snyder",
+                "issue_count": 52,
+                "source_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
+            },
+        )
+        self.assertEqual(
+            [person["name"] for person in payload["results"]],
+            ["Scott Snyder", "Greg Capullo", "Unknown Count"],
+        )
+        self.assertIsNone(payload["results"][2]["issue_count"])
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/volume/4050-42721/"),
+        )
+
+    @patch("app.providers.comicvine.services.api_request")
+    def test_comic_characters_share_cached_request(self, mock_request):
+        """Characters should reuse the creators provider request."""
+        mock_request.return_value = COMIC_VOLUME_CREDITS_RESPONSE
+
+        self.call_api(
+            "get",
+            "api_media_creators",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+        response = self.call_api(
+            "get",
+            "api_media_characters",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [character["name"] for character in response.json()["results"]],
+            ["Batman"],
+        )
+        mock_request.assert_called_once()
+
+    @patch("app.providers.comicvine.services.api_request")
+    def test_comic_images_returns_unique_covers(self, mock_request):
+        """Comic images should return the volume and issue covers once each."""
+        mock_request.side_effect = [
+            COMIC_VOLUME_IMAGE_RESPONSE,
+            COMIC_ISSUES_RESPONSE,
+        ]
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            [image["original"].rsplit("/", 1)[1] for image in payload["posters"]],
+            ["issue1.jpg", "issue2.jpg"],
+        )
+        self.assertEqual(
+            payload["posters"][0]["image"],
+            "https://comicvine.gamespot.com/a/uploads/scale_medium/issue1.jpg",
+        )
+        self.assertEqual(payload["backdrops"], [])
+        self.assertEqual(payload["screenshots"], [])
+        self.assertEqual(payload["logos"], [])
+        issues_call = mock_request.call_args_list[1]
+        self.assertTrue(issues_call.args[2].endswith("/issues/"))
+        self.assertEqual(issues_call.kwargs["params"]["filter"], "volume:42721")
+
+    @patch(
+        "app.providers.comicvine.services.api_request",
+        return_value={"results": {}},
+    )
+    def test_comic_not_found_returns_internal_server_error(self, _mock_request):
+        """Comic endpoints should surface missing comics as provider errors."""
+        for url_name in ("api_media_creators", "api_media_characters"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.COMIC.value, "comicvine", "999999"),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 500)
+
+    def test_comic_credits_invalid_requests_return_bad_request(self):
+        """Creators and characters should reject non comics and other sources."""
+        for url_name in ("api_media_creators", "api_media_characters"):
+            for args in (
+                (MediaTypes.MOVIE.value, "tmdb", 1),
+                (MediaTypes.COMIC.value, "manual", 1),
+            ):
+                response = self.call_api(
+                    "get",
+                    url_name,
+                    args=args,
+                    headers=self.auth_headers,
+                )
+                self.assertEqual(response.status_code, 400)

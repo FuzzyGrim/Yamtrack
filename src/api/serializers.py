@@ -1537,6 +1537,22 @@ class PaginatedCompaniesSerializer(serializers.Serializer):
     results = CompanySerializer(many=True)
 
 
+class ComicCreditSerializer(serializers.Serializer):
+    """Serializer for a creator or character of a comic."""
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    issue_count = serializers.IntegerField(allow_null=True)
+    source_url = serializers.URLField(allow_null=True)
+
+
+class PaginatedComicCreditsSerializer(serializers.Serializer):
+    """Paginated response serializer for comic creators or characters."""
+
+    pagination = PaginationSerializer()
+    results = ComicCreditSerializer(many=True)
+
+
 class KnownForSerializer(serializers.Serializer):
     """Serializer for a media a person is known for."""
 

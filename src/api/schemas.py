@@ -286,7 +286,7 @@ MediaImageTypeParam = OpenApiParameter(
     description=(
         "Only return images of this type, others are empty (default: all). "
         "Screenshots are only available for games, logos only for movies and "
-        "tv series."
+        "tv series, comics only have posters (volume and issue covers)."
     ),
     required=False,
     enum=["posters", "backdrops", "screenshots", "logos"],

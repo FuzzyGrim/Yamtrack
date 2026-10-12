@@ -325,3 +325,149 @@ def issue(media_id):
         cache.set(cache_key, data)
 
     return data
+
+
+def comic_credits(media_id):
+    """Return the creators and characters of the selected comic volume."""
+    cache_key = f"{Sources.COMICVINE.value}_{MediaTypes.COMIC.value}_{media_id}_credits"
+    data = cache.get(cache_key)
+
+    if data is None:
+        params = {
+            "api_key": settings.COMICVINE_API,
+            "format": "json",
+            "field_list": "people,characters",
+        }
+
+        try:
+            response = services.api_request(
+                Sources.COMICVINE.value,
+                "GET",
+                f"{base_url}/volume/4050-{media_id}/",
+                params=params,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        response = response.get("results", {})
+
+        # Check if response is empty (no results found)
+        if not response:
+            services.raise_not_found_error(
+                Sources.COMICVINE.value,
+                media_id,
+                "comic",
+            )
+
+        data = {
+            "creators": get_credits(response.get("people")),
+            "characters": get_credits(response.get("characters")),
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def get_credits(entries):
+    """Return people or characters sorted by the number of issues they are in."""
+    processed = [
+        {
+            "id": entry.get("id"),
+            "name": entry.get("name"),
+            "issue_count": get_count(entry.get("count")),
+            "source_url": entry.get("site_detail_url"),
+        }
+        for entry in entries or []
+        if isinstance(entry, dict)
+    ]
+    return sorted(processed, key=lambda e: e["issue_count"] or 0, reverse=True)
+
+
+def get_count(count):
+    """Return the issue count as an integer if possible."""
+    try:
+        return int(count)
+    except (TypeError, ValueError):
+        return None
+
+
+def comic_images(media_id, limit=100):
+    """Return the volume cover and the issue covers of the selected comic volume."""
+    cache_key = f"{Sources.COMICVINE.value}_{MediaTypes.COMIC.value}_{media_id}_images"
+    data = cache.get(cache_key)
+
+    if data is None:
+        volume_params = {
+            "api_key": settings.COMICVINE_API,
+            "format": "json",
+            "field_list": "image",
+        }
+        issues_params = {
+            "api_key": settings.COMICVINE_API,
+            "format": "json",
+            "field_list": "id,issue_number,image",
+            "filter": f"volume:{media_id}",
+            "sort": "cover_date:asc",
+            "limit": limit,
+        }
+
+        try:
+            volume_response = services.api_request(
+                Sources.COMICVINE.value,
+                "GET",
+                f"{base_url}/volume/4050-{media_id}/",
+                params=volume_params,
+                headers=headers,
+            )
+            issues_response = services.api_request(
+                Sources.COMICVINE.value,
+                "GET",
+                f"{base_url}/issues/",
+                params=issues_params,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        volume = volume_response.get("results", {})
+
+        # Check if response is empty (no results found)
+        if not volume:
+            services.raise_not_found_error(
+                Sources.COMICVINE.value,
+                media_id,
+                "comic",
+            )
+
+        images = [volume.get("image")]
+        images.extend(item.get("image") for item in issues_response.get("results", []))
+
+        # The volume cover is usually also the cover of the first issue
+        posters = []
+        seen = set()
+        for image in images:
+            if not image or not image.get("original_url"):
+                continue
+            if image["original_url"] in seen:
+                continue
+            seen.add(image["original_url"])
+            posters.append(
+                {
+                    "image": image.get("medium_url") or image["original_url"],
+                    "original": image["original_url"],
+                    "width": None,
+                    "height": None,
+                    "aspect_ratio": None,
+                    "language": None,
+                    "vote_average": None,
+                    "vote_count": None,
+                },
+            )
+
+        data = {"posters": posters}
+
+        cache.set(cache_key, data)
+
+    return data

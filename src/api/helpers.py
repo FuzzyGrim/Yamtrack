@@ -133,6 +133,7 @@ IMAGE_SOURCES = {
     MediaTypes.MOVIE.value: Sources.TMDB.value,
     MediaTypes.TV.value: Sources.TMDB.value,
     MediaTypes.GAME.value: Sources.IGDB.value,
+    MediaTypes.COMIC.value: Sources.COMICVINE.value,
 }
 
 GAME_COMPANY_ROLES = ["developer", "publisher", "porting", "supporting"]

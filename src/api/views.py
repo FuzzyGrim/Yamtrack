@@ -21,7 +21,7 @@ from rest_framework.response import Response
 
 from app.forms import ManualItemForm, get_form_class
 from app.models import BasicMedia, Item, MediaTypes, Sources
-from app.providers import igdb, services, tmdb
+from app.providers import comicvine, igdb, services, tmdb
 from app.statistics import (
     get_activity_data,
     get_media_type_distribution,
@@ -115,6 +115,7 @@ from .serializers import (
     MixedMediaSerializer,
     PaginatedCastSerializer,
     PaginatedChangesHistoryResponseSerializer,
+    PaginatedComicCreditsSerializer,
     PaginatedCompaniesSerializer,
     PaginatedCrewSerializer,
     PaginatedEpisodesSerializer,
@@ -2798,6 +2799,110 @@ class MediaChangesHistoryView(drf_views.APIView):
         return Response(paginated_data, status=HTTP.OK)
 
 
+def comic_credits_response(request, media_type, source, media_id, credit_type):
+    """Return the paginated creators or characters of a comic."""
+    limit, offset, err = parse_limit_offset(request)
+    if err:
+        return err
+
+    if media_type != MediaTypes.COMIC.value:
+        return Response(
+            {
+                "detail": (
+                    f"{credit_type.capitalize()} are supported only for 'comic' "
+                    "media type."
+                ),
+            },
+            status=HTTP.BAD_REQUEST,
+        )
+
+    if source != Sources.COMICVINE.value:
+        return Response(
+            {
+                "detail": f"Cannot query `{source}` for `{media_type}` media type",
+            },
+            status=HTTP.BAD_REQUEST,
+        )
+
+    try:
+        credits_data = comicvine.comic_credits(media_id)[credit_type]
+    except Exception as e:  # noqa: BLE001
+        return Response(
+            {
+                "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                "errors": str(e),
+            },
+            status=HTTP.INTERNAL_SERVER_ERROR,
+        )
+
+    paginated = paginate_data(request, credits_data, limit, offset)
+    return Response(PaginatedComicCreditsSerializer(paginated).data, status=HTTP.OK)
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/characters/
+class MediaCharactersView(drf_views.APIView):
+    """Media characters view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedComicCreditsSerializer
+
+    @extend_schema(
+        operation_id="media_characters_get",
+        summary="Get media characters",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedComicCreditsSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve characters example",
+                        description="Retrieve characters example",
+                        summary="Retrieve characters example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 1699,
+                                    "name": "Batman",
+                                    "issue_count": 52,
+                                    "source_url": "https://comicvine.gamespot.com/batman/4005-1699/",
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Retrieve the characters appearing in a comic."""
+        return comic_credits_response(
+            request,
+            media_type,
+            source,
+            media_id,
+            "characters",
+        )
+
+
 # /api/v1/media/[media_type]/[source]/[media_id]/companies/
 class MediaCompaniesView(drf_views.APIView):
     """Media companies view."""
@@ -2902,6 +3007,70 @@ class MediaCompaniesView(drf_views.APIView):
 
         paginated = paginate_data(request, companies, limit, offset)
         return Response(PaginatedCompaniesSerializer(paginated).data, status=HTTP.OK)
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/creators/
+class MediaCreatorsView(drf_views.APIView):
+    """Media creators view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedComicCreditsSerializer
+
+    @extend_schema(
+        operation_id="media_creators_get",
+        summary="Get media creators",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedComicCreditsSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve creators example",
+                        description="Retrieve creators example",
+                        summary="Retrieve creators example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 40439,
+                                    "name": "Scott Snyder",
+                                    "issue_count": 52,
+                                    "source_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Retrieve the creators (writers, artists, etc.) of a comic."""
+        return comic_credits_response(
+            request,
+            media_type,
+            source,
+            media_id,
+            "creators",
+        )
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/crew/
@@ -3506,7 +3675,7 @@ class MediaImagesView(drf_views.APIView):
         },
     )
     def get(self, request, media_type, source, media_id):
-        """Retrieve the images of a movie, tv serie or game."""
+        """Retrieve the images of a movie, tv serie, game or comic."""
         if not check_valid_type(media_type):
             return Response(
                 {"detail": "Unsupported media type."},
@@ -3517,8 +3686,8 @@ class MediaImagesView(drf_views.APIView):
             return Response(
                 {
                     "detail": (
-                        "Images are supported only for 'movie', 'tv' and 'game' "
-                        "media types."
+                        "Images are supported only for 'movie', 'tv', 'game' and "
+                        "'comic' media types."
                     ),
                 },
                 status=HTTP.BAD_REQUEST,
@@ -3546,6 +3715,8 @@ class MediaImagesView(drf_views.APIView):
         try:
             if source == Sources.IGDB.value:
                 images = igdb.game_extras(media_id)["images"]
+            elif source == Sources.COMICVINE.value:
+                images = comicvine.comic_images(media_id)
             else:
                 images = tmdb.media_images(media_type, media_id)
         except Exception as e:  # noqa: BLE001

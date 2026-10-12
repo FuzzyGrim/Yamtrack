@@ -5559,7 +5559,7 @@ paths:
           - screenshots
         description: 'Only return images of this type, others are empty (default:
           all). Screenshots are only available for games, logos only for movies and
-          tv series.'
+          tv series, comics only have posters (volume and issue covers).'
       tags:
       - media
       security:
@@ -6596,6 +6596,144 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/characters/:
+    get:
+      operationId: media_characters_get
+      description: Retrieve the characters appearing in a comic.
+      summary: Get media characters
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedComicCredits'
+              examples:
+                RetrieveCharactersExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - id: 1699
+                      name: Batman
+                      issue_count: 52
+                      source_url: https://comicvine.gamespot.com/batman/4005-1699/
+                  summary: Retrieve characters example
+                  description: Retrieve characters example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/companies/:
     get:
       operationId: media_companies_get
@@ -6692,6 +6830,144 @@ paths:
                       - publisher
                   summary: Retrieve companies example
                   description: Retrieve companies example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/creators/:
+    get:
+      operationId: media_creators_get
+      description: Retrieve the creators (writers, artists, etc.) of a comic.
+      summary: Get media creators
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedComicCredits'
+              examples:
+                RetrieveCreatorsExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - id: 40439
+                      name: Scott Snyder
+                      issue_count: 52
+                      source_url: https://comicvine.gamespot.com/scott-snyder/4040-40439/
+                  summary: Retrieve creators example
+                  description: Retrieve creators example
           description: Successful response
         '400':
           content:
@@ -7408,7 +7684,7 @@ paths:
   /api/v1/media/{media_type}/{source}/{media_id}/images/:
     get:
       operationId: media_images_get
-      description: Retrieve the images of a movie, tv serie or game.
+      description: Retrieve the images of a movie, tv serie, game or comic.
       summary: Get media images
       parameters:
       - in: path
@@ -7459,7 +7735,7 @@ paths:
           - screenshots
         description: 'Only return images of this type, others are empty (default:
           all). Screenshots are only available for games, logos only for movies and
-          tv series.'
+          tv series, comics only have posters (volume and issue covers).'
       tags:
       - media
       security:
@@ -9380,6 +9656,26 @@ components:
             $ref: '#/components/schemas/ChangesHistoryChange'
       required:
       - changes
+    ComicCredit:
+      type: object
+      description: Serializer for a creator or character of a comic.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        issue_count:
+          type: integer
+          nullable: true
+        source_url:
+          type: string
+          format: uri
+          nullable: true
+      required:
+      - id
+      - issue_count
+      - name
+      - source_url
     ComicDetails:
       type: object
       description: Schema serializer for comic details.
@@ -10424,6 +10720,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChangesHistoryEntry'
+      required:
+      - pagination
+      - results
+    PaginatedComicCredits:
+      type: object
+      description: Paginated response serializer for comic creators or characters.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComicCredit'
       required:
       - pagination
       - results

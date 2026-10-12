@@ -59,9 +59,19 @@ urlpatterns = [
         name="api_media_changes_history",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/characters/?$",
+        views.MediaCharactersView.as_view(),
+        name="api_media_characters",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/companies/?$",
         views.MediaCompaniesView.as_view(),
         name="api_media_companies",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/creators/?$",
+        views.MediaCreatorsView.as_view(),
+        name="api_media_creators",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/crew/?$",
