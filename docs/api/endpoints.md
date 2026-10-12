@@ -35,7 +35,7 @@
     - [x] GET: Get tracked item
     - [x] PATCH: Edit last consumption of tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/cast/`
-    - [x] GET: Get cast of a movie or tv serie (TMDB), or voice actors of an anime (MAL, via AniList)
+    - [x] GET: Get cast of a movie or tv serie (TMDB), or voice actors of an anime (MAL, via AniList) in the `language` chosen (default: japanese)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/changes_history/`
     - [x] GET: Get changes history of tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/characters/`

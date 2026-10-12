@@ -6310,6 +6310,23 @@ paths:
       summary: Get media cast
       parameters:
       - in: query
+        name: language
+        schema:
+          type: string
+          enum:
+          - english
+          - french
+          - german
+          - hebrew
+          - hungarian
+          - italian
+          - japanese
+          - korean
+          - portuguese
+          - spanish
+        description: 'Language of the voice actors, only for anime (default: japanese).
+          Characters without a voice actor in that language are left out.'
+      - in: query
         name: limit
         schema:
           type: integer

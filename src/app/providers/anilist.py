@@ -13,8 +13,22 @@ provider = "anilist"
 # AniList returns at most 25 items per page, cap the pages fetched per media
 max_pages = 8
 
+# Voice actor languages supported by AniList
+VOICE_ACTOR_LANGUAGES = [
+    "japanese",
+    "english",
+    "korean",
+    "italian",
+    "spanish",
+    "portuguese",
+    "french",
+    "german",
+    "hebrew",
+    "hungarian",
+]
+
 credits_query = """
-query ($idMal: Int, $type: MediaType, $page: Int) {
+query ($idMal: Int, $type: MediaType, $page: Int, $language: StaffLanguage) {
   Media(idMal: $idMal, type: $type) {
     characters(sort: [ROLE, RELEVANCE, ID], page: $page, perPage: 25) {
       pageInfo {
@@ -32,7 +46,7 @@ query ($idMal: Int, $type: MediaType, $page: Int) {
           }
           siteUrl
         }
-        voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
+        voiceActors(language: $language, sort: [RELEVANCE, ID]) {
           id
           name {
             full
@@ -67,9 +81,12 @@ query ($idMal: Int, $type: MediaType, $page: Int) {
 """
 
 
-def media_credits(media_type, mal_id):
-    """Return the characters and staff of an anime or manga, by MyAnimeList ID."""
-    cache_key = f"anilist_{media_type}_{mal_id}_credits"
+def media_credits(media_type, mal_id, language="japanese"):
+    """Return the characters and staff of an anime or manga, by MyAnimeList ID.
+
+    Characters include their voice actors in the given language.
+    """
+    cache_key = f"anilist_{media_type}_{mal_id}_{language}_credits"
     data = cache.get(cache_key)
 
     if data is None:
@@ -78,7 +95,12 @@ def media_credits(media_type, mal_id):
         staff = {}
 
         for page in range(1, max_pages + 1):
-            variables = {"idMal": int(mal_id), "type": anilist_type, "page": page}
+            variables = {
+                "idMal": int(mal_id),
+                "type": anilist_type,
+                "page": page,
+                "language": language.upper(),
+            }
             try:
                 response = services.api_request(
                     "ANILIST",

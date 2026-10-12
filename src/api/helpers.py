@@ -150,6 +150,9 @@ IMAGE_SOURCES = {
     MediaTypes.BOARDGAME.value: [Sources.BGG.value],
 }
 
+# Voice actor languages for the anime cast
+VOICE_ACTOR_LANGUAGES = anilist.VOICE_ACTOR_LANGUAGES
+
 # Sources that provide cast and crew for each media type
 CAST_CREW_SOURCES = {
     MediaTypes.MOVIE.value: [Sources.TMDB.value],
@@ -495,13 +498,17 @@ def fetch_images(media_type, source, media_id):
     return fetchers[source]()
 
 
-def fetch_cast(media_type, source, media_id):
+def fetch_cast(media_type, source, media_id, language=None):
     """Return the cast of a movie, tv serie or anime from its source."""
     if source == Sources.TMDB.value:
         return tmdb.media_credits(media_type, media_id)["cast"]
 
     # Anime cast are the voice actors of each character
-    characters = anilist.media_credits(media_type, media_id)["characters"]
+    characters = anilist.media_credits(
+        media_type,
+        media_id,
+        language=language or "japanese",
+    )["characters"]
     return [
         {
             "person_id": actor["id"],

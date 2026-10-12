@@ -301,3 +301,26 @@ CompanyRoleParam = OpenApiParameter(
     required=False,
     enum=["developer", "publisher", "porting", "supporting"],
 )
+
+VoiceActorLanguageParam = OpenApiParameter(
+    name="language",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Language of the voice actors, only for anime (default: japanese). "
+        "Characters without a voice actor in that language are left out."
+    ),
+    required=False,
+    enum=[
+        "japanese",
+        "english",
+        "korean",
+        "italian",
+        "spanish",
+        "portuguese",
+        "french",
+        "german",
+        "hebrew",
+        "hungarian",
+    ],
+)

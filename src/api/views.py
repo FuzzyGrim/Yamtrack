@@ -51,6 +51,7 @@ from .helpers import (
     IMAGE_TYPES,
     MEDIA_TYPE_COMPLETE_MODEL_MAP,
     SOURCES_VALID_LIST,
+    VOICE_ACTOR_LANGUAGES,
     apply_aggregated_sort,
     apply_list_sort,
     build_lists_by_item_id,
@@ -103,6 +104,7 @@ from .schemas import (
     SeasonNumberParam,
     SourceCompleteParam,
     TooManyRequestsResponse,
+    VoiceActorLanguageParam,
     WatchProviderRegionParam,
 )
 from .serializers import (
@@ -2595,6 +2597,7 @@ class MediaCastView(drf_views.APIView):
             MediaTypeParam,
             SourceCompleteParam,
             MediaIdParam,
+            VoiceActorLanguageParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -2645,8 +2648,23 @@ class MediaCastView(drf_views.APIView):
         if err:
             return err
 
+        language = request.GET.get("language", "").lower() or None
+        if language and (
+            media_type != MediaTypes.ANIME.value
+            or language not in VOICE_ACTOR_LANGUAGES
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "language is only supported for anime and must be one of: "
+                        f"{', '.join(VOICE_ACTOR_LANGUAGES)}."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
         try:
-            cast = fetch_cast(media_type, source, media_id)
+            cast = fetch_cast(media_type, source, media_id, language=language)
         except Exception as e:  # noqa: BLE001
             return Response(
                 {

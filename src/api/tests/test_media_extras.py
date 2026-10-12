@@ -108,7 +108,77 @@ class AnimeMangaExtrasTests(YamtrackApiTestCase):
         )
         self.assertEqual(mock_request.call_count, 2)
         variables = mock_request.call_args_list[0].kwargs["params"]["variables"]
-        self.assertEqual(variables, {"idMal": 1, "type": "ANIME", "page": 1})
+        self.assertEqual(
+            variables,
+            {"idMal": 1, "type": "ANIME", "page": 1, "language": "JAPANESE"},
+        )
+
+    @patch("app.providers.anilist.services.api_request")
+    def test_anime_cast_language_option(self, mock_request):
+        """Anime cast should query voice actors in the requested language."""
+        english_page = build_anilist_page(
+            [
+                {
+                    "role": "MAIN",
+                    "node": build_anilist_node(1, "Spike Spiegel"),
+                    "voiceActors": [build_anilist_node(95100, "Steven Blum")],
+                },
+            ],
+            [],
+        )
+        mock_request.side_effect = [
+            english_page,
+            ANILIST_FIRST_PAGE,
+            ANILIST_SECOND_PAGE,
+        ]
+
+        english = self.call_api(
+            "get",
+            "api_media_cast",
+            args=(MediaTypes.ANIME.value, "mal", "1"),
+            params={"language": "English"},
+            headers=self.auth_headers,
+        )
+        japanese = self.call_api(
+            "get",
+            "api_media_cast",
+            args=(MediaTypes.ANIME.value, "mal", "1"),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(english.status_code, 200)
+        self.assertEqual(
+            [member["name"] for member in english.json()["results"]],
+            ["Steven Blum"],
+        )
+        self.assertEqual(
+            mock_request.call_args_list[0].kwargs["params"]["variables"]["language"],
+            "ENGLISH",
+        )
+        # Each language is cached separately
+        self.assertEqual(japanese.status_code, 200)
+        self.assertEqual(
+            japanese.json()["results"][0]["name"],
+            "Kouichi Yamadera",
+        )
+        self.assertEqual(mock_request.call_count, 3)
+
+    def test_cast_invalid_language_returns_bad_request(self):
+        """Cast should reject unknown languages and languages for non anime."""
+        requests = [
+            ((MediaTypes.ANIME.value, "mal", "1"), {"language": "klingon"}),
+            ((MediaTypes.MOVIE.value, "tmdb", "603"), {"language": "english"}),
+        ]
+
+        for args, params in requests:
+            response = self.call_api(
+                "get",
+                "api_media_cast",
+                args=args,
+                params=params,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
 
     @patch("app.providers.anilist.services.api_request")
     def test_anime_crew_merges_staff_roles(self, mock_request):
