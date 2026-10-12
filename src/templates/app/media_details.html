@@ -22,7 +22,7 @@
              x-data="{ trackOpen: false, createOpen: false, menuOpen: false }"
              @click.away="menuOpen = false"
              @keydown.escape.window="trackOpen = false; createOpen = false; menuOpen = false">
-          <button class="p-3 flex-1 text-center font-medium text-white transition duration-300 cursor-pointer relative overflow-hidden {% if user_medias %}{% if user.progress_bar %}bg-gray-700 hover:bg-gray-600{% else %}bg-indigo-600 hover:bg-indigo-700{% endif %}{% else %}bg-gray-600 hover:bg-gray-700{% endif %} {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}rounded-l-lg{% else %}rounded-lg{% endif %}"
+          <button class="p-3 flex-1 text-center font-medium text-white transition duration-300 cursor-pointer {% if user_medias and user.progress_bar %}bg-gray-700 hover:bg-gray-600{% elif user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}rounded-l-lg{% else %}rounded-lg{% endif %}"
                   hx-get="{% media_view_url 'track_modal' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
                   hx-target="#{% component_id 'track' media current_instance.id %}"
@@ -33,13 +33,16 @@
             {% else %}
               Add to tracker
             {% endif %}
+          </button>
 
-            {% if current_instance and user.progress_bar %}
+          {% if current_instance and user.progress_bar %}
+            {# Status/progress bar spanning the whole track control #}
+            <div class="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
               <div class="absolute bottom-0 inset-x-0 h-1.25 bg-white/10">
                 {% include "app/components/progress_bar.html" with media=current_instance user=user only %}
               </div>
-            {% endif %}
-          </button>
+            </div>
+          {% endif %}
 
           {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
             {# Dropdown with more tracking options #}
@@ -565,19 +568,8 @@
             <div class="space-y-6">
               {% for episode in media.episodes %}
                 <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-                  <div class="flex flex-col md:flex-row" x-data="{ obfuscated:
-                    {% if user.obfuscate_unseen_episodes and not episode.history %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    , hasImage:
-                    {% if episode.image != IMG_NONE %}
-                      true
-                    {% else %}
-                      false
-                    {% endif %}
-                    }">
+                  <div class="flex flex-col md:flex-row"
+                       x-data="{ obfuscated: {% if user.obfuscate_unseen_episodes and not episode.history %} true {% else %} false {% endif %} , hasImage: {% if episode.image != IMG_NONE %} true {% else %} false {% endif %} }">
                     <img src="{{ IMG_NONE }}"
                          alt="E{{ episode.episode_number }}"
                          data-src="{{ episode.image }}"
