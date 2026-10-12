@@ -76,6 +76,7 @@
     - [x] DELETE: Delete tracked season if media is tv serie
     - [x] GET: Get tracked season if media is tv serie
     - [x] PATCH: Edit last consumption of tracked season
+    - [x] POST: Track a season of a tracked tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/cover/`
     - [x] DELETE: Reset the season cover to the provider image
     - [x] GET: Get the current season cover
@@ -105,6 +106,7 @@
     - [x] DELETE: Delete tracked episode if media is tv serie
     - [x] GET: Get tracked episode if media is tv serie
     - [x] PATCH: Edit last consumption of tracked episode
+    - [x] POST: Track an episode (a new watch) of a tracked season
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/changes_history/`
     - [x] GET: Get changes history of tracked episode
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/history/`

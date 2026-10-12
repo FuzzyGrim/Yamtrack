@@ -2570,6 +2570,163 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+    post:
+      operationId: media_season_detail_post
+      description: Track a season of a tv serie for the authenticated user.
+      summary: Track a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSeasonRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+              examples:
+                TrackedSeasonExample:
+                  value:
+                    id: 3600
+                    consumption_id: 323
+                    item:
+                      media_id: '12345'
+                      source: tmdb
+                      media_type: season
+                      title: Van der Valk
+                      image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
+                      season_number: 1
+                      episode_number: null
+                    item_id: season/tmdb/12345/1
+                    parent_id: tv/tmdb/12345
+                    tracked: true
+                    created_at: '2026-05-11T17:20:38.252187Z'
+                    score: null
+                    status: 0
+                    progress: 0
+                    progressed_at: null
+                    start_date: null
+                    end_date: null
+                    notes: ''
+                    lists: []
+                  summary: Tracked season example
+                  description: Tracked season example
+          description: Season tracked successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                AlreadyTrackedExample:
+                  value:
+                    detail: Conflict. Season is already tracked.
+                  summary: Already tracked example
+                  description: Already tracked example
+          description: Conflict
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
     patch:
       operationId: season_detail_patch
       description: Update a tracked season item.
@@ -3008,6 +3165,157 @@ paths:
                   summary: Retrieved media details example
                   description: Retrieved media details example
           description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    post:
+      operationId: media_episode_detail_post
+      description: Track an episode of a tv serie for the authenticated user.
+      summary: Track an episode
+      parameters:
+      - in: path
+        name: episode_number
+        schema:
+          type: integer
+        description: Episode number for the specified media item.
+        required: true
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEpisodeRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Episode'
+              examples:
+                TrackedEpisodeExample:
+                  value:
+                    id: 3601
+                    consumption_id: 324
+                    item:
+                      media_id: '12345'
+                      source: tmdb
+                      media_type: episode
+                      title: Van der Valk
+                      image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
+                      season_number: 1
+                      episode_number: 1
+                    item_id: episode/tmdb/12345/1/1
+                    parent_id: season/tmdb/12345/1
+                    tracked: true
+                    created_at: '2026-05-11T17:20:38.252187Z'
+                    score: null
+                    status: 3
+                    progress: 1
+                    progressed_at: '2026-05-11T00:00:00Z'
+                    start_date: '2026-05-11T17:20:38.252187Z'
+                    end_date: '2026-05-11T00:00:00Z'
+                    notes: null
+                    lists: []
+                  summary: Tracked episode example
+                  description: Tracked episode example
+          description: Episode tracked successfully
         '400':
           content:
             application/json:
@@ -9469,261 +9777,6 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
-  /api/v1/schema/:
-    get:
-      operationId: schema_retrieve
-      description: |-
-        OpenApi3 schema for this API. Format can be selected via content negotiation.
-
-        - YAML: application/vnd.oai.openapi
-        - JSON: application/vnd.oai.openapi+json
-      parameters:
-      - in: query
-        name: format
-        schema:
-          type: string
-          enum:
-          - json
-          - yaml
-      - in: query
-        name: lang
-        schema:
-          type: string
-          enum:
-          - af
-          - ar
-          - ar-dz
-          - ast
-          - az
-          - be
-          - bg
-          - bn
-          - br
-          - bs
-          - ca
-          - ckb
-          - cs
-          - cy
-          - da
-          - de
-          - dsb
-          - el
-          - en
-          - en-au
-          - en-gb
-          - eo
-          - es
-          - es-ar
-          - es-co
-          - es-mx
-          - es-ni
-          - es-ve
-          - et
-          - eu
-          - fa
-          - fi
-          - fr
-          - fy
-          - ga
-          - gd
-          - gl
-          - he
-          - hi
-          - hr
-          - hsb
-          - hu
-          - hy
-          - ia
-          - id
-          - ig
-          - io
-          - is
-          - it
-          - ja
-          - ka
-          - kab
-          - kk
-          - km
-          - kn
-          - ko
-          - ky
-          - lb
-          - lt
-          - lv
-          - mk
-          - ml
-          - mn
-          - mr
-          - ms
-          - my
-          - nb
-          - ne
-          - nl
-          - nn
-          - os
-          - pa
-          - pl
-          - pt
-          - pt-br
-          - ro
-          - ru
-          - sk
-          - sl
-          - sq
-          - sr
-          - sr-latn
-          - sv
-          - sw
-          - ta
-          - te
-          - tg
-          - th
-          - tk
-          - tr
-          - tt
-          - udm
-          - ug
-          - uk
-          - ur
-          - uz
-          - vi
-          - zh-hans
-          - zh-hant
-      tags:
-      - schema
-      security:
-      - bearerAuth: []
-      - ApiKeyAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/vnd.oai.openapi:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/yaml:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/vnd.oai.openapi+json:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/json:
-              schema:
-                type: object
-                additionalProperties: {}
-          description: ''
-  /api/v1/people/search/:
-    get:
-      operationId: people_search_get
-      description: Search for people using the specified provider.
-      summary: Search for people
-      parameters:
-      - in: query
-        name: limit
-        schema:
-          type: integer
-          minimum: 1
-          default: 20
-        description: 'Maximum number of results to return (default: 20).'
-      - in: query
-        name: offset
-        schema:
-          type: integer
-          minimum: 0
-          default: 0
-        description: 'Number of results to skip before returning items (default: 0).'
-      - in: query
-        name: search
-        schema:
-          type: string
-        description: Search query
-        required: true
-      - in: query
-        name: source
-        schema:
-          type: string
-          enum:
-          - tmdb
-        description: 'Source of person data (default: tmdb).'
-      tags:
-      - people
-      security:
-      - bearerAuth: []
-      - ApiKeyAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchPeopleResponse'
-              examples:
-                SearchPeopleExample:
-                  value:
-                    pagination:
-                      total: 1
-                      limit: 20
-                      offset: 0
-                      next: null
-                      previous: null
-                    results:
-                    - person_id: 6384
-                      source: tmdb
-                      name: Keanu Reeves
-                      image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
-                      known_for_department: Acting
-                      known_for:
-                      - source: tmdb
-                        media_type: movie
-                        media_id: '603'
-                        title: The Matrix
-                        image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Search people example
-                  description: Search people example
-          description: Successful response
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiErrorResponse'
-              examples:
-                InvalidRequestExample:
-                  value:
-                    detail: Invalid request.
-                  summary: Invalid request example
-                  description: Invalid request example
-          description: Bad request
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiErrorResponse'
-              examples:
-                NoAuthenticationExample:
-                  value:
-                    detail: Authentication credentials were not provided.
-                  summary: No authentication example
-                  description: No authentication example
-                InvalidTokenExample:
-                  value:
-                    detail: Invalid token
-                  summary: Invalid token example
-                  description: Invalid token example
-          description: Forbidden
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiErrorResponse'
-              examples:
-                InternalServerErrorExample:
-                  value:
-                    detail: Internal server error.
-                  summary: Internal server error
-                  description: Internal server error
-          description: Internal server error
   /api/v1/people/{source}/{person_id}/:
     get:
       operationId: person_detail_get
@@ -10073,6 +10126,115 @@ paths:
                   summary: Not found example
                   description: Not found example
           description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/people/search/:
+    get:
+      operationId: people_search_get
+      description: Search for people using the specified provider.
+      summary: Search for people
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search query
+        required: true
+      - in: query
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: 'Source of person data (default: tmdb).'
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchPeopleResponse'
+              examples:
+                SearchPeopleExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - person_id: 6384
+                      source: tmdb
+                      name: Keanu Reeves
+                      image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      known_for_department: Acting
+                      known_for:
+                      - source: tmdb
+                        media_type: movie
+                        media_id: '603'
+                        title: The Matrix
+                        image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Search people example
+                  description: Search people example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
         '500':
           content:
             application/json:
@@ -11096,6 +11258,10 @@ components:
         title:
           type: string
         image:
+          type: string
+          format: uri
+          maxLength: 200
+        custom_image:
           type: string
           format: uri
           maxLength: 200
@@ -12413,6 +12579,29 @@ components:
           nullable: true
         episode_number:
           type: integer
+          nullable: true
+    UpdateEpisodeRequest:
+      type: object
+      description: Serializer for updating episode media items.
+      properties:
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+    UpdateSeasonRequest:
+      type: object
+      description: Serializer for updating season media items.
+      properties:
+        score:
+          type: number
+          format: double
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MediaStatusEnum'
+          nullable: true
+        notes:
+          type: string
           nullable: true
     User:
       type: object

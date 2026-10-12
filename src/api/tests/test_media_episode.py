@@ -2,12 +2,13 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from app.models import MediaTypes, Sources
+from app.models import Episode, MediaTypes, Sources
 
 from .base import YamtrackApiTestCase
 from .helpers import (
     check_changes_history_entry_structure,
     check_consumption_structure,
+    check_media_structure,
     check_minimized_lists_structure,
     check_pagination_structure,
 )
@@ -805,6 +806,178 @@ class MediaEpisodeTests(YamtrackApiTestCase):
             "api_media_episode_sync",
             args=(MediaTypes.TV.value, Sources.MANUAL.value, 701, 1, 1),
             headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def _episode_metadata_side_effect(self, tv_item, season_number, episodes_count):
+        """Return a metadata stub for tracking episodes of a season."""
+
+        def _metadata(media_type, *_args, **_kwargs):
+            if media_type == "tv_with_seasons":
+                return {
+                    f"season/{season_number}": {
+                        "episodes": [{} for _ in range(episodes_count)],
+                    },
+                    "related": {"seasons": [{"season_number": season_number}]},
+                }
+            if media_type == MediaTypes.EPISODE.value:
+                return {
+                    "title": tv_item.title,
+                    "season_title": f"Season {season_number}",
+                    "episode_title": "New episode",
+                    "image": "https://example.com/new-episode.jpg",
+                }
+            return {}
+
+        return _metadata
+
+    def test_episode_detail_post_tracks_episode(self):
+        """Episode detail POST should track an episode of a tracked season."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode_number = 4
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            side_effect=self._episode_metadata_side_effect(
+                tv_item,
+                season_item.season_number,
+                episodes_count=5,
+            ),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_episode_detail",
+                args=(
+                    MediaTypes.TV.value,
+                    tv_item.source,
+                    tv_item.media_id,
+                    season_item.season_number,
+                    episode_number,
+                ),
+                payload={},
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        check_media_structure(self, payload)
+        self.assertEqual(payload["item"]["media_type"], MediaTypes.EPISODE.value)
+        self.assertEqual(payload["item"]["season_number"], season_item.season_number)
+        self.assertEqual(payload["item"]["episode_number"], episode_number)
+        self.assertTrue(payload["tracked"])
+        self.assertIsNotNone(payload["end_date"])
+        self.assertEqual(
+            Episode.objects.filter(
+                related_season=self.season_medias[0],
+                item__episode_number=episode_number,
+            ).count(),
+            1,
+        )
+
+    def test_episode_detail_post_with_end_date(self):
+        """Episode detail POST should store the given watch date."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            side_effect=self._episode_metadata_side_effect(
+                tv_item,
+                season_item.season_number,
+                episodes_count=5,
+            ),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_episode_detail",
+                args=(
+                    MediaTypes.TV.value,
+                    tv_item.source,
+                    tv_item.media_id,
+                    season_item.season_number,
+                    4,
+                ),
+                payload={"end_date": "2024-01-01T10:00:00Z"},
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()["end_date"].startswith("2024-01-01"))
+
+    def test_episode_detail_post_rewatch_creates_new_entry(self):
+        """Episode detail POST on a tracked episode should add a new watch."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            side_effect=self._episode_metadata_side_effect(
+                tv_item,
+                season_item.season_number,
+                episodes_count=5,
+            ),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_episode_detail",
+                args=(
+                    MediaTypes.TV.value,
+                    tv_item.source,
+                    tv_item.media_id,
+                    season_item.season_number,
+                    episode_item.episode_number,
+                ),
+                payload={},
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            Episode.objects.filter(item=episode_item).count(),
+            2,
+        )
+
+    def test_episode_detail_post_invalid_payload_returns_bad_request(self):
+        """Episode detail POST with an invalid end_date should return 400."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_detail",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+                4,
+            ),
+            payload={"end_date": "not-a-date"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_episode_detail_post_untracked_season_returns_bad_request(self):
+        """Episode detail POST should fail if the user does not track the season."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_detail",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+                4,
+            ),
+            payload={},
+            headers=self.auth_headers2,
         )
 
         self.assertEqual(response.status_code, 400)
