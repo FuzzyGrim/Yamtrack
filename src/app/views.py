@@ -32,6 +32,7 @@ from app.models import (
     UserMessage,
 )
 from app.providers import manual, services, tmdb
+from app.seerr import request_media
 from app.templatetags import app_tags
 from events.models import Event
 from users.models import (
@@ -1083,3 +1084,61 @@ def service_worker():
         response = HttpResponse(f.read(), content_type="application/javascript")
         response["Service-Worker-Allowed"] = "/"
         return response
+
+
+@require_POST
+def seerr_request(request, source, media_type, media_id):
+    """Request media on the user's Seerr instance."""
+    user = request.user
+
+    def redirect_response():
+        """Return an HTMX-friendly redirect response."""
+        return_url = (
+            request.POST.get("return_url") or request.headers.get("Referer") or "home"
+        )
+        if request.headers.get("HX-Request"):
+            response = HttpResponse(status=204)
+            response["HX-Redirect"] = return_url
+            return response
+        return redirect(return_url)
+
+    if not user.seerr_url or not user.seerr_api_key:
+        messages.error(
+            request,
+            message="Seerr is not configured. "
+            "Please set up your Seerr integration in Settings.",
+        )
+        return redirect_response()
+
+    if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+        messages.error(
+            request,
+            message="Media type not supported for Seerr requests.",
+        )
+        return redirect_response()
+
+    if source != Sources.TMDB.value or media_id is None:
+        messages.error(
+            request,
+            "Could not determine the TMDB ID for this media. Seerr requires a TMDB ID."
+            "Try adding the media using a TMDB source.",
+        )
+        return redirect_response()
+
+    # Make the Seerr API request
+    try:
+        request_media(
+            seerr_url=user.seerr_url,
+            seerr_api_key=user.seerr_api_key,
+            media_type=media_type,
+            tmdb_id=media_id,
+        )
+        messages.success(request, "Media request sent to Seerr successfully!")
+    except Exception as error:
+        logger.exception("Failed to request media on Seerr")
+        messages.error(
+            request,
+            f"Failed to send request to Seerr: {error}",
+        )
+
+    return redirect_response()

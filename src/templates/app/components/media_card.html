@@ -74,71 +74,81 @@
                       hx-target="#{% component_id 'track' item media.id %}"
                       hx-trigger="click once"
                       @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
+
+              {# Lists Button #}
+              <button class="p-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-200 cursor-pointer"
+                      title="Add to custom lists"
+                      hx-get="{% media_view_url 'lists_modal' item %}"
+                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                      hx-target="#{% component_id 'lists' item %}"
+                      hx-trigger="click once"
+                      @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
+
+              {# History Button #}
+              <button class="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
+                      title="View your activity history"
+                      hx-get="{% media_view_url 'history_modal' item %}"
+                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                      hx-target="#{% component_id 'history' item %}"
+                      hx-trigger="click once"
+                      @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
+
+              {% if request.user.seerr_url and request.user.seerr_api_key %}
+                {# Seerr Request Button #}
+                <button class="p-2.5 bg-purple-600 text-white rounded-full hover:bg-purple-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(147,51,234,0.5)] transition-all duration-200 cursor-pointer"
+                        title="Request on Seerr"
+                        hx-post="{% media_view_url 'seerr_request' item %}"
+                        hx-vals='{"csrfmiddlewaretoken": "{{ csrf_token }}", "return_url": "{{ request.get_full_path|urlencode }}"}'
+                        hx-swap="none"
+                        hx-trigger="click">{% include "app/icons/external-link.svg" with classes="w-4 h-4" %}</button>
+              {% endif %}
             {% endif %}
-
-            {# Lists Button #}
-            <button class="p-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-200 cursor-pointer"
-                    title="Add to custom lists"
-                    hx-get="{% media_view_url 'lists_modal' item %}"
-                    hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                    hx-target="#{% component_id 'lists' item %}"
-                    hx-trigger="click once"
-                    @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
-
-            {# History Button #}
-            <button class="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
-                    title="View your activity history"
-                    hx-get="{% media_view_url 'history_modal' item %}"
-                    hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                    hx-target="#{% component_id 'history' item %}"
-                    hx-trigger="click once"
-                    @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
           </div>
         {% endif %}
       </div>
     {% endwith %}
-  </div>
 
-  <div class="p-3">
-    <a href="{{ item|media_url }}"
-       class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
-       title="{{ title }}">{{ title }}</a>
-  </div>
+    <div class="p-3">
+      <a href="{{ item|media_url }}"
+         class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+         title="{{ title }}">{{ title }}</a>
+    </div>
 
-  {% if item.media_type == MediaTypes.EPISODE.value %}
-    {% include "app/components/fill_track_episode.html" with request=request media=item episode=item episode_title=title csrf_token=csrf_token TRACK_TIME=TRACK_TIME only %}
-  {% else %}
-    {# Track Modal #}
-    <div x-show="trackOpen"
-         @keydown.escape.window="trackOpen = false"
+    {% if item.media_type == MediaTypes.EPISODE.value %}
+      {% include "app/components/fill_track_episode.html" with request=request media=item episode=item episode_title=title csrf_token=csrf_token TRACK_TIME=TRACK_TIME only %}
+    {% else %}
+      {# Track Modal #}
+      <div x-show="trackOpen"
+           @keydown.escape.window="trackOpen = false"
+           class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
+             @click.outside="trackOpen = false">
+          <div id="{% component_id 'track' item media.id %}"></div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Lists Modal #}
+    <div x-show="listsOpen"
+         @keydown.escape.window="listsOpen = false"
          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
-           @click.outside="trackOpen = false">
-        <div id="{% component_id 'track' item media.id %}"></div>
+      <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+           @click.outside="listsOpen = false">
+        <div id="{% component_id 'lists' item %}"></div>
       </div>
     </div>
-  {% endif %}
 
-  {# Lists Modal #}
-  <div x-show="listsOpen"
-       @keydown.escape.window="listsOpen = false"
-       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
-         @click.outside="listsOpen = false">
-      <div id="{% component_id 'lists' item %}"></div>
+    {# History Modal #}
+    <div x-show="historyOpen"
+         @keydown.escape.window="historyOpen = false"
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+           @click.outside="historyOpen = false">
+        <div id="{% component_id 'history' item %}"></div>
+      </div>
     </div>
+    {% with user=target_user|default:user %}
+      {% include "app/components/progress_bar.html" with media=media user=user only %}
+    {% endwith %}
   </div>
-
-  {# History Modal #}
-  <div x-show="historyOpen"
-       @keydown.escape.window="historyOpen = false"
-       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
-         @click.outside="historyOpen = false">
-      <div id="{% component_id 'history' item %}"></div>
-    </div>
-  </div>
-  {% with user=target_user|default:user %}
-    {% include "app/components/progress_bar.html" with media=media user=user only %}
-  {% endwith %}
 </div>

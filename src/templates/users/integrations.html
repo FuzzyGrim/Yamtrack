@@ -88,6 +88,15 @@
             {% include "app/icons/server.svg" with classes="w-4 h-4 mr-2" %}
             Emby
           </button>
+          <button type="button"
+                  class="flex items-center px-4 py-2 rounded-md transition-colors text-sm cursor-pointer"
+                  :class="activeIntegration === 'seerr' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] text-gray-300 hover:bg-[#454d59]'"
+                  @click="activeIntegration = 'seerr'"
+                  role="tab"
+                  :aria-selected="activeIntegration === 'seerr'">
+            {% include "app/icons/external-link.svg" with classes="w-4 h-4 mr-2" %}
+            Seerr
+          </button>
         </div>
         <div x-cloak x-show="activeIntegration === 'jellyfin'" role="tabpanel">
           <div class="bg-[#39404b] p-5 rounded-lg mb-6">
@@ -350,6 +359,47 @@
                   </li>
                 </ol>
               </div>
+            </div>
+          </div>
+
+          <div x-cloak x-show="activeIntegration === 'seerr'" role="tabpanel">
+            <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+              <div class="flex items-center mb-3">
+                {% include "app/icons/external-link.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+                <h3 class="text-base font-medium">Seerr (Overseerr / Jellyseerr)</h3>
+              </div>
+              <p class="text-gray-400 mb-4 text-sm">Connect your Seerr instance to request media directly from Yamtrack.</p>
+              <form method="post"
+                    action="{% url 'update_seerr_settings' %}"
+                    class="space-y-4">
+                {% csrf_token %}
+                <div>
+                  <label for="seerr_url" class="block text-sm font-medium text-gray-300 mb-1">Instance URL</label>
+                  <input id="seerr_url"
+                         name="seerr_url"
+                         type="url"
+                         placeholder="https://requests.example.com"
+                         value="{{ request.user.seerr_url }}"
+                         class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div>
+                  <label for="seerr_api_key"
+                         class="block text-sm font-medium text-gray-300 mb-1">API Key</label>
+                  <input id="seerr_api_key"
+                         name="seerr_api_key"
+                         type="password"
+                         placeholder="Your Seerr API key"
+                         value="{{ request.user.seerr_api_key }}"
+                         class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div class="pt-2">
+                  <button type="submit"
+                          class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+                    {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+                    Save Changes
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
