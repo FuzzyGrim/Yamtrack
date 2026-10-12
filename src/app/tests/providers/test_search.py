@@ -16,6 +16,9 @@ from app.providers import (
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 
+BREAKING_BAD_TMDB_ID = 1396
+THE_MATRIX_TMDB_ID = 603
+
 
 class Search(TestCase):
     """Test the external API calls for media search."""
@@ -65,6 +68,29 @@ class Search(TestCase):
 
         for tv in response["results"]:
             self.assertTrue(all(key in tv for key in required_keys))
+
+        breaking_bad = next(
+            tv for tv in response["results"] if tv["media_id"] == BREAKING_BAD_TMDB_ID
+        )
+        self.assertEqual(breaking_bad["release_year"], 2008)
+
+    def test_movie(self):
+        """Test the search method for movies.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = tmdb.search(MediaTypes.MOVIE.value, "The Matrix", 1)
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        for movie in response["results"]:
+            self.assertTrue(all(key in movie for key in required_keys))
+
+        the_matrix = next(
+            movie
+            for movie in response["results"]
+            if movie["media_id"] == THE_MATRIX_TMDB_ID
+        )
+        self.assertEqual(the_matrix["release_year"], 1999)
 
     def test_games(self):
         """Test the search method for games.
