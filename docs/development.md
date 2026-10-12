@@ -2,6 +2,22 @@
 
 This page covers working on Yamtrack from source.
 
+## Dev container (recommended)
+
+The repository includes a [dev container](https://containers.dev/) with Python 3.12, uv, Node (for the Tailwind CLI) and a Redis sidecar, so the only local requirements are Docker and VS Code (or another dev container client).
+
+1. Open the repository in VS Code and run **Dev Containers: Reopen in Container**. On Windows and macOS, **Dev Containers: Clone Repository in Container Volume** keeps the source inside Docker and makes file watching much faster.
+2. On first start the container installs uv and the Tailwind CLI, runs `uv sync` and applies migrations.
+3. Start the web server, Celery worker and Tailwind watcher:
+
+   ```bash
+   uvx honcho -e /dev/null start
+   ```
+
+4. Open <http://localhost:8000>. Port 8000 is forwarded to the host.
+
+The virtualenv lives in a named volume at `/home/vscode/.venv`, and the SQLite database is `src/db/db.sqlite3`. The rest of this page covers setting up the same environment manually.
+
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
