@@ -55,11 +55,13 @@ from .helpers import (
     get_item_lists,
     get_media_status,
     get_sorts,
+    group_watch_providers,
     paginate_data,
     parse_excluded_items,
     parse_limit_offset,
     parse_sort_filter,
     parse_status_param,
+    parse_watch_provider_region,
     resolve_calendar_date_range,
     try_parse_date,
 )
@@ -80,6 +82,7 @@ from .schemas import (
     SeasonNumberParam,
     SourceCompleteParam,
     TooManyRequestsResponse,
+    WatchProviderRegionParam,
 )
 from .serializers import (
     ApiMessageResponseSerializer,
@@ -119,6 +122,7 @@ from .serializers import (
     UpdateMovieSerializer,
     UpdateSeasonSerializer,
     UpdateTVSerializer,
+    WatchProvidersResponseSerializer,
 )
 
 # TODO!: check sorters and filters in paginate_data since data is not serialized yet. Maybe data should be serialized first and then sorted/paginated later?? Sorting/filtering should occur at db search level, pagination should be done right after, always at the db search level, then the data should be serialized.  # noqa: E501, W505
@@ -3363,6 +3367,107 @@ class MediaListDetailView(drf_views.APIView):
         return Response(lists, status=HTTP.OK)
 
 
+# /api/v1/media/[media_type]/[source]/[media_id]/providers/
+class MediaWatchProvidersView(drf_views.APIView):
+    """Media watch providers view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = WatchProvidersResponseSerializer
+
+    @extend_schema(
+        operation_id="media_providers_get",
+        summary="Get media watch providers",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            WatchProviderRegionParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                WatchProvidersResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve watch providers example",
+                        description="Retrieve watch providers example",
+                        summary="Retrieve watch providers example",
+                        value={
+                            "region": "US",
+                            "link": "https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US",
+                            "no_charge": [
+                                {
+                                    "provider_id": 8,
+                                    "provider_name": "Netflix",
+                                    "image": "https://image.tmdb.org/t/p/w500/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg",
+                                    "display_priority": 0,
+                                },
+                            ],
+                            "paid": [
+                                {
+                                    "provider_id": 2,
+                                    "provider_name": "Apple TV",
+                                    "image": "https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg",
+                                    "display_priority": 4,
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Retrieve no charge and paid watch providers for a specific media."""
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+            return Response(
+                {
+                    "detail": (
+                        "Watch providers are supported only for 'movie' and 'tv' "
+                        "media types."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        region, err = parse_watch_provider_region(request)
+        if err:
+            return err
+
+        try:
+            media_metadata = services.get_media_metadata(media_type, media_id, source)
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        providers = group_watch_providers(media_metadata.get("providers"), region)
+        return Response(providers, status=HTTP.OK)
+
+
 # /api/v1/media/[media_type]/[source]/[media_id]/recommendations/
 class MediaRecommendationsView(drf_views.APIView):
     """Media recommendations view."""
@@ -5434,6 +5539,110 @@ class MediaSeasonListDetailView(drf_views.APIView):
         )
 
         return Response(lists, status=HTTP.OK)
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/providers/
+class MediaSeasonWatchProvidersView(drf_views.APIView):
+    """Season watch providers view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = WatchProvidersResponseSerializer
+
+    @extend_schema(
+        operation_id="season_providers_get",
+        summary="Get season watch providers",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            WatchProviderRegionParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                WatchProvidersResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve watch providers example",
+                        description="Retrieve watch providers example",
+                        summary="Retrieve watch providers example",
+                        value={
+                            "region": "US",
+                            "link": "https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US",
+                            "no_charge": [
+                                {
+                                    "provider_id": 8,
+                                    "provider_name": "Netflix",
+                                    "image": "https://image.tmdb.org/t/p/w500/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg",
+                                    "display_priority": 0,
+                                },
+                            ],
+                            "paid": [
+                                {
+                                    "provider_id": 2,
+                                    "provider_name": "Apple TV",
+                                    "image": "https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg",
+                                    "display_priority": 4,
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id, season_number):
+        """Retrieve no charge and paid watch providers for a tv serie season."""
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if media_type != MediaTypes.TV.value:
+            return Response(
+                {
+                    "detail": "Seasons are supported only for 'tv' media type.",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        region, err = parse_watch_provider_region(request)
+        if err:
+            return err
+
+        try:
+            season_metadata = services.get_media_metadata(
+                MediaTypes.SEASON.value,
+                media_id,
+                source,
+                [season_number],
+            )
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        providers = group_watch_providers(season_metadata.get("providers"), region)
+        return Response(providers, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/sync/

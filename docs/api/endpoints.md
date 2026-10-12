@@ -47,6 +47,8 @@
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}`
     - [x] DELETE: Delete tracked item from specific list
     - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/providers/`
+    - [x] GET: Get where to watch a movie or tv serie (no charge and paid providers)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/recommendations/`
     - [x] GET: Get recommendations based on tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/seasons/`
@@ -72,6 +74,8 @@
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/lists/{list_id}`
     - [x] DELETE: Delete tracked item from specific list
     - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/providers/`
+    - [x] GET: Get where to watch a season if media is tv serie (no charge and paid providers)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/sync/`
     - [x] POST: Update metadata of tracked season
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/`

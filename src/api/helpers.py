@@ -25,8 +25,9 @@ from app.models import (
     Season,
     Sources,
 )
+from app.providers import tmdb
 from lists.models import CustomListItem
-from users.models import MediaStatusChoices
+from users.models import WATCH_PROVIDER_REGION_UNSET, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -368,6 +369,36 @@ def get_progress_from_status(status):
     return 0
 
 
+def group_watch_providers(all_providers, region):
+    """Group a region's watch providers into no charge and paid tiers."""
+    region_providers = (all_providers or {}).get(region, {})
+
+    def merge(*provider_types):
+        # Dedupe by provider id across provider types
+        providers = {}
+        for provider_type in provider_types:
+            for provider in region_providers.get(provider_type, []):
+                providers[provider.get("provider_id")] = {
+                    "provider_id": provider.get("provider_id"),
+                    "provider_name": provider.get("provider_name"),
+                    "image": tmdb.get_image_url(provider.get("logo_path")),
+                    "display_priority": provider.get("display_priority"),
+                }
+        return sorted(
+            providers.values(),
+            key=lambda e: (
+                e["display_priority"] if e["display_priority"] is not None else 999
+            ),
+        )
+
+    return {
+        "region": region,
+        "link": region_providers.get("link"),
+        "no_charge": merge("flatrate", "free", "ads"),
+        "paid": merge("buy", "rent"),
+    }
+
+
 def make_page_url(request, limit, new_offset):
     """Build a page URL with the given limit and offset."""
     params = {k: v for k, v in request.GET.items() if v is not None and v != ""}
@@ -464,6 +495,29 @@ def parse_limit_offset(request):
 
     limit = min(limit, MAX_RESULT_LIMIT)
     return limit, offset, None
+
+
+def parse_watch_provider_region(request):
+    """Parse the watch provider region, falling back to the user's preference.
+
+    If no error, error_response is None. On validation error, returns a DRF Response.
+    """
+    region = request.GET.get("region") or request.user.watch_provider_region
+    if not region or region == WATCH_PROVIDER_REGION_UNSET:
+        return (
+            None,
+            Response(
+                {
+                    "detail": (
+                        "Watch provider region not set. Pass the `region` query "
+                        "parameter or set it in the user preferences."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            ),
+        )
+
+    return region.upper(), None
 
 
 def parse_status_param(status):

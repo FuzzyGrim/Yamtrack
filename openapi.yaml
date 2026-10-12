@@ -5883,6 +5883,143 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/providers/:
+    get:
+      operationId: season_providers_get
+      description: Retrieve no charge and paid watch providers for a tv serie season.
+      summary: Get season watch providers
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: region
+        schema:
+          type: string
+        description: 'ISO 3166-1 country code to get watch providers for (default:
+          user''s watch provider region).'
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProvidersResponse'
+              examples:
+                RetrieveWatchProvidersExample:
+                  value:
+                    region: US
+                    link: https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US
+                    no_charge:
+                    - provider_id: 8
+                      provider_name: Netflix
+                      image: https://image.tmdb.org/t/p/w500/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg
+                      display_priority: 0
+                    paid:
+                    - provider_id: 2
+                      provider_name: Apple TV
+                      image: https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg
+                      display_priority: 4
+                  summary: Retrieve watch providers example
+                  description: Retrieve watch providers example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/sync/:
     post:
       operationId: season_sync_post
@@ -6993,6 +7130,137 @@ paths:
       responses:
         '204':
           description: Media removed from list successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/providers/:
+    get:
+      operationId: media_providers_get
+      description: Retrieve no charge and paid watch providers for a specific media.
+      summary: Get media watch providers
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: region
+        schema:
+          type: string
+        description: 'ISO 3166-1 country code to get watch providers for (default:
+          user''s watch provider region).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProvidersResponse'
+              examples:
+                RetrieveWatchProvidersExample:
+                  value:
+                    region: US
+                    link: https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US
+                    no_charge:
+                    - provider_id: 8
+                      provider_name: Netflix
+                      image: https://image.tmdb.org/t/p/w500/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg
+                      display_priority: 0
+                    paid:
+                    - provider_id: 2
+                      provider_name: Apple TV
+                      image: https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg
+                      display_priority: 4
+                  summary: Retrieve watch providers example
+                  description: Retrieve watch providers example
+          description: Successful response
         '400':
           content:
             application/json:
@@ -9443,6 +9711,49 @@ components:
       required:
       - id
       - username
+    WatchProvider:
+      type: object
+      description: Serializer for a single watch provider.
+      properties:
+        provider_id:
+          type: integer
+        provider_name:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        display_priority:
+          type: integer
+          nullable: true
+      required:
+      - display_priority
+      - image
+      - provider_id
+      - provider_name
+    WatchProvidersResponse:
+      type: object
+      description: Serializer for watch providers endpoint.
+      properties:
+        region:
+          type: string
+        link:
+          type: string
+          format: uri
+          nullable: true
+        no_charge:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchProvider'
+        paid:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchProvider'
+      required:
+      - link
+      - no_charge
+      - paid
+      - region
   securitySchemes:
     ApiKeyAuth:
       type: apiKey

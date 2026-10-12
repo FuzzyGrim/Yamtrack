@@ -447,3 +447,60 @@ def _check_tv_related_structure(test_case, related):
     test_case.assertIn("seasons", related)
     for season in related["seasons"]:
         check_media_structure(test_case, season)
+
+
+WATCH_PROVIDERS_RESPONSE = {
+    "US": {
+        "link": "https://www.themoviedb.org/movie/1/watch?locale=US",
+        "flatrate": [
+            {
+                "provider_id": 8,
+                "provider_name": "Netflix",
+                "logo_path": "/netflix.jpg",
+                "display_priority": 1,
+            },
+        ],
+        "free": [
+            {
+                "provider_id": 73,
+                "provider_name": "Tubi TV",
+                "logo_path": "/tubi.jpg",
+                "display_priority": 0,
+            },
+        ],
+        "ads": [
+            {
+                "provider_id": 8,
+                "provider_name": "Netflix",
+                "logo_path": "/netflix.jpg",
+                "display_priority": 1,
+            },
+        ],
+        "buy": [
+            {
+                "provider_id": 2,
+                "provider_name": "Apple TV",
+                "logo_path": "/apple.jpg",
+                "display_priority": 4,
+            },
+        ],
+        "rent": [
+            {
+                "provider_id": 2,
+                "provider_name": "Apple TV",
+                "logo_path": "/apple.jpg",
+                "display_priority": 4,
+            },
+        ],
+    },
+    "IT": {
+        "flatrate": [
+            {
+                "provider_id": 119,
+                "provider_name": "Amazon Prime Video",
+                "logo_path": "/prime.jpg",
+                "display_priority": 2,
+            },
+        ],
+    },
+}

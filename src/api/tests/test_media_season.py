@@ -4,6 +4,7 @@ from app.models import MediaTypes, Sources
 
 from .base import YamtrackApiTestCase
 from .helpers import (
+    WATCH_PROVIDERS_RESPONSE,
     check_changes_history_entry_structure,
     check_complete_media_structure,
     check_consumption_structure,
@@ -88,6 +89,12 @@ class MediaSeasonTests(YamtrackApiTestCase):
                 None,
             ),
             (
+                "get",
+                "api_media_season_providers",
+                ("movie", "tmdb", 1, 1),
+                None,
+            ),
+            (
                 "post",
                 "api_media_season_sync",
                 ("movie", "tmdb", 1, 1),
@@ -104,6 +111,50 @@ class MediaSeasonTests(YamtrackApiTestCase):
                 headers=self.auth_headers,
             )
             self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.services.get_media_metadata")
+    def test_season_providers_returns_grouped_providers(self, mock_metadata):
+        """Season providers endpoint should group providers by tier."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_season_providers",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            params={"region": "US"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["region"], "US")
+        self.assertEqual(
+            [p["provider_name"] for p in payload["no_charge"]],
+            ["Tubi TV", "Netflix"],
+        )
+        self.assertEqual(
+            [p["provider_name"] for p in payload["paid"]],
+            ["Apple TV"],
+        )
+        mock_metadata.assert_called_once_with(
+            MediaTypes.SEASON.value,
+            tv_item.media_id,
+            tv_item.source,
+            ["1"],
+        )
+
+    def test_season_providers_without_region_returns_bad_request(self):
+        """Season providers endpoint should require a region."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        response = self.call_api(
+            "get",
+            "api_media_season_providers",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
 
     def test_season_detail_delete_tracked_season_returns_204(self):
         """Season delete of tracked season should return 204."""

@@ -5,6 +5,7 @@ from app.models import MediaTypes, Sources, Status
 
 from .base import YamtrackApiTestCase
 from .helpers import (
+    WATCH_PROVIDERS_RESPONSE,
     check_changes_history_record_structure,
     check_complete_media_structure,
     check_consumption_structure,
@@ -1313,6 +1314,138 @@ class MediaCoreTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_providers_returns_grouped_providers(self, mock_metadata):
+        """Providers endpoint should group providers into no charge and paid."""
+        self.user1.watch_provider_region = "US"
+        self.user1.save()
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["region"], "US")
+        self.assertEqual(
+            payload["link"],
+            "https://www.themoviedb.org/movie/1/watch?locale=US",
+        )
+        self.assertEqual(
+            [p["provider_name"] for p in payload["no_charge"]],
+            ["Tubi TV", "Netflix"],
+        )
+        self.assertEqual(
+            [p["provider_name"] for p in payload["paid"]],
+            ["Apple TV"],
+        )
+        self.assertEqual(
+            payload["paid"][0]["image"],
+            "https://image.tmdb.org/t/p/w500/apple.jpg",
+        )
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_providers_region_param_overrides_user_region(
+        self,
+        mock_metadata,
+    ):
+        """Providers endpoint should prefer the region query parameter."""
+        self.user1.watch_provider_region = "US"
+        self.user1.save()
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            params={"region": "it"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["region"], "IT")
+        self.assertIsNone(payload["link"])
+        self.assertEqual(
+            [p["provider_name"] for p in payload["no_charge"]],
+            ["Amazon Prime Video"],
+        )
+        self.assertEqual(payload["paid"], [])
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_providers_unknown_region_returns_empty_groups(
+        self,
+        mock_metadata,
+    ):
+        """Providers endpoint should return empty groups for regions without data."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            params={"region": "FR"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["no_charge"], [])
+        self.assertEqual(payload["paid"], [])
+
+    def test_media_providers_without_region_returns_bad_request(self):
+        """Providers endpoint should require a region when the user has none set."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_media_providers_unsupported_media_type_returns_bad_request(self):
+        """Providers endpoint should reject media types without watch providers."""
+        requests = [
+            ("invalid", "tmdb", 1),
+            (MediaTypes.ANIME.value, "mal", 1),
+            (MediaTypes.MOVIE.value, "manual", 1),
+        ]
+
+        for args in requests:
+            response = self.call_api(
+                "get",
+                "api_media_providers",
+                args=args,
+                params={"region": "US"},
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    def test_media_providers_invalid_media_id_returns_internal_server_error(
+        self,
+        _mock_metadata,
+    ):
+        """Providers endpoint should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, "tmdb", 999999),
+            params={"region": "US"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
 
     @patch("api.views.services.get_media_metadata")
     def test_media_recommendations_returns_related_items(self, mock_metadata):

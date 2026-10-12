@@ -219,3 +219,14 @@ EpisodeNumberParam = OpenApiParameter(
     description="Episode number for the specified media item.",
     required=True,
 )
+
+WatchProviderRegionParam = OpenApiParameter(
+    name="region",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "ISO 3166-1 country code to get watch providers for "
+        "(default: user's watch provider region)."
+    ),
+    required=False,
+)
