@@ -419,6 +419,9 @@ TVDB_API = config(
     ),
 )
 
+# Optional, enables extra artwork from Fanart.tv when set
+FANART_API = config("FANART_API", default=secret("FANART_API_FILE", ""))
+
 MAL_API = config(
     "MAL_API",
     default=secret(

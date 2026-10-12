@@ -11368,12 +11368,17 @@ components:
         language:
           type: string
           nullable: true
+        source:
+          type: string
+          description: 'Where the image comes from: the media source, or an extra
+            artwork source (fanart, anilist, mangadex).'
       required:
       - aspect_ratio
       - height
       - image
       - language
       - original
+      - source
       - vote_average
       - vote_count
       - width

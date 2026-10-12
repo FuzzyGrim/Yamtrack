@@ -58,6 +58,7 @@
     - [x] PATCH: Edit specific consumption entry
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/images/`
     - [x] GET: Get images of any media type except manual items: movie and tv serie (posters, backdrops, logos), game (cover, artworks, screenshots), comic (volume and issue covers), anime, manga, book and board game (covers), optionally filtered by `type`
+        - Extra artwork is added from Fanart.tv for movies and tv series (only when `FANART_API` is set), from AniList for anime and manga, and from MangaDex for manga. Each image has a `source`.
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/`
     - [x] GET: Lists where the tracked item is in
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}`

@@ -310,7 +310,9 @@ class AnimeMangaExtrasTests(YamtrackApiTestCase):
                 ("https://cdn/2m.jpg", "https://cdn/2l.jpg"),
             ],
         )
-        self.assertTrue(mock_request.call_args.args[2].endswith("/anime/1"))
+        self.assertTrue(
+            mock_request.call_args_list[0].args[2].endswith("/anime/1"),
+        )
 
 
 MANGAUPDATES_SERIES_RESPONSE = {
@@ -338,8 +340,12 @@ class MangaUpdatesExtrasTests(YamtrackApiTestCase):
         super().setUp()
         cache.clear()
 
+    @patch(
+        "api.helpers.mangadex.manga_covers",
+        return_value={"posters": []},
+    )
     @patch("app.providers.mangaupdates.services.api_request")
-    def test_mangaupdates_creators_and_images(self, mock_request):
+    def test_mangaupdates_creators_and_images(self, mock_request, _mock_covers):
         """MangaUpdates should merge author roles and return the cover."""
         mock_request.return_value = MANGAUPDATES_SERIES_RESPONSE
 
@@ -612,6 +618,7 @@ class BoardGameExtrasTests(YamtrackApiTestCase):
                 "language": None,
                 "vote_average": None,
                 "vote_count": None,
+                "source": "bgg",
             },
         )
         mock_request.assert_called_once()

@@ -994,6 +994,7 @@ class MediaImagesTests(YamtrackApiTestCase):
                 "language": None,
                 "vote_average": 5.0,
                 "vote_count": 10,
+                "source": "tmdb",
             },
         )
         self.assertTrue(mock_request.call_args.args[2].endswith("/movie/603/images"))
@@ -1195,6 +1196,7 @@ class GameExtrasTests(YamtrackApiTestCase):
                     "language": None,
                     "vote_average": None,
                     "vote_count": None,
+                    "source": "igdb",
                 },
             ],
         )

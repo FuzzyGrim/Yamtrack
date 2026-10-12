@@ -3,6 +3,7 @@ import logging
 import requests
 from django.core.cache import cache
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -177,3 +178,59 @@ def process_staff(staff, edge):
     role = edge.get("role")
     if role and role not in entry["roles"]:
         entry["roles"].append(role)
+
+
+images_query = """
+query ($idMal: Int, $type: MediaType) {
+  Media(idMal: $idMal, type: $type) {
+    coverImage {
+      extraLarge
+      large
+    }
+    bannerImage
+  }
+}
+"""
+
+
+def media_images(media_type, mal_id):
+    """Return the cover and banner of an anime or manga, by MyAnimeList ID."""
+    cache_key = f"anilist_{media_type}_{mal_id}_images"
+    data = cache.get(cache_key)
+
+    if data is None:
+        anilist_type = "ANIME" if media_type == MediaTypes.ANIME.value else "MANGA"
+        try:
+            response = services.api_request(
+                "ANILIST",
+                "POST",
+                base_url,
+                params={
+                    "query": images_query,
+                    "variables": {"idMal": int(mal_id), "type": anilist_type},
+                },
+            )
+            media = (response.get("data") or {}).get("Media") or {}
+        except requests.exceptions.HTTPError as error:
+            # AniList returns 404 when it has no media with that MAL ID
+            if getattr(error.response, "status_code", None) != requests.codes.not_found:
+                raise services.ProviderAPIError(provider, error) from error
+            media = {}
+
+        cover = media.get("coverImage") or {}
+        posters = []
+        if cover.get("extraLarge"):
+            posters.append(
+                helpers.build_image_entry(
+                    cover.get("large") or cover["extraLarge"],
+                    cover["extraLarge"],
+                ),
+            )
+        backdrops = []
+        if media.get("bannerImage"):
+            backdrops.append(helpers.build_image_entry(media["bannerImage"]))
+
+        data = {"posters": posters, "backdrops": backdrops}
+        cache.set(cache_key, data)
+
+    return data

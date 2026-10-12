@@ -29,9 +29,11 @@ from app.providers import (
     anilist,
     bgg,
     comicvine,
+    fanart,
     hardcover,
     igdb,
     mal,
+    mangadex,
     mangaupdates,
     openlibrary,
     tmdb,
@@ -482,7 +484,7 @@ def check_supported_source(supported_sources, media_type, source, feature):
 
 
 def fetch_images(media_type, source, media_id):
-    """Return the images of a media from its source."""
+    """Return the images of a media from its source and the extra artwork sources."""
     fetchers = {
         Sources.TMDB.value: lambda: tmdb.media_images(media_type, media_id),
         Sources.MAL.value: lambda: mal.media_pictures(media_type, media_id),
@@ -495,7 +497,98 @@ def fetch_images(media_type, source, media_id):
         Sources.COMICVINE.value: lambda: comicvine.comic_images(media_id),
         Sources.BGG.value: lambda: bgg.boardgame_extras(media_id)["images"],
     }
-    return fetchers[source]()
+    images = tag_images(fetchers[source](), source)
+    add_extra_images(images, get_extra_image_fetchers(media_type, source, media_id))
+    return images
+
+
+def fetch_season_images(media_id, season_number):
+    """Return the posters of a tv season from TMDB and Fanart.tv."""
+    images = tag_images(
+        tmdb.media_images(
+            MediaTypes.TV.value,
+            media_id,
+            season_number=season_number,
+        ),
+        Sources.TMDB.value,
+    )
+    extra_fetchers = []
+    if fanart.is_enabled():
+        extra_fetchers.append(
+            (
+                fanart.PROVIDER,
+                lambda: fanart.tv_images(
+                    tmdb.tv(media_id).get("tvdb_id"),
+                    season_number=season_number,
+                ),
+            ),
+        )
+    add_extra_images(images, extra_fetchers)
+    return images
+
+
+def get_extra_image_fetchers(media_type, source, media_id):
+    """Return the extra artwork sources available for a media."""
+    fetchers = []
+    if media_type == MediaTypes.MOVIE.value and fanart.is_enabled():
+        fetchers.append((fanart.PROVIDER, lambda: fanart.movie_images(media_id)))
+    elif media_type == MediaTypes.TV.value and fanart.is_enabled():
+        fetchers.append(
+            (
+                fanart.PROVIDER,
+                lambda: fanart.tv_images(tmdb.tv(media_id).get("tvdb_id")),
+            ),
+        )
+
+    if source == Sources.MAL.value:
+        fetchers.append(
+            ("anilist", lambda: anilist.media_images(media_type, media_id)),
+        )
+
+    if media_type == MediaTypes.MANGA.value:
+        get_title = (
+            mal.manga if source == Sources.MAL.value else mangaupdates.manga_extras
+        )
+        fetchers.append(
+            (
+                mangadex.PROVIDER,
+                lambda: mangadex.manga_covers(
+                    get_title(media_id)["title"],
+                    source,
+                    media_id,
+                ),
+            ),
+        )
+    return fetchers
+
+
+def tag_images(images, source):
+    """Return a copy of the image groups with the source of every image."""
+    return {
+        group: [{**image, "source": source} for image in group_images]
+        for group, group_images in images.items()
+    }
+
+
+def add_extra_images(images, extra_fetchers):
+    """Append the images of extra sources, skipping duplicates and failures."""
+    seen = {
+        image["original"] for group_images in images.values() for image in group_images
+    }
+    for extra_source, fetch in extra_fetchers:
+        # Extra artwork is optional, a failing source must not break the request
+        try:
+            extra_images = tag_images(fetch(), extra_source)
+        except Exception:
+            logger.exception("Failed to fetch extra images from %s", extra_source)
+            continue
+
+        for group, group_images in extra_images.items():
+            for image in group_images:
+                if image["original"] in seen:
+                    continue
+                seen.add(image["original"])
+                images.setdefault(group, []).append(image)
 
 
 def fetch_cast(media_type, source, media_id, language=None):

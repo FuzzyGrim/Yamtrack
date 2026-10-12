@@ -65,6 +65,7 @@ from .helpers import (
     fetch_images,
     fetch_results_all_types,
     fetch_results_for_type,
+    fetch_season_images,
     filter_images,
     filter_known_for,
     get_item_lists,
@@ -3021,7 +3022,7 @@ def get_cover_metadata(media_type, source, media_id, season_number=None):
             source,
             [season_number],
         )
-        images = tmdb.media_images(media_type, media_id, season_number=season_number)
+        images = fetch_season_images(media_id, season_number)
     else:
         metadata = services.get_media_metadata(media_type, media_id, source)
         images = fetch_images(media_type, source, media_id)
@@ -6154,11 +6155,7 @@ class MediaSeasonImagesView(drf_views.APIView):
             )
 
         try:
-            images = tmdb.media_images(
-                media_type,
-                media_id,
-                season_number=season_number,
-            )
+            images = fetch_season_images(media_id, season_number)
         except Exception as e:  # noqa: BLE001
             return Response(
                 {

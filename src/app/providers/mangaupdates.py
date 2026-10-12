@@ -301,6 +301,7 @@ def manga_extras(media_id):
                 entry["roles"].append(author["type"])
 
         data = {
+            "title": response.get("title"),
             "images": {"posters": posters},
             "creators": list(creators.values()),
         }

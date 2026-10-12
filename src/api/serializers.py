@@ -1549,6 +1549,12 @@ class MediaImageSerializer(PersonImageSerializer):
     """Serializer for a single media image."""
 
     language = serializers.CharField(allow_null=True)
+    source = serializers.CharField(
+        help_text=(
+            "Where the image comes from: the media source, or an extra artwork "
+            "source (fanart, anilist, mangadex)."
+        ),
+    )
 
 
 class MediaImagesResponseSerializer(serializers.Serializer):
