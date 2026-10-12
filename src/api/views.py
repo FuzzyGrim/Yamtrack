@@ -112,6 +112,7 @@ from .serializers import (
     PaginatedListsMinimizedResponseSerializer,
     PaginatedListsResponseSerializer,
     PaginatedMediaSerializer,
+    PersonSerializer,
     RelatedResponseSerializer,
     SearchResponseSerializer,
     StatisticsResponseSerializer,
@@ -7494,6 +7495,79 @@ class MediaEpisodeSyncView(drf_views.APIView):
             media_id=media_id,
             season_number=season_number,
         )
+
+
+# /api/v1/people/[source]/[person_id]/
+class PersonDetailView(drf_views.APIView):
+    """Person detail view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PersonSerializer
+
+    @extend_schema(
+        operation_id="person_detail_get",
+        summary="Get person",
+        parameters=[
+            PersonSourceParam,
+            PersonIdParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PersonSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve person example",
+                        description="Retrieve person example",
+                        summary="Retrieve person example",
+                        value={
+                            "person_id": 6384,
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/person/6384",
+                            "name": "Keanu Reeves",
+                            "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                            "biography": "Keanu Charles Reeves is a Canadian actor.",
+                            "birthday": "1964-09-02",
+                            "deathday": None,
+                            "place_of_birth": "Beirut, Lebanon",
+                            "known_for_department": "Acting",
+                            "also_known_as": ["Keanu Charles Reeves"],
+                            "homepage": None,
+                            "external_links": {
+                                "IMDb": "https://www.imdb.com/name/nm0000206/",
+                                "Wikidata": "https://www.wikidata.org/wiki/Q43416",
+                            },
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, _, source, person_id):
+        """Retrieve the details of a specific person."""
+        if source != Sources.TMDB.value:
+            return Response(
+                {"detail": f"Cannot query `{source}` for people"},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            person = tmdb.person(person_id)
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(PersonSerializer(person).data, status=HTTP.OK)
 
 
 # /api/v1/people/[source]/[person_id]/known_for/

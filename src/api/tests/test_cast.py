@@ -302,3 +302,94 @@ class PersonKnownForTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 500)
+
+
+PERSON_RESPONSE = {
+    "id": 6384,
+    "name": "Keanu Reeves",
+    "profile_path": "/keanu.jpg",
+    "biography": "Keanu Charles Reeves is a Canadian actor.",
+    "birthday": "1964-09-02",
+    "deathday": None,
+    "place_of_birth": "Beirut, Lebanon",
+    "known_for_department": "Acting",
+    "also_known_as": ["Keanu Charles Reeves"],
+    "homepage": "",
+    "external_ids": {
+        "imdb_id": "nm0000206",
+        "wikidata_id": "Q43416",
+        "instagram_id": None,
+        "twitter_id": "",
+    },
+}
+
+
+class PersonDetailTests(YamtrackApiTestCase):
+    """Validate person detail endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_person_detail_returns_person(self, mock_request):
+        """Person detail should return normalized person data."""
+        mock_request.return_value = PERSON_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_detail",
+            args=("tmdb", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "person_id": 6384,
+                "source": "tmdb",
+                "source_url": "https://www.themoviedb.org/person/6384",
+                "name": "Keanu Reeves",
+                "image": "https://image.tmdb.org/t/p/w500/keanu.jpg",
+                "biography": "Keanu Charles Reeves is a Canadian actor.",
+                "birthday": "1964-09-02",
+                "deathday": None,
+                "place_of_birth": "Beirut, Lebanon",
+                "known_for_department": "Acting",
+                "also_known_as": ["Keanu Charles Reeves"],
+                "homepage": None,
+                "external_links": {
+                    "IMDb": "https://www.imdb.com/name/nm0000206/",
+                    "Wikidata": "https://www.wikidata.org/wiki/Q43416",
+                },
+            },
+        )
+        self.assertTrue(mock_request.call_args.args[2].endswith("/person/6384"))
+
+    def test_person_detail_unsupported_source_returns_bad_request(self):
+        """Person detail should reject sources without people data."""
+        response = self.call_api(
+            "get",
+            "api_person_detail",
+            args=("mal", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.person", side_effect=Exception("boom"))
+    def test_person_detail_provider_error_returns_internal_server_error(
+        self,
+        _mock_person,
+    ):
+        """Person detail should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_person_detail",
+            args=("tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)

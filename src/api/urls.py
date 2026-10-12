@@ -179,6 +179,11 @@ urlpatterns = [
         name="api_media_episode_sync",
     ),
     re_path(
+        r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/?$",
+        views.PersonDetailView.as_view(),
+        name="api_person_detail",
+    ),
+    re_path(
         r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/known_for/?$",
         views.PersonKnownForView.as_view(),
         name="api_person_known_for",

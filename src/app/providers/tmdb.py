@@ -822,6 +822,65 @@ def media_cast(media_type, media_id):
     return data
 
 
+def person(person_id):
+    """Return the details for the selected person from The Movie Database."""
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/person/{person_id}"
+        params = {
+            **base_params,
+            "append_to_response": "external_ids",
+        }
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        external_ids = response.get("external_ids", {})
+        external_links = {}
+        if external_ids.get("imdb_id"):
+            external_links["IMDb"] = (
+                f"https://www.imdb.com/name/{external_ids['imdb_id']}/"
+            )
+        if external_ids.get("wikidata_id"):
+            external_links["Wikidata"] = (
+                f"https://www.wikidata.org/wiki/{external_ids['wikidata_id']}"
+            )
+        if external_ids.get("instagram_id"):
+            external_links["Instagram"] = (
+                f"https://www.instagram.com/{external_ids['instagram_id']}/"
+            )
+        if external_ids.get("twitter_id"):
+            external_links["X"] = f"https://x.com/{external_ids['twitter_id']}"
+
+        data = {
+            "person_id": response["id"],
+            "source": Sources.TMDB.value,
+            "source_url": f"https://www.themoviedb.org/person/{response['id']}",
+            "name": response.get("name"),
+            "image": get_image_url(response.get("profile_path")),
+            "biography": response.get("biography") or None,
+            "birthday": response.get("birthday") or None,
+            "deathday": response.get("deathday") or None,
+            "place_of_birth": response.get("place_of_birth") or None,
+            "known_for_department": response.get("known_for_department") or None,
+            "also_known_as": response.get("also_known_as", []),
+            "homepage": response.get("homepage") or None,
+            "external_links": external_links,
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def person_known_for(person_id):
     """Return the movies and tv shows a person is known for acting in."""
     cache_key = f"{Sources.TMDB.value}_person_{person_id}_known_for"

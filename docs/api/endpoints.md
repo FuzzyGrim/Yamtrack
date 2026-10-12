@@ -99,6 +99,8 @@
     - [x] PUT: Add tracked item to specific list
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/sync/`
     - [x] POST: Update metadata of tracked episode (season)
+- [x] `/api/v1/people/{source}/{person_id}/`
+    - [x] GET: Get person details
 - [x] `/api/v1/people/{source}/{person_id}/known_for/`
     - [x] GET: Get movies and tv series a person is known for, optionally filtered by `media_type` (`movie` or `tv`)
 - [x] `/api/v1/search/{media_type}/`

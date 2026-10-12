@@ -8009,6 +8009,112 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/people/{source}/{person_id}/:
+    get:
+      operationId: person_detail_get
+      description: Retrieve the details of a specific person.
+      summary: Get person
+      parameters:
+      - in: path
+        name: person_id
+        schema:
+          type: string
+        description: ID of the person.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: Source of person data.
+        required: true
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+              examples:
+                RetrievePersonExample:
+                  value:
+                    person_id: 6384
+                    source: tmdb
+                    source_url: https://www.themoviedb.org/person/6384
+                    name: Keanu Reeves
+                    image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                    biography: Keanu Charles Reeves is a Canadian actor.
+                    birthday: '1964-09-02'
+                    deathday: null
+                    place_of_birth: Beirut, Lebanon
+                    known_for_department: Acting
+                    also_known_as:
+                    - Keanu Charles Reeves
+                    homepage: null
+                    external_links:
+                      IMDb: https://www.imdb.com/name/nm0000206/
+                      Wikidata: https://www.wikidata.org/wiki/Q43416
+                  summary: Retrieve person example
+                  description: Retrieve person example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/people/{source}/{person_id}/known_for/:
     get:
       operationId: person_known_for_get
@@ -9734,6 +9840,68 @@ components:
         notes:
           type: string
           nullable: true
+    Person:
+      type: object
+      description: Serializer for person details.
+      properties:
+        person_id:
+          type: integer
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          nullable: true
+        source_url:
+          type: string
+          format: uri
+        name:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        biography:
+          type: string
+          nullable: true
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        deathday:
+          type: string
+          format: date
+          nullable: true
+        place_of_birth:
+          type: string
+          nullable: true
+        known_for_department:
+          type: string
+          nullable: true
+        also_known_as:
+          type: array
+          items:
+            type: string
+        homepage:
+          type: string
+          format: uri
+          nullable: true
+        external_links:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+      required:
+      - also_known_as
+      - biography
+      - birthday
+      - deathday
+      - external_links
+      - homepage
+      - image
+      - known_for_department
+      - name
+      - person_id
+      - place_of_birth
+      - source_url
     RelatedResponse:
       type: object
       description: Serializer for related media endpoint.
