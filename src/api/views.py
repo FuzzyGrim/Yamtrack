@@ -52,6 +52,7 @@ from .helpers import (
     check_valid_type,
     fetch_results_all_types,
     fetch_results_for_type,
+    filter_known_for,
     get_item_lists,
     get_media_status,
     get_sorts,
@@ -71,6 +72,7 @@ from .schemas import (
     EpisodeNumberParam,
     ForbiddenResponse,
     InternalServerErrorResponse,
+    KnownForDepartmentParam,
     KnownForMediaTypeParam,
     ListSearchParam,
     ListSortParam,
@@ -7829,6 +7831,7 @@ class PersonKnownForView(drf_views.APIView):
             PersonSourceParam,
             PersonIdParam,
             KnownForMediaTypeParam,
+            KnownForDepartmentParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -7857,6 +7860,8 @@ class PersonKnownForView(drf_views.APIView):
                                     "title": "The Matrix",
                                     "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
                                     "character": "Thomas A. Anderson / Neo",
+                                    "departments": ["Acting"],
+                                    "jobs": [],
                                     "release_date": "1999-03-31",
                                     "episode_count": None,
                                 },
@@ -7872,7 +7877,7 @@ class PersonKnownForView(drf_views.APIView):
         },
     )
     def get(self, request, source, person_id):
-        """Retrieve the movies and tv series a person is known for."""
+        """Retrieve the movies and tv series a person is known for as cast or crew."""
         limit, offset, err = parse_limit_offset(request)
         if err:
             return err
@@ -7904,10 +7909,11 @@ class PersonKnownForView(drf_views.APIView):
                 status=HTTP.INTERNAL_SERVER_ERROR,
             )
 
-        if media_type:
-            known_for = [
-                media for media in known_for if media["media_type"] == media_type
-            ]
+        known_for = filter_known_for(
+            known_for,
+            media_type=media_type,
+            department=request.GET.get("department"),
+        )
 
         paginated = paginate_data(request, known_for, limit, offset)
         return Response(PaginatedKnownForSerializer(paginated).data, status=HTTP.OK)

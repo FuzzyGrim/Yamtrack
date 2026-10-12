@@ -984,7 +984,7 @@ def person(person_id):
 
 
 def person_known_for(person_id):
-    """Return the movies and tv shows a person is known for acting in."""
+    """Return the movies and tv shows a person is known for, as cast or crew."""
     cache_key = f"{Sources.TMDB.value}_person_{person_id}_known_for"
     data = cache.get(cache_key)
 
@@ -1000,42 +1000,29 @@ def person_known_for(person_id):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        # Skip talk shows and news, as TMDB does for its known for section
-        excluded_genres = {10763, 10767}
         credits_by_id = {}
         for credit in response.get("cast", []):
-            media_type = credit.get("media_type")
-            if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+            entry = get_known_for_entry(credits_by_id, credit)
+            if entry is None:
                 continue
-            if excluded_genres.intersection(credit.get("genre_ids", [])):
-                continue
-
+            entry["departments"].setdefault("Acting", [])
+            character = credit.get("character")
             # A person can have multiple roles in the same media
-            key = (media_type, credit.get("id"))
-            if key in credits_by_id:
-                existing = credits_by_id[key]
-                character = credit.get("character")
-                if character and character not in (existing["character"] or ""):
-                    existing["character"] = (
-                        f"{existing['character']} / {character}"
-                        if existing["character"]
-                        else character
-                    )
-                continue
+            if character and character not in (entry["character"] or ""):
+                entry["character"] = (
+                    f"{entry['character']} / {character}"
+                    if entry["character"]
+                    else character
+                )
 
-            credits_by_id[key] = {
-                "source": Sources.TMDB.value,
-                "media_type": media_type,
-                "media_id": credit.get("id"),
-                "title": get_title(credit),
-                "image": get_image_url(credit.get("poster_path")),
-                "character": credit.get("character") or None,
-                "release_date": get_start_date(
-                    credit.get("release_date", credit.get("first_air_date", "")),
-                ),
-                "episode_count": credit.get("episode_count"),
-                "vote_count": credit.get("vote_count", 0),
-            }
+        for credit in response.get("crew", []):
+            entry = get_known_for_entry(credits_by_id, credit)
+            if entry is None:
+                continue
+            jobs = entry["departments"].setdefault(credit.get("department"), [])
+            job = credit.get("job")
+            if job and job not in jobs:
+                jobs.append(job)
 
         data = sorted(
             credits_by_id.values(),
@@ -1046,6 +1033,41 @@ def person_known_for(person_id):
         cache.set(cache_key, data)
 
     return data
+
+
+def get_known_for_entry(credits_by_id, credit):
+    """Return the known for entry of a combined credit, creating it if needed."""
+    media_type = credit.get("media_type")
+    if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+        return None
+
+    # Skip talk shows and news, as TMDB does for its known for section
+    excluded_genres = {10763, 10767}
+    if excluded_genres.intersection(credit.get("genre_ids", [])):
+        return None
+
+    key = (media_type, credit.get("id"))
+    if key not in credits_by_id:
+        credits_by_id[key] = {
+            "source": Sources.TMDB.value,
+            "media_type": media_type,
+            "media_id": credit.get("id"),
+            "title": get_title(credit),
+            "image": get_image_url(credit.get("poster_path")),
+            "character": None,
+            "departments": {},
+            "release_date": get_start_date(
+                credit.get("release_date", credit.get("first_air_date", "")),
+            ),
+            "episode_count": None,
+            "vote_count": credit.get("vote_count", 0),
+        }
+
+    entry = credits_by_id[key]
+    episode_count = credit.get("episode_count")
+    if episode_count is not None:
+        entry["episode_count"] = max(entry["episode_count"] or 0, episode_count)
+    return entry
 
 
 def watch_provider_regions():

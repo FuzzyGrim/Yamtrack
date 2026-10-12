@@ -399,6 +399,41 @@ def group_watch_providers(all_providers, region):
     }
 
 
+def filter_known_for(known_for, media_type=None, department=None):
+    """Filter known for media by type and department, flattening their jobs."""
+    results = []
+    for media in known_for:
+        if media_type and media["media_type"] != media_type:
+            continue
+
+        departments = media["departments"]
+        if department:
+            departments = {
+                name: jobs
+                for name, jobs in departments.items()
+                if name and name.lower() == department.lower()
+            }
+            if not departments:
+                continue
+
+        jobs = []
+        for department_jobs in departments.values():
+            jobs.extend(job for job in department_jobs if job not in jobs)
+
+        results.append(
+            {
+                **media,
+                "character": media["character"] if "Acting" in departments else None,
+                "departments": sorted(
+                    departments,
+                    key=lambda name: (name != "Acting", name),
+                ),
+                "jobs": jobs,
+            },
+        )
+    return results
+
+
 def make_page_url(request, limit, new_offset):
     """Build a page URL with the given limit and offset."""
     params = {k: v for k, v in request.GET.items() if v is not None and v != ""}

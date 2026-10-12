@@ -1496,6 +1496,8 @@ class KnownForSerializer(serializers.Serializer):
     title = serializers.CharField()
     image = serializers.URLField(allow_null=True)
     character = serializers.CharField(allow_null=True)
+    departments = serializers.ListField(child=serializers.CharField())
+    jobs = serializers.ListField(child=serializers.CharField())
     release_date = serializers.DateField(allow_null=True)
     episode_count = serializers.IntegerField(allow_null=True)
 

@@ -97,6 +97,41 @@ PERSON_COMBINED_CREDITS_RESPONSE = {
             "vote_count": 19000,
         },
     ],
+    "crew": [
+        {
+            "id": 245891,
+            "media_type": "movie",
+            "title": "John Wick",
+            "poster_path": None,
+            "department": "Production",
+            "job": "Executive Producer",
+            "release_date": "",
+            "genre_ids": [28],
+            "vote_count": 19000,
+        },
+        {
+            "id": 98765,
+            "media_type": "movie",
+            "title": "Man of Tai Chi",
+            "poster_path": "/taichi.jpg",
+            "department": "Directing",
+            "job": "Director",
+            "release_date": "2013-07-04",
+            "genre_ids": [28],
+            "vote_count": 600,
+        },
+        {
+            "id": 98765,
+            "media_type": "movie",
+            "title": "Man of Tai Chi",
+            "poster_path": "/taichi.jpg",
+            "department": "Production",
+            "job": "Producer",
+            "release_date": "2013-07-04",
+            "genre_ids": [28],
+            "vote_count": 600,
+        },
+    ],
 }
 
 
@@ -393,10 +428,10 @@ class PersonKnownForTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         check_pagination_structure(self, payload["pagination"])
-        self.assertEqual(payload["pagination"]["total"], 3)
+        self.assertEqual(payload["pagination"]["total"], 4)
         self.assertEqual(
             [media["title"] for media in payload["results"]],
-            ["The Matrix", "John Wick", "Swedish Dicks"],
+            ["The Matrix", "John Wick", "Man of Tai Chi", "Swedish Dicks"],
         )
         self.assertEqual(
             payload["results"][0],
@@ -407,13 +442,24 @@ class PersonKnownForTests(YamtrackApiTestCase):
                 "title": "The Matrix",
                 "image": "https://image.tmdb.org/t/p/w500/matrix.jpg",
                 "character": "Neo",
+                "departments": ["Acting"],
+                "jobs": [],
                 "release_date": "1999-03-31",
                 "episode_count": None,
             },
         )
-        self.assertIsNone(payload["results"][1]["release_date"])
-        self.assertEqual(payload["results"][2]["character"], "Tex / Himself")
-        self.assertEqual(payload["results"][2]["release_date"], "2016-08-09")
+        john_wick = payload["results"][1]
+        self.assertIsNone(john_wick["release_date"])
+        self.assertEqual(john_wick["character"], "John Wick")
+        self.assertEqual(john_wick["departments"], ["Acting", "Production"])
+        self.assertEqual(john_wick["jobs"], ["Executive Producer"])
+        tai_chi = payload["results"][2]
+        self.assertIsNone(tai_chi["character"])
+        self.assertEqual(tai_chi["departments"], ["Directing", "Production"])
+        self.assertEqual(tai_chi["jobs"], ["Director", "Producer"])
+        self.assertEqual(payload["results"][3]["character"], "Tex / Himself")
+        self.assertEqual(payload["results"][3]["episode_count"], 2)
+        self.assertEqual(payload["results"][3]["release_date"], "2016-08-09")
         self.assertTrue(
             mock_request.call_args.args[2].endswith("/person/6384/combined_credits"),
         )
@@ -424,7 +470,7 @@ class PersonKnownForTests(YamtrackApiTestCase):
         mock_request.return_value = PERSON_COMBINED_CREDITS_RESPONSE
 
         for media_type, titles in (
-            (MediaTypes.MOVIE.value, ["The Matrix", "John Wick"]),
+            (MediaTypes.MOVIE.value, ["The Matrix", "John Wick", "Man of Tai Chi"]),
             (MediaTypes.TV.value, ["Swedish Dicks"]),
         ):
             response = self.call_api(
@@ -443,6 +489,53 @@ class PersonKnownForTests(YamtrackApiTestCase):
 
         # Provider data should be cached across filters
         mock_request.assert_called_once()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_known_for_filters_by_department(self, mock_request):
+        """Known for should filter by department and only keep its jobs."""
+        mock_request.return_value = PERSON_COMBINED_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("tmdb", 6384),
+            params={"department": "production"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual(
+            [media["title"] for media in results],
+            ["John Wick", "Man of Tai Chi"],
+        )
+        for media in results:
+            self.assertEqual(media["departments"], ["Production"])
+            self.assertIsNone(media["character"])
+        self.assertEqual(results[0]["jobs"], ["Executive Producer"])
+        self.assertEqual(results[1]["jobs"], ["Producer"])
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_known_for_combines_department_and_media_type_filters(
+        self,
+        mock_request,
+    ):
+        """Known for should apply department and media_type filters together."""
+        mock_request.return_value = PERSON_COMBINED_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("tmdb", 6384),
+            params={"department": "Acting", "media_type": MediaTypes.TV.value},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual([media["title"] for media in results], ["Swedish Dicks"])
+        self.assertEqual(results[0]["character"], "Tex / Himself")
+        self.assertEqual(results[0]["jobs"], [])
 
     def test_known_for_invalid_media_type_returns_bad_request(self):
         """Known for should reject unsupported media_type filters."""

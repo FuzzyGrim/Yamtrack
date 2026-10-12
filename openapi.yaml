@@ -8374,9 +8374,16 @@ paths:
   /api/v1/people/{source}/{person_id}/known_for/:
     get:
       operationId: person_known_for_get
-      description: Retrieve the movies and tv series a person is known for.
+      description: Retrieve the movies and tv series a person is known for as cast
+        or crew.
       summary: Get person known for
       parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+        description: 'Only return credits of this department, case-insensitive (e.g.
+          Acting, Directing, Writing, Production) (default: all).'
       - in: query
         name: limit
         schema:
@@ -8440,6 +8447,9 @@ paths:
                       title: The Matrix
                       image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
                       character: Thomas A. Anderson / Neo
+                      departments:
+                      - Acting
+                      jobs: []
                       release_date: '1999-03-31'
                       episode_count: null
                   summary: Retrieve known for example
@@ -9503,6 +9513,14 @@ components:
         character:
           type: string
           nullable: true
+        departments:
+          type: array
+          items:
+            type: string
+        jobs:
+          type: array
+          items:
+            type: string
         release_date:
           type: string
           format: date
@@ -9512,8 +9530,10 @@ components:
           nullable: true
       required:
       - character
+      - departments
       - episode_count
       - image
+      - jobs
       - media_id
       - release_date
       - title

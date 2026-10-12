@@ -267,3 +267,14 @@ CrewDepartmentParam = OpenApiParameter(
     ),
     required=False,
 )
+
+KnownForDepartmentParam = OpenApiParameter(
+    name="department",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return credits of this department, case-insensitive "
+        "(e.g. Acting, Directing, Writing, Production) (default: all)."
+    ),
+    required=False,
+)
