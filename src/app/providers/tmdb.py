@@ -773,13 +773,13 @@ def episode(media_id, season_number, episode_number):
     )
 
 
-def media_cast(media_type, media_id):
-    """Return the full cast for the selected movie or tv show."""
-    cache_key = f"{Sources.TMDB.value}_{media_type}_{media_id}_cast"
+def media_credits(media_type, media_id):
+    """Return the full cast and crew for the selected movie or tv show."""
+    cache_key = f"{Sources.TMDB.value}_{media_type}_{media_id}_credits"
     data = cache.get(cache_key)
 
     if data is None:
-        # tv shows use aggregate credits to include cast of every season
+        # tv shows use aggregate credits to include credits of every season
         if media_type == MediaTypes.MOVIE.value:
             url = f"{base_url}/movie/{media_id}/credits"
         else:
@@ -795,31 +795,69 @@ def media_cast(media_type, media_id):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        data = []
-        for member in response.get("cast", []):
-            if "roles" in member:
-                character = " / ".join(
-                    role.get("character")
-                    for role in member["roles"]
-                    if role.get("character")
-                )
-            else:
-                character = member.get("character")
-
-            data.append(
-                {
-                    "person_id": member.get("id"),
-                    "name": member.get("name"),
-                    "character": character or None,
-                    "image": get_image_url(member.get("profile_path")),
-                    "order": member.get("order"),
-                    "episode_count": member.get("total_episode_count"),
-                },
-            )
+        data = {
+            "cast": process_cast(response.get("cast", [])),
+            "crew": process_crew(response.get("crew", [])),
+        }
 
         cache.set(cache_key, data)
 
     return data
+
+
+def process_cast(cast):
+    """Process the cast from a credits or aggregate credits response."""
+    processed = []
+    for member in cast:
+        if "roles" in member:
+            character = " / ".join(
+                role.get("character")
+                for role in member["roles"]
+                if role.get("character")
+            )
+        else:
+            character = member.get("character")
+
+        processed.append(
+            {
+                "person_id": member.get("id"),
+                "name": member.get("name"),
+                "character": character or None,
+                "image": get_image_url(member.get("profile_path")),
+                "order": member.get("order"),
+                "episode_count": member.get("total_episode_count"),
+            },
+        )
+    return processed
+
+
+def process_crew(crew):
+    """Process the crew from a credits or aggregate credits response."""
+    # A person can have multiple jobs, merge them per person and department
+    members = {}
+    for member in crew:
+        if "jobs" in member:
+            jobs = [job.get("job") for job in member["jobs"] if job.get("job")]
+        else:
+            jobs = [member["job"]] if member.get("job") else []
+
+        key = (member.get("id"), member.get("department"))
+        if key in members:
+            existing = members[key]
+            existing["jobs"].extend(job for job in jobs if job not in existing["jobs"])
+            continue
+
+        members[key] = {
+            "person_id": member.get("id"),
+            "name": member.get("name"),
+            "department": member.get("department"),
+            "jobs": jobs,
+            "image": get_image_url(member.get("profile_path")),
+            "episode_count": member.get("total_episode_count"),
+            "popularity": member.get("popularity", 0),
+        }
+
+    return sorted(members.values(), key=lambda e: e["popularity"], reverse=True)
 
 
 def search_people(query, page):

@@ -59,6 +59,11 @@ urlpatterns = [
         name="api_media_changes_history",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/crew/?$",
+        views.MediaCrewView.as_view(),
+        name="api_media_crew",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/history/?$",
         views.MediaConsumptionHistoryView.as_view(),
         name="api_media_consumption_history",

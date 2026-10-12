@@ -67,6 +67,7 @@ from .helpers import (
 )
 from .schemas import (
     BadRequestResponse,
+    CrewDepartmentParam,
     EpisodeNumberParam,
     ForbiddenResponse,
     InternalServerErrorResponse,
@@ -105,6 +106,7 @@ from .serializers import (
     MixedMediaSerializer,
     PaginatedCastSerializer,
     PaginatedChangesHistoryResponseSerializer,
+    PaginatedCrewSerializer,
     PaginatedEpisodesSerializer,
     PaginatedEventsSerializer,
     PaginatedHistoryResponseSerializer,
@@ -2643,7 +2645,7 @@ class MediaCastView(drf_views.APIView):
             )
 
         try:
-            cast = tmdb.media_cast(media_type, media_id)
+            cast = tmdb.media_credits(media_type, media_id)["cast"]
         except Exception as e:  # noqa: BLE001
             return Response(
                 {
@@ -2783,6 +2785,115 @@ class MediaChangesHistoryView(drf_views.APIView):
             context={"media_type": media_type},
         ).data
         return Response(paginated_data, status=HTTP.OK)
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/crew/
+class MediaCrewView(drf_views.APIView):
+    """Media crew view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedCrewSerializer
+
+    @extend_schema(
+        operation_id="media_crew_get",
+        summary="Get media crew",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            CrewDepartmentParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedCrewSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve crew example",
+                        description="Retrieve crew example",
+                        summary="Retrieve crew example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "person_id": 9340,
+                                    "name": "Lana Wachowski",
+                                    "department": "Directing",
+                                    "jobs": ["Director"],
+                                    "image": "https://image.tmdb.org/t/p/w500/2wfpFCe3nT4d3RnmL6kSHnYWJ6j.jpg",
+                                    "episode_count": None,
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Retrieve the crew of a specific movie or tv serie."""
+        limit, offset, err = parse_limit_offset(request)
+        if err:
+            return err
+
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+            return Response(
+                {
+                    "detail": (
+                        "Crew is supported only for 'movie' and 'tv' media types."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            crew = tmdb.media_credits(media_type, media_id)["crew"]
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        department = request.GET.get("department")
+        if department:
+            crew = [
+                member
+                for member in crew
+                if (member["department"] or "").lower() == department.lower()
+            ]
+
+        paginated = paginate_data(request, crew, limit, offset)
+        return Response(PaginatedCrewSerializer(paginated).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/history/

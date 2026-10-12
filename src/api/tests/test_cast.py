@@ -100,6 +100,63 @@ PERSON_COMBINED_CREDITS_RESPONSE = {
 }
 
 
+MOVIE_CREW_RESPONSE = {
+    "cast": [],
+    "crew": [
+        {
+            "id": 9339,
+            "name": "Lilly Wachowski",
+            "department": "Writing",
+            "job": "Screenplay",
+            "profile_path": None,
+            "popularity": 5.0,
+        },
+        {
+            "id": 9340,
+            "name": "Lana Wachowski",
+            "department": "Directing",
+            "job": "Director",
+            "profile_path": "/lana.jpg",
+            "popularity": 6.0,
+        },
+        {
+            "id": 9339,
+            "name": "Lilly Wachowski",
+            "department": "Writing",
+            "job": "Writer",
+            "profile_path": None,
+            "popularity": 5.0,
+        },
+        {
+            "id": 1091,
+            "name": "Joel Silver",
+            "department": "Production",
+            "job": "Producer",
+            "profile_path": None,
+            "popularity": 2.0,
+        },
+    ],
+}
+
+TV_AGGREGATE_CREW_RESPONSE = {
+    "cast": [],
+    "crew": [
+        {
+            "id": 66633,
+            "name": "Vince Gilligan",
+            "department": "Writing",
+            "jobs": [
+                {"job": "Writer", "episode_count": 10},
+                {"job": "Story", "episode_count": 2},
+            ],
+            "profile_path": "/vince.jpg",
+            "total_episode_count": 12,
+            "popularity": 3.0,
+        },
+    ],
+}
+
+
 class MediaCastTests(YamtrackApiTestCase):
     """Validate media cast endpoint contracts."""
 
@@ -178,12 +235,134 @@ class MediaCastTests(YamtrackApiTestCase):
             )
             self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.media_cast", side_effect=Exception("boom"))
+    @patch("api.views.tmdb.media_credits", side_effect=Exception("boom"))
     def test_cast_provider_error_returns_internal_server_error(self, _mock_cast):
         """Cast endpoint should surface provider lookup failures."""
         response = self.call_api(
             "get",
             "api_media_cast",
+            args=(MediaTypes.MOVIE.value, "tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+
+class MediaCrewTests(YamtrackApiTestCase):
+    """Validate media crew endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_crew_merges_jobs_and_sorts_by_popularity(self, mock_request):
+        """Crew endpoint should merge jobs per person and sort by popularity."""
+        mock_request.return_value = MOVIE_CREW_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_crew",
+            args=(MediaTypes.MOVIE.value, "tmdb", 603),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 3)
+        self.assertEqual(
+            payload["results"][0],
+            {
+                "person_id": 9340,
+                "name": "Lana Wachowski",
+                "department": "Directing",
+                "jobs": ["Director"],
+                "image": "https://image.tmdb.org/t/p/w500/lana.jpg",
+                "episode_count": None,
+            },
+        )
+        self.assertEqual(payload["results"][1]["jobs"], ["Screenplay", "Writer"])
+        self.assertEqual(payload["results"][2]["name"], "Joel Silver")
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_crew_filters_by_department(self, mock_request):
+        """Crew endpoint should filter by department case-insensitively."""
+        mock_request.return_value = MOVIE_CREW_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_crew",
+            args=(MediaTypes.MOVIE.value, "tmdb", 603),
+            params={"department": "writing"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual([member["name"] for member in results], ["Lilly Wachowski"])
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_crew_uses_aggregate_credits(self, mock_request):
+        """Crew endpoint should merge jobs of tv crew members."""
+        mock_request.return_value = TV_AGGREGATE_CREW_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_crew",
+            args=(MediaTypes.TV.value, "tmdb", 1396),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        member = response.json()["results"][0]
+        self.assertEqual(member["jobs"], ["Writer", "Story"])
+        self.assertEqual(member["episode_count"], 12)
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/tv/1396/aggregate_credits"),
+        )
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_cast_and_crew_share_cached_credits(self, mock_request):
+        """Cast and crew endpoints should reuse the same provider request."""
+        mock_request.return_value = MOVIE_CREW_RESPONSE
+
+        for url_name in ("api_media_cast", "api_media_crew"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.MOVIE.value, "tmdb", 603),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        mock_request.assert_called_once()
+
+    def test_crew_unsupported_media_type_returns_bad_request(self):
+        """Crew endpoint should reject media types without crew."""
+        requests = [
+            ("invalid", "tmdb", 1),
+            (MediaTypes.ANIME.value, "mal", 1),
+            (MediaTypes.SEASON.value, "tmdb", 1),
+            (MediaTypes.MOVIE.value, "manual", 1),
+        ]
+
+        for args in requests:
+            response = self.call_api(
+                "get",
+                "api_media_crew",
+                args=args,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.media_credits", side_effect=Exception("boom"))
+    def test_crew_provider_error_returns_internal_server_error(self, _mock_credits):
+        """Crew endpoint should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_media_crew",
             args=(MediaTypes.MOVIE.value, "tmdb", 999999),
             headers=self.auth_headers,
         )

@@ -1469,6 +1469,24 @@ class PersonSerializer(serializers.Serializer):
     external_links = serializers.DictField(child=serializers.URLField())
 
 
+class CrewMemberSerializer(serializers.Serializer):
+    """Serializer for a single crew member."""
+
+    person_id = serializers.IntegerField()
+    name = serializers.CharField()
+    department = serializers.CharField(allow_null=True)
+    jobs = serializers.ListField(child=serializers.CharField())
+    image = serializers.URLField(allow_null=True)
+    episode_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedCrewSerializer(serializers.Serializer):
+    """Paginated response serializer for crew members."""
+
+    pagination = PaginationSerializer()
+    results = CrewMemberSerializer(many=True)
+
+
 class KnownForSerializer(serializers.Serializer):
     """Serializer for a media a person is known for."""
 

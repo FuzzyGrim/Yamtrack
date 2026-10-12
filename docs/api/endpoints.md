@@ -38,6 +38,8 @@
     - [x] GET: Get cast of a movie or tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/changes_history/`
     - [x] GET: Get changes history of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/crew/`
+    - [x] GET: Get crew of a movie or tv serie, optionally filtered by `department`
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/`
     - [x] GET: Get consumption history of tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/{consumption_id}/`

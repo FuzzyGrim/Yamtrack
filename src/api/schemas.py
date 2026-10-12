@@ -256,3 +256,14 @@ KnownForMediaTypeParam = OpenApiParameter(
     required=False,
     enum=["movie", "tv"],
 )
+
+CrewDepartmentParam = OpenApiParameter(
+    name="department",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return crew of this department, case-insensitive "
+        "(e.g. Directing, Writing, Production, Sound, Camera)."
+    ),
+    required=False,
+)

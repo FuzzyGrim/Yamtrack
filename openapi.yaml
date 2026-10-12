@@ -6445,6 +6445,153 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/crew/:
+    get:
+      operationId: media_crew_get
+      description: Retrieve the crew of a specific movie or tv serie.
+      summary: Get media crew
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+        description: Only return crew of this department, case-insensitive (e.g. Directing,
+          Writing, Production, Sound, Camera).
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCrew'
+              examples:
+                RetrieveCrewExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - person_id: 9340
+                      name: Lana Wachowski
+                      department: Directing
+                      jobs:
+                      - Director
+                      image: https://image.tmdb.org/t/p/w500/2wfpFCe3nT4d3RnmL6kSHnYWJ6j.jpg
+                      episode_count: null
+                  summary: Retrieve crew example
+                  description: Retrieve crew example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/history/:
     get:
       operationId: media_consumption_history_get
@@ -8880,6 +9027,35 @@ components:
       - $ref: '#/components/schemas/GameRelated'
       - $ref: '#/components/schemas/SeasonRelated'
       - $ref: '#/components/schemas/TVRelated'
+    CrewMember:
+      type: object
+      description: Serializer for a single crew member.
+      properties:
+        person_id:
+          type: integer
+        name:
+          type: string
+        department:
+          type: string
+          nullable: true
+        jobs:
+          type: array
+          items:
+            type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        episode_count:
+          type: integer
+          nullable: true
+      required:
+      - department
+      - episode_count
+      - image
+      - jobs
+      - name
+      - person_id
     Episode:
       type: object
       description: Serializer used for Episode items.
@@ -9579,6 +9755,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChangesHistoryEntry'
+      required:
+      - pagination
+      - results
+    PaginatedCrew:
+      type: object
+      description: Paginated response serializer for crew members.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrewMember'
       required:
       - pagination
       - results
