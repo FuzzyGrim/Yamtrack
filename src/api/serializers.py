@@ -996,6 +996,14 @@ class CompleteEpisodeSerializer(serializers.Serializer):
         }
 
 
+class TimeToBeatSerializer(serializers.Serializer):
+    """Serializer for the time to beat a game, in seconds."""
+
+    hastily = serializers.IntegerField(required=False, allow_null=True)
+    normally = serializers.IntegerField(required=False, allow_null=True)
+    completely = serializers.IntegerField(required=False, allow_null=True)
+
+
 class CompleteMediaSerializer(serializers.Serializer):
     """Serializer that builds a CompleteMedia response."""
 
@@ -1018,6 +1026,17 @@ class CompleteMediaSerializer(serializers.Serializer):
     score_count = serializers.IntegerField(allow_null=True)
     details = serializers.SerializerMethodField()
     related = serializers.SerializerMethodField()
+    external_links = serializers.DictField(
+        child=serializers.URLField(),
+        help_text=(
+            "Links to other sites (e.g. IMDb, TVDB, Wikidata, Letterboxd), "
+            "only for movies, tv series and seasons."
+        ),
+    )
+    time_to_beat = TimeToBeatSerializer(
+        allow_null=True,
+        help_text="Time to beat the game in seconds, only for games.",
+    )
     item_id = ItemIdField()
     parent_id = ParentIdField()
     tracked = serializers.BooleanField()
@@ -1216,6 +1235,8 @@ class CompleteMediaSerializer(serializers.Serializer):
             else None,
             "details": details,
             "related": related,
+            "external_links": media_metadata.get("external_links") or {},
+            "time_to_beat": media_metadata.get("time_to_beat"),
             "item_id": ItemIdField().to_representation(temp_media),
             "parent_id": ParentIdField().to_representation(temp_media),
             "tracked": consumptions_number > 0,

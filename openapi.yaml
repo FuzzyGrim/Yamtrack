@@ -9869,6 +9869,18 @@ components:
           allOf:
           - $ref: '#/components/schemas/CompleteMediaRelated'
           readOnly: true
+        external_links:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+          description: Links to other sites (e.g. IMDb, TVDB, Wikidata, Letterboxd),
+            only for movies, tv series and seasons.
+        time_to_beat:
+          allOf:
+          - $ref: '#/components/schemas/TimeToBeat'
+          nullable: true
+          description: Time to beat the game in seconds, only for games.
         item_id:
           type: string
         parent_id:
@@ -9889,6 +9901,7 @@ components:
       - consumptions
       - consumptions_number
       - details
+      - external_links
       - genres
       - id
       - image
@@ -9902,6 +9915,7 @@ components:
       - score_count
       - source_url
       - synopsis
+      - time_to_beat
       - title
       - tracked
     CompleteMediaDetails:
@@ -11582,6 +11596,19 @@ components:
           items:
             type: object
             additionalProperties: {}
+    TimeToBeat:
+      type: object
+      description: Serializer for the time to beat a game, in seconds.
+      properties:
+        hastily:
+          type: integer
+          nullable: true
+        normally:
+          type: integer
+          nullable: true
+        completely:
+          type: integer
+          nullable: true
     TrackMediaRequest:
       type: object
       description: |-

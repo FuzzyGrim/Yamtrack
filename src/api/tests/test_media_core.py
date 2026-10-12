@@ -549,6 +549,72 @@ class MediaCoreTests(YamtrackApiTestCase):
         payload = response.json()
         check_complete_media_structure(self, payload)
 
+    @patch("api.views.services.get_media_metadata")
+    def test_media_detail_get_returns_external_links(self, mock_metadata):
+        """Media detail GET should return the external links of the media."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {
+            "media_id": movie_item.media_id,
+            "source": movie_item.source,
+            "media_type": MediaTypes.MOVIE.value,
+            "title": movie_item.title,
+            "max_progress": 1,
+            "details": {},
+            "related": {},
+            "external_links": {
+                "IMDb": "https://www.imdb.com/title/tt0133093/",
+                "Letterboxd": "https://www.letterboxd.com/tmdb/603",
+            },
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["external_links"],
+            {
+                "IMDb": "https://www.imdb.com/title/tt0133093/",
+                "Letterboxd": "https://www.letterboxd.com/tmdb/603",
+            },
+        )
+        self.assertIsNone(payload["time_to_beat"])
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_detail_get_returns_game_time_to_beat(self, mock_metadata):
+        """Media detail GET should return the time to beat of a game."""
+        game_item = self.items_by_type[MediaTypes.GAME.value][0]
+        mock_metadata.return_value = {
+            "media_id": game_item.media_id,
+            "source": game_item.source,
+            "media_type": MediaTypes.GAME.value,
+            "title": game_item.title,
+            "max_progress": None,
+            "details": {},
+            "related": {},
+            "time_to_beat": {"hastily": 36000, "normally": 54000},
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_detail",
+            args=(MediaTypes.GAME.value, game_item.source, game_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["time_to_beat"],
+            {"hastily": 36000, "normally": 54000},
+        )
+        self.assertEqual(payload["external_links"], {})
+
     def test_media_detail_get_invalid_type_returns_bad_request(self):
         """Media detail endpoint should reject unsupported media types."""
         response = self.call_api(
