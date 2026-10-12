@@ -808,3 +808,104 @@ class PeopleSearchTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 500)
+
+
+PERSON_IMAGES_RESPONSE = {
+    "id": 6384,
+    "profiles": [
+        {
+            "file_path": "/keanu1.jpg",
+            "width": 1000,
+            "height": 1500,
+            "aspect_ratio": 0.667,
+            "vote_average": 5.5,
+            "vote_count": 4,
+        },
+        {
+            "file_path": "/keanu2.jpg",
+            "width": 800,
+            "height": 1200,
+            "aspect_ratio": 0.667,
+            "vote_average": 5.3,
+            "vote_count": 2,
+        },
+        {
+            "file_path": None,
+            "width": 100,
+            "height": 150,
+            "aspect_ratio": 0.667,
+            "vote_average": 0,
+            "vote_count": 0,
+        },
+    ],
+}
+
+
+class PersonImagesTests(YamtrackApiTestCase):
+    """Validate person images endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_person_images_returns_paginated_images(self, mock_request):
+        """Person images should return paginated profile images."""
+        mock_request.return_value = PERSON_IMAGES_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_images",
+            args=("tmdb", 6384),
+            params={"limit": 1},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 2)
+        self.assertEqual(
+            payload["results"],
+            [
+                {
+                    "image": "https://image.tmdb.org/t/p/w500/keanu1.jpg",
+                    "original": "https://image.tmdb.org/t/p/original/keanu1.jpg",
+                    "width": 1000,
+                    "height": 1500,
+                    "aspect_ratio": 0.667,
+                    "vote_average": 5.5,
+                    "vote_count": 4,
+                },
+            ],
+        )
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/person/6384/images"),
+        )
+
+    def test_person_images_unsupported_source_returns_bad_request(self):
+        """Person images should reject sources without people data."""
+        response = self.call_api(
+            "get",
+            "api_person_images",
+            args=("mal", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.person_images", side_effect=Exception("boom"))
+    def test_person_images_provider_error_returns_internal_server_error(
+        self,
+        _mock_images,
+    ):
+        """Person images should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_person_images",
+            args=("tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)

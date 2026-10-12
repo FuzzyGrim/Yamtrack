@@ -194,6 +194,11 @@ urlpatterns = [
         name="api_person_detail",
     ),
     re_path(
+        r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/images/?$",
+        views.PersonImagesView.as_view(),
+        name="api_person_images",
+    ),
+    re_path(
         r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/known_for/?$",
         views.PersonKnownForView.as_view(),
         name="api_person_known_for",

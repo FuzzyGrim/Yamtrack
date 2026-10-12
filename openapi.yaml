@@ -8371,6 +8371,124 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/people/{source}/{person_id}/images/:
+    get:
+      operationId: person_images_get
+      description: Retrieve the profile images of a specific person.
+      summary: Get person images
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: person_id
+        schema:
+          type: string
+        description: ID of the person.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: Source of person data.
+        required: true
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPersonImages'
+              examples:
+                RetrievePersonImagesExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      original: https://image.tmdb.org/t/p/original/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      width: 1000
+                      height: 1500
+                      aspect_ratio: 0.667
+                      vote_average: 5.522
+                      vote_count: 4
+                  summary: Retrieve person images example
+                  description: Retrieve person images example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/people/{source}/{person_id}/known_for/:
     get:
       operationId: person_known_for_get
@@ -9895,6 +10013,19 @@ components:
       required:
       - pagination
       - results
+    PaginatedPersonImages:
+      type: object
+      description: Paginated response serializer for person images.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonImage'
+      required:
+      - pagination
+      - results
     Pagination:
       type: object
       description: Common pagination metadata serializer.
@@ -10220,6 +10351,41 @@ components:
       - person_id
       - place_of_birth
       - source_url
+    PersonImage:
+      type: object
+      description: Serializer for a single person image.
+      properties:
+        image:
+          type: string
+          format: uri
+        original:
+          type: string
+          format: uri
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        aspect_ratio:
+          type: number
+          format: double
+          nullable: true
+        vote_average:
+          type: number
+          format: double
+          nullable: true
+        vote_count:
+          type: integer
+          nullable: true
+      required:
+      - aspect_ratio
+      - height
+      - image
+      - original
+      - vote_average
+      - vote_count
+      - width
     RelatedResponse:
       type: object
       description: Serializer for related media endpoint.

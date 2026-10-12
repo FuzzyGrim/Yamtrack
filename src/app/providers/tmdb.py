@@ -983,6 +983,42 @@ def person(person_id):
     return data
 
 
+def person_images(person_id):
+    """Return the profile images for the selected person from The Movie Database."""
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}_images"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/person/{person_id}/images"
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params={**base_params},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = [
+            {
+                "image": get_image_url(profile.get("file_path")),
+                "original": f"https://image.tmdb.org/t/p/original{profile['file_path']}",
+                "width": profile.get("width"),
+                "height": profile.get("height"),
+                "aspect_ratio": profile.get("aspect_ratio"),
+                "vote_average": profile.get("vote_average"),
+                "vote_count": profile.get("vote_count"),
+            }
+            for profile in response.get("profiles", [])
+            if profile.get("file_path")
+        ]
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def person_known_for(person_id):
     """Return the movies and tv shows a person is known for, as cast or crew."""
     cache_key = f"{Sources.TMDB.value}_person_{person_id}_known_for"

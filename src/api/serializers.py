@@ -1487,6 +1487,25 @@ class PaginatedCrewSerializer(serializers.Serializer):
     results = CrewMemberSerializer(many=True)
 
 
+class PersonImageSerializer(serializers.Serializer):
+    """Serializer for a single person image."""
+
+    image = serializers.URLField()
+    original = serializers.URLField()
+    width = serializers.IntegerField(allow_null=True)
+    height = serializers.IntegerField(allow_null=True)
+    aspect_ratio = serializers.FloatField(allow_null=True)
+    vote_average = serializers.FloatField(allow_null=True)
+    vote_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedPersonImagesSerializer(serializers.Serializer):
+    """Paginated response serializer for person images."""
+
+    pagination = PaginationSerializer()
+    results = PersonImageSerializer(many=True)
+
+
 class KnownForSerializer(serializers.Serializer):
     """Serializer for a media a person is known for."""
 

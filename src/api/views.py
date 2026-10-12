@@ -116,6 +116,7 @@ from .serializers import (
     PaginatedListsMinimizedResponseSerializer,
     PaginatedListsResponseSerializer,
     PaginatedMediaSerializer,
+    PaginatedPersonImagesSerializer,
     PersonSerializer,
     RelatedResponseSerializer,
     SearchPeopleResponseSerializer,
@@ -7814,6 +7815,91 @@ class PersonDetailView(drf_views.APIView):
             )
 
         return Response(PersonSerializer(person).data, status=HTTP.OK)
+
+
+# /api/v1/people/[source]/[person_id]/images/
+class PersonImagesView(drf_views.APIView):
+    """Person images view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedPersonImagesSerializer
+
+    @extend_schema(
+        operation_id="person_images_get",
+        summary="Get person images",
+        parameters=[
+            PersonSourceParam,
+            PersonIdParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedPersonImagesSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve person images example",
+                        description="Retrieve person images example",
+                        summary="Retrieve person images example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                                    "original": "https://image.tmdb.org/t/p/original/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                                    "width": 1000,
+                                    "height": 1500,
+                                    "aspect_ratio": 0.667,
+                                    "vote_average": 5.522,
+                                    "vote_count": 4,
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, source, person_id):
+        """Retrieve the profile images of a specific person."""
+        limit, offset, err = parse_limit_offset(request)
+        if err:
+            return err
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {"detail": f"Cannot query `{source}` for people"},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            images = tmdb.person_images(person_id)
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        paginated = paginate_data(request, images, limit, offset)
+        return Response(
+            PaginatedPersonImagesSerializer(paginated).data,
+            status=HTTP.OK,
+        )
 
 
 # /api/v1/people/[source]/[person_id]/known_for/

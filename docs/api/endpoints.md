@@ -105,6 +105,8 @@
     - [x] GET: Search for people (`search` query parameter)
 - [x] `/api/v1/people/{source}/{person_id}/`
     - [x] GET: Get person details
+- [x] `/api/v1/people/{source}/{person_id}/images/`
+    - [x] GET: Get profile images of a person
 - [x] `/api/v1/people/{source}/{person_id}/known_for/`
     - [x] GET: Get movies and tv series a person is known for as cast or crew, optionally filtered by `media_type` (`movie` or `tv`) and `department`
 - [x] `/api/v1/search/{media_type}/`
