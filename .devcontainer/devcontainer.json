@@ -6,7 +6,11 @@
   "features": {
     "ghcr.io/devcontainers/features/node:1": {}
   },
-  "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin" },
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin",
+    // Tailwind v4 resolves `@import "tailwindcss"` via node resolution; let it find the global install
+    "NODE_PATH": "/usr/local/share/nvm/current/lib/node_modules"
+  },
   "forwardPorts": [8000],
   "portsAttributes": { "8000": { "label": "Yamtrack", "onAutoForward": "openBrowser" } },
   "postCreateCommand": "sudo chown vscode /home/vscode/.venv && curl -LsSf https://astral.sh/uv/install.sh | sh && npm i -g tailwindcss @tailwindcss/cli && ~/.local/bin/uv sync && ~/.local/bin/uv run src/manage.py migrate",
