@@ -1,5 +1,6 @@
 import logging
 import uuid
+from decimal import ROUND_DOWN, Decimal
 
 from django.apps import apps
 from django.conf import settings
@@ -19,7 +20,7 @@ from django.db.models import (
     UniqueConstraint,
     Window,
 )
-from django.db.models.functions import RowNumber
+from django.db.models.functions import FirstValue, RowNumber
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -247,6 +248,11 @@ class MediaManager(models.Manager):
                 partition_by=[F("item")],
                 order_by=F("created_at").desc(),
             ),
+            newest_score=Window(
+                expression=FirstValue("score"),
+                partition_by=[F("item")],
+                order_by=[Q(score__isnull=True), F("created_at").desc()],
+            ),
         ).filter(row_number=1)
 
         queryset = queryset.select_related("item")
@@ -393,6 +399,9 @@ class MediaManager(models.Manager):
                 models.F(sort_filter).desc(nulls_last=True),
                 models.functions.Lower("item__title"),
             )
+
+        if sort_filter == "score":
+            return queryset.order_by(models.F("newest_score").desc(nulls_last=True))
 
         # Handle sorting by Item fields
         item_fields = [f.name for f in Item._meta.fields]
@@ -930,14 +939,20 @@ class Media(models.Model):
         self.item.fetch_releases(delay=True)
 
     @property
-    def formatted_score(self):
+    def formatted_newest_score(self):
         """Return as int if score is 10.0 or 0.0, otherwise show decimal."""
-        if self.score is not None:
+        queryset = BasicMedia.objects.get_media_list(
+            self.user, self.item.media_type, users.models.MediaStatusChoices.ALL, None
+        )
+        matching_media = queryset.filter(item__id=self.item.id).first()
+
+        newest_score = matching_media.newest_score
+        if newest_score is not None:
             max_score = 10
             min_score = 0
-            if self.score in (max_score, min_score):
-                return int(self.score)
-            return self.score
+            if newest_score in (max_score, min_score):
+                return int(newest_score)
+            return newest_score.quantize(Decimal("0.1"), rounding=ROUND_DOWN)
         return None
 
     @property
