@@ -70,6 +70,7 @@ from .schemas import (
     EpisodeNumberParam,
     ForbiddenResponse,
     InternalServerErrorResponse,
+    KnownForMediaTypeParam,
     ListSearchParam,
     ListSortParam,
     MediaIdParam,
@@ -79,6 +80,8 @@ from .schemas import (
     NotFoundResponse,
     PaginationLimitParam,
     PaginationOffsetParam,
+    PersonIdParam,
+    PersonSourceParam,
     SeasonNumberParam,
     SourceCompleteParam,
     TooManyRequestsResponse,
@@ -100,10 +103,12 @@ from .serializers import (
     ListUpdateRequestSerializer,
     MediaSerializer,
     MixedMediaSerializer,
+    PaginatedCastSerializer,
     PaginatedChangesHistoryResponseSerializer,
     PaginatedEpisodesSerializer,
     PaginatedEventsSerializer,
     PaginatedHistoryResponseSerializer,
+    PaginatedKnownForSerializer,
     PaginatedListsMinimizedResponseSerializer,
     PaginatedListsResponseSerializer,
     PaginatedMediaSerializer,
@@ -2548,6 +2553,106 @@ class MediaDetailView(drf_views.APIView):
             data,
         ).data
         return Response(serialized, status=HTTP.OK)
+
+
+# /api/v1/media/[media_type]/[source]/[media_id]/cast/
+class MediaCastView(drf_views.APIView):
+    """Media cast view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedCastSerializer
+
+    @extend_schema(
+        operation_id="media_cast_get",
+        summary="Get media cast",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedCastSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve cast example",
+                        description="Retrieve cast example",
+                        summary="Retrieve cast example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "person_id": 6384,
+                                    "name": "Keanu Reeves",
+                                    "character": "Thomas A. Anderson / Neo",
+                                    "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                                    "order": 0,
+                                    "episode_count": None,
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, media_type, source, media_id):
+        """Retrieve the cast of a specific movie or tv serie."""
+        limit, offset, err = parse_limit_offset(request)
+        if err:
+            return err
+
+        if not check_valid_type(media_type):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+            return Response(
+                {
+                    "detail": (
+                        "Cast is supported only for 'movie' and 'tv' media types."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            cast = tmdb.media_cast(media_type, media_id)
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        paginated = paginate_data(request, cast, limit, offset)
+        return Response(PaginatedCastSerializer(paginated).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/changes_history/
@@ -7389,6 +7494,105 @@ class MediaEpisodeSyncView(drf_views.APIView):
             media_id=media_id,
             season_number=season_number,
         )
+
+
+# /api/v1/people/[source]/[person_id]/known_for/
+class PersonKnownForView(drf_views.APIView):
+    """Person known for view."""
+
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedKnownForSerializer
+
+    @extend_schema(
+        operation_id="person_known_for_get",
+        summary="Get person known for",
+        parameters=[
+            PersonSourceParam,
+            PersonIdParam,
+            KnownForMediaTypeParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedKnownForSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve known for example",
+                        description="Retrieve known for example",
+                        summary="Retrieve known for example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "source": "tmdb",
+                                    "media_type": "movie",
+                                    "media_id": "603",
+                                    "title": "The Matrix",
+                                    "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                                    "character": "Thomas A. Anderson / Neo",
+                                    "release_date": "1999-03-31",
+                                    "episode_count": None,
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def get(self, request, source, person_id):
+        """Retrieve the movies and tv series a person is known for."""
+        limit, offset, err = parse_limit_offset(request)
+        if err:
+            return err
+
+        if source != Sources.TMDB.value:
+            return Response(
+                {"detail": f"Cannot query `{source}` for people"},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        media_type = request.GET.get("media_type")
+        if media_type and media_type not in (
+            MediaTypes.MOVIE.value,
+            MediaTypes.TV.value,
+        ):
+            return Response(
+                {"detail": "media_type must be 'movie' or 'tv'."},
+                status=HTTP.BAD_REQUEST,
+            )
+
+        try:
+            known_for = tmdb.person_known_for(person_id)
+        except Exception as e:  # noqa: BLE001
+            return Response(
+                {
+                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                    "errors": str(e),
+                },
+                status=HTTP.INTERNAL_SERVER_ERROR,
+            )
+
+        if media_type:
+            known_for = [
+                media for media in known_for if media["media_type"] == media_type
+            ]
+
+        paginated = paginate_data(request, known_for, limit, offset)
+        return Response(PaginatedKnownForSerializer(paginated).data, status=HTTP.OK)
 
 
 # /api/v1/search/[media_type]/

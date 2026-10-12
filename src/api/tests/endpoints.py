@@ -64,6 +64,7 @@ def get_endpoint_cases() -> list[EndpointCase]:
             payload={"notes": "n"},
         ),
         EndpointCase("delete", "api_media_detail", args=("movie", "tmdb", 1)),
+        EndpointCase("get", "api_media_cast", args=("movie", "tmdb", 1)),
         EndpointCase(
             "get",
             "api_media_changes_history",
@@ -248,6 +249,7 @@ def get_endpoint_cases() -> list[EndpointCase]:
             args=("tv", "tmdb", 1, 1, 1, 1),
         ),
         EndpointCase("post", "api_media_episode_sync", args=("tv", "tmdb", 1, 1, 1)),
+        EndpointCase("get", "api_person_known_for", args=("tmdb", 1)),
         EndpointCase("get", "api_search_provider", args=("movie",)),
         EndpointCase("get", "api_statistics"),
     ]

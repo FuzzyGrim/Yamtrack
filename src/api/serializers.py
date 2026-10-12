@@ -1415,6 +1415,44 @@ class RelatedResponseSerializer(serializers.Serializer):
     title = serializers.CharField()
 
 
+class CastMemberSerializer(serializers.Serializer):
+    """Serializer for a single cast member."""
+
+    person_id = serializers.IntegerField()
+    name = serializers.CharField()
+    character = serializers.CharField(allow_null=True)
+    image = serializers.URLField(allow_null=True)
+    order = serializers.IntegerField(allow_null=True)
+    episode_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedCastSerializer(serializers.Serializer):
+    """Paginated response serializer for cast members."""
+
+    pagination = PaginationSerializer()
+    results = CastMemberSerializer(many=True)
+
+
+class KnownForSerializer(serializers.Serializer):
+    """Serializer for a media a person is known for."""
+
+    source = MediaSourceChoiceField()
+    media_type = MediaTypeChoiceField()
+    media_id = serializers.CharField()
+    title = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    character = serializers.CharField(allow_null=True)
+    release_date = serializers.DateField(allow_null=True)
+    episode_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedKnownForSerializer(serializers.Serializer):
+    """Paginated response serializer for known for media."""
+
+    pagination = PaginationSerializer()
+    results = KnownForSerializer(many=True)
+
+
 class WatchProviderSerializer(serializers.Serializer):
     """Serializer for a single watch provider."""
 

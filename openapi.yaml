@@ -6152,6 +6152,146 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/cast/:
+    get:
+      operationId: media_cast_get
+      description: Retrieve the cast of a specific movie or tv serie.
+      summary: Get media cast
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of media item data for import operations.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCast'
+              examples:
+                RetrieveCastExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - person_id: 6384
+                      name: Keanu Reeves
+                      character: Thomas A. Anderson / Neo
+                      image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      order: 0
+                      episode_count: null
+                  summary: Retrieve cast example
+                  description: Retrieve cast example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/changes_history/:
     get:
       operationId: media_changes_history_get
@@ -7869,6 +8009,133 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/people/{source}/{person_id}/known_for/:
+    get:
+      operationId: person_known_for_get
+      description: Retrieve the movies and tv series a person is known for.
+      summary: Get person known for
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: query
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - movie
+          - tv
+        description: 'Only return media of this type (default: all).'
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: person_id
+        schema:
+          type: string
+        description: ID of the person.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: Source of person data.
+        required: true
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKnownFor'
+              examples:
+                RetrieveKnownForExample:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - source: tmdb
+                      media_type: movie
+                      media_id: '603'
+                      title: The Matrix
+                      image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      character: Thomas A. Anderson / Neo
+                      release_date: '1999-03-31'
+                      episode_count: null
+                  summary: Retrieve known for example
+                  description: Retrieve known for example
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/search/{media_type}/:
     get:
       operationId: search_get
@@ -8115,6 +8382,34 @@ components:
         isbn:
           type: string
           nullable: true
+    CastMember:
+      type: object
+      description: Serializer for a single cast member.
+      properties:
+        person_id:
+          type: integer
+        name:
+          type: string
+        character:
+          type: string
+          nullable: true
+        image:
+          type: string
+          format: uri
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+        episode_count:
+          type: integer
+          nullable: true
+      required:
+      - character
+      - episode_count
+      - image
+      - name
+      - order
+      - person_id
     ChangesHistoryChange:
       type: object
       description: Serializer for a single change in a history entry.
@@ -8794,6 +9089,43 @@ components:
         * `comicvine` - Comic Vine
         * `bgg` - BoardGameGeek
         * `manual` - Manual
+    KnownFor:
+      type: object
+      description: Serializer for a media a person is known for.
+      properties:
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          nullable: true
+        media_type:
+          allOf:
+          - $ref: '#/components/schemas/MediaTypeEnum'
+          nullable: true
+        media_id:
+          type: string
+        title:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        character:
+          type: string
+          nullable: true
+        release_date:
+          type: string
+          format: date
+          nullable: true
+        episode_count:
+          type: integer
+          nullable: true
+      required:
+      - character
+      - episode_count
+      - image
+      - media_id
+      - release_date
+      - title
     List:
       type: object
       description: Serializer used for custom lists.
@@ -9009,6 +9341,19 @@ components:
           type: array
           items:
             type: string
+    PaginatedCast:
+      type: object
+      description: Paginated response serializer for cast members.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CastMember'
+      required:
+      - pagination
+      - results
     PaginatedChangesHistoryResponse:
       type: object
       description: Paginated changes history serializer.
@@ -9058,6 +9403,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/History'
+      required:
+      - pagination
+      - results
+    PaginatedKnownFor:
+      type: object
+      description: Paginated response serializer for known for media.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnownFor'
       required:
       - pagination
       - results

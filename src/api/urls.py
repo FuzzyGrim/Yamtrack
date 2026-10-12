@@ -49,6 +49,11 @@ urlpatterns = [
         name="api_media_detail",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/cast/?$",
+        views.MediaCastView.as_view(),
+        name="api_media_cast",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/changes_history/?$",
         views.MediaChangesHistoryView.as_view(),
         name="api_media_changes_history",
@@ -172,6 +177,11 @@ urlpatterns = [
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/(?P<episode_number>\d+)/sync/?$",
         views.MediaEpisodeSyncView.as_view(),
         name="api_media_episode_sync",
+    ),
+    re_path(
+        r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/known_for/?$",
+        views.PersonKnownForView.as_view(),
+        name="api_person_known_for",
     ),
     re_path(
         r"^search/(?P<media_type>[^/]+)/?$",

@@ -230,3 +230,29 @@ WatchProviderRegionParam = OpenApiParameter(
     ),
     required=False,
 )
+
+PersonIdParam = OpenApiParameter(
+    name="person_id",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="ID of the person.",
+    required=True,
+)
+
+PersonSourceParam = OpenApiParameter(
+    name="source",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="Source of person data.",
+    required=True,
+    enum=["tmdb"],
+)
+
+KnownForMediaTypeParam = OpenApiParameter(
+    name="media_type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Only return media of this type (default: all).",
+    required=False,
+    enum=["movie", "tv"],
+)

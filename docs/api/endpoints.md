@@ -34,6 +34,8 @@
     - [x] DELETE: Delete tracked item
     - [x] GET: Get tracked item
     - [x] PATCH: Edit last consumption of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/cast/`
+    - [x] GET: Get cast of a movie or tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/changes_history/`
     - [x] GET: Get changes history of tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/`
@@ -97,6 +99,8 @@
     - [x] PUT: Add tracked item to specific list
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/sync/`
     - [x] POST: Update metadata of tracked episode (season)
+- [x] `/api/v1/people/{source}/{person_id}/known_for/`
+    - [x] GET: Get movies and tv series a person is known for, optionally filtered by `media_type` (`movie` or `tv`)
 - [x] `/api/v1/search/{media_type}/`
     - [x] GET: Search for media using the specified provider
 - [x] `/api/v1/statistics/`

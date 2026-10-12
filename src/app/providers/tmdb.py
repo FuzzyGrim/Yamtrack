@@ -773,6 +773,120 @@ def episode(media_id, season_number, episode_number):
     )
 
 
+def media_cast(media_type, media_id):
+    """Return the full cast for the selected movie or tv show."""
+    cache_key = f"{Sources.TMDB.value}_{media_type}_{media_id}_cast"
+    data = cache.get(cache_key)
+
+    if data is None:
+        # tv shows use aggregate credits to include cast of every season
+        if media_type == MediaTypes.MOVIE.value:
+            url = f"{base_url}/movie/{media_id}/credits"
+        else:
+            url = f"{base_url}/tv/{media_id}/aggregate_credits"
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params={**base_params},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = []
+        for member in response.get("cast", []):
+            if "roles" in member:
+                character = " / ".join(
+                    role.get("character")
+                    for role in member["roles"]
+                    if role.get("character")
+                )
+            else:
+                character = member.get("character")
+
+            data.append(
+                {
+                    "person_id": member.get("id"),
+                    "name": member.get("name"),
+                    "character": character or None,
+                    "image": get_image_url(member.get("profile_path")),
+                    "order": member.get("order"),
+                    "episode_count": member.get("total_episode_count"),
+                },
+            )
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def person_known_for(person_id):
+    """Return the movies and tv shows a person is known for acting in."""
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}_known_for"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/person/{person_id}/combined_credits"
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params={**base_params},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        # Skip talk shows and news, as TMDB does for its known for section
+        excluded_genres = {10763, 10767}
+        credits_by_id = {}
+        for credit in response.get("cast", []):
+            media_type = credit.get("media_type")
+            if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+                continue
+            if excluded_genres.intersection(credit.get("genre_ids", [])):
+                continue
+
+            # A person can have multiple roles in the same media
+            key = (media_type, credit.get("id"))
+            if key in credits_by_id:
+                existing = credits_by_id[key]
+                character = credit.get("character")
+                if character and character not in (existing["character"] or ""):
+                    existing["character"] = (
+                        f"{existing['character']} / {character}"
+                        if existing["character"]
+                        else character
+                    )
+                continue
+
+            credits_by_id[key] = {
+                "source": Sources.TMDB.value,
+                "media_type": media_type,
+                "media_id": credit.get("id"),
+                "title": get_title(credit),
+                "image": get_image_url(credit.get("poster_path")),
+                "character": credit.get("character") or None,
+                "release_date": get_start_date(
+                    credit.get("release_date", credit.get("first_air_date", "")),
+                ),
+                "episode_count": credit.get("episode_count"),
+                "vote_count": credit.get("vote_count", 0),
+            }
+
+        data = sorted(
+            credits_by_id.values(),
+            key=lambda e: e["vote_count"],
+            reverse=True,
+        )
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def watch_provider_regions():
     """Return the available watch provider regions from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_watch_provider_regions"
