@@ -290,6 +290,12 @@ def status_background_color(status):
 
 
 @register.filter
+def status_button_color(status):
+    """Return the button background and hover classes for the status."""
+    return config.get_status_button_color(status)
+
+
+@register.filter
 def natural_day(value):
     """Render a datetime the browser shows as Today/Tomorrow plus a time.
 

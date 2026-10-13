@@ -106,6 +106,16 @@ class SimklImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track existing seasons and watches to only add what is missing in "new" mode
+        self.existing_seasons = {}
+        self.existing_watches = {}
+        if mode == "new":
+            self.existing_seasons = helpers.get_existing_seasons(user)
+            self.existing_watches = helpers.get_existing_watches(user)
+
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -129,6 +139,11 @@ class SimklImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -168,6 +183,85 @@ class SimklImporter:
         if "anime" in data:
             self._process_anime_list(data["anime"])
 
+    def _get_existing(self, media_type, source, media_id, season_number=None):
+        """Get the media already in Yamtrack, only tracked in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        if media_type == MediaTypes.SEASON.value:
+            return self.existing_seasons.get((source, str(media_id), season_number))
+
+        return self.existing_media[media_type][source].get(str(media_id))
+
+    def _sync_existing(self, media_type, media, entry, status=None):
+        """Fill the missing score and notes of existing media and advance its status."""
+        changed = helpers.fill_empty_fields(
+            media,
+            {"score": entry["user_rating"], "notes": self._get_notes(entry)},
+        )
+        if status and helpers.advance_status(media, status):
+            changed = True
+
+        if changed:
+            self.to_update[media_type][media.pk] = media
+
+    def _get_episode_watch_key(self, tmdb_id, season_number, episode):
+        """Return the key that identifies an episode in the existing watches."""
+        return helpers.get_watch_key(
+            MediaTypes.EPISODE.value,
+            Sources.TMDB.value,
+            tmdb_id,
+            season_number,
+            episode["number"],
+        )
+
+    def _is_new_episode_watch(self, tmdb_id, season_number, episode):
+        """Return whether the watch of an episode is missing from Yamtrack."""
+        return not helpers.is_existing_watch(
+            self.existing_watches,
+            self._get_episode_watch_key(tmdb_id, season_number, episode),
+            self._get_date(episode.get("watched_at")),
+        )
+
+    def _has_new_episodes(self, tv):
+        """Return whether the show has episode watches missing from Yamtrack."""
+        tmdb_id = tv["show"]["ids"]["tmdb"]
+        return any(
+            self._is_new_episode_watch(tmdb_id, season["number"], episode)
+            for season in tv.get("seasons", [])
+            for episode in season["episodes"]
+        )
+
+    def _reopen_completed(self, tmdb_id, season_number, episodes, medias):
+        """Reopen completed existing media that got episodes never watched before."""
+        first_watch = any(
+            self._get_episode_watch_key(tmdb_id, season_number, episode)
+            not in self.existing_watches
+            for episode in episodes
+        )
+        if not first_watch:
+            return
+
+        for media_type, media in medias:
+            if media.pk is not None and helpers.reopen_status(media):
+                self.to_update[media_type][media.pk] = media
+
+    def _should_process_tv(self, tv, existing_tv, tv_status):
+        """Determine if a show should be processed based on mode."""
+        # Existing shows only get the episodes they are missing
+        if existing_tv:
+            self._sync_existing(MediaTypes.TV.value, existing_tv, tv, tv_status)
+            return self._has_new_episodes(tv)
+
+        return helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            MediaTypes.TV.value,
+            Sources.TMDB.value,
+            str(tv["show"]["ids"]["tmdb"]),
+            self.mode,
+        )
+
     def _process_tv_list(self, tv_list):
         """Process TV list from Simkl."""
         logger.info("Processing tv shows")
@@ -190,18 +284,17 @@ class SimklImporter:
                     )
                     continue
 
-                # Check if we should process this entry based on mode
-                if not helpers.should_process_media(
-                    self.existing_media,
-                    self.to_delete,
+                tv_status = self._get_status(tv["status"])
+
+                existing_tv = self._get_existing(
                     MediaTypes.TV.value,
                     Sources.TMDB.value,
-                    str(tmdb_id),
-                    self.mode,
-                ):
-                    continue
+                    tmdb_id,
+                )
 
-                tv_status = self._get_status(tv["status"])
+                # Check if we should process this entry based on mode
+                if not self._should_process_tv(tv, existing_tv, tv_status):
+                    continue
 
                 try:
                     season_numbers = [season["number"] for season in tv["seasons"]]
@@ -232,15 +325,7 @@ class SimklImporter:
                     },
                 )
 
-                tv_instance = app.models.TV(
-                    item=tv_item,
-                    user=self.user,
-                    status=tv_status,
-                    score=tv["user_rating"],
-                    notes=tv["memo"]["text"] if tv["memo"] != {} else "",
-                )
-                tv_instance._history_date = self._get_history_date(tv)
-                self.bulk_media[MediaTypes.TV.value].append(tv_instance)
+                tv_instance = existing_tv or self._create_tv(tv, tv_item, tv_status)
                 existing_tv_ids.add(tmdb_id)
 
                 if season_numbers:
@@ -256,6 +341,19 @@ class SimklImporter:
 
         logger.info("Processed %d tv shows", len(tv_list))
 
+    def _create_tv(self, tv, tv_item, tv_status):
+        """Create the TV instance of a show that is not in Yamtrack."""
+        tv_instance = app.models.TV(
+            item=tv_item,
+            user=self.user,
+            status=tv_status,
+            score=tv["user_rating"],
+            notes=self._get_notes(tv),
+        )
+        tv_instance._history_date = self._get_history_date(tv)
+        self.bulk_media[MediaTypes.TV.value].append(tv_instance)
+        return tv_instance
+
     def _process_seasons_and_episodes(self, tv, tv_instance, metadata):
         """Process seasons and episodes for a TV show."""
         tmdb_id = tv["show"]["ids"]["tmdb"]
@@ -264,6 +362,20 @@ class SimklImporter:
             season_number = season["number"]
             episodes = season["episodes"]
             season_metadata = metadata[f"season/{season_number}"]
+
+            existing_season = self._get_existing(
+                MediaTypes.SEASON.value,
+                Sources.TMDB.value,
+                tmdb_id,
+                season_number,
+            )
+            new_episodes = [
+                episode
+                for episode in episodes
+                if self._is_new_episode_watch(tmdb_id, season_number, episode)
+            ]
+            if existing_season and not new_episodes:
+                continue
 
             season_item, _ = app.models.Item.objects.get_or_create(
                 media_id=tmdb_id,
@@ -279,19 +391,34 @@ class SimklImporter:
             if episodes[-1]["number"] == season_metadata["max_progress"]:
                 season_status = Status.COMPLETED.value
             else:
-                season_status = tv_instance.status
+                season_status = self._get_status(tv["status"])
 
-            season_instance = app.models.Season(
-                item=season_item,
-                user=self.user,
-                related_tv=tv_instance,
-                status=season_status,
-            )
-            season_instance._history_date = self._get_history_date(tv)
-            self.bulk_media[MediaTypes.SEASON.value].append(season_instance)
+            # Unfinished shows and seasons are not left as completed
+            unfinished = []
+            if self._get_status(tv["status"]) != Status.COMPLETED.value:
+                unfinished.append((MediaTypes.TV.value, tv_instance))
+            if existing_season and season_status != Status.COMPLETED.value:
+                unfinished.append((MediaTypes.SEASON.value, existing_season))
+            self._reopen_completed(tmdb_id, season_number, new_episodes, unfinished)
+
+            if existing_season:
+                season_instance = existing_season
+                if helpers.advance_status(season_instance, season_status):
+                    self.to_update[MediaTypes.SEASON.value][season_instance.pk] = (
+                        season_instance
+                    )
+            else:
+                season_instance = app.models.Season(
+                    item=season_item,
+                    user=self.user,
+                    related_tv=tv_instance,
+                    status=season_status,
+                )
+                season_instance._history_date = self._get_history_date(tv)
+                self.bulk_media[MediaTypes.SEASON.value].append(season_instance)
 
             # Process episodes
-            for episode in episodes:
+            for episode in new_episodes:
                 ep_img = self._get_episode_image(episode, season_number, metadata)
                 episode_item, _ = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
@@ -349,8 +476,25 @@ class SimklImporter:
                     )
                     continue
 
+                movie_status = self._get_status(movie["status"])
+                watched_at = self._get_date(movie.get("last_watched_at"))
+
+                existing_movie = self._get_existing(
+                    MediaTypes.MOVIE.value,
+                    Sources.TMDB.value,
+                    tmdb_id,
+                )
+                if existing_movie:
+                    self._sync_existing(MediaTypes.MOVIE.value, existing_movie, movie)
+                    if not self._is_new_movie_watch(
+                        existing_movie,
+                        tmdb_id,
+                        movie_status,
+                        watched_at,
+                    ):
+                        continue
                 # Check if we should process this entry based on mode
-                if not helpers.should_process_media(
+                elif not helpers.should_process_media(
                     self.existing_media,
                     self.to_delete,
                     MediaTypes.MOVIE.value,
@@ -359,8 +503,6 @@ class SimklImporter:
                     self.mode,
                 ):
                     continue
-
-                movie_status = self._get_status(movie["status"])
 
                 try:
                     metadata = app.providers.tmdb.movie(tmdb_id)
@@ -389,9 +531,9 @@ class SimklImporter:
                     status=movie_status,
                     score=movie["user_rating"],
                     progress=1 if movie_status == Status.COMPLETED.value else 0,
-                    start_date=self._get_date(movie.get("last_watched_at")),
-                    end_date=self._get_date(movie.get("last_watched_at")),
-                    notes=movie["memo"]["text"] if movie["memo"] != {} else "",
+                    start_date=watched_at,
+                    end_date=watched_at,
+                    notes=self._get_notes(movie),
                 )
                 movie_instance._history_date = self._get_history_date(movie)
                 self.bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
@@ -402,6 +544,57 @@ class SimklImporter:
                 raise MediaImportUnexpectedError(msg) from error
 
         logger.info("Processed %d movies", len(movie_list))
+
+    def _is_new_movie_watch(self, existing_movie, tmdb_id, movie_status, watched_at):
+        """Return whether a watch of an existing movie should be added as a new one."""
+        if movie_status != Status.COMPLETED.value or watched_at is None:
+            return False
+
+        watch_key = helpers.get_watch_key(
+            MediaTypes.MOVIE.value,
+            Sources.TMDB.value,
+            tmdb_id,
+        )
+        if helpers.is_existing_watch(self.existing_watches, watch_key, watched_at):
+            return False
+
+        # Complete the unwatched movie instead of adding another one
+        if existing_movie.end_date is None and helpers.advance_status(
+            existing_movie,
+            Status.COMPLETED.value,
+        ):
+            existing_movie.start_date = watched_at
+            existing_movie.end_date = watched_at
+            existing_movie.progress = 1
+            existing_movie.progressed_at = timezone.now()
+            self.to_update[MediaTypes.MOVIE.value][existing_movie.pk] = existing_movie
+            return False
+
+        return True
+
+    def _sync_existing_anime(self, existing_anime, anime, anime_status):
+        """Raise the progress of an existing anime and fill what it is missing."""
+        self._sync_existing(
+            MediaTypes.ANIME.value,
+            existing_anime,
+            anime,
+            anime_status,
+        )
+
+        progress = anime["watched_episodes_count"] or 0
+        if progress > existing_anime.progress:
+            existing_anime.progress = progress
+            existing_anime.progressed_at = timezone.now()
+            self.to_update[MediaTypes.ANIME.value][existing_anime.pk] = existing_anime
+
+        if existing_anime.pk not in self.to_update[MediaTypes.ANIME.value]:
+            return
+
+        if existing_anime.end_date is None:
+            existing_anime.end_date = self._get_end_date(
+                existing_anime.status,
+                anime.get("last_watched_at"),
+            )
 
     def _process_anime_list(self, anime_list):
         """Process anime list from Simkl."""
@@ -425,6 +618,17 @@ class SimklImporter:
                     )
                     continue
 
+                anime_status = self._get_status(anime["status"])
+
+                existing_anime = self._get_existing(
+                    MediaTypes.ANIME.value,
+                    Sources.MAL.value,
+                    mal_id,
+                )
+                if existing_anime:
+                    self._sync_existing_anime(existing_anime, anime, anime_status)
+                    continue
+
                 # Check if we should process this entry based on mode
                 if not helpers.should_process_media(
                     self.existing_media,
@@ -435,8 +639,6 @@ class SimklImporter:
                     self.mode,
                 ):
                     continue
-
-                anime_status = self._get_status(anime["status"])
 
                 try:
                     metadata = app.providers.mal.anime(mal_id)
@@ -470,7 +672,7 @@ class SimklImporter:
                         anime_status,
                         anime.get("last_watched_at"),
                     ),
-                    notes=anime["memo"]["text"] if anime["memo"] != {} else "",
+                    notes=self._get_notes(anime),
                 )
                 anime_instance._history_date = self._get_history_date(anime)
 
@@ -494,6 +696,10 @@ class SimklImporter:
         }
 
         return status_mapping.get(status, Status.IN_PROGRESS.value)
+
+    def _get_notes(self, entry):
+        """Get the notes from the memo of the entry."""
+        return entry["memo"]["text"] if entry["memo"] != {} else ""
 
     def _get_date(self, date_str):
         """Convert the date from Simkl to a date object, stripping seconds."""
