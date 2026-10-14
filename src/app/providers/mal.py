@@ -99,7 +99,7 @@ def anime(media_id):
     if data is None:
         url = f"{base_url}/anime/{media_id}"
         params = {
-            "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,broadcast,source,related_anime",  # noqa: E501
+            "fields": f"{base_fields},alternative_titles,num_episodes,average_episode_duration,studios,start_season,broadcast,source,related_anime",  # noqa: E501
         }
 
         try:
@@ -121,6 +121,7 @@ def anime(media_id):
             "source_url": f"https://myanimelist.net/anime/{media_id}",
             "media_type": MediaTypes.ANIME.value,
             "title": response["title"],
+            "title_english": response.get("alternative_titles", {}).get("en") or None,
             "max_progress": num_episodes,
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),

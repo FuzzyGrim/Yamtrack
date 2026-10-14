@@ -1,0 +1,58 @@
+{# Critic score cards, loaded into the details page after it has rendered #}
+{# because they need requests to OMDb and rottentomatoes.com #}
+{# OMDb #}
+{% if omdb_ratings.imdb %}
+  <div class="bg-[#2a2f35] p-3 rounded-lg w-30">
+    <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">IMDB SCORE</h3>
+    <div class="flex items-center justify-center">
+      {% include "app/icons/star.svg" with classes="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400" %}
+      <span class="text-lg font-bold text-white">{{ omdb_ratings.imdb.value }}</span><span class="text-gray-400 ml-0.5 text-sm">{{ omdb_ratings.imdb.suffix }}</span>
+    </div>
+    <p class="text-xs text-gray-400 mt-0.5 text-center">
+      {% if omdb_ratings.imdb.votes %}{{ omdb_ratings.imdb.votes }} votes{% else %}IMDb{% endif %}
+    </p>
+  </div>
+{% endif %}
+
+{# Rotten Tomatoes, matched by title: a non-exact match shows the matched title #}
+{# and the cards link to the page so it can be checked #}
+{% if rt_scores.tomatometer %}
+  <a class="bg-[#2a2f35] p-3 rounded-lg w-30 block" {% if rt_scores.url %}href="{{ rt_scores.url }}" target="_blank" rel="noopener" title="{{ rt_scores.title }}{% if rt_scores.season %} Season {{ rt_scores.season }}{% endif %}{% if rt_scores.year %} ({{ rt_scores.year }}){% endif %} on Rotten Tomatoes"{% endif %}>
+    <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">TOMATOMETER</h3>
+    <div class="flex items-center justify-center">
+      {% include "app/icons/tomato.svg" with classes="w-5 h-5 mr-1.5 text-red-500" %}
+      <span class="text-lg font-bold text-white">{{ rt_scores.tomatometer.value }}</span><span class="text-gray-400 ml-0.5 text-sm">{{ rt_scores.tomatometer.suffix }}</span>
+    </div>
+    <p class="text-xs text-gray-400 mt-0.5 text-center truncate">
+      {% if rt_scores.exact %}{{ rt_scores.tomatometer.count|default:"Rotten Tomatoes" }}{% else %}{{ rt_scores.title }}{% endif %}
+    </p>
+  </a>
+{% endif %}
+
+{% if rt_scores.popcornmeter %}
+  <a class="bg-[#2a2f35] p-3 rounded-lg w-30 block"
+     href="{{ rt_scores.url }}"
+     target="_blank"
+     rel="noopener"
+     title="{{ rt_scores.title }}{% if rt_scores.season %} Season {{ rt_scores.season }}{% endif %}{% if rt_scores.year %} ({{ rt_scores.year }}){% endif %} on Rotten Tomatoes">
+    <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">POPCORNMETER</h3>
+    <div class="flex items-center justify-center">
+      {% include "app/icons/popcorn.svg" with classes="w-5 h-5 mr-1.5 text-orange-500" %}
+      <span class="text-lg font-bold text-white">{{ rt_scores.popcornmeter.value }}</span><span class="text-gray-400 ml-0.5 text-sm">{{ rt_scores.popcornmeter.suffix }}</span>
+    </div>
+    <p class="text-xs text-gray-400 mt-0.5 text-center truncate">
+      {% if rt_scores.exact %}{{ rt_scores.popcornmeter.count|default:"Rotten Tomatoes" }}{% else %}{{ rt_scores.title }}{% endif %}
+    </p>
+  </a>
+{% endif %}
+
+{% if omdb_ratings.metacritic %}
+  <div class="bg-[#2a2f35] p-3 rounded-lg w-30">
+    <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">METASCORE</h3>
+    <div class="flex items-center justify-center">
+      {% include "app/icons/award.svg" with classes="w-5 h-5 mr-1.5 text-emerald-400" %}
+      <span class="text-lg font-bold text-white">{{ omdb_ratings.metacritic.value }}</span><span class="text-gray-400 ml-0.5 text-sm">{{ omdb_ratings.metacritic.suffix }}</span>
+    </div>
+    <p class="text-xs text-gray-400 mt-0.5 text-center">Metacritic</p>
+  </div>
+{% endif %}

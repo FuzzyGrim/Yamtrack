@@ -31,7 +31,7 @@ from app.models import (
     Status,
     UserMessage,
 )
-from app.providers import manual, services, tmdb
+from app.providers import manual, omdb, rottentomatoes, services, tmdb
 from app.templatetags import app_tags
 from events.models import Event
 from users.models import (
@@ -43,6 +43,13 @@ from users.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Media types with critic scores from OMDb and rottentomatoes.com
+CRITIC_SCORE_TYPES = (
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.ANIME.value,
+)
 
 
 @require_GET
@@ -342,6 +349,13 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     else:
         watch_providers = None
 
+    if media_type in CRITIC_SCORE_TYPES:
+        critic_scores_url = reverse(
+            "critic_scores", args=[source, media_type, media_id]
+        )
+    else:
+        critic_scores_url = None
+
     context = {
         "media": media_metadata,
         "media_type": media_type,
@@ -349,6 +363,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "current_instance": current_instance,
         "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
+        "critic_scores_url": critic_scores_url,
     }
     return render(request, "app/media_details.html", context)
 
@@ -413,8 +428,49 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata.get("providers"), request.user.watch_provider_region
         ),
         "watch_provider_region": request.user.watch_provider_region,
+        "critic_scores_url": reverse(
+            "critic_scores",
+            args=[source, MediaTypes.SEASON.value, media_id, season_number],
+        ),
     }
     return render(request, "app/media_details.html", context)
+
+
+@require_GET
+def critic_scores(request, source, media_type, media_id, season_number=None):
+    """Return the critic score cards for the details page.
+
+    Loaded by the page after it has rendered, because OMDb and rottentomatoes.com
+    are contacted for items not yet cached.
+    """
+    omdb_ratings = {}
+    rt_scores = {}
+
+    try:
+        if media_type == MediaTypes.SEASON.value:
+            tv_metadata = services.get_media_metadata(
+                "tv_with_seasons",
+                media_id,
+                source,
+                [season_number],
+            )
+            rt_scores = rottentomatoes.season_scores(tv_metadata, season_number)
+        elif media_type in CRITIC_SCORE_TYPES:
+            media_metadata = services.get_media_metadata(media_type, media_id, source)
+            omdb_ratings = omdb.ratings(media_metadata.get("imdb_id"))
+            rt_scores = rottentomatoes.media_scores(media_metadata)
+            if not rt_scores and omdb_ratings.get("rotten_tomatoes"):
+                # OMDb only knows the Tomatometer, used when there is no match
+                rt_scores = {
+                    "tomatometer": omdb_ratings["rotten_tomatoes"],
+                    "exact": True,
+                }
+    except services.ProviderAPIError:
+        # the page already showed the error, just leave the cards out
+        logger.warning("Critic scores unavailable for %s %s", media_type, media_id)
+
+    context = {"omdb_ratings": omdb_ratings, "rt_scores": rt_scores}
+    return render(request, "app/components/critic_scores.html", context)
 
 
 @require_POST
