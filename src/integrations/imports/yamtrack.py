@@ -150,6 +150,7 @@ class YamtrackImporter:
         form = app.forms.get_form_class(media_type)(
             row,
             instance=instance,
+            user=self.user,
         )
 
         if form.is_valid():

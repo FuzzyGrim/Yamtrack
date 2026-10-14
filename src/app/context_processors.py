@@ -2,7 +2,7 @@
 
 from django.conf import settings
 
-from app.models import MediaTypes, Sources, Status, UserMessage
+from app.models import MediaTypes, ProgressUnit, Sources, Status, UserMessage
 
 
 def export_vars(request):  # noqa: ARG001
@@ -19,6 +19,7 @@ def media_enums(request):  # noqa: ARG001
     """Export media enums to templates."""
     return {
         "MediaTypes": MediaTypes,
+        "ProgressUnit": ProgressUnit,
         "Sources": Sources,
         "Status": Status,
     }

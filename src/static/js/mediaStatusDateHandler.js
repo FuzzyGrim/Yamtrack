@@ -19,6 +19,8 @@ if (!window.__mediaFormRegistered) {
       const endDateField = this.$el.querySelector('[name="end_date"]');
       const startDateField = this.$el.querySelector('[name="start_date"]');
       const instanceIdField = this.$el.querySelector('[name="instance_id"]');
+      const progressField = this.$el.querySelector('[name="progress"]');
+      const progressUnitField = this.$el.querySelector('[name="progress_unit"]');
 
       // Check if this is a new form (no instance_id) vs editing existing record
       const isNewForm = !instanceIdField || !instanceIdField.value;
@@ -31,6 +33,43 @@ if (!window.__mediaFormRegistered) {
       }
       this.syncOptionalDateField(startDateField);
       this.syncOptionalDateField(endDateField);
+
+      if (progressUnitField && progressField) {
+        this.progress_unit = progressUnitField.value;
+        const maxProgress = parseInt(this.$el.dataset.maxProgress) || 0;
+        const unitNamePlural = this.$el.dataset.progressUnitName || "";
+
+        this.toggleProgressUnit = () => {
+          const oldUnit = this.progress_unit;
+          const newUnit = oldUnit === 'pages' ? 'percentage' : 'pages';
+          const currentValue = parseInt(progressField.value) || 0;
+
+          // Needs page count; rounding is lossy.
+          if (maxProgress > 0) {
+            let newValue;
+            if (newUnit === 'percentage') {
+              newValue = Math.round((currentValue / maxProgress) * 100);
+              progressField.max = 100;
+            } else {
+              newValue = Math.round((currentValue / 100) * maxProgress);
+              progressField.max = maxProgress;
+            }
+            progressField.value = newValue;
+          }
+
+          this.progress_unit = newUnit;
+          progressUnitField.value = newUnit;
+
+          // Relabel the input for the new unit.
+          const label = this.$el.querySelector(`label[for="${progressField.id}"]`);
+          if (label) {
+            label.textContent =
+              newUnit === "percentage"
+                ? "Progress (%)"
+                : `Progress (${unitNamePlural})`;
+          }
+        };
+      }
 
       // Initial load handling - only auto-fill for new forms
       // For existing records, respect the saved values (even if empty)
