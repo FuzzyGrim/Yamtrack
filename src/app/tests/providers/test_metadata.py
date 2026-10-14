@@ -1,7 +1,8 @@
+import asyncio
 import json
 from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import requests
 from django.conf import settings
@@ -464,6 +465,81 @@ class Metadata(TestCase):
         """Test Open Library publish dates with abbreviated month names."""
         response = openlibrary.get_publish_date({"publish_date": "Oct 01, 2017"})
         self.assertEqual(response, "2017-10-01")
+
+    @patch("app.providers.openlibrary.asyncio.sleep", new_callable=AsyncMock)
+    def test_openlibrary_author_fetch_retries_transient_errors(self, mock_sleep):
+        """Test Open Library author fetches retry server errors."""
+        failed_response = MagicMock(status=503)
+        ok_response = MagicMock(status=200)
+        ok_response.json = AsyncMock(return_value={"name": "George Orwell"})
+        session = MagicMock()
+        session.get.return_value.__aenter__.side_effect = [
+            failed_response,
+            ok_response,
+        ]
+
+        response = asyncio.run(openlibrary.fetch_author_data(session, "author-url"))
+
+        self.assertEqual(response, {"name": "George Orwell"})
+        self.assertEqual(session.get.call_count, 2)
+        mock_sleep.assert_awaited_once_with(1)
+
+    @patch("app.providers.openlibrary.asyncio.sleep", new_callable=AsyncMock)
+    def test_openlibrary_author_fetch_does_not_retry_not_found(self, mock_sleep):
+        """Test Open Library author fetches don't retry client errors."""
+        session = MagicMock()
+        session.get.return_value.__aenter__.return_value = MagicMock(status=404)
+
+        response = asyncio.run(openlibrary.fetch_author_data(session, "author-url"))
+
+        # empty dict marks a permanent miss, so the book can still be cached
+        self.assertEqual(response, {})
+        self.assertEqual(session.get.call_count, 1)
+        mock_sleep.assert_not_awaited()
+
+    @patch("app.providers.openlibrary.asyncio.sleep", new_callable=AsyncMock)
+    def test_openlibrary_author_fetch_gives_up_after_transient_errors(
+        self,
+        mock_sleep,
+    ):
+        """Test Open Library author fetches return None when retries run out."""
+        session = MagicMock()
+        session.get.return_value.__aenter__.return_value = MagicMock(status=503)
+
+        response = asyncio.run(openlibrary.fetch_author_data(session, "author-url"))
+
+        self.assertIsNone(response)
+        self.assertEqual(session.get.call_count, openlibrary.AUTHOR_FETCH_ATTEMPTS)
+        self.assertEqual(mock_sleep.await_count, openlibrary.AUTHOR_FETCH_ATTEMPTS - 1)
+
+    @patch("app.providers.openlibrary.cache")
+    @patch("app.providers.openlibrary.get_ratings", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.get_editions", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.get_authors", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.services.api_request")
+    def test_openlibrary_book_not_cached_when_authors_incomplete(
+        self,
+        mock_api_request,
+        mock_get_authors,
+        mock_get_editions,
+        mock_get_ratings,
+        mock_cache,
+    ):
+        """Test Open Library books aren't cached when author fetches fail."""
+        mock_cache.get.return_value = None
+        mock_api_request.side_effect = [
+            {"title": "Test Book", "works": [{"key": "/works/OL1W"}]},
+            {"key": "/works/OL1W"},
+        ]
+        mock_get_authors.return_value = (None, False)
+        mock_get_editions.return_value = []
+        mock_get_ratings.return_value = (None, 0)
+
+        response = openlibrary.book("OL1M")
+
+        self.assertEqual(response["title"], "Test Book")
+        self.assertIsNone(response["details"]["author"])
+        mock_cache.set.assert_not_called()
 
     def test_comic(self):
         """Test the metadata method for comics."""
