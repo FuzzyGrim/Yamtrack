@@ -590,6 +590,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Cleanup user messages",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
+    "refresh_stream_availability": {
+        "task": "Refresh stream availability",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
 }
 
 IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))

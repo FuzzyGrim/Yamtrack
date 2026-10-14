@@ -1,6 +1,7 @@
 from django.utils.text import slugify
 
-from app.models import BasicMedia, Status
+from app.models import STREAM_AVAILABILITY_MEDIA_TYPES, BasicMedia, Sources, Status
+from users.models import WATCH_PROVIDER_REGION_UNSET
 
 
 def build_home_section(key, media_types):
@@ -29,23 +30,35 @@ def get_home_media_types(
     specific_media_type=None,
     *,
     hide_unreleased=False,
+    hide_unavailable=False,
 ):
     """Return media types for a home section, or one type's load-more page."""
+    apply_filters = hide_unreleased or hide_unavailable
     media_types = BasicMedia.objects.get_home_status(
         user=request.user,
         status=section_key,
         sort_by=sort_by,
-        items_limit=None if hide_unreleased else items_limit,
+        items_limit=None if apply_filters else items_limit,
         specific_media_type=specific_media_type,
     )
 
-    if not hide_unreleased:
+    if not apply_filters:
         return media_types
+
+    predicates = []
+    if hide_unreleased:
+        predicates.append(lambda media: _is_released_home_media(media, section_key))
+    if hide_unavailable:
+        region = request.user.watch_provider_region
+        include_paid = getattr(request.user, "show_paid_providers", False)
+        predicates.append(
+            lambda media: _is_stream_available(media, region, include_paid=include_paid)
+        )
 
     return _paginate_home_media_types(
         _filter_home_media_types(
             media_types,
-            lambda media: _is_released_home_media(media, section_key),
+            lambda media: all(predicate(media) for predicate in predicates),
         ),
         items_limit,
         page_start=items_limit if specific_media_type else 0,
@@ -91,3 +104,25 @@ def _is_released_home_media(media, section_key):
         return is_active_in_progress_media(media)
 
     return not _is_incoming_media(media)
+
+
+def _is_stream_available(media, region, *, include_paid):
+    """Return True when media should remain after hiding stream-unavailable entries."""
+    item = media.item
+    if (
+        item.source != Sources.TMDB.value
+        or item.media_type not in STREAM_AVAILABILITY_MEDIA_TYPES
+    ):
+        return True
+
+    if region == WATCH_PROVIDER_REGION_UNSET or not region:
+        return True
+
+    bitmask = item.stream_availability.get(region)
+    if bitmask is None:
+        return True
+
+    if bitmask & 1:
+        return True
+
+    return include_paid and bool(bitmask & 2)
