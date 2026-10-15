@@ -277,12 +277,21 @@ def _episode_changes(record, info):
 
     A newly-watched episode is a completion of that episode (it receives an
     ``end_date``), so it is tagged ``end_date`` to earn the completed accent;
-    later edits are treated as progress.
+    later edits are treated as progress. Notes added with the watch follow as
+    their own change, like they do for other media.
     """
     episode_number = info["episode_number"]
     if record.history_type == "+":
         description = f"Watched episode {episode_number}"
-        return [{"description": description, "field": "end_date"}]
+        changes = [{"description": description, "field": "end_date"}]
+        if record.notes:
+            changes.append(
+                {
+                    "description": format_description("notes", None, record.notes),
+                    "field": "notes",
+                },
+            )
+        return changes
     description = f"Updated episode {episode_number}"
     return [{"description": description, "field": "progress"}]
 

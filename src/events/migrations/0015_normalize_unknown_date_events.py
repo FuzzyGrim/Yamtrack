@@ -5,6 +5,7 @@ from django.db import migrations
 from django.utils import timezone
 
 from app.models import MediaTypes
+from events.migrations._sentinel_bounds import clamp_out_of_range_datetimes
 from events.models import SentinelDatetime
 
 # TV episodes without a known air date used to be stamped with datetime.min
@@ -19,6 +20,11 @@ LEGACY_THRESHOLD = datetime(1900, 1, 1, tzinfo=ZoneInfo("UTC"))
 
 def normalize_unknown_date_events(apps, schema_editor):
     event_model = apps.get_model("events", "Event")
+
+    # datetime.min stored while TIME_ZONE was ahead of UTC ended up in year 0,
+    # which psycopg cannot decode, so clamp before fetching anything (#1662).
+    clamp_out_of_range_datetimes(event_model)
+
     now = timezone.now()
 
     item_ids = set(

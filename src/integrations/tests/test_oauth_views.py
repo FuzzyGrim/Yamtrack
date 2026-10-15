@@ -2,6 +2,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -90,3 +91,48 @@ class TraktOAuthViewTests(TestCase):
 
         self.assertRedirects(response, reverse("import_data"))
         mock_oauth_callback.assert_not_called()
+
+
+class TraktExportUploadViewTests(TestCase):
+    """Test the Trakt export archive upload view."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "testuser", "password": "testpass123"}
+        self.user = get_user_model().objects.create_user(**credentials)
+        self.client.login(**credentials)
+
+    @patch("integrations.views.tasks.import_trakt.delay")
+    def test_upload_queues_task_with_archive(self, mock_import_trakt):
+        """The uploaded archive is forwarded to the import task."""
+        upload = SimpleUploadedFile(
+            "trakt-export.zip",
+            b"archive-contents",
+            content_type="application/zip",
+        )
+
+        # The upload is closed once the response finishes, so read it while queueing.
+        queued = {}
+        mock_import_trakt.side_effect = lambda **kwargs: queued.update(
+            kwargs,
+            contents=kwargs["file"].read(),
+        )
+
+        response = self.client.post(
+            reverse("import_trakt_export"),
+            {"mode": "new", "trakt_export_zip": upload},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        mock_import_trakt.assert_called_once()
+        self.assertEqual(queued["user_id"], self.user.id)
+        self.assertEqual(queued["mode"], "new")
+        self.assertEqual(queued["contents"], b"archive-contents")
+
+    @patch("integrations.views.tasks.import_trakt.delay")
+    def test_missing_file_is_rejected(self, mock_import_trakt):
+        """Posting without a file shows an error instead of queueing a task."""
+        response = self.client.post(reverse("import_trakt_export"), {"mode": "new"})
+
+        self.assertEqual(response.status_code, 302)
+        mock_import_trakt.assert_not_called()

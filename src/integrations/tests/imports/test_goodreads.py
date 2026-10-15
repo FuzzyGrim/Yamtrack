@@ -1,3 +1,5 @@
+from csv import DictReader, DictWriter
+from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -54,6 +56,39 @@ class ImportGoodreads(TestCase):
         """Test a modern decimal rating ("5.0") maps to the 0-10 scale."""
         read_book = Book.objects.get(status=Status.COMPLETED.value)
         self.assertEqual(read_book.score, 10)
+
+
+class ImportGoodreadsMultilineNotes(TestCase):
+    """Test importing GoodReads rows whose quoted fields span several lines."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    @patch("integrations.imports.goodreads.GoodReadsImporter._search_book")
+    def test_multiline_notes_are_preserved(self, mock_search_book):
+        """Test that quoted multiline notes keep embedded newlines."""
+        mock_search_book.return_value = {
+            "media_id": "1215032",
+            "title": "The Wise Man's Fear",
+            "image": "https://example.com/image.jpg",
+        }
+
+        with Path(mock_path / "import_goodreads.csv").open(newline="") as file:
+            reader = DictReader(file)
+            row = next(row for row in reader if row["Exclusive Shelf"] == "read")
+        row["Private Notes"] = "line one\r\nline two"
+
+        buffer = StringIO(newline="")
+        writer = DictWriter(buffer, fieldnames=reader.fieldnames)
+        writer.writeheader()
+        writer.writerow(row)
+
+        goodreads.importer(BytesIO(buffer.getvalue().encode()), self.user, "new")
+
+        book = Book.objects.get(user=self.user)
+        self.assertEqual(book.notes, "line one\r\nline two")
 
 
 class ParseRating(TestCase):

@@ -23,7 +23,7 @@
              x-data="{ trackOpen: false, createOpen: false, menuOpen: false }"
              @click.away="menuOpen = false"
              @keydown.escape.window="trackOpen = false; createOpen = false; menuOpen = false">
-          <button class="p-3 flex-1 text-center font-medium text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}rounded-l-lg{% else %}rounded-lg{% endif %}"
+          <button class="p-3 flex-1 text-center font-medium text-white transition duration-300 cursor-pointer {% if user_medias %}{{ current_instance.status|status_button_color }}{% else %}bg-gray-600 hover:bg-gray-700{% endif %} {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}rounded-l-lg{% else %}rounded-lg{% endif %}"
                   hx-get="{% media_view_url 'track_modal' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
                   hx-target="#{% component_id 'track' media current_instance.id %}"
@@ -38,7 +38,7 @@
 
           {% if user_medias and media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
             {# Dropdown with more tracking options #}
-            <button class="px-3 rounded-r-lg bg-indigo-600 hover:bg-indigo-700 border-l border-white/30 text-white transition duration-300 cursor-pointer"
+            <button class="px-3 rounded-r-lg {{ current_instance.status|status_button_color }} border-l border-white/30 text-white transition duration-300 cursor-pointer"
                     title="More tracking options"
                     @click="menuOpen = !menuOpen">
               <div class="w-4 h-4 transition-transform"
