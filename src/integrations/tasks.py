@@ -9,6 +9,7 @@ from app.models import MediaTypes
 from app.templatetags import app_tags
 from integrations.imports import (
     anilist,
+    bgg,
     goodreads,
     helpers,
     hltb,
@@ -157,3 +158,9 @@ def import_imdb(file, user_id, mode):
 def import_goodreads(file, user_id, mode):
     """Celery task for importing media data from GoodReads."""
     return import_media(goodreads.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from BGG")
+def import_bgg(username, user_id, mode):
+    """Celery task for importing game data from BoardGameGeek."""
+    return import_media(bgg.importer, username, user_id, mode)

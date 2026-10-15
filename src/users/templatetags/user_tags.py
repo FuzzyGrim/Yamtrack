@@ -52,6 +52,10 @@ SOURCES_CONFIG = {
         "name": "GoodReads",
         "logo": static("img/logo-goodreads.svg"),
     },
+    "bgg": {
+        "name": "BoardGameGeek",
+        "logo": static("img/bgg-logo.svg"),
+    },
 }
 
 

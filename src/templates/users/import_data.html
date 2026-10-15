@@ -418,6 +418,29 @@
           </form>
         </div>
 
+        {# BoardGameGeek #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "bgg" %}</div>
+          <p class="text-sm text-gray-400 mb-3">Import boardgames from your BoardGameGeek collection</p>
+          <form class="flex items-center"
+                method="post"
+                action="{% url 'import_bgg' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <div class="flex w-full">
+              <input placeholder="BoardGameGeek username"
+                     name="username"
+                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     type="text">
+              <button type="submit"
+                      class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+                Import
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
