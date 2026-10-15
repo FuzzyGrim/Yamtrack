@@ -96,8 +96,7 @@ def import_trakt_private(request):
             frequency,
             import_time,
             "Trakt",
-            token=enc_token,
-            task_kwargs={"redirect_uri": redirect_uri},
+            task_kwargs={"token": enc_token, "redirect_uri": redirect_uri},
         )
     request.session.pop(state_token, None)
     return redirect("import_data")
@@ -131,6 +130,28 @@ def import_trakt_public(request):
             import_time=import_time,
             source="Trakt",
         )
+    return redirect("import_data")
+
+
+@require_POST
+def import_trakt_export(request):
+    """View for importing Trakt data from an exported zip file."""
+    file = request.FILES.get("trakt_export_zip")
+
+    if not file:
+        messages.error(request, "Trakt export zip file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_trakt.delay(
+        user_id=request.user.id,
+        mode=mode,
+        file=file,
+    )
+    messages.info(
+        request,
+        "The task to import media from Trakt export file has been queued.",
+    )
     return redirect("import_data")
 
 
@@ -187,7 +208,7 @@ def import_simkl_private(request):
             frequency,
             import_time,
             "SIMKL",
-            token=enc_token,
+            task_kwargs={"token": enc_token},
         )
 
     return redirect("import_data")
@@ -286,7 +307,7 @@ def import_anilist_private(request):
             frequency=frequency,
             import_time=import_time,
             source="AniList",
-            token=enc_token,
+            task_kwargs={"token": enc_token},
         )
     return redirect("import_data")
 

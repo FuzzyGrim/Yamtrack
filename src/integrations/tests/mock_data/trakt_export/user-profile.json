@@ -1,0 +1,26 @@
+{
+  "username": "yamtrack_user",
+  "private": false,
+  "deleted": false,
+  "name": "yamtrack_user",
+  "vip": false,
+  "vip_ep": false,
+  "director": false,
+  "ids": {
+    "slug": "yamtrack_user",
+    "trakt": 1000001
+  },
+  "joined_at": "2023-02-06T20:19:30.000Z",
+  "location": "",
+  "about": "",
+  "gender": "",
+  "age": null,
+  "images": {
+    "avatar": {
+      "full": "https://walter.trakt.tv/hotlink-ok/placeholders/medium/anonymous.png"
+    }
+  },
+  "vip_og": false,
+  "vip_years": 0,
+  "vip_cover_image": null
+}

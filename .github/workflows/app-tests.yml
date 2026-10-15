@@ -48,7 +48,7 @@ jobs:
         run: exit 1
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
         uses: astral-sh/setup-uv@v7
@@ -57,12 +57,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv sync --locked --dev
+          uv sync --locked --no-default-groups --group test
           uv run playwright install
-
-      - name: Ruff
-        run: |
-          uv run ruff check src
 
       - name: Set environment variables from secrets
         run: |
@@ -85,6 +81,6 @@ jobs:
           uv run coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

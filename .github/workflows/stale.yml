@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Mark and close stale issues and pull requests
-        uses: actions/stale@v10
+        uses: actions/stale@v11
         with:
           days-before-issue-stale: 180
           days-before-issue-close: 180
@@ -49,7 +49,7 @@ jobs:
           operations-per-run: 30
 
       - name: Close issues and pull requests pending an answer
-        uses: actions/stale@v10
+        uses: actions/stale@v11
         with:
           days-before-stale: -1
           days-before-close: 15

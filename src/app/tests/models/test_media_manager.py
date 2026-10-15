@@ -291,6 +291,23 @@ class MediaManagerTests(TestCase):
 
         self.assertEqual(len(media_list), 0)
 
+    def test_get_media_list_search_matches_notes(self):
+        """Test that the search parameter also matches the notes field."""
+        manager = MediaManager()
+
+        self.anime.notes = "Shinichiro Watanabe space western"
+        self.anime.save()
+
+        media_list = manager.get_media_list(
+            user=self.user,
+            media_type=MediaTypes.ANIME.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="score",
+            search="Watanabe",
+        )
+
+        self.assertEqual(len(media_list), 1)
+
     def test_apply_prefetch_related(self):
         """Test the _apply_prefetch_related method."""
         manager = MediaManager()

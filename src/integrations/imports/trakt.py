@@ -1,10 +1,13 @@
 import json
 import logging
+import re
+import zipfile
 from collections import defaultdict
 
 import requests
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django_celery_beat.models import PeriodicTask
 
@@ -19,6 +22,30 @@ logger = logging.getLogger(__name__)
 
 TRAKT_API_BASE_URL = "https://api.trakt.tv"
 BULK_PAGE_SIZE = 1000
+
+# The archive is expanded in the worker, so cap how much it may hold uncompressed.
+MAX_EXPORT_UNCOMPRESSED_BYTES = 100 * 1024 * 1024
+
+# Username used when the archive has no readable user-profile.json.
+EXPORT_FALLBACK_USERNAME = "Trakt User"
+
+# Convert Trakt API endpoints to the corresponding export file(s) that contain the data.
+ENDPOINTS_TO_FILES = {
+    "/history": ("watched-history",),
+    "/watchlist": ("lists-watchlist",),
+    "/ratings": (
+        "ratings-movies",
+        "ratings-shows",
+        "ratings-seasons",
+        "ratings-episodes",
+    ),
+    "/comments": (
+        "comments-movies",
+        "comments-shows",
+        "comments-seasons",
+        "comments-episodes",
+    ),
+}
 
 
 def handle_oauth_callback(request, redirect_uri=None):
@@ -136,26 +163,31 @@ def update_refresh_token(old_token, new_token):
         periodic_task.save()
 
 
-def importer(token, user, mode, username, redirect_uri=None):
+def importer(token, user, mode, username=None, redirect_uri=None, file=None):
     """Import the user's data from Trakt.
 
-    Can import using either OAuth (token provided) or public username.
-    When using OAuth, username should be the authenticated user's username.
-    When using public import, username is the Trakt username and token should be None.
+    Can import using OAuth (token provided), public username, or an export archive
+    downloaded from the Trakt website.
 
     Args:
         token (str, optional): Encrypted OAuth2 refresh token if using OAuth else None
         user: Django user object to import data for
         mode (str): Import mode ("new" or "overwrite")
-        username (str): Trakt username to import from
+        username (str, optional): Trakt username if using API import else None
+        redirect_uri (str, optional): OAuth2 redirect URI if using OAuth else None
+        file (File, optional): Uploaded Trakt export archive else None
     """
-    trakt_importer = TraktImporter(
-        username,
-        user,
-        mode,
-        refresh_token=token,
-        redirect_uri=redirect_uri,
-    )
+    if file:
+        trakt_importer = TraktExportImporter(file, user, mode)
+    else:
+        trakt_importer = TraktImporter(
+            username,
+            user,
+            mode,
+            refresh_token=token,
+            redirect_uri=redirect_uri,
+        )
+
     return trakt_importer.import_data()
 
 
@@ -183,6 +215,16 @@ class TraktImporter:
         # Track existing media to handle "new" mode correctly
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track existing seasons and watches to only add what is missing in "new" mode
+        self.existing_seasons = {}
+        self.existing_watches = {}
+        if mode == "new":
+            self.existing_seasons = helpers.get_existing_seasons(user)
+            self.existing_watches = helpers.get_existing_watches(user)
+
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -207,6 +249,11 @@ class TraktImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -333,6 +380,69 @@ class TraktImporter:
         )
         return None
 
+    def _get_existing(self, media_type, tmdb_id, season_number=None):
+        """Get the media already in Yamtrack, only tracked in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        if media_type == MediaTypes.SEASON.value:
+            return self.existing_seasons.get(
+                (Sources.TMDB.value, tmdb_id, season_number),
+            )
+
+        return self.existing_media[media_type][Sources.TMDB.value].get(tmdb_id)
+
+    def _should_process_watch(
+        self,
+        media_type,
+        tmdb_id,
+        end_date,
+        season_number=None,
+        episode_number=None,
+    ):
+        """Determine if a movie or episode watch should be processed based on mode."""
+        parent_type = (
+            MediaTypes.TV.value
+            if media_type == MediaTypes.EPISODE.value
+            else media_type
+        )
+
+        # Existing media only gets the watches it is missing
+        if self._get_existing(parent_type, tmdb_id):
+            watch_key = helpers.get_watch_key(
+                media_type,
+                Sources.TMDB.value,
+                tmdb_id,
+                season_number,
+                episode_number,
+            )
+            return not helpers.is_existing_watch(
+                self.existing_watches,
+                watch_key,
+                end_date,
+            )
+
+        return helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            parent_type,
+            Sources.TMDB.value,
+            tmdb_id,
+            self.mode,
+        )
+
+    def _reopen_status(self, media_type, media):
+        """Move completed existing media back to in progress."""
+        if helpers.reopen_status(media):
+            self.to_update[media_type][media.pk] = media
+
+    def _set_status(self, media_type, media, status):
+        """Set the status, only moving existing media forward."""
+        if media.pk is None:
+            media.status = status
+        elif helpers.advance_status(media, status):
+            self.to_update[media_type][media.pk] = media
+
     def _get_metadata(self, media_type, tmdb_id, title, season_number=None):
         """Get metadata for a media item."""
         try:
@@ -396,15 +506,24 @@ class TraktImporter:
         if not tmdb_id:
             return
 
+        watched_at = entry["watched_at"]
+        end_date = self._get_date(watched_at)
+
         # Check if we should process this movie based on mode
-        if not helpers.should_process_media(
-            self.existing_media,
-            self.to_delete,
-            MediaTypes.MOVIE.value,
-            Sources.TMDB.value,
-            tmdb_id,
-            self.mode,
+        if not self._should_process_watch(MediaTypes.MOVIE.value, tmdb_id, end_date):
+            return
+
+        # Complete the unwatched movie instead of adding another one
+        existing_movie = self._get_existing(MediaTypes.MOVIE.value, tmdb_id)
+        if (
+            existing_movie
+            and existing_movie.end_date is None
+            and helpers.advance_status(existing_movie, Status.COMPLETED.value)
         ):
+            existing_movie.end_date = end_date
+            existing_movie.progress = 1
+            existing_movie.progressed_at = timezone.now()
+            self.to_update[MediaTypes.MOVIE.value][existing_movie.pk] = existing_movie
             return
 
         metadata = self._get_metadata(MediaTypes.MOVIE.value, tmdb_id, movie["title"])
@@ -412,14 +531,13 @@ class TraktImporter:
             return
 
         item = self._get_or_create_item(MediaTypes.MOVIE.value, tmdb_id, metadata)
-        watched_at = entry["watched_at"]
 
         key = f"{tmdb_id}"
 
         movie_obj = app.models.Movie(
             item=item,
             user=self.user,
-            end_date=self._get_date(watched_at),
+            end_date=end_date,
             status=Status.COMPLETED.value,
             progress=1,
         )
@@ -444,20 +562,21 @@ class TraktImporter:
         if not tmdb_id:
             return
 
-        # Check if we should process this episode based on mode
-        if not helpers.should_process_media(
-            self.existing_media,
-            self.to_delete,
-            MediaTypes.TV.value,
-            Sources.TMDB.value,
-            tmdb_id,
-            self.mode,
-        ):
-            return
-
         # Extract episode data
         season_number = entry["episode"]["season"]
         episode_number = entry["episode"]["number"]
+        watched_at = entry["watched_at"]
+        end_date = self._get_date(watched_at)
+
+        # Check if we should process this episode based on mode
+        if not self._should_process_watch(
+            MediaTypes.EPISODE.value,
+            tmdb_id,
+            end_date,
+            season_number,
+            episode_number,
+        ):
+            return
 
         # Get TV metadata
         tv_metadata = self._get_metadata(MediaTypes.TV.value, tmdb_id, show["title"])
@@ -488,9 +607,82 @@ class TraktImporter:
             return
 
         episode_image = self._get_episode_image(episode_number, season_metadata)
-        watched_at = entry["watched_at"]
+
+        # An episode watched for the first time reopens its completed show
+        watch_key = helpers.get_watch_key(
+            MediaTypes.EPISODE.value,
+            Sources.TMDB.value,
+            tmdb_id,
+            season_number,
+            episode_number,
+        )
+        first_watch = watch_key not in self.existing_watches
 
         # Create or get TV show
+        tv_obj = self._get_watched_tv(
+            tmdb_id,
+            tv_metadata,
+            watched_at,
+            first_watch=first_watch,
+        )
+
+        # Create or get Season
+        season_obj = self._get_watched_season(
+            tmdb_id,
+            season_number,
+            season_metadata,
+            tv_obj,
+            watched_at,
+            first_watch=first_watch,
+        )
+
+        # Create Episode item and object
+        episode_metadata = {
+            "title": tv_metadata["title"],
+            "image": episode_image,
+        }
+        episode_item = self._get_or_create_item(
+            MediaTypes.EPISODE.value,
+            tmdb_id,
+            episode_metadata,
+            season_number,
+            episode_number,
+        )
+
+        ep_key = f"{tmdb_id}:{season_number}:{episode_number}"
+
+        episode_obj = app.models.Episode(
+            item=episode_item,
+            related_season=season_obj,
+            end_date=end_date,
+        )
+        episode_obj._history_date = parse_datetime(watched_at)
+        self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
+        self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
+
+        # Update status if this is the last episode
+        self._update_completion_status(
+            season_obj,
+            tv_obj,
+            season_number,
+            episode_number,
+            season_metadata,
+            tv_metadata,
+        )
+
+    def _get_watched_tv(self, tmdb_id, tv_metadata, watched_at, *, first_watch):
+        """Get or create the TV object of a watched episode."""
+        existing_tv = self._get_existing(MediaTypes.TV.value, tmdb_id)
+        if existing_tv:
+            if first_watch:
+                self._reopen_status(MediaTypes.TV.value, existing_tv)
+            self._set_status(
+                MediaTypes.TV.value,
+                existing_tv,
+                Status.IN_PROGRESS.value,
+            )
+            return existing_tv
+
         tv_item = self._get_or_create_item(MediaTypes.TV.value, tmdb_id, tv_metadata)
         tv_key = f"{tmdb_id}"
 
@@ -505,8 +697,34 @@ class TraktImporter:
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         else:
             tv_obj = self.media_instances[MediaTypes.TV.value][tv_key][0]
+        return tv_obj
 
-        # Create or get Season
+    def _get_watched_season(
+        self,
+        tmdb_id,
+        season_number,
+        season_metadata,
+        tv_obj,
+        watched_at,
+        *,
+        first_watch,
+    ):
+        """Get or create the Season object of a watched episode."""
+        existing_season = self._get_existing(
+            MediaTypes.SEASON.value,
+            tmdb_id,
+            season_number,
+        )
+        if existing_season:
+            if first_watch:
+                self._reopen_status(MediaTypes.SEASON.value, existing_season)
+            self._set_status(
+                MediaTypes.SEASON.value,
+                existing_season,
+                Status.IN_PROGRESS.value,
+            )
+            return existing_season
+
         season_item = self._get_or_create_item(
             MediaTypes.SEASON.value,
             tmdb_id,
@@ -527,40 +745,7 @@ class TraktImporter:
             self.media_instances[MediaTypes.SEASON.value][season_key] = [season_obj]
         else:
             season_obj = self.media_instances[MediaTypes.SEASON.value][season_key][0]
-
-        # Create Episode item and object
-        episode_metadata = {
-            "title": tv_metadata["title"],
-            "image": episode_image,
-        }
-        episode_item = self._get_or_create_item(
-            MediaTypes.EPISODE.value,
-            tmdb_id,
-            episode_metadata,
-            season_number,
-            episode_number,
-        )
-
-        ep_key = f"{tmdb_id}:{season_number}:{episode_number}"
-
-        episode_obj = app.models.Episode(
-            item=episode_item,
-            related_season=season_obj,
-            end_date=self._get_date(watched_at),
-        )
-        episode_obj._history_date = parse_datetime(watched_at)
-        self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
-        self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
-
-        # Update status if this is the last episode
-        self._update_completion_status(
-            season_obj,
-            tv_obj,
-            season_number,
-            episode_number,
-            season_metadata,
-            tv_metadata,
-        )
+        return season_obj
 
     def _update_completion_status(
         self,
@@ -573,11 +758,15 @@ class TraktImporter:
     ):
         """Update completion status for season and TV show if applicable."""
         if episode_number == season_metadata["max_progress"]:
-            season_obj.status = Status.COMPLETED.value
+            self._set_status(
+                MediaTypes.SEASON.value,
+                season_obj,
+                Status.COMPLETED.value,
+            )
 
             last_season = tv_metadata.get("last_episode_season")
             if last_season and last_season == season_number:
-                tv_obj.status = Status.COMPLETED.value
+                self._set_status(MediaTypes.TV.value, tv_obj, Status.COMPLETED.value)
 
     def process_watchlist(self):
         """Process watchlist from Trakt."""
@@ -694,10 +883,22 @@ class TraktImporter:
         if not tmdb_id:
             return
 
+        key = f"{tmdb_id}"
+        if media_type == MediaTypes.SEASON.value:
+            key = f"{key}:{season_number}"
+
+        # Existing media only gets the score and notes it is missing
+        existing = self._get_existing(media_type, tmdb_id, season_number)
+        if existing:
+            self._sync_existing(media_type, key, existing, defaults)
+            return
+
+        # A new season of an existing show is added to it
         parent_type = (
             MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
         )
-        if not helpers.should_process_media(
+        parent_exists = self._get_existing(parent_type, tmdb_id) is not None
+        if not parent_exists and not helpers.should_process_media(
             self.existing_media,
             self.to_delete,
             parent_type,
@@ -728,10 +929,6 @@ class TraktImporter:
                 return
             defaults["related_tv"] = tv_obj
 
-        key = f"{tmdb_id}"
-        if media_type == MediaTypes.SEASON.value:
-            key = f"{key}:{season_number}"
-
         item = self._get_or_create_item(media_type, tmdb_id, metadata, season_number)
 
         if key in self.media_instances[media_type]:
@@ -746,8 +943,21 @@ class TraktImporter:
             self.bulk_media[media_type].append(media_obj)
             self.media_instances[media_type][key] = [media_obj]
 
+    def _sync_existing(self, media_type, key, existing, defaults):
+        """Fill the missing score and notes of existing media."""
+        if helpers.fill_empty_fields(existing, defaults):
+            self.to_update[media_type][existing.pk] = existing
+
+        # Watches of the existing media added by this import
+        if key in self.media_instances[media_type]:
+            self._update_instance(media_type, key, defaults)
+
     def _get_tv_obj(self, tmdb_id, media_data, updated_at):
         """Get or create a TV object for the given season."""
+        existing_tv = self._get_existing(MediaTypes.TV.value, tmdb_id)
+        if existing_tv:
+            return existing_tv
+
         tv_metadata = self._get_metadata(
             MediaTypes.TV.value,
             tmdb_id,
@@ -783,3 +993,160 @@ class TraktImporter:
         for media_obj in self.media_instances[media_type][key]:
             for attr, value in defaults.items():
                 setattr(media_obj, attr, value)
+
+
+class TraktExportImporter(TraktImporter):
+    """Run the standard Trakt import against an export archive instead of the API."""
+
+    def __init__(self, file, user, mode):
+        """Initialize from a Trakt export archive."""
+        # The archive appends to this list while files are read during the import,
+        # so it is shared with the importer instead of being merged afterwards.
+        warnings = []
+        self.export_archive = TraktArchiveManager(file, warnings)
+
+        user_profile = self.export_archive.parse_json("user-profile")
+        username = (
+            user_profile.get("username")
+            if isinstance(user_profile, dict)
+            else EXPORT_FALLBACK_USERNAME
+        )
+
+        super().__init__(username or EXPORT_FALLBACK_USERNAME, user, mode)
+        self.warnings = warnings
+
+    def _make_api_request(self, url):
+        """Read from the export archive instead of making API calls."""
+        return self._get_paginated_data(url)
+
+    def _get_paginated_data(self, endpoint, item_type="items"):
+        """Read the export files matching the endpoint."""
+        relative_filepath = endpoint.removeprefix(self.user_base_url)
+        prefixes = ENDPOINTS_TO_FILES.get(relative_filepath)
+
+        if prefixes is None:
+            logger.warning("No Trakt export file mapped for endpoint %s", endpoint)
+            return []
+
+        # Read the JSON files from the export archive and concatenate their contents.
+        entries = self.export_archive.load(*prefixes)
+        logger.info(
+            "Retrieved %s total %s for user %s from export archive",
+            len(entries),
+            item_type,
+            self.username,
+        )
+        return entries
+
+
+class TraktArchiveManager:
+    """Class to manage a Trakt export archive."""
+
+    def __init__(self, file, warnings=None):
+        """Open the archive and index its JSON files.
+
+        Args:
+            file: Uploaded export archive, or any file-like object
+            warnings (list, optional): List to append read warnings to
+        """
+        try:
+            self.zipfile = zipfile.ZipFile(file)
+        except zipfile.BadZipFile as e:
+            msg = "The uploaded file is not a valid Trakt export archive."
+            raise MediaImportError(msg) from e
+
+        self.warnings = warnings if warnings is not None else []
+
+        # Map each JSON base name to its full path inside the archive, so archives
+        # that keep the export in a subdirectory can still be read.
+        self._files = {}
+
+        uncompressed_size = 0
+
+        # Check the uncompressed size of the archive to avoid memory issues.
+        # file_size is what the archive declares, so this is a guard against
+        # oversized exports rather than against deliberately crafted archives.
+        for info in self.zipfile.infolist():
+            if info.is_dir():
+                continue
+            uncompressed_size += info.file_size
+            if uncompressed_size > MAX_EXPORT_UNCOMPRESSED_BYTES:
+                msg = "The uncompressed Trakt export archive is too large to import."
+                raise MediaImportError(msg)
+
+            name = info.filename.rsplit("/", 1)[-1]
+            if not name.lower().endswith(".json"):
+                continue
+            # Store the base name without the .json suffix for easier matching.
+            self._files.setdefault(name[: -len(".json")], info.filename)
+
+        if not self._recognized_export():
+            msg = (
+                "The uploaded archive does not contain any Trakt export data. "
+                "Upload the ZIP file downloaded from the Trakt website."
+            )
+            raise MediaImportError(msg)
+
+    def _recognized_export(self):
+        """Check whether the archive holds at least one known export file."""
+        if "user-profile" in self._files:
+            return True
+
+        return any(
+            self._match_names(prefix)
+            for prefixes in ENDPOINTS_TO_FILES.values()
+            for prefix in prefixes
+        )
+
+    def parse_json(self, base_name):
+        """Read a JSON file from the archive, returning None when unavailable."""
+        filename = self._files.get(base_name)
+        if filename is None:
+            return None
+
+        try:
+            return json.loads(self.zipfile.read(filename))
+        except (KeyError, OSError, json.JSONDecodeError, UnicodeDecodeError):
+            logger.exception("Trakt export file %s could not be read", filename)
+            self.warnings.append(f"{base_name}.json: could not be read, skipped.")
+            return None
+
+    def load(self, *prefixes):
+        """Concatenate every file into a single list, sorted by page number."""
+        entries = []
+        for prefix in prefixes:
+            for base_name in self._match_names(prefix):
+                page = self.parse_json(base_name)
+                if page is None:
+                    # parse_json already recorded why the file was skipped.
+                    continue
+                if isinstance(page, list):
+                    entries.extend(page)
+                else:
+                    self.warnings.append(
+                        f"{base_name}.json: unexpected contents, skipped."
+                    )
+        return entries
+
+    def _match_names(self, prefix):
+        """Return base names for prefixes by page."""
+        names = []
+        if prefix in self._files:
+            names.append(prefix)
+
+        pages = {}
+        page_pattern = re.compile(rf"^{re.escape(prefix)}-(\d+)$")
+        for base_name in self._files:
+            match = page_pattern.match(base_name)
+            if match:
+                pages[int(match.group(1))] = base_name
+
+        # Trakt splits large sections into pages numbered contiguously from 1, e.g.
+        # watched-history-1.json. Only following that run keeps a custom list such as
+        # lists-watchlist-2025 from being read as a page of lists-watchlist.
+        page = 1
+        while page in pages:
+            names.append(pages[page])
+            page += 1
+
+        return names

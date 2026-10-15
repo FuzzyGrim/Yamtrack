@@ -11,9 +11,9 @@
   {% for week in calendar %}
     {% for day in week %}
       {% if day == 0 %}
-        <div class="min-h-[130px] p-1 rounded-md relative bg-[#343a40] opacity-40"></div>
+        <div class="min-h-32.5 p-1 rounded-md relative bg-[#343a40] opacity-40"></div>
       {% else %}
-        <div class="min-h-[130px] p-1 rounded-md relative bg-[#39404b] cursor-pointer hover:bg-[#454d5a] {% if day == today.day and month == today.month and year == today.year %}ring-2 ring-indigo-500{% endif %}">
+        <div class="min-h-32.5 p-1 rounded-md relative bg-[#39404b] cursor-pointer hover:bg-[#454d5a] {% if day == today.day and month == today.month and year == today.year %}ring-2 ring-indigo-500{% endif %}">
           <div class="text-right text-sm p-1 font-medium {% if day == today.day and month == today.month and year == today.year %}bg-indigo-500 text-white rounded-full w-7 h-7 flex items-center justify-center ml-auto{% endif %}">
             {{ day }}
           </div>

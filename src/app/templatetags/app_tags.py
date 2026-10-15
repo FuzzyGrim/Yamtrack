@@ -1,4 +1,3 @@
-from datetime import timedelta
 from pathlib import Path
 
 from django import template
@@ -121,16 +120,6 @@ def datetime_format(datetime, user):
     return formatted_date
 
 
-@register.simple_tag
-def now_plus_minutes(minutes):
-    """Return a date/datetime-local value for now plus minutes."""
-    minutes = int(minutes)
-    local_dt = timezone.localtime(timezone.now() + timedelta(minutes=minutes))
-    if settings.TRACK_TIME:
-        return local_dt.strftime("%Y-%m-%dT%H:%M")
-    return local_dt.strftime("%Y-%m-%d")
-
-
 @register.filter
 def is_list(arg1):
     """Return True if the object is a list."""
@@ -241,9 +230,27 @@ def media_color(media_type):
 
 
 @register.filter
+def journal_accent(accent):
+    """Return the badge background class and icon template for a journal accent."""
+    return config.get_journal_accent(accent)
+
+
+@register.filter
+def status_config(status):
+    """Return the config dict for a status, or None if it is unrecognized."""
+    return config.get_status_config(status)
+
+
+@register.filter
 def status_color(status):
     """Return the color associated with the status."""
     return config.get_status_text_color(status)
+
+
+@register.filter
+def status_icon(status):
+    """Return the icon template associated with the status."""
+    return config.get_status_icon(status)
 
 
 @register.filter

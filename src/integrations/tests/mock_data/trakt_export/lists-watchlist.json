@@ -1,0 +1,140 @@
+[
+  {
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt0156887",
+        "plex": {
+          "guid": "5d77683585719b001f3a3b8c",
+          "slug": "perfect-blue"
+        },
+        "slug": "perfect-blue-1998",
+        "tmdb": 10494,
+        "trakt": 5677
+      },
+      "year": 1998,
+      "title": "Perfect Blue"
+    },
+    "rank": 1,
+    "id": 1085775335,
+    "listed_at": "2024-09-11T07:45:03.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "show",
+    "show": {
+      "ids": {
+        "imdb": "tt7923710",
+        "plex": {
+          "guid": "5d9c08f23c3f87001f35949f",
+          "slug": "my-mister"
+        },
+        "slug": "my-mister",
+        "tmdb": 76662,
+        "tvdb": 341871,
+        "trakt": 127400
+      },
+      "year": 2018,
+      "title": "My Mister",
+      "aired_episodes": 16
+    },
+    "rank": 3,
+    "id": 1183101440,
+    "listed_at": "2025-03-01T21:54:31.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "show",
+    "show": {
+      "ids": {
+        "imdb": "tt9522300",
+        "plex": {
+          "guid": "5d9c090f02391c001f594b8b",
+          "slug": "kaguya-sama-love-is-war"
+        },
+        "slug": "kaguya-sama-love-is-war",
+        "tmdb": 83121,
+        "tvdb": 354198,
+        "trakt": 138254
+      },
+      "year": 2019,
+      "title": "Kaguya-sama: Love is War",
+      "aired_episodes": 37
+    },
+    "rank": 4,
+    "id": 1085779483,
+    "listed_at": "2024-09-11T07:59:23.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "show",
+    "show": {
+      "ids": {
+        "imdb": "tt12846096",
+        "plex": {
+          "guid": "5e5855aaef1f92003e96b348",
+          "slug": "18-again"
+        },
+        "slug": "18-again",
+        "tmdb": 99654,
+        "tvdb": 377956,
+        "trakt": 158853
+      },
+      "year": 2020,
+      "title": "18 Again",
+      "aired_episodes": 16
+    },
+    "rank": 4,
+    "id": 1183101605,
+    "listed_at": "2025-03-01T21:54:51.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt1757678",
+        "plex": {
+          "guid": "5d7768cc9ab54400214eba10",
+          "slug": "avatar-fire-and-ash"
+        },
+        "slug": "avatar-fire-and-ash-2025",
+        "tmdb": 83533,
+        "trakt": 62544
+      },
+      "year": 2025,
+      "title": "Avatar: Fire and Ash"
+    },
+    "rank": 5,
+    "id": 1420265380,
+    "listed_at": "2026-02-01T16:38:55.000Z",
+    "notes": null,
+    "my_rating": null
+  },
+  {
+    "type": "movie",
+    "movie": {
+      "ids": {
+        "imdb": "tt35222590",
+        "plex": {
+          "guid": "676f65b521ceb06885761587",
+          "slug": "the-exit-8-2025"
+        },
+        "slug": "exit-8-2025",
+        "tmdb": 1408208,
+        "trakt": 1152229
+      },
+      "year": 2025,
+      "title": "Exit 8"
+    },
+    "rank": 6,
+    "id": 1420265640,
+    "listed_at": "2026-02-01T16:39:27.000Z",
+    "notes": null,
+    "my_rating": null
+  }
+]

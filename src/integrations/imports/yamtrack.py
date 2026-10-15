@@ -152,7 +152,10 @@ class YamtrackImporter:
         )
 
         if form.is_valid():
-            progressed_at = row.get("progressed_at")
+            # Episodes have no progressed_at field, so their exported column is
+            # blank; fall back to end_date (the watch date) so the activity
+            # heatmap lands on the day watched instead of the import day.
+            progressed_at = row.get("progressed_at") or row.get("end_date")
             if progressed_at:
                 form.instance._history_date = parse_datetime(progressed_at)
             self.bulk_media[media_type].append(form.instance)

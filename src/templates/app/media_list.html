@@ -224,7 +224,7 @@
   {% if not request.user.is_authenticated %}
     <div class="p-4 border-t border-[#2c3136] mt-auto">
       <div class="space-y-2">
-        <a href="/accounts/login/?next={{ request.path }}"
+        <a href="{% url 'account_login' %}?next={{ request.path }}"
            class="mt-4 p-3 rounded-lg w-full flex items-center justify-center gap-2 text-white duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 ">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="18"

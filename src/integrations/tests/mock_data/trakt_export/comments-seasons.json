@@ -1,0 +1,116 @@
+[
+  {
+    "type": "season",
+    "season": {
+      "number": 10,
+      "ids": {
+        "trakt": 4984,
+        "tvdb": 16103,
+        "tmdb": 4582,
+        "tvrage": null
+      },
+      "aired_episodes": 17
+    },
+    "show": {
+      "title": "Friends",
+      "year": 1994,
+      "ids": {
+        "trakt": 1657,
+        "slug": "friends",
+        "tvdb": 79168,
+        "imdb": "tt0108778",
+        "tmdb": 1668,
+        "tvrage": null
+      },
+      "aired_episodes": 228
+    },
+    "comment": {
+      "id": 814117,
+      "comment": "it was okay i guess",
+      "spoiler": false,
+      "review": false,
+      "parent_id": 0,
+      "created_at": "2025-05-19T10:18:31.000Z",
+      "updated_at": "2025-05-19T10:18:31.000Z",
+      "replies": 0,
+      "likes": 0,
+      "user_rating": 6,
+      "language": "en",
+      "user_stats": {
+        "rating": 6,
+        "play_count": 0,
+        "completed_count": 0
+      },
+      "user": {
+        "username": "yamtrack_user",
+        "private": false,
+        "deleted": false,
+        "name": "yamtrack_user",
+        "vip": false,
+        "vip_ep": false,
+        "director": false,
+        "ids": {
+          "slug": "yamtrack_user",
+          "trakt": 1000001
+        }
+      }
+    }
+  },
+  {
+    "type": "season",
+    "season": {
+      "number": 10,
+      "ids": {
+        "trakt": 4984,
+        "tvdb": 16103,
+        "tmdb": 4582,
+        "tvrage": null
+      },
+      "aired_episodes": 17
+    },
+    "show": {
+      "title": "Friends",
+      "year": 1994,
+      "ids": {
+        "trakt": 1657,
+        "slug": "friends",
+        "tvdb": 79168,
+        "imdb": "tt0108778",
+        "tmdb": 1668,
+        "tvrage": null
+      },
+      "aired_episodes": 228
+    },
+    "comment": {
+      "id": 814116,
+      "comment": "it was okay i guess",
+      "spoiler": false,
+      "review": false,
+      "parent_id": 0,
+      "created_at": "2025-05-19T10:18:16.000Z",
+      "updated_at": "2025-05-19T10:18:16.000Z",
+      "replies": 0,
+      "likes": 0,
+      "user_rating": 6,
+      "language": "en",
+      "user_stats": {
+        "rating": 6,
+        "play_count": 0,
+        "completed_count": 0
+      },
+      "user": {
+        "username": "yamtrack_user",
+        "private": false,
+        "deleted": false,
+        "name": "yamtrack_user",
+        "vip": false,
+        "vip_ep": false,
+        "director": false,
+        "ids": {
+          "slug": "yamtrack_user",
+          "trakt": 1000001
+        }
+      }
+    }
+  }
+]

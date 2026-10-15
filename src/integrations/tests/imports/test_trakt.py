@@ -1,4 +1,7 @@
+import json
+import zipfile
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -6,19 +9,32 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from app.models import (
+    TV,
+    Episode,
     MediaTypes,
     Movie,
+    Season,
     Status,
 )
 from integrations.imports import (
     helpers,
 )
-from integrations.imports.trakt import TraktImporter, get_access_token, importer
+from integrations.imports.helpers import MediaImportError
+from integrations.imports.trakt import (
+    ENDPOINTS_TO_FILES,
+    EXPORT_FALLBACK_USERNAME,
+    TraktArchiveManager,
+    TraktExportImporter,
+    TraktImporter,
+    get_access_token,
+    importer,
+)
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 app_mock_path = (
     Path(__file__).resolve().parent.parent.parent.parent / "app" / "tests" / "mock_data"
 )
+trakt_export_path = mock_path / "trakt_export"
 
 
 class ImportTrakt(TestCase):
@@ -311,3 +327,608 @@ class ImportTrakt(TestCase):
             params["redirect_uri"],
             "https://yamtrack.example.com/import/trakt/private",
         )
+
+
+class ImportTraktNewMode(TestCase):
+    """Test that "new" mode only imports what is missing from Yamtrack."""
+
+    MOVIE = {"title": "Test Movie", "ids": {"tmdb": 67890}}
+    SHOW = {"title": "Test Show", "ids": {"tmdb": 12345}}
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+
+    def movie_watch(self, watched_at):
+        """Return a movie history entry."""
+        return {"type": "movie", "movie": self.MOVIE, "watched_at": watched_at}
+
+    def episode_watch(self, episode_number, watched_at, season_number=1):
+        """Return an episode history entry."""
+        return {
+            "type": "episode",
+            "episode": {
+                "season": season_number,
+                "number": episode_number,
+                "title": "Episode",
+            },
+            "show": self.SHOW,
+            "watched_at": watched_at,
+        }
+
+    last_episode_season = 1
+
+    def get_metadata(self, media_type, _, __, ___=None):
+        """Return metadata for a show with seasons of two episodes."""
+        if media_type == MediaTypes.SEASON.value:
+            return {
+                "title": "Season 1",
+                "image": "season.jpg",
+                "episodes": [
+                    {"episode_number": 1, "still_path": None},
+                    {"episode_number": 2, "still_path": None},
+                ],
+                "max_progress": 2,
+            }
+        return {
+            "title": "Test Title",
+            "image": "image.jpg",
+            "last_episode_season": self.last_episode_season,
+            "max_progress": 2,
+        }
+
+    def run_import(self, history=(), watchlist=(), ratings=()):
+        """Run a Trakt import in "new" mode, history is given newest first."""
+
+        def make_api_request(url):
+            if url.endswith("/watchlist"):
+                return list(watchlist)
+            if url.endswith("/ratings"):
+                return list(ratings)
+            return []
+
+        with (
+            patch.object(
+                TraktImporter,
+                "_get_paginated_data",
+                side_effect=[list(history), []],
+            ),
+            patch.object(
+                TraktImporter,
+                "_make_api_request",
+                side_effect=make_api_request,
+            ),
+            patch.object(TraktImporter, "_get_metadata", side_effect=self.get_metadata),
+        ):
+            return importer(None, self.user, "new", "public_user")
+
+    def test_new_episode_added_to_existing_show(self):
+        """A new episode of a show that already exists is imported."""
+        first_watch = self.episode_watch(1, "2023-01-01T10:00:30.000Z")
+        self.run_import(history=[first_watch])
+
+        second_watch = self.episode_watch(2, "2023-01-02T10:00:30.000Z")
+        imported_counts, _ = self.run_import(history=[second_watch, first_watch])
+
+        self.assertEqual(imported_counts, {MediaTypes.EPISODE.value: 1})
+        self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(Season.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(
+            list(
+                Episode.objects.filter(related_season__user=self.user).values_list(
+                    "item__episode_number",
+                    flat=True,
+                ),
+            ),
+            [1, 2],
+        )
+
+    def test_import_twice_adds_nothing(self):
+        """Importing the same history again does not duplicate watches."""
+        history = [
+            self.movie_watch("2023-01-03T10:00:30.000Z"),
+            self.episode_watch(1, "2023-01-01T10:00:30.000Z"),
+        ]
+        self.run_import(history=history)
+        imported_counts, _ = self.run_import(history=history)
+
+        self.assertEqual(imported_counts, {})
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(
+            Episode.objects.filter(related_season__user=self.user).count(),
+            1,
+        )
+
+    def test_finale_completes_existing_show(self):
+        """Watching the finale completes the existing season and show."""
+        first_watch = self.episode_watch(1, "2023-01-01T10:00:00.000Z")
+        self.run_import(history=[first_watch])
+        self.assertEqual(
+            Season.objects.get(user=self.user).status,
+            Status.IN_PROGRESS.value,
+        )
+
+        finale_watch = self.episode_watch(2, "2023-01-02T10:00:00.000Z")
+        self.run_import(history=[finale_watch, first_watch])
+
+        self.assertEqual(
+            Season.objects.get(user=self.user).status,
+            Status.COMPLETED.value,
+        )
+        self.assertEqual(TV.objects.get(user=self.user).status, Status.COMPLETED.value)
+
+    def test_paused_show_keeps_status(self):
+        """New episodes are added to a paused show without changing its status."""
+        first_watch = self.episode_watch(1, "2023-01-01T10:00:00.000Z")
+        self.run_import(history=[first_watch])
+        TV.objects.filter(user=self.user).update(status=Status.PAUSED.value)
+        Season.objects.filter(user=self.user).update(status=Status.PAUSED.value)
+
+        finale_watch = self.episode_watch(2, "2023-01-02T10:00:00.000Z")
+        self.run_import(history=[finale_watch, first_watch])
+
+        self.assertEqual(
+            Episode.objects.filter(related_season__user=self.user).count(),
+            2,
+        )
+        self.assertEqual(TV.objects.get(user=self.user).status, Status.PAUSED.value)
+        self.assertEqual(Season.objects.get(user=self.user).status, Status.PAUSED.value)
+
+    def test_new_season_reopens_completed_show(self):
+        """A completed show goes back to in progress when a new season is started."""
+        history = [
+            self.episode_watch(2, "2023-01-02T10:00:00.000Z"),
+            self.episode_watch(1, "2023-01-01T10:00:00.000Z"),
+        ]
+        self.run_import(history=history)
+        self.assertEqual(TV.objects.get(user=self.user).status, Status.COMPLETED.value)
+
+        # Rewatching an episode keeps the show completed
+        history.insert(0, self.episode_watch(1, "2023-03-01T10:00:00.000Z"))
+        self.run_import(history=history)
+        self.assertEqual(TV.objects.get(user=self.user).status, Status.COMPLETED.value)
+
+        self.last_episode_season = 2
+        history.insert(
+            0,
+            self.episode_watch(1, "2024-01-01T10:00:00.000Z", season_number=2),
+        )
+        self.run_import(history=history)
+
+        self.assertEqual(
+            TV.objects.get(user=self.user).status,
+            Status.IN_PROGRESS.value,
+        )
+        self.assertEqual(
+            list(
+                Season.objects.filter(user=self.user)
+                .order_by("item__season_number")
+                .values_list("status", flat=True),
+            ),
+            [Status.COMPLETED.value, Status.IN_PROGRESS.value],
+        )
+
+    def test_watch_at_around_the_same_time_is_not_duplicated(self):
+        """A watch already recorded a few minutes apart is not imported again."""
+        self.run_import(history=[self.movie_watch("2023-01-01T10:00:00.000Z")])
+        Movie.objects.filter(user=self.user).update(
+            end_date=datetime(2023, 1, 1, 10, 6, tzinfo=UTC),
+        )
+
+        imported_counts, _ = self.run_import(
+            history=[self.movie_watch("2023-01-01T10:00:00.000Z")],
+        )
+        self.assertEqual(imported_counts, {})
+
+        self.run_import(history=[self.movie_watch("2023-01-01T11:00:00.000Z")])
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
+
+    def test_movie_rewatch_is_added(self):
+        """A rewatch is added as a new movie, keeping the original watch."""
+        first_watch = self.movie_watch("2023-01-01T10:00:00.000Z")
+        self.run_import(history=[first_watch])
+
+        rewatch = self.movie_watch("2023-06-01T10:00:00.000Z")
+        self.run_import(history=[rewatch, first_watch])
+
+        self.assertEqual(
+            list(
+                Movie.objects.filter(user=self.user)
+                .order_by("end_date")
+                .values_list("end_date", flat=True),
+            ),
+            [
+                datetime(2023, 1, 1, 10, 0, tzinfo=UTC),
+                datetime(2023, 6, 1, 10, 0, tzinfo=UTC),
+            ],
+        )
+
+    def test_planning_movie_is_completed_in_place(self):
+        """Watching a movie from the watchlist completes it instead of adding one."""
+        self.run_import(
+            watchlist=[
+                {
+                    "type": "movie",
+                    "movie": self.MOVIE,
+                    "listed_at": "2023-01-01T00:00:00.000Z",
+                },
+            ],
+        )
+        self.assertEqual(
+            Movie.objects.get(user=self.user).status, Status.PLANNING.value
+        )
+
+        self.run_import(history=[self.movie_watch("2023-01-05T10:00:00.000Z")])
+
+        movie = Movie.objects.get(user=self.user)
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+        self.assertEqual(movie.end_date, datetime(2023, 1, 5, 10, 0, tzinfo=UTC))
+
+    def test_rating_only_fills_missing_score(self):
+        """A Trakt rating fills a missing score but never overwrites one."""
+        history = [self.movie_watch("2023-01-01T10:00:00.000Z")]
+        self.run_import(history=history)
+        self.assertIsNone(Movie.objects.get(user=self.user).score)
+
+        def rating(score):
+            return {
+                "type": "movie",
+                "movie": self.MOVIE,
+                "rating": score,
+                "rated_at": "2023-01-02T00:00:00.000Z",
+            }
+
+        self.run_import(history=history, ratings=[rating(8)])
+        self.assertEqual(Movie.objects.get(user=self.user).score, 8)
+
+        Movie.objects.filter(user=self.user).update(score=5)
+        self.run_import(history=history, ratings=[rating(9)])
+        self.assertEqual(Movie.objects.get(user=self.user).score, 5)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+
+def build_archive(files, prefix=""):
+    """Build an in-memory Trakt export archive from a name to contents mapping."""
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for name, contents in files.items():
+            payload = contents if isinstance(contents, str) else json.dumps(contents)
+            archive.writestr(f"{prefix}{name}.json", payload)
+    buffer.seek(0)
+    return buffer
+
+
+MOVIE_HISTORY_ENTRY = {
+    "type": "movie",
+    "movie": {"title": "Export Movie", "ids": {"tmdb": 111}},
+    "watched_at": "2023-01-01T00:00:00.000Z",
+}
+
+
+class ImportTraktExport(TestCase):
+    """Test importing media from a Trakt export archive."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+        self.metadata_patcher = patch(
+            "integrations.imports.trakt.TraktImporter._get_metadata",
+        )
+        mock_get_metadata = self.metadata_patcher.start()
+        mock_get_metadata.return_value = {
+            "title": "Export Movie",
+            "image": "movie.jpg",
+        }
+        self.addCleanup(self.metadata_patcher.stop)
+
+    def test_import_full_flow(self):
+        """A minimal export archive imports through the standard pipeline."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [MOVIE_HISTORY_ENTRY],
+                "lists-watchlist": [],
+                "ratings-movies": [],
+                "comments-movies": [],
+            },
+        )
+
+        imported_counts, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(messages, "")
+
+    def test_username_read_from_profile(self):
+        """The Trakt username is taken from user-profile.json."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [],
+            },
+        )
+
+        export_importer = TraktExportImporter(archive, self.user, "new")
+
+        self.assertEqual(export_importer.username, "exported_user")
+
+    def test_missing_user_profile_falls_back(self):
+        """A missing user-profile.json does not break the import."""
+        archive = build_archive({"watched-history": [MOVIE_HISTORY_ENTRY]})
+
+        export_importer = TraktExportImporter(archive, self.user, "new")
+        imported_counts, _ = export_importer.import_data()
+
+        self.assertEqual(export_importer.username, EXPORT_FALLBACK_USERNAME)
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+
+    def test_nested_archive_is_read(self):
+        """Archives that keep the export inside a directory are still read."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [MOVIE_HISTORY_ENTRY],
+            },
+            prefix="trakt-export/",
+        )
+
+        imported_counts, _ = importer(None, self.user, "new", file=archive)
+
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+
+    def test_paged_files_are_read_in_order(self):
+        """Numbered history pages are concatenated in page order."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history-1": [MOVIE_HISTORY_ENTRY],
+                "watched-history-2": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Second Movie", "ids": {"tmdb": 222}},
+                        "watched_at": "2023-02-01T00:00:00.000Z",
+                    },
+                ],
+            },
+        )
+
+        manager = TraktArchiveManager(archive)
+
+        self.assertEqual(
+            manager._match_names("watched-history"),
+            ["watched-history-1", "watched-history-2"],
+        )
+        self.assertEqual(len(manager.load("watched-history")), 2)
+
+    def test_custom_list_is_not_read_as_watchlist_page(self):
+        """A custom list ending in digits is not treated as a watchlist page."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "lists-watchlist": [],
+                "lists-watchlist-2025": [
+                    {
+                        "type": "movie",
+                        "movie": {"title": "Custom List Movie", "ids": {"tmdb": 333}},
+                    },
+                ],
+            },
+        )
+
+        manager = TraktArchiveManager(archive)
+
+        self.assertEqual(manager._match_names("lists-watchlist"), ["lists-watchlist"])
+        self.assertEqual(manager.load("lists-watchlist"), [])
+
+    def test_unreadable_files_are_reported(self):
+        """Every unreadable export file is reported in the import summary."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": [],
+                "ratings-movies": "not json",
+                "ratings-shows": "also not json",
+                "comments-movies": {"unexpected": "shape"},
+            },
+        )
+
+        _, messages = importer(None, self.user, "new", file=archive)
+
+        self.assertIn("ratings-movies.json: could not be read, skipped.", messages)
+        self.assertIn("ratings-shows.json: could not be read, skipped.", messages)
+        self.assertIn("comments-movies.json: unexpected contents, skipped.", messages)
+
+    def test_invalid_zip_raises(self):
+        """A file that is not a ZIP archive raises a readable error."""
+        with self.assertRaises(MediaImportError):
+            TraktArchiveManager(BytesIO(b"definitely not a zip"))
+
+    def test_unrecognized_archive_raises(self):
+        """A ZIP without any Trakt export file raises a readable error."""
+        archive = build_archive({"something-else": []})
+
+        with self.assertRaises(MediaImportError):
+            TraktArchiveManager(archive)
+
+    def test_oversized_archive_raises(self):
+        """An archive larger than the uncompressed cap is rejected."""
+        archive = build_archive(
+            {
+                "user-profile": {"username": "exported_user"},
+                "watched-history": " " * 128,
+            },
+        )
+
+        with (
+            patch("integrations.imports.trakt.MAX_EXPORT_UNCOMPRESSED_BYTES", 16),
+            self.assertRaises(MediaImportError),
+        ):
+            TraktArchiveManager(archive)
+
+
+# Enough episodes for every season in the sample export, so the fake metadata
+# never rejects an episode number the real archive contains.
+FIXTURE_SEASON_EPISODES = 140
+
+# Trakt left comments-episodes.json out of the sample export even though it wrote
+# empty comments-movies.json and comments-shows.json files.
+EXPORT_FILES_WITHOUT_SAMPLES = {"comments-episodes"}
+
+
+def build_fixture_archive():
+    """Zip the sample Trakt export checked into mock_data."""
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for path in sorted(trakt_export_path.glob("*.json")):
+            archive.writestr(path.name, path.read_text())
+    buffer.seek(0)
+    return buffer
+
+
+def fake_metadata(media_type, tmdb_id, title, season_number=None):  # noqa: ARG001
+    """Stand in for TMDB lookups when importing the sample export."""
+    metadata = {"title": title, "image": f"{tmdb_id}.jpg"}
+    if media_type == MediaTypes.SEASON.value:
+        metadata["episodes"] = [
+            {"episode_number": number, "still_path": f"/{number}.jpg"}
+            for number in range(1, FIXTURE_SEASON_EPISODES + 1)
+        ]
+        metadata["max_progress"] = FIXTURE_SEASON_EPISODES
+    return metadata
+
+
+class ImportTraktSampleExport(TestCase):
+    """Test importing the sample Trakt export archive in mock_data."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Import the sample export once for the whole class."""
+        credentials = {"username": "test", "password": "12345"}
+        cls.user = get_user_model().objects.create_user(**credentials)
+        with patch(
+            "integrations.imports.trakt.TraktImporter._get_metadata",
+            side_effect=fake_metadata,
+        ):
+            cls.imported_counts, cls.messages = importer(
+                None,
+                cls.user,
+                "new",
+                file=build_fixture_archive(),
+            )
+
+    def test_sample_export_imports(self):
+        """Every media type in the sample export reaches the database."""
+        self.assertEqual(self.messages, "")
+        self.assertEqual(
+            self.imported_counts[MediaTypes.MOVIE.value],
+            Movie.objects.filter(user=self.user).count(),
+        )
+        self.assertEqual(
+            self.imported_counts[MediaTypes.TV.value],
+            TV.objects.filter(user=self.user).count(),
+        )
+        self.assertEqual(
+            self.imported_counts[MediaTypes.SEASON.value],
+            Season.objects.filter(user=self.user).count(),
+        )
+        self.assertEqual(
+            self.imported_counts[MediaTypes.EPISODE.value],
+            Episode.objects.filter(related_season__user=self.user).count(),
+        )
+
+    def test_username_read_from_sample_profile(self):
+        """The username comes from the sample user-profile.json."""
+        export_importer = TraktExportImporter(build_fixture_archive(), self.user, "new")
+
+        self.assertEqual(export_importer.username, "yamtrack_user")
+
+    def test_history_is_imported_oldest_first(self):
+        """The export lists history newest first, so entries are reversed."""
+        history = json.loads((trakt_export_path / "watched-history.json").read_text())
+        watched_at = [entry["watched_at"] for entry in history]
+        self.assertEqual(watched_at, sorted(watched_at, reverse=True))
+
+        with patch(
+            "integrations.imports.trakt.TraktImporter._get_metadata",
+            side_effect=fake_metadata,
+        ):
+            export_importer = TraktExportImporter(
+                build_fixture_archive(),
+                self.user,
+                "new",
+            )
+            export_importer.process_history()
+
+        end_dates = [
+            episode.end_date
+            for episode in export_importer.bulk_media[MediaTypes.EPISODE.value]
+        ]
+        self.assertEqual(end_dates, sorted(end_dates))
+
+    def test_show_rating_is_imported(self):
+        """A rated show from ratings-shows.json keeps its score."""
+        # Breaking Bad, rated 8 in the sample export and absent from the history.
+        breaking_bad = TV.objects.get(user=self.user, item__media_id="1396")
+
+        self.assertEqual(breaking_bad.score, 8)
+
+    def test_season_rating_is_imported(self):
+        """A rated season from ratings-seasons.json keeps its score."""
+        # Breaking Bad season 4, rated 8 in the sample export.
+        season = Season.objects.get(
+            user=self.user,
+            item__media_id="1396",
+            item__season_number=4,
+        )
+
+        self.assertEqual(season.score, 8)
+
+    def test_watchlist_entries_are_planning(self):
+        """Watchlist entries are imported with the planning status."""
+        # Perfect Blue is only on the watchlist, never watched.
+        perfect_blue = Movie.objects.get(user=self.user, item__media_id="10494")
+
+        self.assertEqual(perfect_blue.status, Status.PLANNING.value)
+
+    def test_season_comment_becomes_notes(self):
+        """A comment from comments-seasons.json is stored as notes."""
+        # Friends season 10, commented on in the sample export.
+        season = Season.objects.get(
+            user=self.user,
+            item__media_id="1668",
+            item__season_number=10,
+        )
+
+        self.assertEqual(season.notes, "it was okay i guess")
+
+    def test_episode_ratings_are_skipped(self):
+        """Episode ratings are dropped because Episode has no score field."""
+        ratings = json.loads((trakt_export_path / "ratings-episodes.json").read_text())
+        self.assertTrue(any(entry["type"] == "episode" for entry in ratings))
+
+        # Skipped silently, so the import reports no warning about them.
+        self.assertEqual(self.messages, "")
+
+    def test_repeat_plays_are_kept(self):
+        """A rewatched episode keeps one record per play."""
+        # Reacher S1E1 was watched three times in the sample export.
+        episodes = Episode.objects.filter(
+            related_season__user=self.user,
+            item__media_id="108978",
+            item__season_number=1,
+            item__episode_number=1,
+        )
+
+        self.assertEqual(episodes.count(), 3)
+
+    def test_every_mapped_prefix_has_a_sample_file(self):
+        """The sample export covers the files the importer looks for."""
+        expected = {
+            prefix for prefixes in ENDPOINTS_TO_FILES.values() for prefix in prefixes
+        }
+        available = {path.stem for path in trakt_export_path.glob("*.json")}
+
+        self.assertLessEqual(expected - available, EXPORT_FILES_WITHOUT_SAMPLES)

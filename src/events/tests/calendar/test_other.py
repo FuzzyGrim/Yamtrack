@@ -1,6 +1,4 @@
-import datetime
 from unittest.mock import MagicMock, patch
-from zoneinfo import ZoneInfo
 
 from django.test import TestCase
 
@@ -8,6 +6,7 @@ from app.models import Item, MediaTypes, Sources
 from app.providers import services
 from events.calendar.helpers import date_parser
 from events.calendar.other import process_other
+from events.models import SentinelDatetime
 from events.tests.calendar.utils import CalendarFixturesMixin
 
 
@@ -90,8 +89,7 @@ class CalendarOtherTests(CalendarFixturesMixin, TestCase):
         self.assertEqual(len(events_bulk), 1)
         self.assertEqual(events_bulk[0].item, mangaupdates_item)
         self.assertEqual(events_bulk[0].content_number, 100)
-        expected_date = datetime.datetime.min.replace(tzinfo=ZoneInfo("UTC"))
-        self.assertEqual(events_bulk[0].datetime, expected_date)
+        self.assertEqual(events_bulk[0].datetime, SentinelDatetime.min_datetime())
 
     @patch("events.calendar.other.services.get_media_metadata")
     def test_process_other_uses_placeholder_when_date_is_unknown(
@@ -110,10 +108,7 @@ class CalendarOtherTests(CalendarFixturesMixin, TestCase):
         process_other(self.book_item, events_bulk)
 
         self.assertEqual(len(events_bulk), 1)
-        self.assertEqual(
-            events_bulk[0].datetime,
-            datetime.datetime.min.replace(tzinfo=ZoneInfo("UTC")),
-        )
+        self.assertEqual(events_bulk[0].datetime, SentinelDatetime.min_datetime())
 
     @patch("events.calendar.other.services.get_media_metadata")
     def test_process_other_game(self, mock_get_media_metadata):

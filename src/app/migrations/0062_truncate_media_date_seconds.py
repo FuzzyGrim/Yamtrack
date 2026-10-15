@@ -1,3 +1,5 @@
+from datetime import UTC
+
 from django.db import migrations
 from django.db.models.functions import TruncMinute
 
@@ -19,12 +21,12 @@ def truncate_date_seconds(apps, _schema_editor):
         model = apps.get_model("app", model_name)
         for field in ("start_date", "end_date"):
             model.objects.filter(**{f"{field}__isnull": False}).update(
-                **{field: TruncMinute(field)},
+                **{field: TruncMinute(field, tzinfo=UTC)},
             )
 
     Episode = apps.get_model("app", "Episode")
     Episode.objects.filter(end_date__isnull=False).update(
-        end_date=TruncMinute("end_date"),
+        end_date=TruncMinute("end_date", tzinfo=UTC),
     )
 
 

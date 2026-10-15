@@ -1,4 +1,5 @@
 import datetime
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -15,7 +16,73 @@ from app.models import (
     Sources,
     Status,
 )
-from events.models import Event
+from events.calendar.helpers import date_parser
+from events.models import Event, SentinelDatetime
+
+
+class SentinelDatetimeTests(TestCase):
+    """Test the sentinel used for content with an unknown release date."""
+
+    def test_sentinel_survives_timezone_conversion(self):
+        """Localizing the sentinel must not overflow datetime.max (#884).
+
+        ``Etc/GMT+12`` and ``Etc/GMT-12`` are the extreme offsets the sentinel
+        time of day leaves room for.
+        """
+        sentinel = SentinelDatetime.max_datetime()
+
+        for tz_name in ("Etc/GMT+12", "Europe/Madrid", "Etc/GMT-12"):
+            with self.subTest(timezone=tz_name):
+                self.assertEqual(
+                    timezone.localtime(sentinel, ZoneInfo(tz_name)),
+                    sentinel,
+                )
+
+    def test_min_sentinel_survives_timezone_conversion(self):
+        """Localizing the past sentinel must not underflow datetime.min (#884).
+
+        ``Etc/GMT+11`` is the extreme offset the sentinel time of day leaves
+        room for behind UTC.
+        """
+        sentinel = SentinelDatetime.min_datetime()
+
+        for tz_name in ("Etc/GMT+11", "America/Los_Angeles", "Etc/GMT-12"):
+            with self.subTest(timezone=tz_name):
+                self.assertEqual(
+                    timezone.localtime(sentinel, ZoneInfo(tz_name)),
+                    sentinel,
+                )
+
+    def test_min_sentinel_counts_as_released(self):
+        """The past sentinel stays in the past, so progress still counts it."""
+        self.assertLess(SentinelDatetime.min_datetime(), timezone.now())
+
+    def test_is_max_datetime_matches_the_sentinel(self):
+        """The unknown-release sentinel is recognized."""
+        event = Event(datetime=SentinelDatetime.max_datetime())
+
+        self.assertTrue(event.is_max_datetime)
+
+    def test_sentinel_equals_the_parsed_max_date(self):
+        """The sentinel is the same value ``date_parser`` builds for that date."""
+        self.assertEqual(SentinelDatetime.max_datetime(), date_parser("9999-12-31"))
+
+    def test_sentinels_use_the_sentinel_time_of_day(self):
+        """Both sentinels must read as sentinel time so no bogus time is shown."""
+        for sentinel in (
+            SentinelDatetime.max_datetime(),
+            SentinelDatetime.min_datetime(),
+        ):
+            with self.subTest(sentinel=sentinel):
+                self.assertTrue(Event(datetime=sentinel).is_sentinel_time)
+
+    def test_is_max_datetime_ignores_real_dates(self):
+        """A real release date is not treated as the sentinel."""
+        event = Event(
+            datetime=datetime.datetime(2099, 1, 20, 22, 0, tzinfo=datetime.UTC),
+        )
+
+        self.assertFalse(event.is_max_datetime)
 
 
 class EventModelTests(TestCase):

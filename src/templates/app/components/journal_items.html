@@ -1,0 +1,86 @@
+{% load app_tags humanize %}
+
+{% for day in journal_days %}
+  {% if not forloop.first or day.day_iso != prev_day %}
+    <div data-journal-day="{{ day.day_iso }}"
+         class="col-span-full flex items-center gap-3 pt-3 first:pt-0">
+      <h2 class="shrink-0 text-sm font-semibold text-gray-300">{{ day.label }}</h2>
+      <div class="h-px flex-1 bg-white/10"></div>
+    </div>
+  {% endif %}
+  {% for entry in day.entries %}
+    <article id="journal-{{ entry.media_type }}-{{ entry.id }}"
+             data-journal-entry-day="{{ day.day_iso }}"
+             x-data="{ confirmOpen: false }"
+             class="group relative flex gap-4 bg-[#2a2f35] rounded-xl p-3 ring-1 ring-white/5 hover:ring-indigo-500/40 hover:bg-[#30363d] transition-all duration-200">
+      <a href="{{ entry.item|media_url }}" class="relative shrink-0">
+        <img alt="{{ entry.item.title }}"
+             class="lazyload w-30 aspect-2/3 rounded-lg object-cover bg-[#3e454d] shadow-md group-hover:opacity-90 transition-opacity"
+             data-src="{{ entry.item.image }}"
+             src="{{ IMG_NONE }}">
+        {% include "app/components/journal_badge.html" with accent=entry.accent %}
+      </a>
+      <div class="min-w-0 flex-1 flex flex-col py-0.5">
+        <div class="flex items-start justify-between gap-3">
+          <a href="{{ entry.item|media_url }}"
+             class="font-semibold text-white group-hover:text-indigo-400 transition-colors duration-200 line-clamp-1">{{ entry.item }}</a>
+          <button type="button"
+                  @click="confirmOpen = true"
+                  aria-label="Delete activity"
+                  class="shrink-0 -mt-0.5 -me-0.5 p-1 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 cursor-pointer">
+            {% include "app/icons/trashcan.svg" with classes="w-4 h-4" %}
+          </button>
+        </div>
+        <span class="mt-1 inline-flex items-center gap-1.5 text-xs font-medium {{ entry.media_type|media_color }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+          {{ entry.media_type|media_type_readable }}
+        </span>
+        {% for change in entry.changes %}<p class="mt-1 text-sm text-gray-200">{{ change.description }}</p>{% endfor %}
+        <time class="mt-auto self-end pt-2 text-xs text-gray-500"
+              title="{{ entry.date|datetime_format:user }}">{{ entry.date|naturaltime }}</time>
+      </div>
+
+      {# Delete confirmation modal #}
+      <div x-cloak
+           x-show="confirmOpen"
+           @keydown.escape.window="confirmOpen = false"
+           class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="w-96 max-w-full bg-[#2a2f35] rounded-xl p-6 relative z-60 ring-1 ring-white/10 shadow-xl"
+             @click.outside="confirmOpen = false">
+          <h3 class="text-lg font-semibold text-white mb-2">Delete activity?</h3>
+          <p class="text-sm text-gray-400 mb-6">
+            This removes “
+            {% for change in entry.changes %}
+              {{ change.description }}
+              {% if not forloop.last %},{% endif %}
+            {% endfor %}
+            ” for {{ entry.item }} from your history. This can't be undone.
+          </p>
+          <div class="flex justify-end gap-2">
+            <button type="button"
+                    @click="confirmOpen = false"
+                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
+              Cancel
+            </button>
+            <button type="button"
+                    hx-delete="{% url 'delete_history_record' entry.media_type entry.id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#journal-{{ entry.media_type }}-{{ entry.id }}"
+                    hx-swap="outerHTML"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
+              {% include "app/icons/trashcan.svg" with classes="w-4 h-4" %}
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  {% endfor %}
+{% endfor %}
+
+{% if has_next %}
+  <div hx-get="{% url 'journal' %}?{{ next_query }}{% if last_day %}&last_day={{ last_day }}{% endif %}"
+       hx-trigger="revealed"
+       hx-swap="outerHTML"
+       hx-indicator="#loading-indicator"></div>
+{% endif %}
