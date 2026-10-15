@@ -1,7 +1,7 @@
 from unittest.mock import patch
 from uuid import UUID
 
-from app.models import MediaTypes, Sources, Status
+from app.models import MediaTypes, Movie, Sources, Status
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -275,6 +275,58 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(str(UUID(manual_media_id)), manual_media_id)
         self.assertEqual(payload["item"]["source"], "manual")
         self.assertEqual(payload["item"]["media_type"], MediaTypes.MOVIE.value)
+
+    def test_media_type_list_post_saves_requested_status(self):
+        """Media-type create endpoint should save the status sent in the body."""
+        for status_value, expected in (
+            (0, Status.PLANNING.value),
+            (1, Status.IN_PROGRESS.value),
+            (2, Status.PAUSED.value),
+            (3, Status.COMPLETED.value),
+            (4, Status.DROPPED.value),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.MOVIE.value,),
+                payload={
+                    "source": "manual",
+                    "title": f"Manual Movie {status_value}",
+                    "status": status_value,
+                },
+                headers=self.auth_headers,
+            )
+
+            self.assertEqual(response.status_code, 201, response.content)
+            payload = response.json()
+            self.assertEqual(payload["status"], status_value)
+            movie = Movie.objects.get(
+                item__media_id=payload["item"]["media_id"],
+                user=self.user1,
+            )
+            self.assertEqual(movie.status, expected)
+
+    def test_media_type_list_post_defaults_to_planning(self):
+        """Media-type create endpoint should default to planning without status."""
+        for extra in ({}, {"status": None}):
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.MOVIE.value,),
+                payload={
+                    "source": "manual",
+                    "title": f"Manual Movie {bool(extra)}",
+                    **extra,
+                },
+                headers=self.auth_headers,
+            )
+
+            self.assertEqual(response.status_code, 201, response.content)
+            movie = Movie.objects.get(
+                item__media_id=response.json()["item"]["media_id"],
+                user=self.user1,
+            )
+            self.assertEqual(movie.status, Status.PLANNING.value)
 
     def test_media_type_list_post_invalid_type_returns_bad_request(self):
         """Media-type create endpoint should reject unsupported media types."""

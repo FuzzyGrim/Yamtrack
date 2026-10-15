@@ -66,7 +66,6 @@ from .helpers import (
     filter_images,
     filter_known_for,
     get_item_lists,
-    get_media_status,
     get_paginated_credits,
     get_sorts,
     get_timeline,
@@ -1952,12 +1951,9 @@ class MediaTypeListView(drf_views.APIView):
         data = serializer.validated_data
 
         data["media_type"] = media_type
-        data["status"] = (
-            get_media_status(data["status"], reverse=True)
-            if "status" in data
-            # default status when tracking a new media will be "planning"
-            else MediaStatusChoices.PLANNING
-        )
+        # The serializer already converts the status to its model value,
+        # default status when tracking a new media will be "planning"
+        data["status"] = data.get("status") or MediaStatusChoices.PLANNING
 
         source = data.get("source", Sources.MANUAL.value)
 
