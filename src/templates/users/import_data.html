@@ -418,6 +418,39 @@
           </form>
         </div>
 
+        {# TV Time #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "tvtime" %}</div>
+          <p class="text-sm text-gray-400 mb-3"
+             x-text="importFrequency === 'once' ? 'Import TV shows and movies from your TV Time export' : 'File uploads are not available for periodic imports'">
+          </p>
+          <form method="post"
+                action="{% url 'import_tvtime' %}"
+                enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <input name="tvtime_password"
+                   placeholder="Export password (only if protected)"
+                   class="w-full mb-2 py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="password"
+                   autocomplete="off"
+                   :disabled="importFrequency !== 'once'">
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :disabled="importFrequency !== 'once'">
+              <input name="tvtime_zip"
+                     accept=".zip"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
+                     @change="importFrequency === 'once' && $el.form.submit()">
+              Select Zip File
+            </label>
+          </form>
+        </div>
+
       </div>
     </div>
 
