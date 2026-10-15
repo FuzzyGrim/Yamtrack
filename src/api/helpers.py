@@ -7,6 +7,7 @@ from http import HTTPStatus as HTTP  # noqa: N814
 from urllib.parse import urlencode
 
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.db.models import Count, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.timezone import is_naive, localdate, make_aware
@@ -26,9 +27,24 @@ from app.models import (
     MediaTypes,
     Movie,
     Season,
+    Sources,
+)
+from app.providers import (
+    anilist,
+    bgg,
+    comicvine,
+    fanart,
+    hardcover,
+    igdb,
+    mal,
+    mangadex,
+    mangaupdates,
+    openlibrary,
+    services,
+    tmdb,
 )
 from lists.models import CustomListItem
-from users.models import MediaStatusChoices
+from users.models import WATCH_PROVIDER_REGION_UNSET, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +111,8 @@ MEDIA_STATUS_MAP = {
     "Dropped": 4,
 }
 
+MEDIA_STATUS_CHOICES = [(value, label) for label, value in MEDIA_STATUS_MAP.items()]
+
 MEDIA_TYPE_COMPLETE_MODEL_MAP = {
     MediaTypes.TV.value: TV,
     MediaTypes.SEASON.value: Season,
@@ -125,11 +143,58 @@ MEDIA_TYPE_VALID_LIST = list(MEDIA_TYPE_MODEL_MAP.keys())
 
 MAX_RESULT_LIMIT = 200
 
+IMAGE_TYPES = ["posters", "backdrops", "screenshots", "logos"]
+
+# Sources that provide images for each media type
+IMAGE_SOURCES = {
+    MediaTypes.MOVIE.value: [Sources.TMDB.value],
+    MediaTypes.TV.value: [Sources.TMDB.value],
+    MediaTypes.ANIME.value: [Sources.MAL.value],
+    MediaTypes.MANGA.value: [Sources.MAL.value, Sources.MANGAUPDATES.value],
+    MediaTypes.GAME.value: [Sources.IGDB.value],
+    MediaTypes.BOOK.value: [Sources.OPENLIBRARY.value, Sources.HARDCOVER.value],
+    MediaTypes.COMIC.value: [Sources.COMICVINE.value],
+    MediaTypes.BOARDGAME.value: [Sources.BGG.value],
+}
+
+# Voice actor languages for the anime cast
+VOICE_ACTOR_LANGUAGES = anilist.VOICE_ACTOR_LANGUAGES
+
+# Sources that provide cast and crew for each media type
+CAST_CREW_SOURCES = {
+    MediaTypes.MOVIE.value: [Sources.TMDB.value],
+    MediaTypes.TV.value: [Sources.TMDB.value],
+    MediaTypes.ANIME.value: [Sources.MAL.value],
+}
+
+# Sources that provide creators or characters for each media type
+CREDIT_SOURCES = {
+    "creators": {
+        MediaTypes.MANGA.value: [Sources.MAL.value, Sources.MANGAUPDATES.value],
+        MediaTypes.BOOK.value: [Sources.OPENLIBRARY.value, Sources.HARDCOVER.value],
+        MediaTypes.COMIC.value: [Sources.COMICVINE.value],
+        MediaTypes.BOARDGAME.value: [Sources.BGG.value],
+    },
+    "characters": {
+        MediaTypes.ANIME.value: [Sources.MAL.value],
+        MediaTypes.MANGA.value: [Sources.MAL.value],
+        MediaTypes.COMIC.value: [Sources.COMICVINE.value],
+    },
+}
+
+# Sources that provide companies for each media type
+COMPANY_SOURCES = {
+    MediaTypes.GAME.value: [Sources.IGDB.value],
+    MediaTypes.BOARDGAME.value: [Sources.BGG.value],
+}
+
+GAME_COMPANY_ROLES = ["developer", "publisher", "porting", "supporting"]
+
 
 MEDIA_EXISTING_SORTS = [
     "start_date",
     "end_date",
-] + [f.name for f in Item._meta.fields]
+] + [f.name for f in Item._meta.fields if f.name != "custom_image"]
 
 MEDIA_SEASONS_ADDITIONAL_SORTS = [
     "progress",
@@ -164,6 +229,19 @@ VALID_SOURCES = {
     MediaTypes.COMIC.value: ["comicvine", "manual"],
     MediaTypes.BOARDGAME.value: ["bgg", "manual"],
 }
+
+SOURCES_VALID_LIST = [
+    Sources.TMDB.value,
+    Sources.MAL.value,
+    Sources.MANGAUPDATES.value,
+    Sources.IGDB.value,
+    Sources.OPENLIBRARY.value,
+    Sources.HARDCOVER.value,
+    Sources.COMICVINE.value,
+    Sources.BGG.value,
+]
+
+SOURCES_COMPLETE_VALID_LIST = [*SOURCES_VALID_LIST, "manual"]
 
 
 def build_item_id(item):
@@ -355,6 +433,468 @@ def get_progress_from_status(status):
     return 0
 
 
+def group_watch_providers(all_providers, region):
+    """Group a region's watch providers into no charge and paid tiers."""
+    region_providers = (all_providers or {}).get(region, {})
+
+    def merge(*provider_types):
+        # Dedupe by provider id across provider types
+        providers = {}
+        for provider_type in provider_types:
+            for provider in region_providers.get(provider_type, []):
+                providers[provider.get("provider_id")] = {
+                    "provider_id": provider.get("provider_id"),
+                    "provider_name": provider.get("provider_name"),
+                    "image": tmdb.get_image_url(provider.get("logo_path")),
+                    "display_priority": provider.get("display_priority"),
+                }
+        return sorted(
+            providers.values(),
+            key=lambda e: (
+                e["display_priority"] if e["display_priority"] is not None else 999
+            ),
+        )
+
+    return {
+        "region": region,
+        "link": region_providers.get("link"),
+        "no_charge": merge("flatrate", "free", "ads"),
+        "paid": merge("buy", "rent"),
+    }
+
+
+def check_supported_source(supported_sources, media_type, source, feature):
+    """Return an error response if the media type or source is not supported."""
+    if media_type not in supported_sources:
+        supported = ", ".join(f"'{key}'" for key in supported_sources)
+        return Response(
+            {
+                "detail": (
+                    f"No {feature} available for `{media_type}` media type. "
+                    f"Supported media types: {supported}."
+                ),
+            },
+            status=HTTP.BAD_REQUEST,
+        )
+
+    if source not in supported_sources[media_type]:
+        return Response(
+            {
+                "detail": f"Cannot query `{source}` for `{media_type}` media type",
+            },
+            status=HTTP.BAD_REQUEST,
+        )
+
+    return None
+
+
+def fetch_images(media_type, source, media_id):
+    """Return the images of a media from its source and the extra artwork sources."""
+    fetchers = {
+        Sources.TMDB.value: lambda: tmdb.media_images(media_type, media_id),
+        Sources.MAL.value: lambda: mal.media_pictures(media_type, media_id),
+        Sources.MANGAUPDATES.value: lambda: mangaupdates.manga_extras(media_id)[
+            "images"
+        ],
+        Sources.IGDB.value: lambda: igdb.game_extras(media_id)["images"],
+        Sources.OPENLIBRARY.value: lambda: openlibrary.book_extras(media_id)["images"],
+        Sources.HARDCOVER.value: lambda: hardcover.book_extras(media_id)["images"],
+        Sources.COMICVINE.value: lambda: comicvine.comic_images(media_id),
+        Sources.BGG.value: lambda: bgg.boardgame_extras(media_id)["images"],
+    }
+    images = tag_images(fetchers[source](), source)
+    add_extra_images(images, get_extra_image_fetchers(media_type, source, media_id))
+    return images
+
+
+def fetch_season_images(media_id, season_number):
+    """Return the posters of a tv season from TMDB and Fanart.tv."""
+    images = tag_images(
+        tmdb.media_images(
+            MediaTypes.TV.value,
+            media_id,
+            season_number=season_number,
+        ),
+        Sources.TMDB.value,
+    )
+    extra_fetchers = []
+    if fanart.is_enabled():
+        extra_fetchers.append(
+            (
+                fanart.PROVIDER,
+                lambda: fanart.tv_images(
+                    tmdb.tv(media_id).get("tvdb_id"),
+                    season_number=season_number,
+                ),
+            ),
+        )
+    add_extra_images(images, extra_fetchers)
+    return images
+
+
+def get_extra_image_fetchers(media_type, source, media_id):
+    """Return the extra artwork sources available for a media."""
+    fetchers = []
+    if media_type == MediaTypes.MOVIE.value and fanart.is_enabled():
+        fetchers.append((fanart.PROVIDER, lambda: fanart.movie_images(media_id)))
+    elif media_type == MediaTypes.TV.value and fanart.is_enabled():
+        fetchers.append(
+            (
+                fanart.PROVIDER,
+                lambda: fanart.tv_images(tmdb.tv(media_id).get("tvdb_id")),
+            ),
+        )
+
+    if source == Sources.MAL.value:
+        fetchers.append(
+            ("anilist", lambda: anilist.media_images(media_type, media_id)),
+        )
+
+    if media_type == MediaTypes.MANGA.value:
+        get_title = (
+            mal.manga if source == Sources.MAL.value else mangaupdates.manga_extras
+        )
+        fetchers.append(
+            (
+                mangadex.PROVIDER,
+                lambda: mangadex.manga_covers(
+                    get_title(media_id)["title"],
+                    source,
+                    media_id,
+                ),
+            ),
+        )
+    return fetchers
+
+
+def tag_images(images, source):
+    """Return a copy of the image groups with the source of every image."""
+    return {
+        group: [{**image, "source": source} for image in group_images]
+        for group, group_images in images.items()
+    }
+
+
+def add_extra_images(images, extra_fetchers):
+    """Append the images of extra sources, skipping duplicates and failures."""
+    seen = {
+        image["original"] for group_images in images.values() for image in group_images
+    }
+    for extra_source, fetch in extra_fetchers:
+        # Extra artwork is optional, a failing source must not break the request
+        try:
+            extra_images = tag_images(fetch(), extra_source)
+        except Exception:
+            logger.exception("Failed to fetch extra images from %s", extra_source)
+            continue
+
+        for group, group_images in extra_images.items():
+            for image in group_images:
+                if image["original"] in seen:
+                    continue
+                seen.add(image["original"])
+                images.setdefault(group, []).append(image)
+
+
+def fetch_cast(media_type, source, media_id, language=None):
+    """Return the cast of a movie, tv serie or anime from its source."""
+    if source == Sources.TMDB.value:
+        return tmdb.media_credits(media_type, media_id)["cast"]
+
+    # Anime cast are the voice actors of each character
+    characters = anilist.media_credits(
+        media_type,
+        media_id,
+        language=language or "japanese",
+    )["characters"]
+    return [
+        {
+            "person_id": actor["id"],
+            "name": actor["name"],
+            "character": character["name"],
+            "image": actor["image"],
+            "order": order,
+            "episode_count": None,
+        }
+        for order, character in enumerate(characters)
+        for actor in character["voice_actors"]
+    ]
+
+
+def fetch_crew(media_type, source, media_id):
+    """Return the crew of a movie, tv serie or anime from its source."""
+    if source == Sources.TMDB.value:
+        return tmdb.media_credits(media_type, media_id)["crew"]
+
+    staff = anilist.media_credits(media_type, media_id)["staff"]
+    return [
+        {
+            "person_id": person["id"],
+            "name": person["name"],
+            "department": None,
+            "jobs": person["roles"],
+            "image": person["image"],
+            "episode_count": None,
+        }
+        for person in staff
+    ]
+
+
+def fetch_credits(credit_type, media_type, source, media_id):
+    """Return the creators or characters of a media from its source."""
+    fetchers = {
+        Sources.MAL.value: lambda: get_anilist_credits(
+            credit_type,
+            media_type,
+            media_id,
+        ),
+        Sources.MANGAUPDATES.value: lambda: mangaupdates.manga_extras(media_id)[
+            "creators"
+        ],
+        Sources.OPENLIBRARY.value: lambda: openlibrary.book_extras(media_id)[
+            "creators"
+        ],
+        Sources.HARDCOVER.value: lambda: hardcover.book_extras(media_id)["creators"],
+        Sources.COMICVINE.value: lambda: comicvine.comic_credits(media_id)[credit_type],
+        Sources.BGG.value: lambda: bgg.boardgame_extras(media_id)["creators"],
+    }
+    return fetchers[source]()
+
+
+def get_anilist_credits(credit_type, media_type, media_id):
+    """Return the staff or characters of an anime or manga from AniList."""
+    anilist_credits = anilist.media_credits(media_type, media_id)
+    if credit_type == "creators":
+        return [{**person, "issue_count": None} for person in anilist_credits["staff"]]
+    return [
+        {
+            "id": character["id"],
+            "name": character["name"],
+            "roles": [character["role"]] if character["role"] else [],
+            "image": character["image"],
+            "issue_count": None,
+            "source_url": character["source_url"],
+        }
+        for character in anilist_credits["characters"]
+    ]
+
+
+def fetch_companies(source, media_id):
+    """Return the companies of a game or board game from its source."""
+    if source == Sources.IGDB.value:
+        return igdb.game_extras(media_id)["companies"]
+    return bgg.boardgame_extras(media_id)["companies"]
+
+
+def get_paginated_credits(request, media_type, source, media_id, credit_type):
+    """Return the paginated creators or characters of a media, or an error response.
+
+    If no error, error_response is None. On error, returns a DRF Response.
+    """
+    limit, offset, err = parse_limit_offset(request)
+    if err:
+        return None, err
+
+    err = check_supported_source(
+        CREDIT_SOURCES[credit_type],
+        media_type,
+        source,
+        credit_type,
+    )
+    if err:
+        return None, err
+
+    try:
+        credits_data = fetch_credits(credit_type, media_type, source, media_id)
+    except Exception as e:  # noqa: BLE001
+        return None, Response(
+            {
+                "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                "errors": str(e),
+            },
+            status=HTTP.INTERNAL_SERVER_ERROR,
+        )
+
+    return paginate_data(request, credits_data, limit, offset), None
+
+
+def get_cover_state(item, provider_image):
+    """Return the current cover of a media and whether it is a custom one."""
+    custom_image = item.custom_image if item else ""
+    return {
+        "image": custom_image or provider_image,
+        "custom_image": custom_image or None,
+    }
+
+
+def get_cover_metadata(media_type, source, media_id, season_number=None):
+    """Return the metadata and the available images of a media or season."""
+    if season_number is not None:
+        metadata = services.get_media_metadata(
+            MediaTypes.SEASON.value,
+            media_id,
+            source,
+            [season_number],
+        )
+        images = fetch_season_images(media_id, season_number)
+    else:
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        images = fetch_images(media_type, source, media_id)
+    return metadata, images
+
+
+def can_change_cover(media_type, source):
+    """Return whether a media has images to pick a custom cover from."""
+    base_media_type = (
+        MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
+    )
+    return source in IMAGE_SOURCES.get(base_media_type, [])
+
+
+def get_cover_item_filter(media_type, source, media_id, season_number=None):
+    """Return the Item lookup of the media or season whose cover is customized."""
+    return {
+        "media_id": media_id,
+        "source": source,
+        "media_type": (
+            MediaTypes.SEASON.value if season_number is not None else media_type
+        ),
+        "season_number": season_number,
+    }
+
+
+def set_custom_cover(item_filter, metadata, images, new_image):
+    """Set the custom cover of a media, returning the item or an error message."""
+    # Only images offered by the media images endpoint can be chosen
+    available = {
+        url
+        for image_list in images.values()
+        for image in image_list
+        for url in (image["image"], image["original"])
+    }
+    if new_image not in available:
+        return None, (
+            "image must be one of the images returned by the media images endpoint."
+        )
+
+    item = Item.objects.filter(**item_filter, episode_number=None).first()
+    if item is None:
+        item = Item.objects.create(
+            **item_filter,
+            title=metadata.get("title"),
+            image=new_image,
+            custom_image=new_image,
+        )
+    else:
+        item.custom_image = new_image
+        item.save()
+    return item, None
+
+
+def resolve_cover(request, media_type, source, media_id, season_number=None):
+    """Get, set or reset the custom cover of a media or season.
+
+    Returns the cover state of the media. If no error, error_response is None.
+    On error, returns a DRF Response.
+    """
+    err = check_supported_source(IMAGE_SOURCES, media_type, source, "covers")
+    if err:
+        return None, err
+
+    if season_number is not None and media_type != MediaTypes.TV.value:
+        return None, Response(
+            {"detail": "Seasons are supported only for 'tv' media type."},
+            status=HTTP.BAD_REQUEST,
+        )
+
+    new_image = (request.data or {}).get("image")
+    if request.method == "PUT" and (not new_image or not isinstance(new_image, str)):
+        return None, Response(
+            {"detail": "image is required."},
+            status=HTTP.BAD_REQUEST,
+        )
+
+    try:
+        metadata, images = get_cover_metadata(
+            media_type,
+            source,
+            media_id,
+            season_number,
+        )
+    except Exception as e:  # noqa: BLE001
+        return None, Response(
+            {
+                "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
+                "errors": str(e),
+            },
+            status=HTTP.INTERNAL_SERVER_ERROR,
+        )
+
+    item_filter = get_cover_item_filter(media_type, source, media_id, season_number)
+    item = Item.objects.filter(**item_filter, episode_number=None).first()
+
+    if request.method == "PUT":
+        item, error = set_custom_cover(item_filter, metadata, images, new_image)
+        if error:
+            return None, Response({"detail": error}, status=HTTP.BAD_REQUEST)
+    elif request.method == "DELETE":
+        reset_custom_cover(item, metadata)
+
+    return get_cover_state(item, metadata.get("image")), None
+
+
+def reset_custom_cover(item, metadata):
+    """Remove the custom cover of an item, restoring the provider image."""
+    if item is None or not item.custom_image:
+        return
+    item.custom_image = ""
+    item.image = metadata.get("image") or settings.IMG_NONE
+    item.save(update_fields=["custom_image", "image"])
+
+
+def filter_images(images, image_type=None):
+    """Return every image type, keeping only the given type if one is set."""
+    return {
+        key: (images.get(key, []) if image_type in (None, key) else [])
+        for key in IMAGE_TYPES
+    }
+
+
+def filter_known_for(known_for, media_type=None, department=None):
+    """Filter known for media by type and department, flattening their jobs."""
+    results = []
+    for media in known_for:
+        if media_type and media["media_type"] != media_type:
+            continue
+
+        departments = media["departments"]
+        if department:
+            departments = {
+                name: jobs
+                for name, jobs in departments.items()
+                if name and name.lower() == department.lower()
+            }
+            if not departments:
+                continue
+
+        jobs = []
+        for department_jobs in departments.values():
+            jobs.extend(job for job in department_jobs if job not in jobs)
+
+        results.append(
+            {
+                **media,
+                "character": media["character"] if "Acting" in departments else None,
+                "departments": sorted(
+                    departments,
+                    key=lambda name: (name != "Acting", name),
+                ),
+                "jobs": jobs,
+            },
+        )
+    return results
+
+
 def get_timeline(user_media):
     """Build a timeline of media consumption organized by month-year."""
     timeline = defaultdict(list)
@@ -523,6 +1063,29 @@ def parse_limit_offset(request):
     return limit, offset, None
 
 
+def parse_watch_provider_region(request):
+    """Parse the watch provider region, falling back to the user's preference.
+
+    If no error, error_response is None. On validation error, returns a DRF Response.
+    """
+    region = request.GET.get("region") or request.user.watch_provider_region
+    if not region or region == WATCH_PROVIDER_REGION_UNSET:
+        return (
+            None,
+            Response(
+                {
+                    "detail": (
+                        "Watch provider region not set. Pass the `region` query "
+                        "parameter or set it in the user preferences."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            ),
+        )
+
+    return region.upper(), None
+
+
 def parse_status_param(status):
     """Parse and validate status parameter."""
     if not status:
@@ -599,78 +1162,6 @@ def try_parse_datetime_input(value):
         parsed = make_aware(parsed)
 
     return parsed
-
-
-def _validate_score(filtered_body):
-    """Validate and convert score field."""
-    try:
-        score_value = float(filtered_body["score"])
-        if score_value < 0 or score_value > 10:  # noqa: PLR2004
-            return None, "Score must be between 0 and 10."
-        filtered_body["score"] = score_value
-    except (TypeError, ValueError):
-        return None, "Invalid score value."
-
-    return filtered_body, None
-
-
-def _validate_status(filtered_body):
-    """Validate and convert status field."""
-    status_value = get_media_status(filtered_body["status"], reverse=True)
-    if status_value is None:
-        return None, "Invalid status value."
-    filtered_body["status"] = status_value
-    return filtered_body, None
-
-
-def _validate_dates(filtered_body):
-    """Validate and convert date fields."""
-    if "start_date" in filtered_body:
-        start_date = filtered_body["start_date"]
-        if start_date in (None, ""):
-            filtered_body["start_date"] = None
-        else:
-            try:
-                filtered_body["start_date"] = try_parse_datetime_input(start_date)
-            except (TypeError, ValueError):
-                return None, "Invalid start_date format."
-
-    if "end_date" in filtered_body:
-        end_date = filtered_body["end_date"]
-        if end_date in (None, ""):
-            filtered_body["end_date"] = None
-        else:
-            try:
-                filtered_body["end_date"] = try_parse_datetime_input(end_date)
-            except (TypeError, ValueError):
-                return None, "Invalid end_date format."
-
-    return filtered_body, None
-
-
-def validate_body(body, media_type):
-    """Validate and filter the request body for media updates."""
-    allowed_fields = MEDIA_MODIFIABLE_FIELDS.get(media_type, set())
-    filtered_body = {k: v for k, v in body.items() if k in allowed_fields}
-
-    if not filtered_body:
-        return filtered_body, "No valid fields to update."
-
-    if "score" in filtered_body:
-        filtered_body, error = _validate_score(filtered_body)
-        if error:
-            return filtered_body, error
-
-    if "status" in filtered_body:
-        filtered_body, error = _validate_status(filtered_body)
-        if error:
-            return filtered_body, error
-
-    filtered_body, error = _validate_dates(filtered_body)
-    if error:
-        return filtered_body, error
-
-    return filtered_body, error
 
 
 # ---- Sorting ----

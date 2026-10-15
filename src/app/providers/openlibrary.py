@@ -376,3 +376,82 @@ async def get_ratings(response_work):
                 return score, score_count
 
     return None, 0
+
+
+def book_extras(media_id):
+    """Return the covers and the authors of a book from Open Library."""
+    cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{media_id}_extras"
+    data = cache.get(cache_key)
+
+    if data is None:
+        try:
+            response_book = services.api_request(
+                Sources.OPENLIBRARY.value,
+                "GET",
+                f"https://openlibrary.org/books/{media_id}.json",
+                headers=headers,
+            )
+            response_work = {}
+            works = response_book.get("works", [])
+            if works:
+                work_id = extract_openlibrary_id(works[0]["key"])
+                response_work = services.api_request(
+                    Sources.OPENLIBRARY.value,
+                    "GET",
+                    f"https://openlibrary.org/works/{work_id}.json",
+                    headers=headers,
+                )
+
+            # Authors are only linked by key, fetch their names
+            authors = []
+            author_entries = response_book.get("authors") or response_work.get(
+                "authors",
+                [],
+            )
+            for entry in author_entries:
+                author_key = (entry.get("author") or entry).get("key")
+                if not author_key:
+                    continue
+                author = services.api_request(
+                    Sources.OPENLIBRARY.value,
+                    "GET",
+                    f"https://openlibrary.org{author_key}.json",
+                    headers=headers,
+                )
+                author_id = extract_openlibrary_id(author_key)
+                authors.append(
+                    {
+                        "id": author_id,
+                        "name": author.get("name", "Unknown Author"),
+                        "roles": ["Author"],
+                        "image": (
+                            f"https://covers.openlibrary.org/a/olid/{author_id}-L.jpg"
+                            if author.get("photos")
+                            else None
+                        ),
+                        "issue_count": None,
+                        "source_url": f"https://openlibrary.org/authors/{author_id}",
+                    },
+                )
+        except requests.RequestException as e:
+            handle_error(e)
+
+        # The edition covers first, then the other covers of the work
+        cover_ids = [
+            *response_book.get("covers", []),
+            *response_work.get("covers", []),
+        ]
+        posters = [
+            helpers.build_image_entry(
+                f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg",
+                f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg",
+            )
+            for cover_id in dict.fromkeys(cover_ids)
+            # Open Library uses -1 for removed covers
+            if isinstance(cover_id, int) and cover_id > 0
+        ]
+
+        data = {"images": {"posters": posters}, "creators": authors}
+        cache.set(cache_key, data)
+
+    return data

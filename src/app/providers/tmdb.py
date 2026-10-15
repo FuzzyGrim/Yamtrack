@@ -780,6 +780,415 @@ def episode(media_id, season_number, episode_number):
     )
 
 
+def media_credits(media_type, media_id):
+    """Return the full cast and crew for the selected movie or tv show."""
+    cache_key = f"{Sources.TMDB.value}_{media_type}_{media_id}_credits"
+    data = cache.get(cache_key)
+
+    if data is None:
+        # tv shows use aggregate credits to include credits of every season
+        if media_type == MediaTypes.MOVIE.value:
+            url = f"{base_url}/movie/{media_id}/credits"
+        else:
+            url = f"{base_url}/tv/{media_id}/aggregate_credits"
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params={**base_params},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = {
+            "cast": process_cast(response.get("cast", [])),
+            "crew": process_crew(response.get("crew", [])),
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def process_cast(cast):
+    """Process the cast from a credits or aggregate credits response."""
+    processed = []
+    for member in cast:
+        if "roles" in member:
+            character = " / ".join(
+                role.get("character")
+                for role in member["roles"]
+                if role.get("character")
+            )
+        else:
+            character = member.get("character")
+
+        processed.append(
+            {
+                "person_id": member.get("id"),
+                "name": member.get("name"),
+                "character": character or None,
+                "image": get_image_url(member.get("profile_path")),
+                "order": member.get("order"),
+                "episode_count": member.get("total_episode_count"),
+            },
+        )
+    return processed
+
+
+def process_crew(crew):
+    """Process the crew from a credits or aggregate credits response."""
+    # A person can have multiple jobs, merge them per person and department
+    members = {}
+    for member in crew:
+        if "jobs" in member:
+            jobs = [job.get("job") for job in member["jobs"] if job.get("job")]
+        else:
+            jobs = [member["job"]] if member.get("job") else []
+
+        key = (member.get("id"), member.get("department"))
+        if key in members:
+            existing = members[key]
+            existing["jobs"].extend(job for job in jobs if job not in existing["jobs"])
+            continue
+
+        members[key] = {
+            "person_id": member.get("id"),
+            "name": member.get("name"),
+            "department": member.get("department"),
+            "jobs": jobs,
+            "image": get_image_url(member.get("profile_path")),
+            "episode_count": member.get("total_episode_count"),
+            "popularity": member.get("popularity", 0),
+        }
+
+    return sorted(members.values(), key=lambda e: e["popularity"], reverse=True)
+
+
+def search_people(query, page):
+    """Search for people on TMDB."""
+    cache_key = f"search_{Sources.TMDB.value}_person_{query}_{page}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/search/person"
+
+        params = {
+            **base_params,
+            "query": query,
+            "page": page,
+        }
+
+        if settings.TMDB_NSFW:
+            params["include_adult"] = "true"
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        results = [
+            {
+                "person_id": person["id"],
+                "source": Sources.TMDB.value,
+                "name": person.get("name"),
+                "image": get_image_url(person.get("profile_path")),
+                "known_for_department": person.get("known_for_department") or None,
+                "known_for": [
+                    {
+                        "source": Sources.TMDB.value,
+                        "media_type": media.get("media_type"),
+                        "media_id": media["id"],
+                        "title": get_title(media),
+                        "image": get_image_url(media.get("poster_path")),
+                    }
+                    for media in person.get("known_for", [])
+                    if media.get("media_type")
+                    in (MediaTypes.MOVIE.value, MediaTypes.TV.value)
+                ],
+            }
+            for person in response["results"]
+        ]
+
+        total_results = response["total_results"]
+        per_page = 20  # TMDB always returns 20 results per page
+        data = helpers.format_search_response(
+            page,
+            per_page,
+            total_results,
+            results,
+        )
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def person(person_id):
+    """Return the details for the selected person from The Movie Database."""
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/person/{person_id}"
+        params = {
+            **base_params,
+            "append_to_response": "external_ids",
+        }
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        external_ids = response.get("external_ids", {})
+        external_links = {}
+        if external_ids.get("imdb_id"):
+            external_links["IMDb"] = (
+                f"https://www.imdb.com/name/{external_ids['imdb_id']}/"
+            )
+        if external_ids.get("wikidata_id"):
+            external_links["Wikidata"] = (
+                f"https://www.wikidata.org/wiki/{external_ids['wikidata_id']}"
+            )
+        if external_ids.get("instagram_id"):
+            external_links["Instagram"] = (
+                f"https://www.instagram.com/{external_ids['instagram_id']}/"
+            )
+        if external_ids.get("twitter_id"):
+            external_links["X"] = f"https://x.com/{external_ids['twitter_id']}"
+
+        data = {
+            "person_id": response["id"],
+            "source": Sources.TMDB.value,
+            "source_url": f"https://www.themoviedb.org/person/{response['id']}",
+            "name": response.get("name"),
+            "image": get_image_url(response.get("profile_path")),
+            "biography": response.get("biography") or None,
+            "birthday": response.get("birthday") or None,
+            "deathday": response.get("deathday") or None,
+            "place_of_birth": response.get("place_of_birth") or None,
+            "known_for_department": response.get("known_for_department") or None,
+            "also_known_as": response.get("also_known_as", []),
+            "homepage": response.get("homepage") or None,
+            "external_links": external_links,
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def person_images(person_id):
+    """Return the profile images for the selected person from The Movie Database."""
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}_images"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/person/{person_id}/images"
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params={**base_params},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = process_images(response.get("profiles", []))
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def media_images(media_type, media_id, season_number=None):
+    """Return the posters, backdrops and logos for a movie, tv show or season."""
+    cache_key = f"{Sources.TMDB.value}_{media_type}_{media_id}_images"
+    if season_number is not None:
+        cache_key += f"_{season_number}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        if media_type == MediaTypes.MOVIE.value:
+            url = f"{base_url}/movie/{media_id}/images"
+        elif season_number is not None:
+            url = f"{base_url}/tv/{media_id}/season/{season_number}/images"
+        else:
+            url = f"{base_url}/tv/{media_id}/images"
+
+        # Without include_image_language TMDB only returns images in the
+        # requested language, include textless and english images too
+        language = settings.TMDB_LANG.split("-")[0]
+        image_languages = list(dict.fromkeys([language, "en", "null"]))
+        params = {
+            **base_params,
+            "include_image_language": ",".join(image_languages),
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = {
+            # Prefer images in the user's language for posters and logos
+            "posters": sort_images(
+                process_images(response.get("posters", [])),
+                [language, None, "en"],
+            ),
+            # Prefer textless backdrops
+            "backdrops": sort_images(
+                process_images(response.get("backdrops", [])),
+                [None, language, "en"],
+            ),
+            "logos": sort_images(
+                process_images(response.get("logos", [])),
+                [language, "en", None],
+            ),
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def process_images(images):
+    """Process the images from a TMDB images response."""
+    return [
+        {
+            "image": get_image_url(image["file_path"]),
+            "original": f"https://image.tmdb.org/t/p/original{image['file_path']}",
+            "width": image.get("width"),
+            "height": image.get("height"),
+            "aspect_ratio": image.get("aspect_ratio"),
+            "language": image.get("iso_639_1"),
+            "vote_average": image.get("vote_average"),
+            "vote_count": image.get("vote_count"),
+        }
+        for image in images
+        if image.get("file_path")
+    ]
+
+
+def sort_images(images, language_priority):
+    """Sort images by language priority, then by votes."""
+
+    def sort_key(image):
+        language = image["language"]
+        if language in language_priority:
+            priority = language_priority.index(language)
+        else:
+            priority = len(language_priority)
+        return (priority, -(image["vote_average"] or 0), -(image["vote_count"] or 0))
+
+    return sorted(images, key=sort_key)
+
+
+def person_known_for(person_id):
+    """Return the movies and tv shows a person is known for, as cast or crew."""
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}_known_for"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/person/{person_id}/combined_credits"
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params={**base_params},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        credits_by_id = {}
+        for credit in response.get("cast", []):
+            entry = get_known_for_entry(credits_by_id, credit)
+            if entry is None:
+                continue
+            entry["departments"].setdefault("Acting", [])
+            character = credit.get("character")
+            # A person can have multiple roles in the same media
+            if character and character not in (entry["character"] or ""):
+                entry["character"] = (
+                    f"{entry['character']} / {character}"
+                    if entry["character"]
+                    else character
+                )
+
+        for credit in response.get("crew", []):
+            entry = get_known_for_entry(credits_by_id, credit)
+            if entry is None:
+                continue
+            jobs = entry["departments"].setdefault(credit.get("department"), [])
+            job = credit.get("job")
+            if job and job not in jobs:
+                jobs.append(job)
+
+        data = sorted(
+            credits_by_id.values(),
+            key=lambda e: e["vote_count"],
+            reverse=True,
+        )
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def get_known_for_entry(credits_by_id, credit):
+    """Return the known for entry of a combined credit, creating it if needed."""
+    media_type = credit.get("media_type")
+    if media_type not in (MediaTypes.MOVIE.value, MediaTypes.TV.value):
+        return None
+
+    # Skip talk shows and news, as TMDB does for its known for section
+    excluded_genres = {10763, 10767}
+    if excluded_genres.intersection(credit.get("genre_ids", [])):
+        return None
+
+    key = (media_type, credit.get("id"))
+    if key not in credits_by_id:
+        credits_by_id[key] = {
+            "source": Sources.TMDB.value,
+            "media_type": media_type,
+            "media_id": credit.get("id"),
+            "title": get_title(credit),
+            "image": get_image_url(credit.get("poster_path")),
+            "character": None,
+            "departments": {},
+            "release_date": get_start_date(
+                credit.get("release_date", credit.get("first_air_date", "")),
+            ),
+            "episode_count": None,
+            "vote_count": credit.get("vote_count", 0),
+        }
+
+    entry = credits_by_id[key]
+    episode_count = credit.get("episode_count")
+    if episode_count is not None:
+        entry["episode_count"] = max(entry["episode_count"] or 0, episode_count)
+    return entry
+
+
 def watch_provider_regions():
     """Return the available watch provider regions from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_watch_provider_regions"

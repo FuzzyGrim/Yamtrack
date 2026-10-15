@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "api",
     "app",
     "events",
     "integrations",
@@ -132,7 +133,6 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "django.contrib.humanize",
     "rest_framework",
-    "api",
     "drf_spectacular",
 ]
 
@@ -144,10 +144,9 @@ REST_FRAMEWORK = {
         "api.authentication.BearerAuthentication",
         "api.authentication.APIKeyAuthentication",
     ],
-    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
 }
-
 
 APPEND_SLASH = True
 
@@ -376,6 +375,42 @@ ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
 
 TRACK_TIME = config("TRACK_TIME", default=True, cast=bool)
 
+SPECTACULAR_ENABLE_SERVE = config(
+    "SPECTACULAR_ENABLE_SERVE",
+    default=DEBUG,
+    cast=bool,
+)
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Yamtrack API",
+    "DESCRIPTION": "OpenAPI schema for Yamtrack's API",
+    "VERSION": "0.1.1",
+    "LICENSE": {
+        "name": "GNU AFFERO GENERAL PUBLIC LICENSE v3.0",
+        "url": "https://github.com/FuzzyGrim/Yamtrack/blob/dev/LICENSE",
+    },
+    "SERVERS": [
+        {
+            "url": "http://localhost:8000/",
+            "description": "Local development server",
+        },
+    ],
+    "SCHEMA_PATH_PREFIX": "/api/v1",
+    "SORT_OPERATIONS": True,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "PARSER_WHITELIST": [
+        "rest_framework.parsers.JSONParser",
+    ],
+    "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
+    "ENUM_NAME_OVERRIDES": {
+        "MediaStatusEnum": "api.helpers.MEDIA_STATUS_CHOICES",
+        "SourceEnum": "api.helpers.SOURCES_VALID_LIST",
+        "SourceCompleteEnum": "api.helpers.SOURCES_COMPLETE_VALID_LIST",
+        "MediaTypeEnum": "api.helpers.MEDIA_TYPE_VALID_LIST",
+        "MediaTypeCompleteEnum": "api.helpers.MEDIA_TYPE_COMPLETE_VALID_LIST",
+    },
+}
+
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
@@ -400,6 +435,9 @@ TVDB_API = config(
         "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
     ),
 )
+
+# Optional, enables extra artwork from Fanart.tv when set
+FANART_API = config("FANART_API", default=secret("FANART_API_FILE", ""))
 
 MAL_API = config(
     "MAL_API",

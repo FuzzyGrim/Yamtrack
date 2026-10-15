@@ -1,0 +1,339 @@
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+)
+
+from .helpers import (
+    LIST_SORTS,
+    MEDIA_TYPE_COMPLETE_VALID_LIST,
+    MEDIA_TYPE_VALID_LIST,
+    SOURCES_COMPLETE_VALID_LIST,
+    SOURCES_VALID_LIST,
+)
+from .serializers import ApiErrorResponseSerializer
+
+
+class BearerAuthenticationScheme(OpenApiAuthenticationExtension):
+    """Describe the custom bearer token auth scheme for OpenAPI generation."""
+
+    target_class = "api.authentication.BearerAuthentication"
+    name = "bearerAuth"
+
+    def get_security_definition(self, _auto_schema):
+        """Return the OpenAPI security scheme for bearer authentication."""
+        return {
+            "type": "http",
+            "scheme": "bearer",
+        }
+
+
+class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
+    """Describe the custom API key auth scheme for OpenAPI generation."""
+
+    target_class = "api.authentication.APIKeyAuthentication"
+    name = "ApiKeyAuth"
+
+    def get_security_definition(self, _auto_schema):
+        """Return the OpenAPI security scheme for header-based API keys."""
+        return {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key",
+        }
+
+
+BadRequestResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Bad request",
+    examples=[
+        OpenApiExample(
+            "Invalid request example",
+            description="Invalid request example",
+            summary="Invalid request example",
+            value={"detail": "Invalid request."},
+        )
+    ],
+)
+
+ConflictResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Conflict",
+    examples=[
+        OpenApiExample(
+            "Already tracked example",
+            description="Already tracked example",
+            summary="Already tracked example",
+            value={"detail": "Conflict. Season is already tracked."},
+        )
+    ],
+)
+
+ForbiddenResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Forbidden",
+    examples=[
+        OpenApiExample(
+            "No authentication example",
+            description="No authentication example",
+            summary="No authentication example",
+            value={"detail": "Authentication credentials were not provided."},
+        ),
+        OpenApiExample(
+            "Invalid token example",
+            description="Invalid token example",
+            summary="Invalid token example",
+            value={"detail": "Invalid token"},
+        ),
+    ],
+)
+
+InternalServerErrorResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Internal server error",
+    examples=[
+        OpenApiExample(
+            "Internal server error example",
+            description="Internal server error",
+            summary="Internal server error",
+            value={"detail": "Internal server error."},
+        )
+    ],
+)
+
+NotFoundResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Not found",
+    examples=[
+        OpenApiExample(
+            "Not found example",
+            description="Not found example",
+            summary="Not found example",
+            value={"detail": "Not found."},
+        )
+    ],
+)
+
+TooManyRequestsResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Too Many Requests",
+    examples=[
+        OpenApiExample(
+            "Sync too soon example",
+            description="Sync too soon example",
+            summary="Sync too soon example",
+            value={
+                "detail": ("The data was recently synced, please wait a few seconds.")
+            },
+        )
+    ],
+)
+
+PaginationLimitParam = OpenApiParameter(
+    name="limit",
+    type={"type": "integer", "minimum": 1, "default": 20},
+    location=OpenApiParameter.QUERY,
+    description="Maximum number of results to return (default: 20).",
+)
+
+PaginationOffsetParam = OpenApiParameter(
+    name="offset",
+    type={"type": "integer", "minimum": 0, "default": 0},
+    location=OpenApiParameter.QUERY,
+    description="Number of results to skip before returning items (default: 0).",
+)
+
+ListSortParam = OpenApiParameter(
+    name="sort",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Sort order for results.",
+    enum=[
+        suffix_sort
+        for sort in LIST_SORTS
+        for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
+    ],
+)
+
+ListSearchParam = OpenApiParameter(
+    name="search",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Case-insensitive substring search on list name or description.",
+)
+
+MediaTypeParam = OpenApiParameter(
+    name="media_type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="Type of media item.",
+    required=True,
+    enum=MEDIA_TYPE_VALID_LIST,
+)
+
+MediaTypeCompleteParam = OpenApiParameter(
+    name="media_type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="Type of media item.",
+    required=True,
+    enum=MEDIA_TYPE_COMPLETE_VALID_LIST,
+)
+
+MediaTypeCompleteQueryParam = OpenApiParameter(
+    name="media_type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Type of media item.",
+    required=False,
+    enum=MEDIA_TYPE_COMPLETE_VALID_LIST,
+)
+
+MediaIdParam = OpenApiParameter(
+    name="media_id",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="ID of the media item.",
+    required=True,
+)
+
+SourceParam = OpenApiParameter(
+    name="source",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="Source of media item data for import operations.",
+    required=True,
+    enum=SOURCES_VALID_LIST,
+)
+
+SourceCompleteParam = OpenApiParameter(
+    name="source",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="Source of media item data for import operations.",
+    required=True,
+    enum=SOURCES_COMPLETE_VALID_LIST,
+)
+
+SeasonNumberParam = OpenApiParameter(
+    "season_number",
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.PATH,
+    description="Season number for the specified media item.",
+    required=True,
+)
+
+EpisodeNumberParam = OpenApiParameter(
+    "episode_number",
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.PATH,
+    description="Episode number for the specified media item.",
+    required=True,
+)
+
+WatchProviderRegionParam = OpenApiParameter(
+    name="region",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "ISO 3166-1 country code to get watch providers for "
+        "(default: user's watch provider region)."
+    ),
+    required=False,
+)
+
+PersonIdParam = OpenApiParameter(
+    name="person_id",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="ID of the person.",
+    required=True,
+)
+
+PersonSourceParam = OpenApiParameter(
+    name="source",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="Source of person data.",
+    required=True,
+    enum=["tmdb"],
+)
+
+KnownForMediaTypeParam = OpenApiParameter(
+    name="media_type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Only return media of this type (default: all).",
+    required=False,
+    enum=["movie", "tv"],
+)
+
+CrewDepartmentParam = OpenApiParameter(
+    name="department",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return crew of this department, case-insensitive "
+        "(e.g. Directing, Writing, Production, Sound, Camera). "
+        "Anime staff have no department."
+    ),
+    required=False,
+)
+
+KnownForDepartmentParam = OpenApiParameter(
+    name="department",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return credits of this department, case-insensitive "
+        "(e.g. Acting, Directing, Writing, Production) (default: all)."
+    ),
+    required=False,
+)
+
+MediaImageTypeParam = OpenApiParameter(
+    name="type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return images of this type, others are empty (default: all). "
+        "Backdrops are only available for movies, tv series and games, "
+        "screenshots only for games and logos only for movies and tv series."
+    ),
+    required=False,
+    enum=["posters", "backdrops", "screenshots", "logos"],
+)
+
+CompanyRoleParam = OpenApiParameter(
+    name="role",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Only return companies with this role (default: all).",
+    required=False,
+    enum=["developer", "publisher", "porting", "supporting"],
+)
+
+VoiceActorLanguageParam = OpenApiParameter(
+    name="language",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Language of the voice actors, only for anime (default: japanese). "
+        "Characters without a voice actor in that language are left out."
+    ),
+    required=False,
+    enum=[
+        "japanese",
+        "english",
+        "korean",
+        "italian",
+        "spanish",
+        "portuguese",
+        "french",
+        "german",
+        "hebrew",
+        "hungarian",
+    ],
+)

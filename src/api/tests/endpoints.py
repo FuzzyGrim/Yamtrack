@@ -64,6 +64,28 @@ def get_endpoint_cases() -> list[EndpointCase]:
             payload={"notes": "n"},
         ),
         EndpointCase("delete", "api_media_detail", args=("movie", "tmdb", 1)),
+        EndpointCase("get", "api_media_cast", args=("movie", "tmdb", 1)),
+        EndpointCase(
+            "get",
+            "api_media_characters",
+            args=("comic", "comicvine", 1),
+        ),
+        EndpointCase("get", "api_media_companies", args=("game", "igdb", 1)),
+        EndpointCase(
+            "get",
+            "api_media_creators",
+            args=("comic", "comicvine", 1),
+        ),
+        EndpointCase("get", "api_media_cover", args=("movie", "tmdb", 1)),
+        EndpointCase(
+            "put",
+            "api_media_cover",
+            args=("movie", "tmdb", 1),
+            payload={"image": "https://example.com/cover.jpg"},
+        ),
+        EndpointCase("delete", "api_media_cover", args=("movie", "tmdb", 1)),
+        EndpointCase("get", "api_media_crew", args=("movie", "tmdb", 1)),
+        EndpointCase("get", "api_media_images", args=("movie", "tmdb", 1)),
         EndpointCase(
             "get",
             "api_media_changes_history",
@@ -104,6 +126,7 @@ def get_endpoint_cases() -> list[EndpointCase]:
             payload={},
         ),
         EndpointCase("delete", "api_media_lists", args=("movie", "tmdb", 1, 1)),
+        EndpointCase("get", "api_media_providers", args=("movie", "tmdb", 1)),
         EndpointCase(
             "get",
             "api_media_recommendations",
@@ -126,6 +149,12 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "delete",
             "api_media_season_detail",
             args=("tv", "tmdb", 1, 1),
+        ),
+        EndpointCase(
+            "post",
+            "api_media_season_detail",
+            args=("tv", "tmdb", 1, 1),
+            payload={},
         ),
         EndpointCase(
             "get",
@@ -164,6 +193,16 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "api_media_season_consumption_entry_detail",
             args=("tv", "tmdb", 1, 1, 1),
         ),
+        EndpointCase(
+            "get",
+            "api_media_season_cover",
+            args=("tv", "tmdb", 1, 1),
+        ),
+        EndpointCase(
+            "get",
+            "api_media_season_images",
+            args=("tv", "tmdb", 1, 1),
+        ),
         EndpointCase("get", "api_media_season_lists", args=("tv", "tmdb", 1, 1)),
         EndpointCase(
             "put",
@@ -175,6 +214,11 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "delete",
             "api_media_season_list_detail",
             args=("tv", "tmdb", 1, 1, 1),
+        ),
+        EndpointCase(
+            "get",
+            "api_media_season_providers",
+            args=("tv", "tmdb", 1, 1),
         ),
         EndpointCase("post", "api_media_season_sync", args=("tv", "tmdb", 1, 1)),
         EndpointCase(
@@ -192,6 +236,12 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "delete",
             "api_media_episode_detail",
             args=("tv", "tmdb", 1, 1, 1),
+        ),
+        EndpointCase(
+            "post",
+            "api_media_episode_detail",
+            args=("tv", "tmdb", 1, 1, 1),
+            payload={},
         ),
         EndpointCase(
             "get",
@@ -242,6 +292,10 @@ def get_endpoint_cases() -> list[EndpointCase]:
             args=("tv", "tmdb", 1, 1, 1, 1),
         ),
         EndpointCase("post", "api_media_episode_sync", args=("tv", "tmdb", 1, 1, 1)),
+        EndpointCase("get", "api_people_search"),
+        EndpointCase("get", "api_person_detail", args=("tmdb", 1)),
+        EndpointCase("get", "api_person_images", args=("tmdb", 1)),
+        EndpointCase("get", "api_person_known_for", args=("tmdb", 1)),
         EndpointCase("get", "api_search_provider", args=("movie",)),
         EndpointCase("get", "api_statistics"),
     ]

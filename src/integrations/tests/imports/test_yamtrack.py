@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -10,6 +12,7 @@ from app.models import (
     Anime,
     Book,
     Episode,
+    Item,
     Manga,
     Movie,
     Season,
@@ -252,3 +255,71 @@ class ImportYamtrackPartials(TestCase):
             books[2].end_date,
             datetime(2024, 3, 9, 0, 0, 0, tzinfo=UTC),
         )
+
+
+class ImportYamtrackCustomCover(TestCase):
+    """Test that custom covers survive an export and import round trip."""
+
+    HEADER = (
+        '"media_id","source","media_type","title","image","custom_image",'
+        '"season_number","episode_number","score","progress","status",'
+        '"start_date","end_date","notes","progressed_at"'
+    )
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    def import_rows(self, header, *rows):
+        """Import an in-memory CSV file for the user."""
+        content = "\n".join([header, *rows]).encode("utf-8")
+        with patch("app.models.Item.fetch_releases", return_value=None):
+            return yamtrack.importer(BytesIO(content), self.user, "new")
+
+    def test_custom_image_is_imported(self):
+        """The custom cover column is restored on the imported item."""
+        custom_image = "https://image.tmdb.org/t/p/original/custom.jpg"
+        self.import_rows(
+            self.HEADER,
+            f'"603","tmdb","movie","The Matrix","{custom_image}","{custom_image}",'
+            '"","","","0","Completed","2024-02-09","2024-02-09","",""',
+        )
+
+        item = Item.objects.get(media_id="603", media_type="movie")
+        self.assertEqual(item.custom_image, custom_image)
+        self.assertEqual(item.image, custom_image)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    def test_old_export_without_custom_image_column(self):
+        """Exports made before custom covers existed still import."""
+        header = self.HEADER.replace('"custom_image",', "")
+        self.import_rows(
+            header,
+            '"603","tmdb","movie","The Matrix","https://image.tmdb.org/p.jpg",'
+            '"","","","0","Completed","2024-02-09","2024-02-09","",""',
+        )
+
+        item = Item.objects.get(media_id="603", media_type="movie")
+        self.assertEqual(item.custom_image, "")
+
+    def test_empty_custom_image_keeps_existing_cover(self):
+        """An empty custom cover column does not reset an existing one."""
+        custom_image = "https://image.tmdb.org/t/p/original/custom.jpg"
+        Item.objects.create(
+            media_id="603",
+            source="tmdb",
+            media_type="movie",
+            title="The Matrix",
+            image=custom_image,
+            custom_image=custom_image,
+        )
+        self.import_rows(
+            self.HEADER,
+            '"603","tmdb","movie","The Matrix","https://image.tmdb.org/p.jpg","",'
+            '"","","","0","Completed","2024-02-09","2024-02-09","",""',
+        )
+
+        item = Item.objects.get(media_id="603", media_type="movie")
+        self.assertEqual(item.custom_image, custom_image)
+        self.assertEqual(item.image, custom_image)

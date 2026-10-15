@@ -1,10 +1,11 @@
 from unittest.mock import patch
 from uuid import UUID
 
-from app.models import MediaTypes, Sources, Status
+from app.models import MediaTypes, Movie, Sources, Status
 
 from .base import YamtrackApiTestCase
 from .helpers import (
+    WATCH_PROVIDERS_RESPONSE,
     check_changes_history_record_structure,
     check_complete_media_structure,
     check_consumption_structure,
@@ -274,6 +275,58 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(str(UUID(manual_media_id)), manual_media_id)
         self.assertEqual(payload["item"]["source"], "manual")
         self.assertEqual(payload["item"]["media_type"], MediaTypes.MOVIE.value)
+
+    def test_media_type_list_post_saves_requested_status(self):
+        """Media-type create endpoint should save the status sent in the body."""
+        for status_value, expected in (
+            (0, Status.PLANNING.value),
+            (1, Status.IN_PROGRESS.value),
+            (2, Status.PAUSED.value),
+            (3, Status.COMPLETED.value),
+            (4, Status.DROPPED.value),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.MOVIE.value,),
+                payload={
+                    "source": "manual",
+                    "title": f"Manual Movie {status_value}",
+                    "status": status_value,
+                },
+                headers=self.auth_headers,
+            )
+
+            self.assertEqual(response.status_code, 201, response.content)
+            payload = response.json()
+            self.assertEqual(payload["status"], status_value)
+            movie = Movie.objects.get(
+                item__media_id=payload["item"]["media_id"],
+                user=self.user1,
+            )
+            self.assertEqual(movie.status, expected)
+
+    def test_media_type_list_post_defaults_to_planning(self):
+        """Media-type create endpoint should default to planning without status."""
+        for extra in ({}, {"status": None}):
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.MOVIE.value,),
+                payload={
+                    "source": "manual",
+                    "title": f"Manual Movie {bool(extra)}",
+                    **extra,
+                },
+                headers=self.auth_headers,
+            )
+
+            self.assertEqual(response.status_code, 201, response.content)
+            movie = Movie.objects.get(
+                item__media_id=response.json()["item"]["media_id"],
+                user=self.user1,
+            )
+            self.assertEqual(movie.status, Status.PLANNING.value)
 
     def test_media_type_list_post_invalid_type_returns_bad_request(self):
         """Media-type create endpoint should reject unsupported media types."""
@@ -547,6 +600,72 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         check_complete_media_structure(self, payload)
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_detail_get_returns_external_links(self, mock_metadata):
+        """Media detail GET should return the external links of the media."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {
+            "media_id": movie_item.media_id,
+            "source": movie_item.source,
+            "media_type": MediaTypes.MOVIE.value,
+            "title": movie_item.title,
+            "max_progress": 1,
+            "details": {},
+            "related": {},
+            "external_links": {
+                "IMDb": "https://www.imdb.com/title/tt0133093/",
+                "Letterboxd": "https://www.letterboxd.com/tmdb/603",
+            },
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["external_links"],
+            {
+                "IMDb": "https://www.imdb.com/title/tt0133093/",
+                "Letterboxd": "https://www.letterboxd.com/tmdb/603",
+            },
+        )
+        self.assertIsNone(payload["time_to_beat"])
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_detail_get_returns_game_time_to_beat(self, mock_metadata):
+        """Media detail GET should return the time to beat of a game."""
+        game_item = self.items_by_type[MediaTypes.GAME.value][0]
+        mock_metadata.return_value = {
+            "media_id": game_item.media_id,
+            "source": game_item.source,
+            "media_type": MediaTypes.GAME.value,
+            "title": game_item.title,
+            "max_progress": None,
+            "details": {},
+            "related": {},
+            "time_to_beat": {"hastily": 36000, "normally": 54000},
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_detail",
+            args=(MediaTypes.GAME.value, game_item.source, game_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["time_to_beat"],
+            {"hastily": 36000, "normally": 54000},
+        )
+        self.assertEqual(payload["external_links"], {})
 
     def test_media_detail_get_invalid_type_returns_bad_request(self):
         """Media detail endpoint should reject unsupported media types."""
@@ -1313,6 +1432,138 @@ class MediaCoreTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_providers_returns_grouped_providers(self, mock_metadata):
+        """Providers endpoint should group providers into no charge and paid."""
+        self.user1.watch_provider_region = "US"
+        self.user1.save()
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["region"], "US")
+        self.assertEqual(
+            payload["link"],
+            "https://www.themoviedb.org/movie/1/watch?locale=US",
+        )
+        self.assertEqual(
+            [p["provider_name"] for p in payload["no_charge"]],
+            ["Tubi TV", "Netflix"],
+        )
+        self.assertEqual(
+            [p["provider_name"] for p in payload["paid"]],
+            ["Apple TV"],
+        )
+        self.assertEqual(
+            payload["paid"][0]["image"],
+            "https://image.tmdb.org/t/p/w500/apple.jpg",
+        )
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_providers_region_param_overrides_user_region(
+        self,
+        mock_metadata,
+    ):
+        """Providers endpoint should prefer the region query parameter."""
+        self.user1.watch_provider_region = "US"
+        self.user1.save()
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            params={"region": "it"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["region"], "IT")
+        self.assertIsNone(payload["link"])
+        self.assertEqual(
+            [p["provider_name"] for p in payload["no_charge"]],
+            ["Amazon Prime Video"],
+        )
+        self.assertEqual(payload["paid"], [])
+
+    @patch("api.views.services.get_media_metadata")
+    def test_media_providers_unknown_region_returns_empty_groups(
+        self,
+        mock_metadata,
+    ):
+        """Providers endpoint should return empty groups for regions without data."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            params={"region": "FR"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["no_charge"], [])
+        self.assertEqual(payload["paid"], [])
+
+    def test_media_providers_without_region_returns_bad_request(self):
+        """Providers endpoint should require a region when the user has none set."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_media_providers_unsupported_media_type_returns_bad_request(self):
+        """Providers endpoint should reject media types without watch providers."""
+        requests = [
+            ("invalid", "tmdb", 1),
+            (MediaTypes.ANIME.value, "mal", 1),
+            (MediaTypes.MOVIE.value, "manual", 1),
+        ]
+
+        for args in requests:
+            response = self.call_api(
+                "get",
+                "api_media_providers",
+                args=args,
+                params={"region": "US"},
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    def test_media_providers_invalid_media_id_returns_internal_server_error(
+        self,
+        _mock_metadata,
+    ):
+        """Providers endpoint should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_media_providers",
+            args=(MediaTypes.MOVIE.value, "tmdb", 999999),
+            params={"region": "US"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
 
     @patch("api.views.services.get_media_metadata")
     def test_media_recommendations_returns_related_items(self, mock_metadata):

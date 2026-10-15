@@ -1,7 +1,14 @@
 from django.conf import settings
 from django.utils.timezone import now
+from drf_spectacular.utils import (
+    OpenApiExample,
+    PolymorphicProxySerializer,
+    extend_schema_field,
+    extend_schema_serializer,
+)
 from rest_framework import serializers
 
+from app.helpers import apply_custom_image
 from app.models import (
     TV,
     Anime,
@@ -25,31 +32,94 @@ from .changes_history_processor import (
     get_changes_from_new_record,
 )
 from .helpers import (
+    MEDIA_STATUS_CHOICES,
+    MEDIA_TYPE_COMPLETE_VALID_LIST,
+    MEDIA_TYPE_VALID_LIST,
+    SOURCES_COMPLETE_VALID_LIST,
+    SOURCES_VALID_LIST,
     build_item_id,
     build_parent_id,
     get_media_status,
 )
 
+# TODO: Sort serializers
 
-class ItemIdField(serializers.Field):
+
+class ItemIdField(serializers.CharField):
     """Custom field to generate item_id string."""
 
     def to_representation(self, item):  # noqa: D102
         return build_item_id(item)
 
 
-class ParentIdField(serializers.Field):
+class ParentIdField(serializers.CharField):
     """Custom field to generate parent_id string for seasons and episodes."""
 
     def to_representation(self, item):  # noqa: D102
         return build_parent_id(item)
 
 
-class StatusField(serializers.Field):
-    """Custom field to convert status string to numeric value."""
+class MediaStatusChoiceField(serializers.ChoiceField):
+    """Custom field for media status options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined status choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        status_choices = MEDIA_STATUS_CHOICES
+        kwargs["choices"] = status_choices
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):  # noqa: D102
+        value = super().to_internal_value(data)
+        return get_media_status(value, reverse=True)
 
     def to_representation(self, obj):  # noqa: D102
         return get_media_status(getattr(obj, "status", None))
+
+
+class MediaSourceChoiceField(serializers.ChoiceField):
+    """Custom field for media source options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined source choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        kwargs["choices"] = SOURCES_VALID_LIST
+        super().__init__(**kwargs)
+
+
+class MediaSourceCompleteChoiceField(serializers.ChoiceField):
+    """Custom field for media source options including manual."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined source choices including manual."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        kwargs["choices"] = SOURCES_COMPLETE_VALID_LIST
+        super().__init__(**kwargs)
+
+
+class MediaTypeChoiceField(serializers.ChoiceField):
+    """Custom field for media type options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined media type choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        kwargs["choices"] = MEDIA_TYPE_VALID_LIST
+        super().__init__(**kwargs)
+
+
+class MediaTypeCompleteChoiceField(serializers.ChoiceField):
+    """Custom field for complete media type options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined complete media type choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        kwargs["choices"] = MEDIA_TYPE_COMPLETE_VALID_LIST
+        super().__init__(**kwargs)
 
 
 class ItemSerializer(serializers.ModelSerializer):
@@ -57,6 +127,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
     media_id = serializers.SerializerMethodField()
 
+    @extend_schema_field(str)
     def get_media_id(self, obj):
         """Return media_id preserving alphanumeric provider IDs."""
         media_id = getattr(obj, "media_id", None)
@@ -69,8 +140,23 @@ class ItemSerializer(serializers.ModelSerializer):
         exclude = ("id",)
 
 
+class ChangesHistoryChangeSerializer(serializers.Serializer):
+    """Serializer for a single change in a history entry."""
+
+    field = serializers.ChoiceField(
+        choices=["end_date", "notes", "progress", "score", "start_date", "status"]
+    )
+    old_value = serializers.CharField(allow_null=True, required=False)
+    new_value = serializers.CharField(allow_null=True, required=False)
+
+
 class ChangesHistoryEntrySerializer(serializers.Serializer):
     """Serializer that builds a change-based history entry."""
+
+    id = serializers.IntegerField(allow_null=True, required=False)
+    item_id = serializers.CharField(allow_null=True, required=False)
+    timestamp = serializers.DateTimeField(allow_null=True, required=False)
+    changes = ChangesHistoryChangeSerializer(many=True)
 
     def to_representation(self, instance):
         """Build history entry with changes."""
@@ -91,7 +177,7 @@ class ChangesHistoryEntrySerializer(serializers.Serializer):
                     def __init__(self, status_value):
                         self.status = status_value
 
-                status_field = StatusField()
+                status_field = MediaStatusChoiceField()
                 if change.get("old_value") is not None:
                     change["old_value"] = status_field.to_representation(
                         TempObj(change["old_value"]),
@@ -112,242 +198,123 @@ class ChangesHistoryEntrySerializer(serializers.Serializer):
         }
 
 
-class CompleteEpisodeSerializer(serializers.Serializer):
-    """Serializer that builds a CompleteEpisode response."""
+class ApiMessageResponseSerializer(serializers.Serializer):
+    """Standard API message response serializer."""
 
-    def to_representation(self, instance):
-        """Transform episode data into CompleteEpisode response."""
-        media_metadata = instance.get("media_metadata", {})
-        episode = instance.get("episode", {})
-        user_medias = instance.get("user_medias", [])
-        lists = instance.get("lists", [])
-        media_type = media_metadata.get("media_type")
+    detail = serializers.CharField()
 
-        temp_episode = type("TempEpisode", (), {})()
-        temp_episode.media_type = "episode"
-        temp_episode.source = media_metadata.get("source")
-        temp_episode.media_id = media_metadata.get("media_id")
-        temp_episode.season_number = media_metadata.get("season_number")
-        temp_episode.episode_number = episode.get("episode_number")
 
-        season_source_url = media_metadata.get("source_url")
-        source_url = ""
-        if season_source_url:
-            source_url = f"{season_source_url}/episode/{episode.get('episode_number')}"
+# TODO: errors field can be str or list, depending on the error
+class ApiErrorResponseSerializer(serializers.Serializer):
+    """Standard API error response serializer."""
 
-        # TODO: move still_path slug to global configs
-        image = (
-            "https://image.tmdb.org/t/p/original" + episode.get("still_path")
-            if episode.get("still_path")
-            else None
-        )
+    detail = serializers.CharField()
+    errors = serializers.CharField(required=False, allow_blank=True)
 
-        consumptions_number = len(user_medias)
-        consumptions = serialize_data(
-            user_medias,
-            serializer_class=HistorySerializer,
-            many=True,
-        )
 
-        return {
-            "id": user_medias[0].item_id if user_medias else None,
-            "media_id": (
-                str(media_metadata.get("media_id"))
-                if media_metadata.get("media_id") is not None
-                else None
-            ),
-            "source": media_metadata.get("source"),
-            "source_url": source_url,
-            "media_type": media_type,
-            "title": episode.get("name"),
-            "max_progress": 1,
-            "image": image,
-            "synopsis": episode.get("overview"),
-            "genres": media_metadata.get("genres", []),
-            "score": float(episode.get("vote_average")),
-            "score_count": episode.get("vote_count"),
-            "details": {
-                "air_date": episode.get("air_date"),
-                "episode_number": episode.get("episode_number"),
-                "season_number": episode.get("season_number"),
-                "runtime": episode.get("runtime"),
-                "episode_type": episode.get("episode_type"),
-                "crew": episode.get("crew", []),
-                "guest_stars": episode.get("guest_stars", []),
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            "Basic list creation",
+            description="Basic list creation example.",
+            summary="Basic list creation example",
+            value={"name": "Favourites"},
+        ),
+        OpenApiExample(
+            "Complete list creation",
+            description="Complete list creation example.",
+            summary="Complete list creation example",
+            value={
+                "name": "Favourites",
+                "description": "My favourite items.",
+                "collaborators": [1, 2, 3],
             },
-            "related": {},
-            "item_id": ItemIdField().to_representation(temp_episode),
-            "parent_id": ParentIdField().to_representation(temp_episode),
-            "tracked": consumptions_number > 0,
-            "consumptions_number": consumptions_number,
-            "consumptions": consumptions,
-            "lists": lists,
-        }
+        ),
+    ]
+)
+class ListCreateRequestSerializer(serializers.Serializer):
+    """Request serializer for custom list creation."""
+
+    name = serializers.CharField()
+    description = serializers.CharField(required=False, allow_blank=True)
+    collaborators = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="List of username ids allowed to collaborate on this list.",
+    )
 
 
-class CompleteMediaSerializer(serializers.Serializer):
-    """Serializer that builds a CompleteMedia response."""
+class ListUpdateRequestSerializer(serializers.Serializer):
+    """Request serializer for partial custom list updates."""
 
-    def _process_seasons(self, media_metadata, seasons_by_number=None):
-        """Process seasons in related data."""
-        if "related" not in media_metadata or media_metadata["related"] is None:
-            media_metadata["related"] = {}
-        if (
-            "seasons" not in media_metadata["related"]
-            or media_metadata["related"]["seasons"] is None
-        ):
-            media_metadata["related"]["seasons"] = []
-
-        processed_seasons = []
-        for season in media_metadata["related"]["seasons"]:
-            season_number = season.get("season_number")
-            tracked_season = (
-                seasons_by_number.get(season_number) if seasons_by_number else None
-            )
-
-            item = getattr(tracked_season, "item", None)
-            if item is None:
-                item = Item(
-                    media_id=str(
-                        season.get("media_id") or media_metadata.get("media_id") or "",
-                    ),
-                    source=season.get("source") or media_metadata.get("source"),
-                    media_type=MediaTypes.SEASON.value,
-                    title=season.get("season_title") or season.get("title") or "",
-                    image=season.get("image") or settings.IMG_NONE,
-                    season_number=season_number,
-                )
-
-            if tracked_season is None:
-                tracked_season = type(
-                    "TempMedia",
-                    (),
-                    {
-                        "id": None,
-                        "item": item,
-                        "created_at": None,
-                        "score": None,
-                        "status": None,
-                        "progress": None,
-                        "progressed_at": None,
-                        "start_date": None,
-                        "end_date": None,
-                        "notes": None,
-                    },
-                )()
-
-            processed_seasons.append(
-                MediaSerializer().to_representation(tracked_season),
-            )
-
-        media_metadata["related"]["seasons"] = processed_seasons
-
-    def _process_episodes(self, media_metadata, episodes_by_number=None):
-        """Process episodes in media data."""
-        if "related" not in media_metadata or media_metadata["related"] is None:
-            media_metadata["related"] = {}
-        if (
-            "episodes" not in media_metadata["related"]
-            or media_metadata["related"]["episodes"] is None
-        ):
-            media_metadata["related"]["episodes"] = []
-
-        episodes = media_metadata.pop("episodes", [])
-        serializer = EpisodeSerializer(
-            context={
-                "source": media_metadata.get("source"),
-                "tracked_episodes": episodes_by_number or {},
-            },
-        )
-        processed_episodes = [
-            serializer.to_representation(episode) for episode in episodes
-        ]
-
-        media_metadata["related"]["episodes"] = processed_episodes
-
-    def to_representation(self, instance):
-        """Transform media_metadata and user data into CompleteMedia response."""
-        media_metadata = instance.get("media_metadata", {})
-        user_medias = instance.get("user_medias")
-        lists = instance.get("lists", [])
-        media_type = media_metadata.get("media_type")
-
-        if media_type == MediaTypes.TV.value:
-            self._process_seasons(media_metadata, instance.get("seasons"))
-        elif media_type == MediaTypes.SEASON.value:
-            self._process_episodes(media_metadata, instance.get("episodes"))
-
-        temp_media = type("TempMedia", (), media_metadata)()
-
-        details = media_metadata.get("details", {})
-        if "tvdb_id" in media_metadata:
-            details["tvdb_id"] = media_metadata.pop("tvdb_id")
-        if "last_episode_season" in media_metadata:
-            details["last_episode_season"] = media_metadata.pop("last_episode_season")
-        if "next_episode_season" in media_metadata:
-            details["next_episode_season"] = media_metadata.pop("next_episode_season")
-        if "last_issue_id" in media_metadata:
-            details["last_issue_id"] = media_metadata.pop("last_issue_id")
-        if "year" in details:
-            details["year"] = int(details["year"])
-        if "players" in details:
-            details["players"] = details["players"].strip(" players").split("-")
-        if "playtime" in details:
-            details["playtime"] = int(details["playtime"].strip(" min"))
-        if "min_age" in details:
-            details["min_age"] = int(details["min_age"].strip("+"))
-        if "designers" in details:
-            details["designers"] = details["designers"].split(", ")
-        if "publishers" in details:
-            details["publishers"] = details["publishers"].split(", ")
-        related = media_metadata.get("related", {})
-
-        consumptions_number = len(user_medias)
-        consumptions = serialize_data(
-            user_medias,
-            serializer_class=HistorySerializer,
-            many=True,
-        )
-
-        # TODO: Check why some informations take a while to update after a change
-
-        return {
-            "id": user_medias[0].item_id if user_medias else None,
-            "media_id": (
-                str(media_metadata.get("media_id"))
-                if media_metadata.get("media_id") is not None
-                else None
-            ),
-            "source": media_metadata.get("source"),
-            "source_url": media_metadata.get("source_url"),
-            "media_type": media_metadata.get("media_type"),
-            "title": media_metadata.pop("season_title", None)
-            or media_metadata.get("title"),
-            "max_progress": int(media_metadata.get("max_progress"))
-            if media_metadata.get("max_progress") is not None
-            else 1,
-            "image": media_metadata.get("image"),
-            "synopsis": media_metadata.get("synopsis"),
-            "genres": media_metadata.get("genres"),
-            "score": float(media_metadata.get("score"))
-            if media_metadata.get("score") is not None
-            else None,
-            "score_count": int(media_metadata.get("score_count"))
-            if media_metadata.get("score_count") is not None
-            else None,
-            "details": details,
-            "related": related,
-            "item_id": ItemIdField().to_representation(temp_media),
-            "parent_id": ParentIdField().to_representation(temp_media),
-            "tracked": consumptions_number > 0,
-            "consumptions_number": consumptions_number,
-            "consumptions": consumptions,
-            "lists": lists,
-        }
+    name = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    collaborators = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="List of username ids allowed to collaborate on this list.",
+    )
 
 
-class EpisodeSerializer(serializers.ModelSerializer):
+class PaginationSerializer(serializers.Serializer):
+    """Common pagination metadata serializer."""
+
+    total = serializers.IntegerField()
+    limit = serializers.IntegerField()
+    offset = serializers.IntegerField()
+    next = serializers.CharField(allow_null=True)
+    previous = serializers.CharField(allow_null=True)
+
+
+class PaginatedChangesHistoryResponseSerializer(serializers.Serializer):
+    """Paginated changes history serializer."""
+
+    pagination = PaginationSerializer()
+    results = ChangesHistoryEntrySerializer(many=True)
+
+
+class StatisticsMediaCountSerializer(serializers.Serializer):
+    """Serializer for media count by type in statistics response."""
+
+    total = serializers.IntegerField()
+    tv = serializers.IntegerField()
+    season = serializers.IntegerField()
+    movie = serializers.IntegerField()
+    anime = serializers.IntegerField()
+    manga = serializers.IntegerField()
+    game = serializers.IntegerField()
+    book = serializers.IntegerField()
+    comic = serializers.IntegerField()
+    board_game = serializers.IntegerField()
+
+
+class ListMinimizedSerializer(serializers.Serializer):
+    """Serializer for minimized list information."""
+
+    list_id = serializers.IntegerField()
+    list_item_id = serializers.IntegerField()
+
+
+class EpisodeSerializer(serializers.Serializer):
     """Serializer used for Episode items."""
+
+    id = serializers.IntegerField(source="item.id", allow_null=True, required=False)
+    consumption_id = serializers.IntegerField(
+        source="id", allow_null=True, required=False
+    )
+    item = ItemSerializer()
+    item_id = ItemIdField(source="item")
+    parent_id = ParentIdField(source="item")
+    tracked = serializers.BooleanField()
+    created_at = serializers.DateTimeField(allow_null=True, required=False)
+    score = serializers.FloatField(allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(allow_null=True)
+    progressed_at = serializers.DateTimeField(allow_null=True)
+    start_date = serializers.DateTimeField(allow_null=True)
+    end_date = serializers.DateTimeField(allow_null=True)
+    notes = serializers.CharField(allow_null=True)
+    lists = ListMinimizedSerializer(many=True)
 
     def to_representation(self, instance):
         """Serialize an Episode with item details."""
@@ -442,6 +409,13 @@ class EpisodeSerializer(serializers.ModelSerializer):
         }
 
 
+class PaginatedEpisodesSerializer(serializers.Serializer):
+    """Serializer for paginated episodes."""
+
+    pagination = PaginationSerializer()
+    results = EpisodeSerializer(many=True)
+
+
 class EventSerializer(serializers.ModelSerializer):
     """Serializer used for calendar events."""
 
@@ -478,8 +452,26 @@ class EventSerializer(serializers.ModelSerializer):
         return data
 
 
+class PaginatedEventsSerializer(serializers.Serializer):
+    """Serializer for paginated calendar events."""
+
+    pagination = PaginationSerializer()
+    results = EventSerializer(many=True)
+
+
+class HealthCheckSerializer(serializers.Serializer):
+    """Serializer for individual health checks."""
+
+    status = serializers.ChoiceField(choices=["ok", "error"])
+    error = serializers.CharField(allow_null=True)
+
+
 class HealthResponseSerializer(serializers.Serializer):
     """Serializer for health check response."""
+
+    status = serializers.ChoiceField(choices=["ok", "unavailable"])
+    timestamp = serializers.DateTimeField()
+    checks = serializers.DictField(child=HealthCheckSerializer())
 
     def to_representation(self, instance):
         """Transform reports from health-check library to json."""
@@ -507,6 +499,22 @@ class HealthResponseSerializer(serializers.Serializer):
 class HistorySerializer(serializers.Serializer):
     """Serializer for watch history entries."""
 
+    consumption_id = serializers.IntegerField(
+        help_text=(
+            "The id of the media consumption (id numbers are global for all "
+            "consumptions of all medias of the same type, they aren't "
+            "sequential per media)."
+        )
+    )
+    created = serializers.DateTimeField(allow_null=True)
+    score = serializers.FloatField(allow_null=True)
+    progress = serializers.IntegerField(allow_null=True)
+    progressed_at = serializers.DateTimeField(allow_null=True)
+    status = MediaStatusChoiceField()
+    start_date = serializers.DateTimeField(allow_null=True)
+    end_date = serializers.DateTimeField(allow_null=True)
+    notes = serializers.CharField(allow_null=True)
+
     def to_representation(self, instance):
         """Transform a user media instance into a watch history entry."""
         # For Episode instances, use simplified structure
@@ -530,7 +538,7 @@ class HistorySerializer(serializers.Serializer):
                 else None,
                 "notes": "",
             }
-        status = StatusField().to_representation(instance)
+        status = MediaStatusChoiceField().to_representation(instance)
 
         return {
             "consumption_id": instance.id,
@@ -557,8 +565,23 @@ class HistorySerializer(serializers.Serializer):
         }
 
 
+class PaginatedHistoryResponseSerializer(serializers.Serializer):
+    """Serializer for paginated watch history."""
+
+    pagination = PaginationSerializer()
+    results = HistorySerializer(many=True)
+
+
 class InfoSerializer(serializers.Serializer):
     """Serializer for the info endpoint."""
+
+    version = serializers.CharField()
+    debug = serializers.BooleanField()
+    frontend_url = serializers.URLField()
+    language = serializers.CharField()
+    timezone = serializers.CharField()
+    admin_enabled = serializers.BooleanField()
+    track_time = serializers.BooleanField()
 
     def to_representation(self, instance):  # noqa: ARG002
         """Transform to representation."""
@@ -573,8 +596,693 @@ class InfoSerializer(serializers.Serializer):
         }
 
 
+class PaginatedListsMinimizedResponseSerializer(serializers.Serializer):
+    """Paginated response serializer for minimized list information."""
+
+    pagination = PaginationSerializer()
+    results = ListMinimizedSerializer(many=True)
+
+
+class UserSerializer(serializers.Serializer):
+    """Serializer for user information."""
+
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+
+
+class MediaSerializer(serializers.ModelSerializer):
+    """Serializer used for media items."""
+
+    id = serializers.IntegerField(source="item.id", allow_null=True, required=False)
+    consumption_id = serializers.IntegerField(
+        source="id", allow_null=True, required=False
+    )
+    item = ItemSerializer()
+    item_id = ItemIdField(source="item", allow_null=True, required=False)
+    parent_id = ParentIdField(source="item", allow_null=True, required=False)
+    tracked = serializers.BooleanField()
+    created_at = serializers.DateTimeField(allow_null=True, required=False)
+    score = serializers.FloatField(allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(allow_null=True)
+    progressed_at = serializers.DateTimeField(allow_null=True)
+    start_date = serializers.DateTimeField(allow_null=True)
+    end_date = serializers.DateTimeField(allow_null=True)
+    notes = serializers.CharField(allow_null=True)
+    lists = ListMinimizedSerializer(many=True)
+
+    class Meta:  # noqa: D106
+        model = BasicMedia
+        exclude = ("user",)
+
+    def to_representation(self, instance):
+        """Serialize media."""
+        item = getattr(instance, "item", None)
+
+        if hasattr(instance, "lists"):
+            lists = instance.lists
+        else:
+            lists = []
+            if self.context and item is not None:
+                lists_by_item_id = self.context.get("lists_by_item_id", {})
+                lists = lists_by_item_id.get(item.id, [])
+
+        return {
+            "id": item.id if item is not None else None,
+            "consumption_id": instance.id,
+            "item": ItemSerializer(item).data if item is not None else None,
+            "item_id": ItemIdField().to_representation(item)
+            if item is not None
+            else None,
+            "parent_id": ParentIdField().to_representation(item)
+            if item is not None
+            else None,
+            "tracked": getattr(instance, "id", None) is not None,
+            "created_at": instance.created_at,
+            "score": float(instance.score)
+            if hasattr(instance, "score") and instance.score is not None
+            else None,
+            "status": MediaStatusChoiceField().to_representation(instance),
+            "progress": instance.progress if hasattr(instance, "progress") else None,
+            "progressed_at": instance.progressed_at
+            if hasattr(instance, "progressed_at")
+            else None,
+            "start_date": instance.start_date
+            if hasattr(instance, "start_date")
+            else None,
+            "end_date": instance.end_date if hasattr(instance, "end_date") else None,
+            "notes": instance.notes if hasattr(instance, "notes") else None,
+            "lists": lists,
+        }
+
+
+class AnimeDetailsSerializer(serializers.Serializer):
+    """Schema serializer for anime details."""
+
+
+class BoardGameDetailsSerializer(serializers.Serializer):
+    """Schema serializer for board game details."""
+
+    year = serializers.IntegerField(required=False, allow_null=True)
+    players = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_empty=True,
+    )
+    playtime = serializers.IntegerField(required=False, allow_null=True)
+    min_age = serializers.IntegerField(required=False, allow_null=True)
+    designers = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+    publishers = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+
+
+class BookDetailsSerializer(serializers.Serializer):
+    """Schema serializer for book details."""
+
+    format = serializers.CharField(required=False, allow_null=True)
+    number_of_pages = serializers.IntegerField(required=False, allow_null=True)
+    publish_date = serializers.DateField(required=False, allow_null=True)
+    author = serializers.CharField(required=False, allow_null=True)
+    publisher = serializers.CharField(required=False, allow_null=True)
+    isbn = serializers.CharField(required=False, allow_null=True)
+
+
+class ComicDetailsSerializer(serializers.Serializer):
+    """Schema serializer for comic details."""
+
+    start_date = serializers.CharField(required=False, allow_null=True)
+    publisher = serializers.CharField(required=False, allow_null=True)
+    issues_count = serializers.IntegerField(required=False, allow_null=True)
+    last_issue_name = serializers.CharField(required=False, allow_null=True)
+    last_issue_number = serializers.IntegerField(required=False, allow_null=True)
+    people = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+    last_updated = serializers.DateField(required=False, allow_null=True)
+    last_issue_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class EpisodeDetailsSerializer(serializers.Serializer):
+    """Schema serializer for episode details."""
+
+    air_date = serializers.DateField(required=False, allow_null=True)
+    episode_number = serializers.IntegerField(required=False, allow_null=True)
+    season_number = serializers.IntegerField(required=False, allow_null=True)
+    runtime = serializers.IntegerField(required=False, allow_null=True)
+    episode_type = serializers.CharField(required=False, allow_null=True)
+    crew = serializers.ListField(child=serializers.DictField(), required=False)
+    guest_stars = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class GameDetailsSerializer(serializers.Serializer):
+    """Schema serializer for game details."""
+
+    format = serializers.ChoiceField(
+        choices=[
+            "Main game",
+            "DLC",
+            "Expansion",
+            "Bundle",
+            "Standalone expansion",
+            "Mod",
+            "Episode",
+            "Season",
+            "Remake",
+            "Remaster",
+            "Expanded game",
+            "Port",
+            "Fork",
+            "Pack",
+            "Update",
+        ],
+        required=False,
+        allow_null=True,
+    )
+    release_date = serializers.DateField(required=False, allow_null=True)
+    themes = serializers.CharField(required=False, allow_null=True)
+    platforms = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+
+
+class MangaDetailsSerializer(serializers.Serializer):
+    """Schema serializer for manga details."""
+
+
+class MovieDetailsSerializer(serializers.Serializer):
+    """Schema serializer for movie details."""
+
+    format = serializers.CharField(required=False, allow_null=True)
+    release_date = serializers.DateField(required=False, allow_null=True)
+    status = serializers.CharField(required=False, allow_null=True)
+    runtime = serializers.CharField(required=False, allow_null=True)
+    studios = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+    country = serializers.CharField(required=False, allow_null=True)
+    languages = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+
+
+class SeasonDetailsSerializer(serializers.Serializer):
+    """Schema serializer for season details."""
+
+    first_air_date = serializers.DateField(required=False, allow_null=True)
+    last_air_date = serializers.DateField(required=False, allow_null=True)
+    episodes = serializers.IntegerField(required=False, allow_null=True)
+    runtime = serializers.CharField(required=False, allow_null=True)
+    total_runtime = serializers.CharField(required=False, allow_null=True)
+    tvdb_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class TVDetailsSerializer(serializers.Serializer):
+    """Schema serializer for TV details."""
+
+    format = serializers.CharField(required=False, allow_null=True)
+    first_air_date = serializers.DateField(required=False, allow_null=True)
+    last_air_date = serializers.DateField(required=False, allow_null=True)
+    status = serializers.CharField(required=False, allow_null=True)
+    seasons = serializers.IntegerField(required=False, allow_null=True)
+    episodes = serializers.IntegerField(required=False, allow_null=True)
+    runtime = serializers.CharField(required=False, allow_null=True)
+    studios = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+    country = serializers.CharField(required=False, allow_null=True)
+    languages = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+    )
+    tvdb_id = serializers.IntegerField(required=False, allow_null=True)
+    last_episode_season = serializers.IntegerField(required=False, allow_null=True)
+    next_episode_season = serializers.IntegerField(required=False, allow_null=True)
+
+
+class AnimeRelatedSerializer(serializers.Serializer):
+    """Schema serializer for anime related data."""
+
+
+class BoardGameRelatedSerializer(serializers.Serializer):
+    """Schema serializer for board game related data."""
+
+
+class BookRelatedSerializer(serializers.Serializer):
+    """Schema serializer for book related data."""
+
+
+class ComicRelatedSerializer(serializers.Serializer):
+    """Schema serializer for comic related data."""
+
+    from_the_same_publisher = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        allow_empty=True,
+    )
+
+
+class EpisodeRelatedSerializer(serializers.Serializer):
+    """Schema serializer for episode related data."""
+
+
+class GameRelatedSerializer(serializers.Serializer):
+    """Schema serializer for game related data."""
+
+    parent_game = serializers.ListField(child=serializers.CharField(), required=False)
+    remasters = serializers.ListField(child=serializers.CharField(), required=False)
+    remakes = serializers.ListField(child=serializers.CharField(), required=False)
+    expansions = serializers.ListField(child=serializers.CharField(), required=False)
+    standalone_expansions = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+    )
+    expanded_games = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+    )
+
+
+class MangaRelatedSerializer(serializers.Serializer):
+    """Schema serializer for manga related data."""
+
+
+class MovieRelatedSerializer(serializers.Serializer):
+    """Schema serializer for movie related data."""
+
+
+class SeasonRelatedSerializer(serializers.Serializer):
+    """Schema serializer for season related data."""
+
+    episodes = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class TVRelatedSerializer(serializers.Serializer):
+    """Schema serializer for TV related data."""
+
+    seasons = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class CompleteEpisodeSerializer(serializers.Serializer):
+    """Serializer that builds a CompleteEpisode response."""
+
+    id = serializers.IntegerField(
+        help_text=(
+            "The id of the item in the database (not to be confused with the item_id,"
+            "which is media provider specific)"
+        )
+    )
+    media_id = serializers.CharField()
+    source = MediaSourceCompleteChoiceField()
+    source_url = serializers.URLField(allow_null=True)
+    media_type = MediaTypeCompleteChoiceField()
+    title = serializers.CharField()
+    max_progress = serializers.IntegerField()
+    image = serializers.URLField(allow_null=True)
+    synopsis = serializers.CharField(allow_null=True)
+    genres = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    score = serializers.FloatField(allow_null=True)
+    score_count = serializers.IntegerField(allow_null=True)
+    details = EpisodeDetailsSerializer()
+    related = EpisodeRelatedSerializer()
+    item_id = ItemIdField()
+    parent_id = ParentIdField()
+    tracked = serializers.BooleanField()
+    consumptions_number = serializers.IntegerField()
+    consumptions = HistorySerializer(many=True)
+    lists = ListMinimizedSerializer(many=True)
+
+    def to_representation(self, instance):
+        """Transform episode data into CompleteEpisode response."""
+        media_metadata = instance.get("media_metadata", {})
+        episode = instance.get("episode", {})
+        user_medias = instance.get("user_medias", [])
+        lists = instance.get("lists", [])
+        media_type = media_metadata.get("media_type")
+
+        temp_episode = type("TempEpisode", (), {})()
+        temp_episode.media_type = "episode"
+        temp_episode.source = media_metadata.get("source")
+        temp_episode.media_id = media_metadata.get("media_id")
+        temp_episode.season_number = media_metadata.get("season_number")
+        temp_episode.episode_number = episode.get("episode_number")
+
+        season_source_url = media_metadata.get("source_url")
+        source_url = ""
+        if season_source_url:
+            source_url = f"{season_source_url}/episode/{episode.get('episode_number')}"
+
+        # TODO: move still_path slug to global configs
+        image = (
+            "https://image.tmdb.org/t/p/original" + episode.get("still_path")
+            if episode.get("still_path")
+            else None
+        )
+
+        consumptions_number = len(user_medias)
+        consumptions = HistorySerializer(user_medias, many=True).data
+
+        return {
+            "id": user_medias[0].item_id if user_medias else None,
+            "media_id": (
+                str(media_metadata.get("media_id"))
+                if media_metadata.get("media_id") is not None
+                else None
+            ),
+            "source": media_metadata.get("source"),
+            "source_url": source_url,
+            "media_type": media_type,
+            "title": episode.get("name"),
+            "max_progress": 1,
+            "image": image,
+            "synopsis": episode.get("overview"),
+            "genres": media_metadata.get("genres", []),
+            "score": float(episode.get("vote_average"))
+            if episode.get("vote_average") is not None
+            else None,
+            "score_count": episode.get("vote_count"),
+            "details": {
+                "air_date": episode.get("air_date"),
+                "episode_number": episode.get("episode_number"),
+                "season_number": episode.get("season_number"),
+                "runtime": episode.get("runtime"),
+                "episode_type": episode.get("episode_type"),
+                "crew": episode.get("crew", []),
+                "guest_stars": episode.get("guest_stars", []),
+            },
+            "related": {},
+            "item_id": ItemIdField().to_representation(temp_episode),
+            "parent_id": ParentIdField().to_representation(temp_episode),
+            "tracked": consumptions_number > 0,
+            "consumptions_number": consumptions_number,
+            "consumptions": consumptions,
+            "lists": lists,
+        }
+
+
+class TimeToBeatSerializer(serializers.Serializer):
+    """Serializer for the time to beat a game, in seconds."""
+
+    hastily = serializers.IntegerField(required=False, allow_null=True)
+    normally = serializers.IntegerField(required=False, allow_null=True)
+    completely = serializers.IntegerField(required=False, allow_null=True)
+
+
+class CompleteMediaSerializer(serializers.Serializer):
+    """Serializer that builds a CompleteMedia response."""
+
+    id = serializers.IntegerField(
+        help_text=(
+            "The id of the item in the database (not to be confused with the item_id,"
+            "which is media provider specific)"
+        )
+    )
+    media_id = serializers.CharField()
+    source = MediaSourceCompleteChoiceField()
+    source_url = serializers.URLField(allow_null=True)
+    media_type = MediaTypeCompleteChoiceField()
+    title = serializers.CharField()
+    max_progress = serializers.IntegerField()
+    image = serializers.URLField(allow_null=True)
+    synopsis = serializers.CharField(allow_null=True)
+    genres = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    score = serializers.FloatField(allow_null=True)
+    score_count = serializers.IntegerField(allow_null=True)
+    details = serializers.SerializerMethodField()
+    related = serializers.SerializerMethodField()
+    external_links = serializers.DictField(
+        child=serializers.URLField(),
+        help_text=(
+            "Links to other sites (e.g. IMDb, TVDB, Wikidata, Letterboxd), "
+            "only for movies, tv series and seasons."
+        ),
+    )
+    time_to_beat = TimeToBeatSerializer(
+        allow_null=True,
+        help_text="Time to beat the game in seconds, only for games.",
+    )
+    item_id = ItemIdField()
+    parent_id = ParentIdField()
+    tracked = serializers.BooleanField()
+    consumptions_number = serializers.IntegerField()
+    consumptions = HistorySerializer(many=True)
+    lists = ListMinimizedSerializer(many=True)
+
+    @extend_schema_field(
+        PolymorphicProxySerializer(
+            component_name="CompleteMediaDetails",
+            serializers=[
+                AnimeDetailsSerializer,
+                BoardGameDetailsSerializer,
+                BookDetailsSerializer,
+                ComicDetailsSerializer,
+                GameDetailsSerializer,
+                MangaDetailsSerializer,
+                MovieDetailsSerializer,
+                SeasonDetailsSerializer,
+                TVDetailsSerializer,
+            ],
+            resource_type_field_name=None,
+        ),
+    )
+    def get_details(self, obj):
+        """Return polymorphic details payload for schema generation."""
+        if isinstance(obj, dict):
+            return obj.get("details", {})
+        return getattr(obj, "details", {})
+
+    @extend_schema_field(
+        PolymorphicProxySerializer(
+            component_name="CompleteMediaRelated",
+            serializers=[
+                AnimeRelatedSerializer,
+                BoardGameRelatedSerializer,
+                BookRelatedSerializer,
+                ComicRelatedSerializer,
+                GameRelatedSerializer,
+                MangaRelatedSerializer,
+                MovieRelatedSerializer,
+                SeasonRelatedSerializer,
+                TVRelatedSerializer,
+            ],
+            resource_type_field_name=None,
+        ),
+    )
+    def get_related(self, obj):
+        """Return polymorphic related payload for schema generation."""
+        if isinstance(obj, dict):
+            return obj.get("related", {})
+        return getattr(obj, "related", {})
+
+    def _process_seasons(self, media_metadata, seasons_by_number=None):
+        """Process seasons in related data."""
+        if "related" not in media_metadata or media_metadata["related"] is None:
+            media_metadata["related"] = {}
+        if (
+            "seasons" not in media_metadata["related"]
+            or media_metadata["related"]["seasons"] is None
+        ):
+            media_metadata["related"]["seasons"] = []
+
+        processed_seasons = []
+        for season in media_metadata["related"]["seasons"]:
+            season_number = season.get("season_number")
+            tracked_season = (
+                seasons_by_number.get(season_number) if seasons_by_number else None
+            )
+
+            item = getattr(tracked_season, "item", None)
+            if item is None:
+                item = Item(
+                    media_id=str(
+                        season.get("media_id") or media_metadata.get("media_id") or "",
+                    ),
+                    source=season.get("source") or media_metadata.get("source"),
+                    media_type=MediaTypes.SEASON.value,
+                    title=season.get("season_title") or season.get("title") or "",
+                    image=season.get("image") or settings.IMG_NONE,
+                    season_number=season_number,
+                )
+
+            if tracked_season is None:
+                tracked_season = type(
+                    "TempMedia",
+                    (),
+                    {
+                        "id": None,
+                        "item": item,
+                        "created_at": None,
+                        "score": None,
+                        "status": None,
+                        "progress": None,
+                        "progressed_at": None,
+                        "start_date": None,
+                        "end_date": None,
+                        "notes": None,
+                    },
+                )()
+
+            processed_seasons.append(
+                MediaSerializer().to_representation(tracked_season),
+            )
+
+        media_metadata["related"]["seasons"] = processed_seasons
+
+    def _process_episodes(self, media_metadata, episodes_by_number=None):
+        """Process episodes in media data."""
+        if "related" not in media_metadata or media_metadata["related"] is None:
+            media_metadata["related"] = {}
+        if (
+            "episodes" not in media_metadata["related"]
+            or media_metadata["related"]["episodes"] is None
+        ):
+            media_metadata["related"]["episodes"] = []
+
+        episodes = media_metadata.pop("episodes", [])
+        serializer = EpisodeSerializer(
+            context={
+                "source": media_metadata.get("source"),
+                "tracked_episodes": episodes_by_number or {},
+            },
+        )
+        processed_episodes = [
+            serializer.to_representation(episode) for episode in episodes
+        ]
+
+        media_metadata["related"]["episodes"] = processed_episodes
+
+    def _apply_custom_cover(self, media_metadata):
+        """Replace the image with the custom cover chosen for the media, if any."""
+        # Episodes have no cover to customize
+        if (
+            media_metadata.get("media_id") is None
+            or media_metadata.get("media_type") == MediaTypes.EPISODE.value
+        ):
+            return media_metadata
+        return apply_custom_image(
+            media_metadata,
+            media_metadata["media_type"],
+            str(media_metadata["media_id"]),
+            media_metadata.get("source"),
+            season_number=media_metadata.get("season_number"),
+        )
+
+    def to_representation(self, instance):
+        """Transform media_metadata and user data into CompleteMedia response."""
+        media_metadata = instance.get("media_metadata", {})
+        user_medias = instance.get("user_medias")
+        lists = instance.get("lists", [])
+        media_type = media_metadata.get("media_type")
+
+        if media_type == MediaTypes.TV.value:
+            self._process_seasons(media_metadata, instance.get("seasons"))
+        elif media_type == MediaTypes.SEASON.value:
+            self._process_episodes(media_metadata, instance.get("episodes"))
+
+        media_metadata = self._apply_custom_cover(media_metadata)
+        temp_media = type("TempMedia", (), media_metadata)()
+
+        details = media_metadata.get("details", {})
+        if "tvdb_id" in media_metadata:
+            details["tvdb_id"] = media_metadata.pop("tvdb_id")
+        if "last_episode_season" in media_metadata:
+            details["last_episode_season"] = media_metadata.pop("last_episode_season")
+        if "next_episode_season" in media_metadata:
+            details["next_episode_season"] = media_metadata.pop("next_episode_season")
+        if "last_issue_id" in media_metadata:
+            details["last_issue_id"] = media_metadata.pop("last_issue_id")
+        if "year" in details:
+            details["year"] = int(details["year"])
+        if "players" in details:
+            details["players"] = details["players"].strip(" players").split("-")
+        if "playtime" in details:
+            details["playtime"] = int(details["playtime"].strip(" min"))
+        if "min_age" in details:
+            details["min_age"] = int(details["min_age"].strip("+"))
+        if "designers" in details:
+            details["designers"] = details["designers"].split(", ")
+        if "publishers" in details:
+            details["publishers"] = details["publishers"].split(", ")
+        related = media_metadata.get("related", {})
+
+        consumptions_number = len(user_medias)
+        consumptions = HistorySerializer(user_medias, many=True).data
+
+        # TODO: Check why some informations take a while to update after a change
+
+        return {
+            "id": user_medias[0].item_id if user_medias else None,
+            "media_id": (
+                str(media_metadata.get("media_id"))
+                if media_metadata.get("media_id") is not None
+                else None
+            ),
+            "source": media_metadata.get("source"),
+            "source_url": media_metadata.get("source_url"),
+            "media_type": media_metadata.get("media_type"),
+            "title": media_metadata.pop("season_title", None)
+            or media_metadata.get("title"),
+            "max_progress": int(media_metadata.get("max_progress"))
+            if media_metadata.get("max_progress") is not None
+            else 1,
+            "image": media_metadata.get("image"),
+            "synopsis": media_metadata.get("synopsis"),
+            "genres": media_metadata.get("genres"),
+            "score": float(media_metadata.get("score"))
+            if media_metadata.get("score") is not None
+            else None,
+            "score_count": int(media_metadata.get("score_count"))
+            if media_metadata.get("score_count") is not None
+            else None,
+            "details": details,
+            "related": related,
+            "external_links": media_metadata.get("external_links") or {},
+            "time_to_beat": media_metadata.get("time_to_beat"),
+            "item_id": ItemIdField().to_representation(temp_media),
+            "parent_id": ParentIdField().to_representation(temp_media),
+            "tracked": consumptions_number > 0,
+            "consumptions_number": consumptions_number,
+            "consumptions": consumptions,
+            "lists": lists,
+        }
+
+
+class PaginatedMediaResponseSerializer(serializers.Serializer):
+    """Paginated response serializer for media items."""
+
+    pagination = PaginationSerializer()
+    results = MediaSerializer(many=True)
+
+
 class ListSerializer(serializers.Serializer):
     """Serializer used for custom lists."""
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    description = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    owner = UserSerializer()
+    collaborators = UserSerializer(many=True)
+    items_count = serializers.IntegerField()
+    latest_update = serializers.DateTimeField()
+    items = PaginatedMediaResponseSerializer(required=False, allow_null=True)
 
     def to_representation(self, instance):
         """Serialize a CustomList."""
@@ -602,12 +1310,11 @@ class ListSerializer(serializers.Serializer):
             if isinstance(items_context, dict) and "results" in items_context:
                 items = {
                     "pagination": items_context.get("pagination", {}),
-                    "results": serialize_data(
+                    "results": MixedMediaSerializer(
                         items_context.get("results", []),
                         many=True,
                         context=nested_context,
-                        homogeneous=False,
-                    ),
+                    ).data,
                 }
             else:
                 items = items_context
@@ -635,54 +1342,46 @@ class ListSerializer(serializers.Serializer):
         return response
 
 
-class MediaSerializer(serializers.ModelSerializer):
-    """Serializer used for media items."""
+class PaginatedListsResponseSerializer(serializers.Serializer):
+    """Paginated custom lists serializer."""
 
-    class Meta:  # noqa: D106
-        model = BasicMedia
-        exclude = ("user",)
+    pagination = PaginationSerializer()
+    results = ListSerializer(many=True, context={"include_items": False})
 
-    def to_representation(self, instance):
-        """Serialize media."""
-        item = getattr(instance, "item", None)
 
-        if hasattr(instance, "lists"):
-            lists = instance.lists
-        else:
-            lists = []
-            if self.context and item is not None:
-                lists_by_item_id = self.context.get("lists_by_item_id", {})
-                lists = lists_by_item_id.get(item.id, [])
+# TODO: Complete the mapping of statistics response fields
+class StatisticsResponseSerializer(serializers.Serializer):
+    """Serializer for statistics endpoint payload."""
 
-        return {
-            "id": item.id if item is not None else None,
-            "consumption_id": instance.id,
-            "item": serialize_data(item, serializer_class=ItemSerializer)
-            if item is not None
-            else None,
-            "item_id": ItemIdField().to_representation(item)
-            if item is not None
-            else None,
-            "parent_id": ParentIdField().to_representation(item)
-            if item is not None
-            else None,
-            "tracked": getattr(instance, "id", None) is not None,
-            "created_at": instance.created_at,
-            "score": float(instance.score)
-            if hasattr(instance, "score") and instance.score is not None
-            else None,
-            "status": StatusField().to_representation(instance),
-            "progress": instance.progress if hasattr(instance, "progress") else None,
-            "progressed_at": instance.progressed_at
-            if hasattr(instance, "progressed_at")
-            else None,
-            "start_date": instance.start_date
-            if hasattr(instance, "start_date")
-            else None,
-            "end_date": instance.end_date if hasattr(instance, "end_date") else None,
-            "notes": instance.notes if hasattr(instance, "notes") else None,
-            "lists": lists,
-        }
+    start_date = serializers.DateTimeField(allow_null=True, required=False)
+    end_date = serializers.DateTimeField(allow_null=True, required=False)
+    media_count = StatisticsMediaCountSerializer()
+    activity_data = serializers.JSONField()
+    media_type_distribution = serializers.DictField()
+    score_distribution = serializers.DictField()
+    top_rated = MediaSerializer(many=True)
+    status_distribution = serializers.DictField()
+    status_pie_chart_data = serializers.JSONField()
+    timeline = serializers.DictField(
+        child=serializers.ListField(child=serializers.DictField()),
+    )
+
+
+class SearchMediaSerializer(serializers.Serializer):
+    """Serializer for individual media items in search results."""
+
+    media_id = serializers.CharField()
+    source = serializers.CharField()
+    media_type = serializers.CharField()
+    title = serializers.CharField()
+    image = serializers.URLField()
+
+
+class SearchResponseSerializer(serializers.Serializer):
+    """Serializer for search endpoint results."""
+
+    pagination = PaginationSerializer()
+    results = SearchMediaSerializer(many=True)
 
 
 class MixedMediaSerializer(serializers.Serializer):
@@ -738,6 +1437,233 @@ class UntrackedMediaSerializer(serializers.Serializer):
         }
 
 
+class PaginatedMediaSerializer(serializers.Serializer):
+    """Paginated response serializer for media items."""
+
+    pagination = PaginationSerializer()
+    results = MediaSerializer(many=True)
+
+
+class RelatedResponseSerializer(serializers.Serializer):
+    """Serializer for related media endpoint."""
+
+    source = MediaSourceChoiceField()
+    media_type = MediaTypeChoiceField()
+    image = serializers.URLField(allow_null=True)
+    media_id = serializers.CharField()
+    title = serializers.CharField()
+
+
+class CastMemberSerializer(serializers.Serializer):
+    """Serializer for a single cast member."""
+
+    person_id = serializers.IntegerField()
+    name = serializers.CharField()
+    character = serializers.CharField(allow_null=True)
+    image = serializers.URLField(allow_null=True)
+    order = serializers.IntegerField(allow_null=True)
+    episode_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedCastSerializer(serializers.Serializer):
+    """Paginated response serializer for cast members."""
+
+    pagination = PaginationSerializer()
+    results = CastMemberSerializer(many=True)
+
+
+class SearchPersonSerializer(serializers.Serializer):
+    """Serializer for individual people in search results."""
+
+    person_id = serializers.IntegerField()
+    source = MediaSourceChoiceField()
+    name = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    known_for_department = serializers.CharField(allow_null=True)
+    known_for = RelatedResponseSerializer(many=True)
+
+
+class SearchPeopleResponseSerializer(serializers.Serializer):
+    """Serializer for people search endpoint results."""
+
+    pagination = PaginationSerializer()
+    results = SearchPersonSerializer(many=True)
+
+
+class PersonSerializer(serializers.Serializer):
+    """Serializer for person details."""
+
+    person_id = serializers.IntegerField()
+    source = MediaSourceChoiceField()
+    source_url = serializers.URLField()
+    name = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    biography = serializers.CharField(allow_null=True)
+    birthday = serializers.DateField(allow_null=True)
+    deathday = serializers.DateField(allow_null=True)
+    place_of_birth = serializers.CharField(allow_null=True)
+    known_for_department = serializers.CharField(allow_null=True)
+    also_known_as = serializers.ListField(child=serializers.CharField())
+    homepage = serializers.URLField(allow_null=True)
+    external_links = serializers.DictField(child=serializers.URLField())
+
+
+class CrewMemberSerializer(serializers.Serializer):
+    """Serializer for a single crew member."""
+
+    person_id = serializers.IntegerField()
+    name = serializers.CharField()
+    department = serializers.CharField(allow_null=True)
+    jobs = serializers.ListField(child=serializers.CharField())
+    image = serializers.URLField(allow_null=True)
+    episode_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedCrewSerializer(serializers.Serializer):
+    """Paginated response serializer for crew members."""
+
+    pagination = PaginationSerializer()
+    results = CrewMemberSerializer(many=True)
+
+
+class PersonImageSerializer(serializers.Serializer):
+    """Serializer for a single person image."""
+
+    image = serializers.URLField()
+    original = serializers.URLField()
+    width = serializers.IntegerField(allow_null=True)
+    height = serializers.IntegerField(allow_null=True)
+    aspect_ratio = serializers.FloatField(allow_null=True)
+    vote_average = serializers.FloatField(allow_null=True)
+    vote_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedPersonImagesSerializer(serializers.Serializer):
+    """Paginated response serializer for person images."""
+
+    pagination = PaginationSerializer()
+    results = PersonImageSerializer(many=True)
+
+
+class MediaImageSerializer(PersonImageSerializer):
+    """Serializer for a single media image."""
+
+    language = serializers.CharField(allow_null=True)
+    source = serializers.CharField(
+        help_text=(
+            "Where the image comes from: the media source, or an extra artwork "
+            "source (fanart, anilist, mangadex)."
+        ),
+    )
+
+
+class MediaImagesResponseSerializer(serializers.Serializer):
+    """Serializer for media images endpoint."""
+
+    posters = MediaImageSerializer(many=True)
+    backdrops = MediaImageSerializer(many=True)
+    screenshots = MediaImageSerializer(many=True)
+    logos = MediaImageSerializer(many=True)
+
+
+class CompanySerializer(serializers.Serializer):
+    """Serializer for a company involved in a media."""
+
+    company_id = serializers.IntegerField()
+    name = serializers.CharField()
+    logo = serializers.URLField(allow_null=True)
+    roles = serializers.ListField(child=serializers.CharField())
+
+
+class PaginatedCompaniesSerializer(serializers.Serializer):
+    """Paginated response serializer for companies."""
+
+    pagination = PaginationSerializer()
+    results = CompanySerializer(many=True)
+
+
+class CreditSerializer(serializers.Serializer):
+    """Serializer for a creator or character of a media."""
+
+    id = serializers.CharField(allow_null=True)
+    name = serializers.CharField()
+    roles = serializers.ListField(child=serializers.CharField())
+    image = serializers.URLField(allow_null=True)
+    issue_count = serializers.IntegerField(allow_null=True)
+    source_url = serializers.URLField(allow_null=True)
+
+
+class PaginatedCreditsSerializer(serializers.Serializer):
+    """Paginated response serializer for creators or characters."""
+
+    pagination = PaginationSerializer()
+    results = CreditSerializer(many=True)
+
+
+class CoverSerializer(serializers.Serializer):
+    """Serializer for the cover of a media."""
+
+    image = serializers.URLField(
+        allow_null=True,
+        help_text="Cover shown for the media, the custom one if set.",
+    )
+    custom_image = serializers.URLField(
+        allow_null=True,
+        help_text="Custom cover chosen for the media, null if none.",
+    )
+
+
+class CoverUpdateSerializer(serializers.Serializer):
+    """Serializer for setting a custom cover."""
+
+    image = serializers.URLField(
+        help_text=(
+            "URL of one of the images returned by the media images endpoint, "
+            "either its `image` or `original` URL."
+        ),
+    )
+
+
+class KnownForSerializer(serializers.Serializer):
+    """Serializer for a media a person is known for."""
+
+    source = MediaSourceChoiceField()
+    media_type = MediaTypeChoiceField()
+    media_id = serializers.CharField()
+    title = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    character = serializers.CharField(allow_null=True)
+    departments = serializers.ListField(child=serializers.CharField())
+    jobs = serializers.ListField(child=serializers.CharField())
+    release_date = serializers.DateField(allow_null=True)
+    episode_count = serializers.IntegerField(allow_null=True)
+
+
+class PaginatedKnownForSerializer(serializers.Serializer):
+    """Paginated response serializer for known for media."""
+
+    pagination = PaginationSerializer()
+    results = KnownForSerializer(many=True)
+
+
+class WatchProviderSerializer(serializers.Serializer):
+    """Serializer for a single watch provider."""
+
+    provider_id = serializers.IntegerField()
+    provider_name = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    display_priority = serializers.IntegerField(allow_null=True)
+
+
+class WatchProvidersResponseSerializer(serializers.Serializer):
+    """Serializer for watch providers endpoint."""
+
+    region = serializers.CharField()
+    link = serializers.URLField(allow_null=True)
+    no_charge = WatchProviderSerializer(many=True)
+    paid = WatchProviderSerializer(many=True)
+
+
 class TimelineItemSerializer(serializers.ModelSerializer):
     """Compact serializer used for timeline entries to reduce payload size."""
 
@@ -761,6 +1687,149 @@ class TimelineItemSerializer(serializers.ModelSerializer):
         exclude = ("user",)
 
 
+class BaseUpdateMediaSerializer(serializers.Serializer):
+    """Base serializer for updating media items with common fields."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+    def validate_score(self, value):
+        """Validate that the score is between 0 and 10 if provided."""
+        if value is not None and not (0 <= value <= 10):  # noqa: PLR2004
+            msg = "Score must be between 0 and 10."
+            raise serializers.ValidationError(msg)
+        return value
+
+    def validate_progress(self, value):
+        """Validate that the progress is not negative."""
+        if value is not None and value < 0:
+            msg = "Progress cannot be negative."
+            raise serializers.ValidationError(msg)
+        return value
+
+    def validate(self, data):  # noqa: D102
+        start_date = data.get("start_date", getattr(self.instance, "start_date", None))
+        end_date = data.get("end_date", getattr(self.instance, "end_date", None))
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError(
+                {"end_date": "End date cannot be before start date."}
+            )
+        return data
+
+
+class UpdateAnimeSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating anime media items."""
+
+
+class UpdateBoardGameSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating board game media items."""
+
+
+class UpdateBookSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating book media items."""
+
+
+class UpdateComicSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating comic media items."""
+
+
+# UpdateEpisodeSerializer is not a subclass of BaseUpdateMediaSerializer because only
+# the end_date field is modifiable. In the future Episodes should be treated as Media
+class UpdateEpisodeSerializer(serializers.Serializer):
+    """Serializer for updating episode media items."""
+
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
+
+
+class UpdateGameSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating game media items."""
+
+
+class UpdateMangaSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating manga media items."""
+
+
+class UpdateMovieSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating movie media items."""
+
+    progress = None
+
+
+class UpdateSeasonSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating season media items."""
+
+    progress = None
+    start_date = None
+    end_date = None
+
+
+class UpdateTVSerializer(BaseUpdateMediaSerializer):
+    """Serializer for updating TV media items."""
+
+    progress = None
+    start_date = None
+    end_date = None
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            "Track new media item with provider source",
+            description="Track a new media item using a provider's metadata.",
+            summary="Track media with provider source",
+            value={
+                "source": "tmdb",
+                "media_id": "12345",
+            },
+        ),
+        OpenApiExample(
+            "Track new manual media item",
+            description=(
+                "Track a new media item with custom metadata. Omit `media_id` and use "
+                "`source: manual` to create a manual media item."
+            ),
+            summary="Track media with manual source",
+            value={
+                "source": "manual",
+                "title": "My Custom Movie",
+                "image": "https://example.com/poster.jpg",
+                "score": 8.5,
+                "status": 3,
+                "progress": 1,
+                "start_date": "2023-10-01T00:00:00Z",
+                "end_date": "2023-10-01T00:00:00Z",
+                "notes": "Watched at the festival",
+            },
+        ),
+    ]
+)
+class TrackMediaSerializer(serializers.Serializer):
+    """
+    Serializer for tracking a new media item.
+
+    Unified payload for creating media items. Use `source: manual` for manual items
+    (omit `media_id`) or set a provider `source` and `media_id` to create from a
+    provider. When using a media provider, all media data will be overwritten.
+    """
+
+    source = MediaSourceCompleteChoiceField()
+    media_id = serializers.CharField(required=False, allow_null=True)
+    title = serializers.CharField(required=False, allow_null=True)
+    image = serializers.URLField(required=False, allow_null=True)
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField(required=False)
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+    season_number = serializers.IntegerField(required=False, allow_null=True)
+    episode_number = serializers.IntegerField(required=False, allow_null=True)
+
+
 serializer_map = {
     Anime: MediaSerializer,
     BasicMedia: MediaSerializer,
@@ -777,69 +1846,3 @@ serializer_map = {
     Season: MediaSerializer,
     TV: MediaSerializer,
 }
-
-
-def serialize_data(
-    data,
-    *,
-    many=False,
-    context=None,
-    serializer_class=None,
-    homogeneous=True,
-):
-    """Serialize data using the appropriate serializer class."""
-    # If serializer class is explicitly provided, use it
-    if serializer_class is not None:
-        kwargs = {"many": many}
-        if context is not None:
-            kwargs["context"] = context
-        serializer = serializer_class(data, **kwargs)
-        return serializer.data
-
-    # Auto-detect serializer based on data type
-    if many:
-        data_list = list(data) if not isinstance(data, list) else data
-        if not data_list:
-            return []
-
-        # Check if data is homogeneous (all same type)
-        first_type = type(data_list[0])
-        if homogeneous:
-            detected_serializer_class = serializer_map.get(first_type)
-
-            if detected_serializer_class is None:
-                msg = (
-                    f"No serializer found for data type {first_type}. "
-                    f"Supported types: {list(serializer_map.keys())}. "
-                    f"Pass serializer_class explicitly if needed."
-                )
-                raise ValueError(msg)
-
-            kwargs = {"many": True}
-            if context is not None:
-                kwargs["context"] = context
-            serializer = detected_serializer_class(data_list, **kwargs)
-            return serializer.data
-        kwargs = {"many": True}
-        if context is not None:
-            kwargs["context"] = context
-        serializer = MixedMediaSerializer(data_list, **kwargs)
-        return serializer.data
-    sample_item = data
-
-    data_type = type(sample_item)
-    detected_serializer_class = serializer_map.get(data_type)
-
-    if detected_serializer_class is None:
-        msg = (
-            f"No serializer found for data type {data_type}. "
-            f"Supported types: {list(serializer_map.keys())}. "
-            f"Pass serializer_class explicitly if needed."
-        )
-        raise ValueError(msg)
-
-    kwargs = {"many": False}
-    if context is not None:
-        kwargs["context"] = context
-    serializer = detected_serializer_class(sample_item, **kwargs)
-    return serializer.data

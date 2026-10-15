@@ -1,0 +1,140 @@
+# Endpoints
+
+!!! warning
+    The API is still in development and may change at any time.
+
+!!! warning
+    This page is still a WIP
+
+- [x] `/api/v1/calendar/`
+    - [x] GET: List upcoming calendar events
+- [x] `/api/v1/calendar/update/`
+    - [x] POST: Update calendar events
+- [x] `/api/v1/changes_history/{media_type}/{history_id}`:
+    - [x] DELETE: Delete specific changes history entry
+    - [x] GET: Get specific changes history entry
+- [x] `/api/v1/lists/`
+    - [x] GET: List all user & shared lists
+    - [x] POST: Create new list
+- [x] `/api/v1/lists/{list_id}/`
+    - [x] DELETE: Delete specific list
+    - [x] GET: Get specific list
+    - [x] PATCH: Edit list properties (maybe also content)
+- [x] `/api/v1/lists/{list_id}/items/`
+    - [x] GET: List items in list
+- [x] `/api/v1/lists/{list_id}/items/{item_id}/`
+    - [x] DELETE: Delete item from list
+    - [x] GET: Get tracked item
+- [x] `/api/v1/media/`
+    - [x] GET: List tracked media
+- [x] `/api/v1/media/{media_type}/`
+    - [x] GET: List tracked media of type
+    - [x] POST: Track media of type
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/`
+    - [x] DELETE: Delete tracked item
+    - [x] GET: Get tracked item
+    - [x] PATCH: Edit last consumption of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/cast/`
+    - [x] GET: Get cast of a movie or tv serie (TMDB), or voice actors of an anime (MAL, via AniList) in the `language` chosen (default: japanese)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/changes_history/`
+    - [x] GET: Get changes history of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/characters/`
+    - [x] GET: Get characters of an anime or manga (MAL, via AniList) or comic (ComicVine)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/companies/`
+    - [x] GET: Get companies involved in a game (IGDB) or publishers of a board game (BGG), optionally filtered by `role`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/cover/`
+    - [x] DELETE: Reset the cover to the provider image
+    - [x] GET: Get the current cover
+    - [x] PUT: Set one of the media images as the cover for every user of the server
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/creators/`
+    - [x] GET: Get creators of a manga (MAL via AniList, MangaUpdates), book (Open Library, Hardcover), comic (ComicVine) or board game (BGG)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/crew/`
+    - [x] GET: Get crew of a movie or tv serie (TMDB), optionally filtered by `department`, or staff of an anime (MAL, via AniList)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/`
+    - [x] GET: Get consumption history of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/{consumption_id}/`
+    - [x] DELETE: Delete specific consumption entry
+    - [x] GET: Get specific consumption entry
+    - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/images/`
+    - [x] GET: Get images of any media type except manual items: movie and tv serie (posters, backdrops, logos), game (cover, artworks, screenshots), comic (volume and issue covers), anime, manga, book and board game (covers), optionally filtered by `type`
+        - Extra artwork is added from Fanart.tv for movies and tv series (only when `FANART_API` is set), from AniList for anime and manga, and from MangaDex for manga. Each image has a `source`.
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/`
+    - [x] GET: Lists where the tracked item is in
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}`
+    - [x] DELETE: Delete tracked item from specific list
+    - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/providers/`
+    - [x] GET: Get where to watch a movie or tv serie (no charge and paid providers)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/recommendations/`
+    - [x] GET: Get recommendations based on tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/seasons/`
+    - [x] GET: List seasons of tracked tv serie if media is tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/sync/`
+    - [x] POST: Update metadata of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/`
+    - [x] DELETE: Delete tracked season if media is tv serie
+    - [x] GET: Get tracked season if media is tv serie
+    - [x] PATCH: Edit last consumption of tracked season
+    - [x] POST: Track a season of a tracked tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/cover/`
+    - [x] DELETE: Reset the season cover to the provider image
+    - [x] GET: Get the current season cover
+    - [x] PUT: Set one of the season images as the cover for every user of the server
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/episodes/`
+    - [x] GET: List episodes of tracked season if media is tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/changes_history/`
+    - [x] GET: Get changes history of tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/history/`
+    - [x] GET: Get consumption history of tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/history/{consumption_id}/`
+    - [x] DELETE: Delete specific consumption entry
+    - [x] GET: Get specific consumption entry
+    - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/images/`
+    - [x] GET: Get posters of a season if media is tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/lists/`
+    - [x] GET: Lists where the tracked item is in
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/lists/{list_id}`
+    - [x] DELETE: Delete tracked item from specific list
+    - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/providers/`
+    - [x] GET: Get where to watch a season if media is tv serie (no charge and paid providers)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/sync/`
+    - [x] POST: Update metadata of tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/`
+    - [x] DELETE: Delete tracked episode if media is tv serie
+    - [x] GET: Get tracked episode if media is tv serie
+    - [x] PATCH: Edit last consumption of tracked episode
+    - [x] POST: Track an episode (a new watch) of a tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/changes_history/`
+    - [x] GET: Get changes history of tracked episode
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/history/`
+    - [x] GET: Get consumption history of tracked episode
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/history/{consumption_id}/`
+    - [x] DELETE: Delete specific consumption entry
+    - [x] GET: Get specific consumption entry
+    - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/lists/`
+    - [x] GET: Lists where the tracked item is in
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/lists/{list_id}`
+    - [x] DELETE: Delete tracked item from specific list
+    - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season}/{episode}/sync/`
+    - [x] POST: Update metadata of tracked episode (season)
+- [x] `/api/v1/people/search/`
+    - [x] GET: Search for people (`search` query parameter)
+- [x] `/api/v1/people/{source}/{person_id}/`
+    - [x] GET: Get person details
+- [x] `/api/v1/people/{source}/{person_id}/images/`
+    - [x] GET: Get profile images of a person
+- [x] `/api/v1/people/{source}/{person_id}/known_for/`
+    - [x] GET: Get movies and tv series a person is known for as cast or crew, optionally filtered by `media_type` (`movie` or `tv`) and `department`
+- [x] `/api/v1/search/{media_type}/`
+    - [x] GET: Search for media using the specified provider
+- [x] `/api/v1/statistics/`
+    - [x] GET: Get user statistics
+- [x] `/api/v1/health/`
+    - [x] GET: Health check endpoint
+- [x] `/api/v1/info/`
+    - [x] GET: Get application info and version

@@ -1,0 +1,1534 @@
+from unittest.mock import patch
+
+from django.core.cache import cache
+
+from app.models import MediaTypes
+
+from .base import YamtrackApiTestCase
+from .helpers import check_pagination_structure
+
+MOVIE_CREDITS_RESPONSE = {
+    "cast": [
+        {
+            "id": 6384,
+            "name": "Keanu Reeves",
+            "character": "Neo",
+            "profile_path": "/keanu.jpg",
+            "order": 0,
+        },
+        {
+            "id": 2975,
+            "name": "Laurence Fishburne",
+            "character": "",
+            "profile_path": None,
+            "order": 1,
+        },
+    ],
+}
+
+TV_AGGREGATE_CREDITS_RESPONSE = {
+    "cast": [
+        {
+            "id": 17419,
+            "name": "Bryan Cranston",
+            "profile_path": "/bryan.jpg",
+            "roles": [
+                {"character": "Walter White", "episode_count": 62},
+                {"character": "Heisenberg", "episode_count": 1},
+            ],
+            "total_episode_count": 62,
+            "order": 0,
+        },
+    ],
+}
+
+PERSON_COMBINED_CREDITS_RESPONSE = {
+    "cast": [
+        {
+            "id": 603,
+            "media_type": "movie",
+            "title": "The Matrix",
+            "poster_path": "/matrix.jpg",
+            "character": "Neo",
+            "release_date": "1999-03-31",
+            "genre_ids": [28, 878],
+            "vote_count": 25000,
+        },
+        {
+            "id": 1399,
+            "media_type": "tv",
+            "name": "Swedish Dicks",
+            "poster_path": "/dicks.jpg",
+            "character": "Tex",
+            "first_air_date": "2016-08-09",
+            "genre_ids": [35],
+            "episode_count": 2,
+            "vote_count": 50,
+        },
+        {
+            "id": 1399,
+            "media_type": "tv",
+            "name": "Swedish Dicks",
+            "poster_path": "/dicks.jpg",
+            "character": "Himself",
+            "first_air_date": "2016-08-09",
+            "genre_ids": [35],
+            "episode_count": 1,
+            "vote_count": 50,
+        },
+        {
+            "id": 22980,
+            "media_type": "tv",
+            "name": "The Tonight Show",
+            "poster_path": "/tonight.jpg",
+            "character": "Self - Guest",
+            "first_air_date": "2014-02-17",
+            "genre_ids": [10767, 35],
+            "vote_count": 900,
+        },
+        {
+            "id": 245891,
+            "media_type": "movie",
+            "title": "John Wick",
+            "poster_path": None,
+            "character": "John Wick",
+            "release_date": "",
+            "genre_ids": [28],
+            "vote_count": 19000,
+        },
+    ],
+    "crew": [
+        {
+            "id": 245891,
+            "media_type": "movie",
+            "title": "John Wick",
+            "poster_path": None,
+            "department": "Production",
+            "job": "Executive Producer",
+            "release_date": "",
+            "genre_ids": [28],
+            "vote_count": 19000,
+        },
+        {
+            "id": 98765,
+            "media_type": "movie",
+            "title": "Man of Tai Chi",
+            "poster_path": "/taichi.jpg",
+            "department": "Directing",
+            "job": "Director",
+            "release_date": "2013-07-04",
+            "genre_ids": [28],
+            "vote_count": 600,
+        },
+        {
+            "id": 98765,
+            "media_type": "movie",
+            "title": "Man of Tai Chi",
+            "poster_path": "/taichi.jpg",
+            "department": "Production",
+            "job": "Producer",
+            "release_date": "2013-07-04",
+            "genre_ids": [28],
+            "vote_count": 600,
+        },
+    ],
+}
+
+
+MOVIE_CREW_RESPONSE = {
+    "cast": [],
+    "crew": [
+        {
+            "id": 9339,
+            "name": "Lilly Wachowski",
+            "department": "Writing",
+            "job": "Screenplay",
+            "profile_path": None,
+            "popularity": 5.0,
+        },
+        {
+            "id": 9340,
+            "name": "Lana Wachowski",
+            "department": "Directing",
+            "job": "Director",
+            "profile_path": "/lana.jpg",
+            "popularity": 6.0,
+        },
+        {
+            "id": 9339,
+            "name": "Lilly Wachowski",
+            "department": "Writing",
+            "job": "Writer",
+            "profile_path": None,
+            "popularity": 5.0,
+        },
+        {
+            "id": 1091,
+            "name": "Joel Silver",
+            "department": "Production",
+            "job": "Producer",
+            "profile_path": None,
+            "popularity": 2.0,
+        },
+    ],
+}
+
+TV_AGGREGATE_CREW_RESPONSE = {
+    "cast": [],
+    "crew": [
+        {
+            "id": 66633,
+            "name": "Vince Gilligan",
+            "department": "Writing",
+            "jobs": [
+                {"job": "Writer", "episode_count": 10},
+                {"job": "Story", "episode_count": 2},
+            ],
+            "profile_path": "/vince.jpg",
+            "total_episode_count": 12,
+            "popularity": 3.0,
+        },
+    ],
+}
+
+
+class MediaCastTests(YamtrackApiTestCase):
+    """Validate media cast endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_cast_returns_paginated_cast(self, mock_request):
+        """Cast endpoint should return paginated movie cast."""
+        mock_request.return_value = MOVIE_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_cast",
+            args=(MediaTypes.MOVIE.value, "tmdb", 603),
+            params={"limit": 1},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 2)
+        self.assertEqual(
+            payload["results"],
+            [
+                {
+                    "person_id": 6384,
+                    "name": "Keanu Reeves",
+                    "character": "Neo",
+                    "image": "https://image.tmdb.org/t/p/w500/keanu.jpg",
+                    "order": 0,
+                    "episode_count": None,
+                },
+            ],
+        )
+        self.assertTrue(mock_request.call_args.args[2].endswith("/movie/603/credits"))
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_cast_uses_aggregate_credits(self, mock_request):
+        """Cast endpoint should merge roles of tv cast members."""
+        mock_request.return_value = TV_AGGREGATE_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_cast",
+            args=(MediaTypes.TV.value, "tmdb", 1396),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        member = response.json()["results"][0]
+        self.assertEqual(member["character"], "Walter White / Heisenberg")
+        self.assertEqual(member["episode_count"], 62)
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/tv/1396/aggregate_credits"),
+        )
+
+    def test_cast_unsupported_media_type_returns_bad_request(self):
+        """Cast endpoint should reject media types without cast."""
+        requests = [
+            ("invalid", "tmdb", 1),
+            (MediaTypes.BOOK.value, "openlibrary", 1),
+            (MediaTypes.SEASON.value, "tmdb", 1),
+            (MediaTypes.MOVIE.value, "manual", 1),
+        ]
+
+        for args in requests:
+            response = self.call_api(
+                "get",
+                "api_media_cast",
+                args=args,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.media_credits", side_effect=Exception("boom"))
+    def test_cast_provider_error_returns_internal_server_error(self, _mock_cast):
+        """Cast endpoint should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_media_cast",
+            args=(MediaTypes.MOVIE.value, "tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+
+class MediaCrewTests(YamtrackApiTestCase):
+    """Validate media crew endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_crew_merges_jobs_and_sorts_by_popularity(self, mock_request):
+        """Crew endpoint should merge jobs per person and sort by popularity."""
+        mock_request.return_value = MOVIE_CREW_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_crew",
+            args=(MediaTypes.MOVIE.value, "tmdb", 603),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 3)
+        self.assertEqual(
+            payload["results"][0],
+            {
+                "person_id": 9340,
+                "name": "Lana Wachowski",
+                "department": "Directing",
+                "jobs": ["Director"],
+                "image": "https://image.tmdb.org/t/p/w500/lana.jpg",
+                "episode_count": None,
+            },
+        )
+        self.assertEqual(payload["results"][1]["jobs"], ["Screenplay", "Writer"])
+        self.assertEqual(payload["results"][2]["name"], "Joel Silver")
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_crew_filters_by_department(self, mock_request):
+        """Crew endpoint should filter by department case-insensitively."""
+        mock_request.return_value = MOVIE_CREW_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_crew",
+            args=(MediaTypes.MOVIE.value, "tmdb", 603),
+            params={"department": "writing"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual([member["name"] for member in results], ["Lilly Wachowski"])
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_crew_uses_aggregate_credits(self, mock_request):
+        """Crew endpoint should merge jobs of tv crew members."""
+        mock_request.return_value = TV_AGGREGATE_CREW_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_crew",
+            args=(MediaTypes.TV.value, "tmdb", 1396),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        member = response.json()["results"][0]
+        self.assertEqual(member["jobs"], ["Writer", "Story"])
+        self.assertEqual(member["episode_count"], 12)
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/tv/1396/aggregate_credits"),
+        )
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_cast_and_crew_share_cached_credits(self, mock_request):
+        """Cast and crew endpoints should reuse the same provider request."""
+        mock_request.return_value = MOVIE_CREW_RESPONSE
+
+        for url_name in ("api_media_cast", "api_media_crew"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.MOVIE.value, "tmdb", 603),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        mock_request.assert_called_once()
+
+    def test_crew_unsupported_media_type_returns_bad_request(self):
+        """Crew endpoint should reject media types without crew."""
+        requests = [
+            ("invalid", "tmdb", 1),
+            (MediaTypes.BOOK.value, "openlibrary", 1),
+            (MediaTypes.SEASON.value, "tmdb", 1),
+            (MediaTypes.MOVIE.value, "manual", 1),
+        ]
+
+        for args in requests:
+            response = self.call_api(
+                "get",
+                "api_media_crew",
+                args=args,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.media_credits", side_effect=Exception("boom"))
+    def test_crew_provider_error_returns_internal_server_error(self, _mock_credits):
+        """Crew endpoint should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_media_crew",
+            args=(MediaTypes.MOVIE.value, "tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+
+class PersonKnownForTests(YamtrackApiTestCase):
+    """Validate person known for endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_known_for_returns_movies_and_tv(self, mock_request):
+        """Known for should dedupe roles, skip talk shows and sort by votes."""
+        mock_request.return_value = PERSON_COMBINED_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("tmdb", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 4)
+        self.assertEqual(
+            [media["title"] for media in payload["results"]],
+            ["The Matrix", "John Wick", "Man of Tai Chi", "Swedish Dicks"],
+        )
+        self.assertEqual(
+            payload["results"][0],
+            {
+                "source": "tmdb",
+                "media_type": "movie",
+                "media_id": "603",
+                "title": "The Matrix",
+                "image": "https://image.tmdb.org/t/p/w500/matrix.jpg",
+                "character": "Neo",
+                "departments": ["Acting"],
+                "jobs": [],
+                "release_date": "1999-03-31",
+                "episode_count": None,
+            },
+        )
+        john_wick = payload["results"][1]
+        self.assertIsNone(john_wick["release_date"])
+        self.assertEqual(john_wick["character"], "John Wick")
+        self.assertEqual(john_wick["departments"], ["Acting", "Production"])
+        self.assertEqual(john_wick["jobs"], ["Executive Producer"])
+        tai_chi = payload["results"][2]
+        self.assertIsNone(tai_chi["character"])
+        self.assertEqual(tai_chi["departments"], ["Directing", "Production"])
+        self.assertEqual(tai_chi["jobs"], ["Director", "Producer"])
+        self.assertEqual(payload["results"][3]["character"], "Tex / Himself")
+        self.assertEqual(payload["results"][3]["episode_count"], 2)
+        self.assertEqual(payload["results"][3]["release_date"], "2016-08-09")
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/person/6384/combined_credits"),
+        )
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_known_for_filters_by_media_type(self, mock_request):
+        """Known for should filter by the media_type query parameter."""
+        mock_request.return_value = PERSON_COMBINED_CREDITS_RESPONSE
+
+        for media_type, titles in (
+            (MediaTypes.MOVIE.value, ["The Matrix", "John Wick", "Man of Tai Chi"]),
+            (MediaTypes.TV.value, ["Swedish Dicks"]),
+        ):
+            response = self.call_api(
+                "get",
+                "api_person_known_for",
+                args=("tmdb", 6384),
+                params={"media_type": media_type},
+                headers=self.auth_headers,
+            )
+
+            self.assertEqual(response.status_code, 200)
+            results = response.json()["results"]
+            self.assertEqual([media["title"] for media in results], titles)
+            for media in results:
+                self.assertEqual(media["media_type"], media_type)
+
+        # Provider data should be cached across filters
+        mock_request.assert_called_once()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_known_for_filters_by_department(self, mock_request):
+        """Known for should filter by department and only keep its jobs."""
+        mock_request.return_value = PERSON_COMBINED_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("tmdb", 6384),
+            params={"department": "production"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual(
+            [media["title"] for media in results],
+            ["John Wick", "Man of Tai Chi"],
+        )
+        for media in results:
+            self.assertEqual(media["departments"], ["Production"])
+            self.assertIsNone(media["character"])
+        self.assertEqual(results[0]["jobs"], ["Executive Producer"])
+        self.assertEqual(results[1]["jobs"], ["Producer"])
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_known_for_combines_department_and_media_type_filters(
+        self,
+        mock_request,
+    ):
+        """Known for should apply department and media_type filters together."""
+        mock_request.return_value = PERSON_COMBINED_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("tmdb", 6384),
+            params={"department": "Acting", "media_type": MediaTypes.TV.value},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual([media["title"] for media in results], ["Swedish Dicks"])
+        self.assertEqual(results[0]["character"], "Tex / Himself")
+        self.assertEqual(results[0]["jobs"], [])
+
+    def test_known_for_invalid_media_type_returns_bad_request(self):
+        """Known for should reject unsupported media_type filters."""
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("tmdb", 6384),
+            params={"media_type": "anime"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_known_for_unsupported_source_returns_bad_request(self):
+        """Known for should reject sources without people data."""
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("mal", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.person_known_for", side_effect=Exception("boom"))
+    def test_known_for_provider_error_returns_internal_server_error(
+        self,
+        _mock_known_for,
+    ):
+        """Known for should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_person_known_for",
+            args=("tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+
+PERSON_RESPONSE = {
+    "id": 6384,
+    "name": "Keanu Reeves",
+    "profile_path": "/keanu.jpg",
+    "biography": "Keanu Charles Reeves is a Canadian actor.",
+    "birthday": "1964-09-02",
+    "deathday": None,
+    "place_of_birth": "Beirut, Lebanon",
+    "known_for_department": "Acting",
+    "also_known_as": ["Keanu Charles Reeves"],
+    "homepage": "",
+    "external_ids": {
+        "imdb_id": "nm0000206",
+        "wikidata_id": "Q43416",
+        "instagram_id": None,
+        "twitter_id": "",
+    },
+}
+
+
+class PersonDetailTests(YamtrackApiTestCase):
+    """Validate person detail endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_person_detail_returns_person(self, mock_request):
+        """Person detail should return normalized person data."""
+        mock_request.return_value = PERSON_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_detail",
+            args=("tmdb", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "person_id": 6384,
+                "source": "tmdb",
+                "source_url": "https://www.themoviedb.org/person/6384",
+                "name": "Keanu Reeves",
+                "image": "https://image.tmdb.org/t/p/w500/keanu.jpg",
+                "biography": "Keanu Charles Reeves is a Canadian actor.",
+                "birthday": "1964-09-02",
+                "deathday": None,
+                "place_of_birth": "Beirut, Lebanon",
+                "known_for_department": "Acting",
+                "also_known_as": ["Keanu Charles Reeves"],
+                "homepage": None,
+                "external_links": {
+                    "IMDb": "https://www.imdb.com/name/nm0000206/",
+                    "Wikidata": "https://www.wikidata.org/wiki/Q43416",
+                },
+            },
+        )
+        self.assertTrue(mock_request.call_args.args[2].endswith("/person/6384"))
+
+    def test_person_detail_unsupported_source_returns_bad_request(self):
+        """Person detail should reject sources without people data."""
+        response = self.call_api(
+            "get",
+            "api_person_detail",
+            args=("mal", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.person", side_effect=Exception("boom"))
+    def test_person_detail_provider_error_returns_internal_server_error(
+        self,
+        _mock_person,
+    ):
+        """Person detail should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_person_detail",
+            args=("tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+
+def build_people_search_page(page, total_results, count):
+    """Build a fake TMDB person search response page."""
+    return {
+        "page": page,
+        "total_results": total_results,
+        "results": [
+            {
+                "id": (page - 1) * 20 + index,
+                "name": f"Person {(page - 1) * 20 + index}",
+                "profile_path": None,
+                "known_for_department": "Acting",
+                "known_for": [
+                    {
+                        "id": 603,
+                        "media_type": "movie",
+                        "title": "The Matrix",
+                        "poster_path": "/matrix.jpg",
+                    },
+                    {
+                        "id": 1399,
+                        "media_type": "tv",
+                        "name": "Game of Thrones",
+                        "poster_path": "/got.jpg",
+                    },
+                ],
+            }
+            for index in range(count)
+        ],
+    }
+
+
+class PeopleSearchTests(YamtrackApiTestCase):
+    """Validate people search endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_people_search_returns_paginated_people(self, mock_request):
+        """People search should return paginated people with known for media."""
+        mock_request.return_value = build_people_search_page(1, 2, 2)
+
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 2)
+        person = payload["results"][0]
+        self.assertEqual(person["person_id"], 0)
+        self.assertEqual(person["source"], "tmdb")
+        self.assertEqual(person["name"], "Person 0")
+        self.assertEqual(person["known_for_department"], "Acting")
+        self.assertEqual(
+            person["known_for"],
+            [
+                {
+                    "source": "tmdb",
+                    "media_type": "movie",
+                    "media_id": "603",
+                    "title": "The Matrix",
+                    "image": "https://image.tmdb.org/t/p/w500/matrix.jpg",
+                },
+                {
+                    "source": "tmdb",
+                    "media_type": "tv",
+                    "media_id": "1399",
+                    "title": "Game of Thrones",
+                    "image": "https://image.tmdb.org/t/p/w500/got.jpg",
+                },
+            ],
+        )
+        self.assertTrue(mock_request.call_args.args[2].endswith("/search/person"))
+        self.assertEqual(mock_request.call_args.kwargs["params"]["query"], "keanu")
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_people_search_fetches_next_provider_page(self, mock_request):
+        """People search should fetch provider pages until the offset is covered."""
+        mock_request.side_effect = [
+            build_people_search_page(1, 25, 20),
+            build_people_search_page(2, 25, 5),
+        ]
+
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu", "limit": 5, "offset": 20},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["pagination"]["total"], 25)
+        self.assertEqual(
+            [person["person_id"] for person in payload["results"]],
+            [20, 21, 22, 23, 24],
+        )
+        self.assertEqual(mock_request.call_count, 2)
+
+    def test_people_search_without_query_returns_bad_request(self):
+        """People search should require a search query."""
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_people_search_unsupported_source_returns_bad_request(self):
+        """People search should reject sources without people data."""
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu", "source": "mal"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.search_people", side_effect=Exception("boom"))
+    def test_people_search_provider_error_returns_internal_server_error(
+        self,
+        _mock_search,
+    ):
+        """People search should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_people_search",
+            params={"search": "keanu"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+
+PERSON_IMAGES_RESPONSE = {
+    "id": 6384,
+    "profiles": [
+        {
+            "file_path": "/keanu1.jpg",
+            "width": 1000,
+            "height": 1500,
+            "aspect_ratio": 0.667,
+            "vote_average": 5.5,
+            "vote_count": 4,
+        },
+        {
+            "file_path": "/keanu2.jpg",
+            "width": 800,
+            "height": 1200,
+            "aspect_ratio": 0.667,
+            "vote_average": 5.3,
+            "vote_count": 2,
+        },
+        {
+            "file_path": None,
+            "width": 100,
+            "height": 150,
+            "aspect_ratio": 0.667,
+            "vote_average": 0,
+            "vote_count": 0,
+        },
+    ],
+}
+
+
+class PersonImagesTests(YamtrackApiTestCase):
+    """Validate person images endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_person_images_returns_paginated_images(self, mock_request):
+        """Person images should return paginated profile images."""
+        mock_request.return_value = PERSON_IMAGES_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_person_images",
+            args=("tmdb", 6384),
+            params={"limit": 1},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(payload["pagination"]["total"], 2)
+        self.assertEqual(
+            payload["results"],
+            [
+                {
+                    "image": "https://image.tmdb.org/t/p/w500/keanu1.jpg",
+                    "original": "https://image.tmdb.org/t/p/original/keanu1.jpg",
+                    "width": 1000,
+                    "height": 1500,
+                    "aspect_ratio": 0.667,
+                    "vote_average": 5.5,
+                    "vote_count": 4,
+                },
+            ],
+        )
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/person/6384/images"),
+        )
+
+    def test_person_images_unsupported_source_returns_bad_request(self):
+        """Person images should reject sources without people data."""
+        response = self.call_api(
+            "get",
+            "api_person_images",
+            args=("mal", 6384),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.person_images", side_effect=Exception("boom"))
+    def test_person_images_provider_error_returns_internal_server_error(
+        self,
+        _mock_images,
+    ):
+        """Person images should surface provider lookup failures."""
+        response = self.call_api(
+            "get",
+            "api_person_images",
+            args=("tmdb", 999999),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+
+def build_image(file_path, language, vote_average, width=1000, height=1500):
+    """Build a fake TMDB image entry."""
+    return {
+        "file_path": file_path,
+        "iso_639_1": language,
+        "width": width,
+        "height": height,
+        "aspect_ratio": round(width / height, 3),
+        "vote_average": vote_average,
+        "vote_count": 10,
+    }
+
+
+MEDIA_IMAGES_RESPONSE = {
+    "id": 603,
+    "posters": [
+        build_image("/poster_fr.jpg", "fr", 9.0),
+        build_image("/poster_null.jpg", None, 7.0),
+        build_image("/poster_en_low.jpg", "en", 4.0),
+        build_image("/poster_en_high.jpg", "en", 6.0),
+    ],
+    "backdrops": [
+        build_image("/backdrop_en.jpg", "en", 9.0, 3840, 2160),
+        build_image("/backdrop_null.jpg", None, 5.0, 3840, 2160),
+    ],
+    "logos": [
+        build_image("/logo_null.png", None, 8.0, 500, 200),
+        build_image("/logo_en.png", "en", 5.0, 500, 200),
+        build_image(None, "en", 5.0, 500, 200),
+    ],
+}
+
+
+class MediaImagesTests(YamtrackApiTestCase):
+    """Validate media images endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_images_returns_sorted_image_groups(self, mock_request):
+        """Images endpoint should group images and sort them by language."""
+        mock_request.return_value = MEDIA_IMAGES_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.MOVIE.value, "tmdb", 603),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            [image["image"].rsplit("/", 1)[1] for image in payload["posters"]],
+            [
+                "poster_en_high.jpg",
+                "poster_en_low.jpg",
+                "poster_null.jpg",
+                "poster_fr.jpg",
+            ],
+        )
+        self.assertEqual(
+            [image["language"] for image in payload["backdrops"]],
+            [None, "en"],
+        )
+        self.assertEqual(
+            [image["language"] for image in payload["logos"]],
+            ["en", None],
+        )
+        self.assertEqual(
+            payload["backdrops"][0],
+            {
+                "image": "https://image.tmdb.org/t/p/w500/backdrop_null.jpg",
+                "original": "https://image.tmdb.org/t/p/original/backdrop_null.jpg",
+                "width": 3840,
+                "height": 2160,
+                "aspect_ratio": 1.778,
+                "language": None,
+                "vote_average": 5.0,
+                "vote_count": 10,
+                "source": "tmdb",
+            },
+        )
+        self.assertTrue(mock_request.call_args.args[2].endswith("/movie/603/images"))
+        self.assertEqual(
+            mock_request.call_args.kwargs["params"]["include_image_language"],
+            "en,null",
+        )
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_images_filters_by_type(self, mock_request):
+        """Images endpoint should only return the requested image type."""
+        mock_request.return_value = MEDIA_IMAGES_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.TV.value, "tmdb", 1396),
+            params={"type": "backdrops"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["posters"], [])
+        self.assertEqual(payload["logos"], [])
+        self.assertEqual(len(payload["backdrops"]), 2)
+        self.assertTrue(mock_request.call_args.args[2].endswith("/tv/1396/images"))
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_season_images_returns_season_posters(self, mock_request):
+        """Season images endpoint should query the season images."""
+        mock_request.return_value = {
+            "id": 3572,
+            "posters": [build_image("/season.jpg", "en", 5.0)],
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_season_images",
+            args=(MediaTypes.TV.value, "tmdb", 1396, 1),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload["posters"]), 1)
+        self.assertEqual(payload["backdrops"], [])
+        self.assertEqual(payload["logos"], [])
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/tv/1396/season/1/images"),
+        )
+
+    def test_images_invalid_type_returns_bad_request(self):
+        """Images endpoints should reject unknown image types."""
+        requests = [
+            ("api_media_images", (MediaTypes.MOVIE.value, "tmdb", 603)),
+            ("api_media_season_images", (MediaTypes.TV.value, "tmdb", 1396, 1)),
+        ]
+
+        for url_name, args in requests:
+            response = self.call_api(
+                "get",
+                url_name,
+                args=args,
+                params={"type": "stills"},
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    def test_images_unsupported_media_type_returns_bad_request(self):
+        """Images endpoints should reject media types without images."""
+        requests = [
+            ("api_media_images", ("invalid", "tmdb", 1)),
+            ("api_media_images", (MediaTypes.SEASON.value, "tmdb", 1)),
+            ("api_media_images", (MediaTypes.MOVIE.value, "manual", 1)),
+            ("api_media_season_images", (MediaTypes.MOVIE.value, "tmdb", 1, 1)),
+        ]
+
+        for url_name, args in requests:
+            response = self.call_api(
+                "get",
+                url_name,
+                args=args,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    @patch("api.views.tmdb.media_images", side_effect=Exception("boom"))
+    def test_images_provider_error_returns_internal_server_error(self, _mock_images):
+        """Images endpoints should surface provider lookup failures."""
+        requests = [
+            ("api_media_images", (MediaTypes.MOVIE.value, "tmdb", 999999)),
+            ("api_media_season_images", (MediaTypes.TV.value, "tmdb", 999999, 1)),
+        ]
+
+        for url_name, args in requests:
+            response = self.call_api(
+                "get",
+                url_name,
+                args=args,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 500)
+
+
+GAME_EXTRAS_RESPONSE = [
+    {
+        "id": 1942,
+        "cover": {"id": 1, "image_id": "co1wyy", "width": 600, "height": 800},
+        "artworks": [
+            {"id": 2, "image_id": "ar5l8", "width": 1920, "height": 1080},
+        ],
+        "screenshots": [
+            {"id": 3, "image_id": "sc8ojm", "width": 1280, "height": 720},
+            {"id": 4, "image_id": "sc8ojn"},
+        ],
+        "involved_companies": [
+            {
+                "id": 10,
+                "company": {"id": 1012, "name": "WB Games"},
+                "developer": False,
+                "publisher": True,
+                "porting": False,
+                "supporting": False,
+            },
+            {
+                "id": 11,
+                "company": {
+                    "id": 908,
+                    "name": "CD Projekt RED",
+                    "logo": {"id": 5, "image_id": "cl6np"},
+                },
+                "developer": True,
+                "publisher": False,
+                "porting": False,
+                "supporting": False,
+            },
+            {
+                "id": 12,
+                "company": {
+                    "id": 908,
+                    "name": "CD Projekt RED",
+                    "logo": {"id": 5, "image_id": "cl6np"},
+                },
+                "developer": False,
+                "publisher": True,
+                "porting": False,
+                "supporting": False,
+            },
+            {
+                "id": 13,
+                "company": {"id": 3020, "name": "Saber Interactive"},
+                "developer": False,
+                "publisher": False,
+                "porting": True,
+                "supporting": False,
+            },
+        ],
+    },
+]
+
+
+@patch("app.providers.igdb.get_access_token", return_value="token")
+class GameExtrasTests(YamtrackApiTestCase):
+    """Validate game images and companies endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_images_returns_cover_artworks_and_screenshots(
+        self,
+        mock_request,
+        _mock_token,
+    ):
+        """Game images should map cover, artworks and screenshots."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["posters"],
+            [
+                {
+                    "image": "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/co1wyy.jpg",
+                    "original": "https://images.igdb.com/igdb/image/upload/t_original/co1wyy.jpg",
+                    "width": 600,
+                    "height": 800,
+                    "aspect_ratio": 0.75,
+                    "language": None,
+                    "vote_average": None,
+                    "vote_count": None,
+                    "source": "igdb",
+                },
+            ],
+        )
+        self.assertEqual(
+            payload["backdrops"][0]["image"],
+            "https://images.igdb.com/igdb/image/upload/t_720p/ar5l8.jpg",
+        )
+        self.assertEqual(len(payload["screenshots"]), 2)
+        self.assertIsNone(payload["screenshots"][1]["aspect_ratio"])
+        self.assertEqual(payload["logos"], [])
+        self.assertTrue(mock_request.call_args.args[2].endswith("/games"))
+        self.assertIn("where id = 1942;", mock_request.call_args.kwargs["data"])
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_images_filters_screenshots(self, mock_request, _mock_token):
+        """Game images should support the screenshots type filter."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            params={"type": "screenshots"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["posters"], [])
+        self.assertEqual(payload["backdrops"], [])
+        self.assertEqual(len(payload["screenshots"]), 2)
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_companies_merges_roles(self, mock_request, _mock_token):
+        """Game companies should merge roles and list developers first."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_companies",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(
+            payload["results"],
+            [
+                {
+                    "company_id": 908,
+                    "name": "CD Projekt RED",
+                    "logo": "https://images.igdb.com/igdb/image/upload/t_logo_med/cl6np.png",
+                    "roles": ["developer", "publisher"],
+                },
+                {
+                    "company_id": 1012,
+                    "name": "WB Games",
+                    "logo": None,
+                    "roles": ["publisher"],
+                },
+                {
+                    "company_id": 3020,
+                    "name": "Saber Interactive",
+                    "logo": None,
+                    "roles": ["porting"],
+                },
+            ],
+        )
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_companies_filters_by_role(self, mock_request, _mock_token):
+        """Game companies should filter by role."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_companies",
+            args=(MediaTypes.GAME.value, "igdb", 1942),
+            params={"role": "publisher"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [company["name"] for company in response.json()["results"]],
+            ["CD Projekt RED", "WB Games"],
+        )
+
+    @patch("app.providers.igdb.services.api_request")
+    def test_game_images_and_companies_share_cached_request(
+        self,
+        mock_request,
+        _mock_token,
+    ):
+        """Game images and companies should reuse the same provider request."""
+        mock_request.return_value = GAME_EXTRAS_RESPONSE
+
+        for url_name in ("api_media_images", "api_media_companies"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.GAME.value, "igdb", 1942),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        mock_request.assert_called_once()
+
+    @patch("app.providers.igdb.services.api_request", return_value=[])
+    def test_game_not_found_returns_internal_server_error(
+        self,
+        _mock_request,
+        _mock_token,
+    ):
+        """Game endpoints should surface missing games as provider errors."""
+        for url_name in ("api_media_images", "api_media_companies"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.GAME.value, "igdb", 999999),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 500)
+
+    def test_companies_invalid_requests_return_bad_request(self, _mock_token):
+        """Companies should reject unsupported media types, sources and roles."""
+        requests = [
+            (("invalid", "igdb", 1), None),
+            ((MediaTypes.MOVIE.value, "tmdb", 1), None),
+            ((MediaTypes.GAME.value, "manual", 1), None),
+            ((MediaTypes.GAME.value, "igdb", 1), {"role": "artist"}),
+        ]
+
+        for args, params in requests:
+            response = self.call_api(
+                "get",
+                "api_media_companies",
+                args=args,
+                params=params,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 400)
+
+    def test_game_images_wrong_source_returns_bad_request(self, _mock_token):
+        """Game images should only be queried from IGDB."""
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.GAME.value, "tmdb", 1942),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+
+def build_comicvine_image(name):
+    """Build a fake ComicVine image entry."""
+    return {
+        "medium_url": f"https://comicvine.gamespot.com/a/uploads/scale_medium/{name}",
+        "original_url": f"https://comicvine.gamespot.com/a/uploads/original/{name}",
+    }
+
+
+COMIC_VOLUME_CREDITS_RESPONSE = {
+    "results": {
+        "people": [
+            {
+                "id": 1,
+                "name": "Greg Capullo",
+                "count": "40",
+                "site_detail_url": "https://comicvine.gamespot.com/greg-capullo/4040-1/",
+            },
+            {
+                "id": 40439,
+                "name": "Scott Snyder",
+                "count": "52",
+                "site_detail_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
+            },
+            {"id": 3, "name": "Unknown Count", "count": None},
+        ],
+        "characters": [
+            {
+                "id": 1699,
+                "name": "Batman",
+                "count": "52",
+                "site_detail_url": "https://comicvine.gamespot.com/batman/4005-1699/",
+            },
+        ],
+    },
+}
+
+COMIC_VOLUME_IMAGE_RESPONSE = {
+    "results": {"image": build_comicvine_image("issue1.jpg")},
+}
+
+COMIC_ISSUES_RESPONSE = {
+    "results": [
+        {"id": 10, "issue_number": "1", "image": build_comicvine_image("issue1.jpg")},
+        {"id": 11, "issue_number": "2", "image": build_comicvine_image("issue2.jpg")},
+        {"id": 12, "issue_number": "3", "image": None},
+    ],
+}
+
+
+class ComicExtrasTests(YamtrackApiTestCase):
+    """Validate comic images, creators and characters endpoint contracts."""
+
+    def setUp(self):
+        """Clear cached provider data between tests."""
+        super().setUp()
+        cache.clear()
+
+    @patch("app.providers.comicvine.services.api_request")
+    def test_comic_creators_sorted_by_issue_count(self, mock_request):
+        """Creators should be sorted by the number of issues they worked on."""
+        mock_request.return_value = COMIC_VOLUME_CREDITS_RESPONSE
+
+        response = self.call_api(
+            "get",
+            "api_media_creators",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_pagination_structure(self, payload["pagination"])
+        self.assertEqual(
+            payload["results"][0],
+            {
+                "id": "40439",
+                "name": "Scott Snyder",
+                "roles": [],
+                "image": None,
+                "issue_count": 52,
+                "source_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
+            },
+        )
+        self.assertEqual(
+            [person["name"] for person in payload["results"]],
+            ["Scott Snyder", "Greg Capullo", "Unknown Count"],
+        )
+        self.assertIsNone(payload["results"][2]["issue_count"])
+        self.assertTrue(
+            mock_request.call_args.args[2].endswith("/volume/4050-42721/"),
+        )
+
+    @patch("app.providers.comicvine.services.api_request")
+    def test_comic_characters_share_cached_request(self, mock_request):
+        """Characters should reuse the creators provider request."""
+        mock_request.return_value = COMIC_VOLUME_CREDITS_RESPONSE
+
+        self.call_api(
+            "get",
+            "api_media_creators",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+        response = self.call_api(
+            "get",
+            "api_media_characters",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [character["name"] for character in response.json()["results"]],
+            ["Batman"],
+        )
+        mock_request.assert_called_once()
+
+    @patch("app.providers.comicvine.services.api_request")
+    def test_comic_images_returns_unique_covers(self, mock_request):
+        """Comic images should return the volume and issue covers once each."""
+        mock_request.side_effect = [
+            COMIC_VOLUME_IMAGE_RESPONSE,
+            COMIC_ISSUES_RESPONSE,
+        ]
+
+        response = self.call_api(
+            "get",
+            "api_media_images",
+            args=(MediaTypes.COMIC.value, "comicvine", "42721"),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            [image["original"].rsplit("/", 1)[1] for image in payload["posters"]],
+            ["issue1.jpg", "issue2.jpg"],
+        )
+        self.assertEqual(
+            payload["posters"][0]["image"],
+            "https://comicvine.gamespot.com/a/uploads/scale_medium/issue1.jpg",
+        )
+        self.assertEqual(payload["backdrops"], [])
+        self.assertEqual(payload["screenshots"], [])
+        self.assertEqual(payload["logos"], [])
+        issues_call = mock_request.call_args_list[1]
+        self.assertTrue(issues_call.args[2].endswith("/issues/"))
+        self.assertEqual(issues_call.kwargs["params"]["filter"], "volume:42721")
+
+    @patch(
+        "app.providers.comicvine.services.api_request",
+        return_value={"results": {}},
+    )
+    def test_comic_not_found_returns_internal_server_error(self, _mock_request):
+        """Comic endpoints should surface missing comics as provider errors."""
+        for url_name in ("api_media_creators", "api_media_characters"):
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(MediaTypes.COMIC.value, "comicvine", "999999"),
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 500)
+
+    def test_comic_credits_invalid_requests_return_bad_request(self):
+        """Creators and characters should reject non comics and other sources."""
+        for url_name in ("api_media_creators", "api_media_characters"):
+            for args in (
+                (MediaTypes.MOVIE.value, "tmdb", 1),
+                (MediaTypes.COMIC.value, "manual", 1),
+            ):
+                response = self.call_api(
+                    "get",
+                    url_name,
+                    args=args,
+                    headers=self.auth_headers,
+                )
+                self.assertEqual(response.status_code, 400)

@@ -293,3 +293,80 @@ def get_publishers(item):
         if link.get("value")
     ]
     return ", ".join(publishers) if publishers else None
+
+
+def boardgame_extras(media_id):
+    """Return the image, creators and publishers of a board game from BGG."""
+    cache_key = f"{Sources.BGG.value}_{MediaTypes.BOARDGAME.value}_{media_id}_extras"
+    data = cache.get(cache_key)
+
+    if data is None:
+        try:
+            root = services.api_request(
+                Sources.BGG.value,
+                "GET",
+                f"{base_url}/thing",
+                params={"id": media_id},
+                headers={"Authorization": f"Bearer {settings.BGG_API_TOKEN}"},
+                response_format="xml",
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        item = root.find(".//item")
+        if item is None:
+            services.raise_not_found_error(Sources.BGG.value, media_id, "boardgame")
+
+        posters = []
+        image_elem = item.find("image")
+        if image_elem is not None and image_elem.text:
+            thumbnail_elem = item.find("thumbnail")
+            thumbnail = (
+                thumbnail_elem.text
+                if thumbnail_elem is not None and thumbnail_elem.text
+                else image_elem.text
+            )
+            posters.append(helpers.build_image_entry(thumbnail, image_elem.text))
+
+        # A person can be both designer and artist of the same game
+        creators = {}
+        for link_type, role in (
+            ("boardgamedesigner", "Designer"),
+            ("boardgameartist", "Artist"),
+        ):
+            for link in item.findall(f".//link[@type='{link_type}']"):
+                person_id = link.get("id")
+                entry = creators.setdefault(
+                    person_id,
+                    {
+                        "id": int(person_id) if person_id else None,
+                        "name": link.get("value"),
+                        "roles": [],
+                        "image": None,
+                        "issue_count": None,
+                        "source_url": (
+                            f"https://boardgamegeek.com/{link_type}/{person_id}"
+                        ),
+                    },
+                )
+                entry["roles"].append(role)
+
+        companies = [
+            {
+                "company_id": int(link.get("id")),
+                "name": link.get("value"),
+                "logo": None,
+                "roles": ["publisher"],
+            }
+            for link in item.findall(".//link[@type='boardgamepublisher']")
+            if link.get("id")
+        ]
+
+        data = {
+            "images": {"posters": posters},
+            "creators": list(creators.values()),
+            "companies": companies,
+        }
+        cache.set(cache_key, data)
+
+    return data

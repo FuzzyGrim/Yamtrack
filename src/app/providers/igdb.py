@@ -374,6 +374,143 @@ def game(media_id):
     return data
 
 
+def game_extras(media_id):
+    """Return the images and involved companies for the selected game from IGDB."""
+    cache_key = f"{Sources.IGDB.value}_{MediaTypes.GAME.value}_{media_id}_extras"
+    data = cache.get(cache_key)
+    if data is None:
+        image_fields = "image_id,width,height"
+        query = (
+            f"fields cover.{image_fields},"
+            f"artworks.{image_fields},"
+            f"screenshots.{image_fields},"
+            "involved_companies.company.name,"
+            "involved_companies.company.logo.image_id,"
+            "involved_companies.developer,involved_companies.publisher,"
+            "involved_companies.porting,involved_companies.supporting;"
+            f"where id = {media_id};"
+        )
+        response = query_with_retry(f"{base_url}/games", query)
+
+        if not response:
+            services.raise_not_found_error(
+                Sources.IGDB.value,
+                media_id,
+                "game",
+            )
+        game_response = response[0]  # response is a list with a single element
+
+        cover = game_response.get("cover")
+        data = {
+            "images": {
+                "posters": process_images([cover] if cover else [], "t_cover_big_2x"),
+                "backdrops": process_images(
+                    game_response.get("artworks", []),
+                    "t_720p",
+                ),
+                "screenshots": process_images(
+                    game_response.get("screenshots", []),
+                    "t_720p",
+                ),
+                "logos": [],
+            },
+            "companies": process_companies(
+                game_response.get("involved_companies", []),
+            ),
+        }
+        cache.set(cache_key, data)
+    return data
+
+
+def query_with_retry(url, query):
+    """Send an IGDB query, refreshing the access token once if it expired."""
+    headers = {
+        "Client-ID": settings.IGDB_ID,
+        "Authorization": f"Bearer {get_access_token()}",
+    }
+    try:
+        return services.api_request(
+            Sources.IGDB.value,
+            "POST",
+            url,
+            data=query,
+            headers=headers,
+        )
+    except requests.exceptions.HTTPError as error:
+        error_resp = handle_error(error)
+        if error_resp and error_resp.get("retry"):
+            # Retry the request with the new access token
+            headers["Authorization"] = f"Bearer {get_access_token()}"
+            return services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=query,
+                headers=headers,
+            )
+        raise
+
+
+def process_images(images, size):
+    """Process IGDB images into the shared media image format."""
+    processed = []
+    for image in images:
+        image_id = image.get("image_id")
+        if not image_id:
+            continue
+        width = image.get("width")
+        height = image.get("height")
+        processed.append(
+            {
+                "image": f"https://images.igdb.com/igdb/image/upload/{size}/{image_id}.jpg",
+                "original": f"https://images.igdb.com/igdb/image/upload/t_original/{image_id}.jpg",
+                "width": width,
+                "height": height,
+                "aspect_ratio": round(width / height, 3) if width and height else None,
+                "language": None,
+                "vote_average": None,
+                "vote_count": None,
+            },
+        )
+    return processed
+
+
+def process_companies(involved_companies):
+    """Process the involved companies of a game, merging roles per company."""
+    roles_order = ["developer", "publisher", "porting", "supporting"]
+    companies = {}
+    for involved in involved_companies:
+        company = involved.get("company")
+        if not company:
+            continue
+
+        entry = companies.setdefault(
+            company["id"],
+            {
+                "company_id": company["id"],
+                "name": company.get("name"),
+                "logo": (
+                    f"https://images.igdb.com/igdb/image/upload/t_logo_med/{company['logo']['image_id']}.png"
+                    if company.get("logo", {}).get("image_id")
+                    else None
+                ),
+                "roles": [],
+            },
+        )
+        for role in roles_order:
+            if involved.get(role) and role not in entry["roles"]:
+                entry["roles"].append(role)
+
+    # Developers first, then publishers, porting and supporting companies
+    def sort_key(entry):
+        ranks = [roles_order.index(role) for role in entry["roles"]]
+        return min(ranks, default=len(roles_order))
+
+    for entry in companies.values():
+        entry["roles"].sort(key=roles_order.index)
+    return sorted(companies.values(), key=sort_key)
+
+
 def get_image_url(response):
     """Return the image URL for the media."""
     # when no image, cover is not present in the response
