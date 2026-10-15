@@ -1,6 +1,7 @@
 import csv
 from datetime import UTC, datetime
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -174,3 +175,49 @@ class ExportCSVTest(TestCase):
         for row in reader:
             media_id = row["media_id"]
             self.assertIn(media_id, db_media_ids)
+
+
+class ExportCustomCoverTest(TestCase):
+    """Test that the custom cover of an item is exported."""
+
+    def setUp(self):
+        """Create a user with a movie that has a custom cover."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+        self.custom_image = "https://image.tmdb.org/t/p/original/custom.jpg"
+        with (
+            patch("app.models.Item.fetch_releases", return_value=None),
+            patch(
+                "app.providers.services.get_media_metadata",
+                return_value={
+                    "title": "The Matrix",
+                    "image": "https://image.tmdb.org/t/p/w500/default.jpg",
+                    "max_progress": 1,
+                },
+            ),
+        ):
+            item = Item.objects.create(
+                media_id="603",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title="The Matrix",
+                image=self.custom_image,
+                custom_image=self.custom_image,
+            )
+            Movie.objects.create(
+                item=item,
+                user=self.user,
+                status=Status.COMPLETED.value,
+            )
+
+    def test_export_includes_custom_image(self):
+        """The CSV has a custom_image column with the chosen cover."""
+        response = self.client.get(reverse("export_csv"))
+        content = b"".join(response.streaming_content).decode("utf-8")
+        rows = list(csv.DictReader(StringIO(content)))
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["custom_image"], self.custom_image)
+        self.assertEqual(rows[0]["image"], self.custom_image)
