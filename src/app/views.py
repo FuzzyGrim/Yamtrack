@@ -17,6 +17,7 @@ from django.utils.dateparse import parse_date
 from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from api import helpers as api_helpers
 from app import config, helpers, history_processor
 from app import home as home_helpers
 from app import statistics as stats
@@ -349,6 +350,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     context = {
         "media": media_metadata,
         "media_type": media_type,
+        "can_change_cover": api_helpers.can_change_cover(media_type, source),
         "user_medias": user_medias,
         "current_instance": current_instance,
         "watch_providers": watch_providers,
@@ -417,6 +419,10 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
         "media_type": MediaTypes.SEASON.value,
+        "can_change_cover": api_helpers.can_change_cover(
+            MediaTypes.SEASON.value,
+            source,
+        ),
         "user_medias": user_medias,
         "current_instance": current_instance,
         "watch_providers": tmdb.filter_providers(
@@ -923,6 +929,99 @@ def history_modal(
             "return_url": request.GET["return_url"],
         },
     )
+
+
+@require_GET
+def cover_modal(request, source, media_type, media_id, season_number=None):
+    """Return the modal to choose a custom cover among the media images."""
+    if not api_helpers.can_change_cover(media_type, source):
+        return HttpResponseBadRequest("No images available for this media.")
+
+    base_media_type = (
+        MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
+    )
+    metadata, images = api_helpers.get_cover_metadata(
+        base_media_type,
+        source,
+        media_id,
+        season_number,
+    )
+    item_filter = api_helpers.get_cover_item_filter(
+        media_type,
+        source,
+        media_id,
+        season_number,
+    )
+    item = Item.objects.filter(**item_filter, episode_number=None).first()
+
+    # Logos are not covers, show the other image types that have images
+    image_groups = [
+        (image_type, images[image_type])
+        for image_type in api_helpers.IMAGE_TYPES
+        if image_type != "logos" and images.get(image_type)
+    ]
+
+    return render(
+        request,
+        "app/components/fill_cover.html",
+        {
+            "media": {
+                "media_id": media_id,
+                "source": source,
+                "media_type": media_type,
+                **(
+                    {"season_number": season_number}
+                    if season_number is not None
+                    else {}
+                ),
+            },
+            "cover": api_helpers.get_cover_state(item, metadata.get("image")),
+            "image_groups": image_groups,
+            "return_url": request.GET.get("return_url", ""),
+        },
+    )
+
+
+@require_POST
+def cover_save(request, source, media_type, media_id, season_number=None):
+    """Set the custom cover of a media, or reset it when no image is given."""
+    if not api_helpers.can_change_cover(media_type, source):
+        return HttpResponseBadRequest("No images available for this media.")
+
+    base_media_type = (
+        MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
+    )
+    metadata, images = api_helpers.get_cover_metadata(
+        base_media_type,
+        source,
+        media_id,
+        season_number,
+    )
+    item_filter = api_helpers.get_cover_item_filter(
+        media_type,
+        source,
+        media_id,
+        season_number,
+    )
+
+    new_image = request.POST.get("image", "")
+    if new_image:
+        _, error = api_helpers.set_custom_cover(
+            item_filter,
+            metadata,
+            images,
+            new_image,
+        )
+        if error:
+            messages.error(request, "The chosen image is not available for this media.")
+        else:
+            messages.success(request, "Cover updated.")
+    else:
+        item = Item.objects.filter(**item_filter, episode_number=None).first()
+        api_helpers.reset_custom_cover(item, metadata)
+        messages.success(request, "Cover reset to the default image.")
+
+    return helpers.redirect_back(request)
 
 
 @require_http_methods(["DELETE"])

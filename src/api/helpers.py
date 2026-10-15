@@ -740,8 +740,28 @@ def get_cover_metadata(media_type, source, media_id, season_number=None):
     return metadata, images
 
 
+def can_change_cover(media_type, source):
+    """Return whether a media has images to pick a custom cover from."""
+    base_media_type = (
+        MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
+    )
+    return source in IMAGE_SOURCES.get(base_media_type, [])
+
+
+def get_cover_item_filter(media_type, source, media_id, season_number=None):
+    """Return the Item lookup of the media or season whose cover is customized."""
+    return {
+        "media_id": media_id,
+        "source": source,
+        "media_type": (
+            MediaTypes.SEASON.value if season_number is not None else media_type
+        ),
+        "season_number": season_number,
+    }
+
+
 def set_custom_cover(item_filter, metadata, images, new_image):
-    """Set the custom cover of a media, returning the item or an error response."""
+    """Set the custom cover of a media, returning the item or an error message."""
     # Only images offered by the media images endpoint can be chosen
     available = {
         url
@@ -750,14 +770,8 @@ def set_custom_cover(item_filter, metadata, images, new_image):
         for url in (image["image"], image["original"])
     }
     if new_image not in available:
-        return None, Response(
-            {
-                "detail": (
-                    "image must be one of the images returned by the media "
-                    "images endpoint."
-                ),
-            },
-            status=HTTP.BAD_REQUEST,
+        return None, (
+            "image must be one of the images returned by the media images endpoint."
         )
 
     item = Item.objects.filter(**item_filter, episode_number=None).first()
@@ -813,26 +827,26 @@ def resolve_cover(request, media_type, source, media_id, season_number=None):
             status=HTTP.INTERNAL_SERVER_ERROR,
         )
 
-    item_filter = {
-        "media_id": media_id,
-        "source": source,
-        "media_type": (
-            MediaTypes.SEASON.value if season_number is not None else media_type
-        ),
-        "season_number": season_number,
-    }
+    item_filter = get_cover_item_filter(media_type, source, media_id, season_number)
     item = Item.objects.filter(**item_filter, episode_number=None).first()
 
     if request.method == "PUT":
-        item, err = set_custom_cover(item_filter, metadata, images, new_image)
-        if err:
-            return None, err
-    elif request.method == "DELETE" and item is not None and item.custom_image:
-        item.custom_image = ""
-        item.image = metadata.get("image") or settings.IMG_NONE
-        item.save(update_fields=["custom_image", "image"])
+        item, error = set_custom_cover(item_filter, metadata, images, new_image)
+        if error:
+            return None, Response({"detail": error}, status=HTTP.BAD_REQUEST)
+    elif request.method == "DELETE":
+        reset_custom_cover(item, metadata)
 
     return get_cover_state(item, metadata.get("image")), None
+
+
+def reset_custom_cover(item, metadata):
+    """Remove the custom cover of an item, restoring the provider image."""
+    if item is None or not item.custom_image:
+        return
+    item.custom_image = ""
+    item.image = metadata.get("image") or settings.IMG_NONE
+    item.save(update_fields=["custom_image", "image"])
 
 
 def filter_images(images, image_type=None):
