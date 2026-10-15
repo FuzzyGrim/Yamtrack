@@ -139,6 +139,11 @@ urlpatterns = [
         name="api_media_season_changes_history",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/cover/?$",
+        views.MediaSeasonCoverView.as_view(),
+        name="api_media_season_cover",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/episodes/?$",
         views.MediaSeasonEpisodesView.as_view(),
         name="api_media_season_episodes",
@@ -172,11 +177,6 @@ urlpatterns = [
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/providers/?$",
         views.MediaSeasonWatchProvidersView.as_view(),
         name="api_media_season_providers",
-    ),
-    re_path(
-        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/cover/?$",
-        views.MediaSeasonCoverView.as_view(),
-        name="api_media_season_cover",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/sync/?$",

@@ -31,7 +31,7 @@ MOVIE_IMAGES = {
 }
 
 
-@patch("api.views.fetch_images", return_value=MOVIE_IMAGES)
+@patch("api.helpers.fetch_images", return_value=MOVIE_IMAGES)
 @patch("api.views.services.get_media_metadata", return_value=MOVIE_METADATA)
 class MediaCoverTests(YamtrackApiTestCase):
     """Validate the custom cover endpoints."""

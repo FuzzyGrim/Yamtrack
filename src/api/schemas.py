@@ -58,6 +58,19 @@ BadRequestResponse = OpenApiResponse(
     ],
 )
 
+ConflictResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Conflict",
+    examples=[
+        OpenApiExample(
+            "Already tracked example",
+            description="Already tracked example",
+            summary="Already tracked example",
+            value={"detail": "Conflict. Season is already tracked."},
+        )
+    ],
+)
+
 ForbiddenResponse = OpenApiResponse(
     ApiErrorResponseSerializer,
     description="Forbidden",

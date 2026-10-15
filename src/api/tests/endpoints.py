@@ -151,6 +151,12 @@ def get_endpoint_cases() -> list[EndpointCase]:
             args=("tv", "tmdb", 1, 1),
         ),
         EndpointCase(
+            "post",
+            "api_media_season_detail",
+            args=("tv", "tmdb", 1, 1),
+            payload={},
+        ),
+        EndpointCase(
             "get",
             "api_media_season_changes_history",
             args=("tv", "tmdb", 1, 1),
@@ -230,6 +236,12 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "delete",
             "api_media_episode_detail",
             args=("tv", "tmdb", 1, 1, 1),
+        ),
+        EndpointCase(
+            "post",
+            "api_media_episode_detail",
+            args=("tv", "tmdb", 1, 1, 1),
+            payload={},
         ),
         EndpointCase(
             "get",

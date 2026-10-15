@@ -1,0 +1,56 @@
+{% load app_tags %}
+
+<div class="bg-[#2a2f35] p-6 rounded-lg max-h-[80svh] overflow-y-auto">
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="text-2xl font-bold text-white">Cover</h2>
+    <button class="text-gray-400 hover:text-white cursor-pointer"
+            @click="coverOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
+  </div>
+  <p class="text-sm text-gray-400 mb-6">The chosen cover is shown to every user of this server.</p>
+
+  {% if cover.custom_image %}
+    <form method="post"
+          action="{% media_view_url 'cover_save' media %}?next={{ return_url|urlencode }}"
+          class="flex items-center justify-between bg-[#39404b] p-3 rounded-md gap-3 mb-6">
+      {% csrf_token %}
+      <div class="flex items-center gap-3 min-w-0">
+        <img alt="Current cover"
+             class="w-10 h-14 rounded object-cover bg-[#2a2f35] shrink-0"
+             src="{{ cover.custom_image }}">
+        <span class="text-sm text-gray-200">A custom cover is set.</span>
+      </div>
+      <button type="submit"
+              class="px-3 py-2 text-sm rounded-md bg-gray-600 hover:bg-gray-500 text-white transition-colors duration-200 cursor-pointer shrink-0">
+        Reset to default
+      </button>
+    </form>
+  {% endif %}
+
+  {% for image_type, images in image_groups %}
+    <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">{{ image_type }}</h3>
+    <form method="post"
+          action="{% media_view_url 'cover_save' media %}?next={{ return_url|urlencode }}"
+          class="mb-6">
+      {% csrf_token %}
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        {% for image in images %}
+          <button type="submit"
+                  name="image"
+                  value="{{ image.original }}"
+                  title="Use this image as cover"
+                  class="group relative rounded-md overflow-hidden bg-[#39404b] cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 {% if image.original == cover.custom_image or image.image == cover.custom_image %}ring-2 ring-indigo-500{% endif %}">
+            <img alt=""
+                 class="lazyload w-full {% if image_type == 'posters' %}aspect-2/3{% else %}aspect-video{% endif %} object-cover transition-opacity duration-200 group-hover:opacity-75"
+                 data-src="{{ image.image }}">
+            <span class="absolute bottom-0 inset-x-0 px-1.5 py-0.5 text-[10px] text-gray-200 bg-black/60 truncate">
+              {{ image.source }}
+              {% if image.language %}· {{ image.language }}{% endif %}
+            </span>
+          </button>
+        {% endfor %}
+      </div>
+    </form>
+  {% empty %}
+    <p class="bg-[#39404b] p-4 rounded-lg text-center text-gray-400">No images available for this media.</p>
+  {% endfor %}
+</div>

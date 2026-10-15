@@ -74,6 +74,26 @@ urlpatterns = [
         name="history_modal",
     ),
     path(
+        "cover_modal/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.cover_modal,
+        name="cover_modal",
+    ),
+    path(
+        "cover_modal/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
+        views.cover_modal,
+        name="cover_modal",
+    ),
+    path(
+        "cover_save/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.cover_save,
+        name="cover_save",
+    ),
+    path(
+        "cover_save/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
+        views.cover_save,
+        name="cover_save",
+    ),
+    path(
         "media/history/<str:media_type>/<int:history_id>/delete/",
         views.delete_history_record,
         name="delete_history_record",

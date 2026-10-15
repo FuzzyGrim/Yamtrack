@@ -44,7 +44,6 @@ from .changes_history_processor import (
 from .helpers import (
     CAST_CREW_SOURCES,
     COMPANY_SOURCES,
-    CREDIT_SOURCES,
     GAME_COMPANY_ROLES,
     IMAGE_SOURCES,
     IMAGE_TYPES,
@@ -59,7 +58,6 @@ from .helpers import (
     check_valid_type,
     fetch_cast,
     fetch_companies,
-    fetch_credits,
     fetch_crew,
     fetch_images,
     fetch_results_all_types,
@@ -69,6 +67,7 @@ from .helpers import (
     filter_known_for,
     get_item_lists,
     get_media_status,
+    get_paginated_credits,
     get_sorts,
     get_timeline,
     group_watch_providers,
@@ -79,11 +78,13 @@ from .helpers import (
     parse_status_param,
     parse_watch_provider_region,
     resolve_calendar_date_range,
+    resolve_cover,
     try_parse_date,
 )
 from .schemas import (
     BadRequestResponse,
     CompanyRoleParam,
+    ConflictResponse,
     CrewDepartmentParam,
     EpisodeNumberParam,
     ForbiddenResponse,
@@ -2809,36 +2810,6 @@ class MediaChangesHistoryView(drf_views.APIView):
         return Response(paginated_data, status=HTTP.OK)
 
 
-def credits_response(request, media_type, source, media_id, credit_type):
-    """Return the paginated creators or characters of a media."""
-    limit, offset, err = parse_limit_offset(request)
-    if err:
-        return err
-
-    err = check_supported_source(
-        CREDIT_SOURCES[credit_type],
-        media_type,
-        source,
-        credit_type,
-    )
-    if err:
-        return err
-
-    try:
-        credits_data = fetch_credits(credit_type, media_type, source, media_id)
-    except Exception as e:  # noqa: BLE001
-        return Response(
-            {
-                "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                "errors": str(e),
-            },
-            status=HTTP.INTERNAL_SERVER_ERROR,
-        )
-
-    paginated = paginate_data(request, credits_data, limit, offset)
-    return Response(PaginatedCreditsSerializer(paginated).data, status=HTTP.OK)
-
-
 # /api/v1/media/[media_type]/[source]/[media_id]/characters/
 class MediaCharactersView(drf_views.APIView):
     """Media characters view."""
@@ -2896,13 +2867,17 @@ class MediaCharactersView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the characters of an anime, manga or comic."""
-        return credits_response(
+        paginated, err = get_paginated_credits(
             request,
             media_type,
             source,
             media_id,
             "characters",
         )
+        if err:
+            return err
+
+        return Response(PaginatedCreditsSerializer(paginated).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/companies/
@@ -3004,125 +2979,6 @@ class MediaCompaniesView(drf_views.APIView):
         return Response(PaginatedCompaniesSerializer(paginated).data, status=HTTP.OK)
 
 
-def get_cover_state(item, provider_image):
-    """Return the current cover of a media and whether it is a custom one."""
-    custom_image = item.custom_image if item else ""
-    return {
-        "image": custom_image or provider_image,
-        "custom_image": custom_image or None,
-    }
-
-
-def get_cover_metadata(media_type, source, media_id, season_number=None):
-    """Return the metadata and the available images of a media or season."""
-    if season_number is not None:
-        metadata = services.get_media_metadata(
-            MediaTypes.SEASON.value,
-            media_id,
-            source,
-            [season_number],
-        )
-        images = fetch_season_images(media_id, season_number)
-    else:
-        metadata = services.get_media_metadata(media_type, media_id, source)
-        images = fetch_images(media_type, source, media_id)
-    return metadata, images
-
-
-def set_custom_cover(item_filter, metadata, images, new_image):
-    """Set the custom cover of a media, returning the item or an error response."""
-    # Only images offered by the media images endpoint can be chosen
-    available = {
-        url
-        for image_list in images.values()
-        for image in image_list
-        for url in (image["image"], image["original"])
-    }
-    if new_image not in available:
-        return None, Response(
-            {
-                "detail": (
-                    "image must be one of the images returned by the media "
-                    "images endpoint."
-                ),
-            },
-            status=HTTP.BAD_REQUEST,
-        )
-
-    item = Item.objects.filter(**item_filter, episode_number=None).first()
-    if item is None:
-        item = Item.objects.create(
-            **item_filter,
-            title=metadata.get("title"),
-            image=new_image,
-            custom_image=new_image,
-        )
-    else:
-        item.custom_image = new_image
-        item.save()
-    return item, None
-
-
-def cover_response(request, media_type, source, media_id, season_number=None):
-    """Get, set or reset the custom cover of a media or season."""
-    err = check_supported_source(IMAGE_SOURCES, media_type, source, "covers")
-    if err:
-        return err
-
-    if season_number is not None and media_type != MediaTypes.TV.value:
-        return Response(
-            {"detail": "Seasons are supported only for 'tv' media type."},
-            status=HTTP.BAD_REQUEST,
-        )
-
-    new_image = (request.data or {}).get("image")
-    if request.method == "PUT" and (not new_image or not isinstance(new_image, str)):
-        return Response(
-            {"detail": "image is required."},
-            status=HTTP.BAD_REQUEST,
-        )
-
-    try:
-        metadata, images = get_cover_metadata(
-            media_type,
-            source,
-            media_id,
-            season_number,
-        )
-    except Exception as e:  # noqa: BLE001
-        return Response(
-            {
-                "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                "errors": str(e),
-            },
-            status=HTTP.INTERNAL_SERVER_ERROR,
-        )
-
-    item_filter = {
-        "media_id": media_id,
-        "source": source,
-        "media_type": (
-            MediaTypes.SEASON.value if season_number is not None else media_type
-        ),
-        "season_number": season_number,
-    }
-    item = Item.objects.filter(**item_filter, episode_number=None).first()
-
-    if request.method == "PUT":
-        item, err = set_custom_cover(item_filter, metadata, images, new_image)
-        if err:
-            return err
-    elif request.method == "DELETE" and item is not None and item.custom_image:
-        item.custom_image = ""
-        item.image = metadata.get("image") or settings.IMG_NONE
-        item.save(update_fields=["custom_image", "image"])
-
-    return Response(
-        CoverSerializer(get_cover_state(item, metadata.get("image"))).data,
-        status=HTTP.OK,
-    )
-
-
 # /api/v1/media/[media_type]/[source]/[media_id]/cover/
 class MediaCoverView(drf_views.APIView):
     """Media cover view."""
@@ -3163,7 +3019,11 @@ class MediaCoverView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Get the current cover of a media."""
-        return cover_response(request, media_type, source, media_id)
+        cover, err = resolve_cover(request, media_type, source, media_id)
+        if err:
+            return err
+
+        return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
     @extend_schema(
         operation_id="media_cover_put",
@@ -3198,7 +3058,11 @@ class MediaCoverView(drf_views.APIView):
     )
     def put(self, request, media_type, source, media_id):
         """Set a custom cover for a media."""
-        return cover_response(request, media_type, source, media_id)
+        cover, err = resolve_cover(request, media_type, source, media_id)
+        if err:
+            return err
+
+        return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
     @extend_schema(
         operation_id="media_cover_delete",
@@ -3232,7 +3096,11 @@ class MediaCoverView(drf_views.APIView):
     )
     def delete(self, request, media_type, source, media_id):
         """Reset the cover of a media to the provider image."""
-        return cover_response(request, media_type, source, media_id)
+        cover, err = resolve_cover(request, media_type, source, media_id)
+        if err:
+            return err
+
+        return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/creators/
@@ -3292,13 +3160,17 @@ class MediaCreatorsView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the creators of a manga, book, comic or board game."""
-        return credits_response(
+        paginated, err = get_paginated_credits(
             request,
             media_type,
             source,
             media_id,
             "creators",
         )
+        if err:
+            return err
+
+        return Response(PaginatedCreditsSerializer(paginated).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/crew/
@@ -5194,8 +5066,60 @@ class MediaSeasonDetailView(drf_views.APIView):
         ).data
         return Response(serialized, status=HTTP.OK)
 
-
-
+    @extend_schema(
+        operation_id="media_season_detail_post",
+        summary="Track a season",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        request=UpdateSeasonSerializer,
+        responses={
+            201: OpenApiResponse(
+                MediaSerializer,
+                description="Season tracked successfully",
+                examples=[
+                    OpenApiExample(
+                        "Tracked season example",
+                        description="Tracked season example",
+                        summary="Tracked season example",
+                        value={
+                            "id": 3600,
+                            "consumption_id": 323,
+                            "item": {
+                                "media_id": "12345",
+                                "source": "tmdb",
+                                "media_type": "season",
+                                "title": "Van der Valk",
+                                "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                                "season_number": 1,
+                                "episode_number": None,
+                            },
+                            "item_id": "season/tmdb/12345/1",
+                            "parent_id": "tv/tmdb/12345",
+                            "tracked": True,
+                            "created_at": "2026-05-11T17:20:38.252187Z",
+                            "score": None,
+                            "status": 0,
+                            "progress": 0,
+                            "progressed_at": None,
+                            "start_date": None,
+                            "end_date": None,
+                            "notes": "",
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            409: ConflictResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
     def post(self, request, media_type, source, media_id, season_number):
         """Track a season of a tv serie for the authenticated user."""
         user = request.user
@@ -5205,17 +5129,24 @@ class MediaSeasonDetailView(drf_views.APIView):
                 {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
+
         if media_type != MediaTypes.TV.value:
             return Response(
-                {"detail": "Seasons are supported only for 'tv' media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-        if not check_source_type(media_type, source):
-            return Response(
-                {"detail": f"Cannot query `{source}` for `{media_type}` media type"},
+                {
+                    "detail": "Seasons are supported only for 'tv' media type.",
+                },
                 status=HTTP.BAD_REQUEST,
             )
 
+        if not check_source_type(media_type, source):
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        # The season can be tracked only if the user is tracking its tv serie
         tv_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.TV.value]
         parent_tv = tv_model.objects.filter(
             item__media_id=media_id,
@@ -5225,17 +5156,27 @@ class MediaSeasonDetailView(drf_views.APIView):
         ).first()
         if parent_tv is None:
             return Response(
-                {"detail": "Parent TV serie is not tracked yet."},
+                {"detail": "Parent tv serie is not tracked yet."},
                 status=HTTP.BAD_REQUEST,
             )
 
+        serializer = UpdateSeasonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+
         try:
             metadata = services.get_media_metadata(
-                "season", media_id, source, [season_number],
+                "season",
+                media_id,
+                source,
+                [season_number],
             )
         except Exception as e:  # noqa: BLE001
             return Response(
-                {"detail": "Internal Server Error.", "errors": str(e)},
+                {
+                    "detail": "Internal Server Error.",
+                    "errors": str(e),
+                },
                 status=HTTP.INTERNAL_SERVER_ERROR,
             )
 
@@ -5250,34 +5191,38 @@ class MediaSeasonDetailView(drf_views.APIView):
             },
         )
 
-        body = dict(request.data or {})
-        body["media_type"] = MediaTypes.SEASON.value
-        body["source"] = item.source
-        body["media_id"] = item.media_id
-        if "status" in body:
-            body["status"] = get_media_status(body["status"], reverse=True)
-        else:
-            body["status"] = MediaStatusChoices.PLANNING
+        data.update(
+            {
+                "media_type": MediaTypes.SEASON.value,
+                "source": item.source,
+                "media_id": item.media_id,
+                # default status when tracking a new season will be "planning"
+                "status": data.get("status") or MediaStatusChoices.PLANNING,
+            },
+        )
 
         season_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.SEASON.value]
         instance = season_model(item=item, user=user, related_tv=parent_tv)
-        form_class = get_form_class(MediaTypes.SEASON.value)
-        media_form = form_class(body, instance=instance)
+        media_form = get_form_class(MediaTypes.SEASON.value)(data, instance=instance)
         if not media_form.is_valid():
             return Response(
-                {"detail": "Invalid media data.", "errors": media_form.errors},
+                {
+                    "detail": "Invalid media data.",
+                    "errors": media_form.errors,
+                },
                 status=HTTP.BAD_REQUEST,
             )
+
         try:
             media_form.save()
         except IntegrityError:
             return Response(
-                {"detail": "Season is already tracked."},
+                {"detail": "Conflict. Season is already tracked."},
                 status=HTTP.CONFLICT,
             )
 
-        serialized = MediaSerializer(media_form.instance).data
-        return Response(serialized, status=HTTP.CREATED)
+        serialized_data = MediaSerializer(media_form.instance).data
+        return Response(serialized_data, status=HTTP.CREATED)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/changes_history/
@@ -6607,13 +6552,17 @@ class MediaSeasonCoverView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id, season_number):
         """Get the current cover of a season."""
-        return cover_response(
+        cover, err = resolve_cover(
             request,
             media_type,
             source,
             media_id,
             season_number=season_number,
         )
+        if err:
+            return err
+
+        return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
     @extend_schema(
         operation_id="season_cover_put",
@@ -6649,13 +6598,17 @@ class MediaSeasonCoverView(drf_views.APIView):
     )
     def put(self, request, media_type, source, media_id, season_number):
         """Set a custom cover for a season."""
-        return cover_response(
+        cover, err = resolve_cover(
             request,
             media_type,
             source,
             media_id,
             season_number=season_number,
         )
+        if err:
+            return err
+
+        return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
     @extend_schema(
         operation_id="season_cover_delete",
@@ -6690,13 +6643,17 @@ class MediaSeasonCoverView(drf_views.APIView):
     )
     def delete(self, request, media_type, source, media_id, season_number):
         """Reset the cover of a season to the provider image."""
-        return cover_response(
+        cover, err = resolve_cover(
             request,
             media_type,
             source,
             media_id,
             season_number=season_number,
         )
+        if err:
+            return err
+
+        return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/sync/
@@ -7397,9 +7354,63 @@ class MediaEpisodeDetailView(drf_views.APIView):
         serialized = CompleteEpisodeSerializer(data).data
         return Response(serialized, status=HTTP.OK)
 
-
-
-    def post(self, request, media_type, source, media_id, season_number, episode_number):
+    @extend_schema(
+        operation_id="media_episode_detail_post",
+        summary="Track an episode",
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+        ],
+        request=UpdateEpisodeSerializer,
+        responses={
+            201: OpenApiResponse(
+                EpisodeSerializer,
+                description="Episode tracked successfully",
+                examples=[
+                    OpenApiExample(
+                        "Tracked episode example",
+                        description="Tracked episode example",
+                        summary="Tracked episode example",
+                        value={
+                            "id": 3601,
+                            "consumption_id": 324,
+                            "item": {
+                                "media_id": "12345",
+                                "source": "tmdb",
+                                "media_type": "episode",
+                                "title": "Van der Valk",
+                                "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                                "season_number": 1,
+                                "episode_number": 1,
+                            },
+                            "item_id": "episode/tmdb/12345/1/1",
+                            "parent_id": "season/tmdb/12345/1",
+                            "tracked": True,
+                            "created_at": "2026-05-11T17:20:38.252187Z",
+                            "score": None,
+                            "status": 3,
+                            "progress": 1,
+                            "progressed_at": "2026-05-11T00:00:00Z",
+                            "start_date": "2026-05-11T17:20:38.252187Z",
+                            "end_date": "2026-05-11T00:00:00Z",
+                            "notes": None,
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+            404: NotFoundResponse,
+            500: InternalServerErrorResponse,
+        },
+    )
+    def post(
+        self, request, media_type, source, media_id, season_number, episode_number
+    ):
         """Track an episode of a tv serie for the authenticated user."""
         user = request.user
 
@@ -7408,17 +7419,24 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
+
         if media_type != MediaTypes.TV.value:
             return Response(
-                {"detail": "Episodes are supported only for 'tv' media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-        if not check_source_type(media_type, source):
-            return Response(
-                {"detail": f"Cannot query `{source}` for `{media_type}` media type"},
+                {
+                    "detail": "Episodes are supported only for 'tv' media type.",
+                },
                 status=HTTP.BAD_REQUEST,
             )
 
+        if not check_source_type(media_type, source):
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        # The episode can be tracked only if the user is tracking its season
         season_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.SEASON.value]
         parent_season = season_model.objects.filter(
             item__media_id=media_id,
@@ -7433,13 +7451,26 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
+        serializer = UpdateEpisodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        # default watch date when tracking a new episode will be today
+        data.setdefault("end_date", localdate())
+
         try:
             metadata = services.get_media_metadata(
-                "episode", media_id, source, [season_number], episode_number,
+                "episode",
+                media_id,
+                source,
+                [season_number],
+                episode_number,
             )
         except Exception as e:  # noqa: BLE001
             return Response(
-                {"detail": "Internal Server Error.", "errors": str(e)},
+                {
+                    "detail": "Internal Server Error.",
+                    "errors": str(e),
+                },
                 status=HTTP.INTERNAL_SERVER_ERROR,
             )
 
@@ -7455,37 +7486,23 @@ class MediaEpisodeDetailView(drf_views.APIView):
             },
         )
 
-        body = dict(request.data or {})
-        body.setdefault("end_date", localdate().isoformat())
-
         episode_model = MEDIA_TYPE_COMPLETE_MODEL_MAP[MediaTypes.EPISODE.value]
         instance = episode_model(item=item, related_season=parent_season)
-        form_class = get_form_class(MediaTypes.EPISODE.value)
-        media_form = form_class(body, instance=instance)
+        media_form = get_form_class(MediaTypes.EPISODE.value)(data, instance=instance)
         if not media_form.is_valid():
             return Response(
-                {"detail": "Invalid media data.", "errors": media_form.errors},
+                {
+                    "detail": "Invalid media data.",
+                    "errors": media_form.errors,
+                },
                 status=HTTP.BAD_REQUEST,
             )
-        try:
-            media_form.save()
-        except IntegrityError:
-            return Response(
-                {"detail": "Episode is already tracked."},
-                status=HTTP.CONFLICT,
-            )
 
-        lists = get_item_lists(
-            user, media_id, source, "episode",
-            season_number=season_number, episode_number=episode_number,
-        )
-        data = {
-            "media_metadata": metadata,
-            "user_medias": [media_form.instance],
-            "lists": lists,
-        }
-        serialized = CompleteEpisodeSerializer(data).data
-        return Response(serialized, status=HTTP.CREATED)
+        # Episodes can be watched more than once, so there is no conflict to handle
+        media_form.save()
+
+        serialized_data = EpisodeSerializer(media_form.instance).data
+        return Response(serialized_data, status=HTTP.CREATED)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/[episode_number]/changes_history/  # noqa: E501, W505
