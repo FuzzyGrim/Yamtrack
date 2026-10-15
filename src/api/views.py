@@ -1951,9 +1951,9 @@ class MediaTypeListView(drf_views.APIView):
         data = serializer.validated_data
 
         data["media_type"] = media_type
-        # The serializer already converts the status to its model value,
-        # default status when tracking a new media will be "planning"
-        data["status"] = data.get("status") or MediaStatusChoices.PLANNING
+        # The status field already converted the value to a MediaStatusChoices value
+        if data.get("status") is None:
+            data["status"] = MediaStatusChoices.PLANNING
 
         source = data.get("source", Sources.MANUAL.value)
 
