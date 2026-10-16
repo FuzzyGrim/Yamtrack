@@ -116,8 +116,8 @@ class SteamImporter:
                 if "games" not in response["response"]:
                     # User might have private profile or no games
                     logger.warning(
-                        _("No games found in Steam response for user %(steam_id)s"),
-                        {"steam_id": self.steam_id},
+                        "No games found in Steam response for user %s",
+                        self.steam_id,
                     )
                     return []
 

@@ -23,7 +23,7 @@ from integrations.imports import (
 )
 
 logger = logging.getLogger(__name__)
-ERROR_TITLE = _("\n\n\n Couldn't import the following media: \n\n")
+ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 
 
 def format_media_type_display(count, media_type):

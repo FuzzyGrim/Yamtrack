@@ -14,43 +14,43 @@ def get_attr(obj, attr):
 
 SOURCES_CONFIG = {
     "kitsu": {
-        "name": _("Kitsu"),
+        "name": "Kitsu",
         "logo": static("img/kitsu-logo.png"),
     },
     "trakt": {
-        "name": _("Trakt"),
+        "name": "Trakt",
         "logo": static("img/trakt-logo.svg"),
     },
     "myanimelist": {
-        "name": _("MyAnimeList"),
+        "name": "MyAnimeList",
         "logo": static("img/mal-logo.ico"),
     },
     "anilist": {
-        "name": _("AniList"),
+        "name": "AniList",
         "logo": static("img/anilist-logo.svg"),
     },
     "simkl": {
-        "name": _("SIMKL"),
+        "name": "SIMKL",
         "logo": static("img/simkl-logo.png"),
     },
     "yamtrack": {
-        "name": _("YamTrack"),
+        "name": "YamTrack",
         "logo": static("favicon/apple-touch-icon.png"),
     },
     "hltb": {
-        "name": _("HowLongToBeat"),
+        "name": "HowLongToBeat",
         "logo": static("img/hltb-logo.png"),
     },
     "imdb": {
-        "name": _("IMDB"),
+        "name": "IMDB",
         "logo": static("img/imdb-logo.png"),
     },
     "steam": {
-        "name": _("Steam"),
+        "name": "Steam",
         "logo": static("img/steam-logo.ico"),
     },
     "goodreads": {
-        "name": _("GoodReads"),
+        "name": "GoodReads",
         "logo": static("img/logo-goodreads.svg"),
     },
 }

@@ -39,14 +39,14 @@ logger = logging.getLogger(__name__)
 class Sources(models.TextChoices):
     """Choices for the source of the item."""
 
-    TMDB = "tmdb", _("The Movie Database")
-    MAL = "mal", _("MyAnimeList")
-    MANGAUPDATES = "mangaupdates", _("MangaUpdates")
-    IGDB = "igdb", _("Internet Game Database")
-    OPENLIBRARY = "openlibrary", _("Open Library")
-    HARDCOVER = "hardcover", _("Hardcover")
-    COMICVINE = "comicvine", _("Comic Vine")
-    BGG = "bgg", _("BoardGameGeek")
+    TMDB = "tmdb", "The Movie Database"
+    MAL = "mal", "MyAnimeList"
+    MANGAUPDATES = "mangaupdates", "MangaUpdates"
+    IGDB = "igdb", "Internet Game Database"
+    OPENLIBRARY = "openlibrary", "Open Library"
+    HARDCOVER = "hardcover", "Hardcover"
+    COMICVINE = "comicvine", "Comic Vine"
+    BGG = "bgg", "BoardGameGeek"
     MANUAL = "manual", _("Manual")
 
 
@@ -1097,7 +1097,7 @@ class TV(Media):
         for season_number in season_numbers:
             season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-            item, _ = Item.objects.get_or_create(
+            item, _created = Item.objects.get_or_create(
                 media_id=self.item.media_id,
                 source=self.item.source,
                 media_type=MediaTypes.SEASON.value,
@@ -1237,7 +1237,7 @@ class TV(Media):
                 continue
 
             if next_unwatched_season is None:
-                item, _ = Item.objects.get_or_create(
+                item, _created = Item.objects.get_or_create(
                     media_id=self.item.media_id,
                     source=self.item.source,
                     media_type=MediaTypes.SEASON.value,
@@ -1650,7 +1650,7 @@ class Season(Media):
             else:
                 status = self.status
 
-            item, _ = Item.objects.get_or_create(
+            item, _created = Item.objects.get_or_create(
                 media_id=self.item.media_id,
                 source=Sources.TMDB.value,
                 media_type=MediaTypes.TV.value,
@@ -1736,7 +1736,7 @@ class Season(Media):
                     image = settings.IMG_NONE
                 break
 
-        item, _ = Item.objects.get_or_create(
+        item, _created = Item.objects.get_or_create(
             media_id=self.item.media_id,
             source=self.item.source,
             media_type=MediaTypes.EPISODE.value,

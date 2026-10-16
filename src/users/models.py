@@ -657,16 +657,16 @@ class User(AbstractUser):
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""
         import_tasks = {
-            "trakt": _("Import from Trakt"),
-            "simkl": _("Import from SIMKL"),
-            "myanimelist": _("Import from MyAnimeList"),
-            "anilist": _("Import from AniList"),
-            "kitsu": _("Import from Kitsu"),
-            "yamtrack": _("Import from Yamtrack"),
-            "hltb": _("Import from HowLongToBeat"),
-            "steam": _("Import from Steam"),
-            "imdb": _("Import from IMDB"),
-            "goodreads": _("Import from GoodReads"),
+            "trakt": "Import from Trakt",
+            "simkl": "Import from SIMKL",
+            "myanimelist": "Import from MyAnimeList",
+            "anilist": "Import from AniList",
+            "kitsu": "Import from Kitsu",
+            "yamtrack": "Import from Yamtrack",
+            "hltb": "Import from HowLongToBeat",
+            "steam": "Import from Steam",
+            "imdb": "Import from IMDB",
+            "goodreads": "Import from GoodReads",
         }
 
         # Reverse mapping to get source from task name
