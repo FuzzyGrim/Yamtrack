@@ -600,6 +600,8 @@ def track_modal(
         )["title"]
         if media_type == MediaTypes.SEASON.value:
             title += f" S{season_number}"
+        if request.user.default_edit_entry_date == "no_date":
+            initial_data["end_date"] = ""
 
     form = get_form_class(media_type)(instance=media, initial=initial_data)
 
