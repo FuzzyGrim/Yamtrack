@@ -24,8 +24,10 @@ urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
     path(
         "jsi18n/",
-        last_modified(lambda req, **kw: last_modified_date)(  # noqa: ARG005
-            JavaScriptCatalog.as_view()
+        login_not_required(
+            last_modified(lambda req, **kw: last_modified_date)(  # noqa: ARG005
+                JavaScriptCatalog.as_view()
+            )
         ),
         name="javascript-catalog",
     ),
