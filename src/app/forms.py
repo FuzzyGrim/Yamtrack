@@ -2,6 +2,7 @@ import math
 
 from django import forms
 from django.conf import settings
+from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
 from app import config
@@ -67,14 +68,14 @@ class CustomDurationField(forms.CharField):
         if "h" in value:  # [n]h format
             return int(value.strip("h")), 0
 
-        msg = _("Invalid time format")
+        msg = gettext("Invalid time format")
         raise ValueError(msg)
 
     def _validate_minutes(self, minutes):
         """Validate that minutes are within acceptable range."""
         max_min = 59
         if not (0 <= minutes <= max_min):
-            msg = _("Minutes must be between 0 and %(max_min)s.") % {
+            msg = gettext("Minutes must be between 0 and %(max_min)s.") % {
                 "max_min": max_min,
             }
             raise forms.ValidationError(msg)
@@ -90,7 +91,7 @@ class CustomDurationField(forms.CharField):
             self._validate_minutes(minutes)
             return hours * 60 + minutes
         except ValueError as e:
-            msg = _(
+            msg = gettext(
                 "Invalid time format. Provide duration in hours "
                 "(e.g., '5', '1.5'), hours and minutes "
                 "(e.g., '5:30', '5h 30min'), or just minutes "
@@ -162,7 +163,7 @@ class ManualItemForm(forms.ModelForm):
                 if not parent:
                     self.add_error(
                         "parent_tv",
-                        _("Parent TV show is required for seasons"),
+                        gettext("Parent TV show is required for seasons"),
                     )
                     return cleaned_data
                 cleaned_data["title"] = parent.item.title
@@ -172,7 +173,7 @@ class ManualItemForm(forms.ModelForm):
                 if not parent:
                     self.add_error(
                         "parent_season",
-                        _("Parent season is required for episodes"),
+                        gettext("Parent season is required for episodes"),
                     )
                     return cleaned_data
                 cleaned_data["title"] = parent.item.title
@@ -180,7 +181,10 @@ class ManualItemForm(forms.ModelForm):
         else:
             # For standalone media, title is required
             if not cleaned_data.get("title"):
-                self.add_error("title", _("Title is required for this media type"))
+                self.add_error(
+                    "title",
+                    gettext("Title is required for this media type"),
+                )
             cleaned_data["season_number"] = None
             cleaned_data["episode_number"] = None
 

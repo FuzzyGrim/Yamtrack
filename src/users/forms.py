@@ -3,7 +3,7 @@ from allauth.account.forms import LoginForm, SignupForm
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 
 from .models import User
 
@@ -114,7 +114,7 @@ class NotificationSettingsForm(forms.ModelForm):
 
         for url in urls:
             if not apobj.add(url):
-                message = _("%(url)s is not a valid Apprise URL.") % {"url": url}
+                message = _("'%(url)s' is not a valid Apprise URL.") % {"url": url}
                 raise ValidationError(message)
 
         return notification_urls

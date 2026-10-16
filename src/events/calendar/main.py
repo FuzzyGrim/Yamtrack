@@ -1,6 +1,6 @@
 import logging
 
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 
 from app.models import MediaTypes, Sources
 from events.models import Event

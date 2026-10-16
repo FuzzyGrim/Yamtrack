@@ -8,8 +8,8 @@ from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.translation import gettext_lazy as _
-from django.utils.translation import ngettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
@@ -398,7 +398,7 @@ def clear_search_cache(request):
 
     messages.success(
         request,
-        ngettext_lazy(
+        ngettext(
             "Successfully cleared %(count)d search entry",
             "Successfully cleared %(count)d search entries",
             deleted,

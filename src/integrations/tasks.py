@@ -2,7 +2,7 @@ import logging
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 
 import events
 from app.mixins import disable_fetch_releases

@@ -6,7 +6,7 @@ from pathlib import Path
 from django.apps import apps
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 
 import app
 from app.models import MediaTypes, Sources, Status

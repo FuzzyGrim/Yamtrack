@@ -6,7 +6,7 @@ from io import StringIO
 from django.apps import apps
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 
 import app
 import app.providers

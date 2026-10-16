@@ -9,7 +9,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 from django_celery_beat.models import PeriodicTask
 
 import app
