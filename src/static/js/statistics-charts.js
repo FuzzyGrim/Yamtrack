@@ -348,7 +348,7 @@ document.addEventListener("DOMContentLoaded", function () {
       padding: { top: 0, left: 10 },
     };
 
-    const itemsText = tn("item", "items", scoreData.total_scored);
+    const itemsText = ngettext("item", "items", scoreData.total_scored);
     scoreChartOptions.plugins.title = {
       display: true,
       text: `${gettext("Average Score")}: ${scoreData.average_score} (${scoreData.total_scored} ${itemsText})`,
