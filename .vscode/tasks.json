@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Yamtrack: start dev stack",
+      "label": "Yamtrack: Start Service",
       "detail": "Runs web, Celery and Tailwind from the Procfile via honcho",
       "type": "shell",
       // Only auto-start inside the dev container; a plain host checkout may not have uv/Redis.
