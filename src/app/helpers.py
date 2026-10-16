@@ -14,7 +14,14 @@ from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from app.models import BasicMedia, Item, MediaTypes, Status
+from app.models import (
+    TMDB_RATING_MEDIA_TYPES,
+    BasicMedia,
+    Item,
+    MediaTypes,
+    Sources,
+    Status,
+)
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
@@ -184,6 +191,40 @@ def refresh_item_image_if_missing(item, new_image):
         return
     item.image = new_image
     item.save(update_fields=["image"])
+
+
+def tmdb_rating_from_metadata(source, metadata):
+    """Extract a TMDB vote_average score from already-fetched metadata, or None."""
+    if source != Sources.TMDB.value:
+        return None
+    return metadata.get("score") or None
+
+
+def apply_tmdb_rating(item, score):
+    """Store a freshly fetched TMDB rating on an Item."""
+    item.tmdb_rating = score
+    item.tmdb_rating_updated_at = timezone.now()
+    item.save(update_fields=["tmdb_rating", "tmdb_rating_updated_at"])
+
+
+def item_defaults_from_metadata(source, media_type, metadata):
+    """Build Item field defaults, including an opportunistic TMDB rating."""
+    defaults = {"title": metadata["title"], "image": metadata["image"]}
+    if source == Sources.TMDB.value and media_type in TMDB_RATING_MEDIA_TYPES:
+        defaults["tmdb_rating"] = tmdb_rating_from_metadata(source, metadata)
+        defaults["tmdb_rating_updated_at"] = timezone.now()
+    return defaults
+
+
+def refresh_tmdb_rating_if_missing(item, source, media_type, metadata):
+    """Populate an Item's TMDB rating when it hasn't been fetched yet."""
+    if (
+        item.tmdb_rating_updated_at is not None
+        or source != Sources.TMDB.value
+        or media_type not in TMDB_RATING_MEDIA_TYPES
+    ):
+        return
+    apply_tmdb_rating(item, tmdb_rating_from_metadata(source, metadata))
 
 
 def enrich_items_with_user_data(request, items, section_name):
