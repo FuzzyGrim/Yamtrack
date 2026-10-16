@@ -2,39 +2,40 @@
 
 This page covers working on Yamtrack from source.
 
-## Dev container (recommended)
+## Dev container
 
-The repository includes a [dev container](https://containers.dev/) with Python 3.12, uv, Node (for the Tailwind CLI) and a Redis sidecar, so the only local requirements are Docker and VS Code (or another dev container client).
+The repository includes a [dev container](https://containers.dev/) which includes all of the dependencies for you.  The only local requirements are Docker and VS Code (or another dev container client).
 
-1. Open the repository in VS Code and run **Dev Containers: Reopen in Container**. On Windows and macOS, **Dev Containers: Clone Repository in Container Volume** keeps the source inside Docker and makes file watching much faster.
-2. On first start the container installs uv and the Tailwind CLI, runs `uv sync` and applies migrations.
-3. Start the web server, Celery worker and Tailwind watcher. In VS Code this happens automatically: the **Yamtrack: start dev stack** task in `.vscode/tasks.json` runs on folder open (VS Code asks once to allow automatic tasks). Use **Tasks: Restart Running Task** to restart it, for example after changing Celery task code, dependencies or migrations. In other clients, run it yourself:
+1. Open the Dev Container in your IDE
+   1. Run **Dev Containers: Reopen in Container** or
+   2. *(Preferred)* Run **Clone Repository in Container Volume** for faster file watching on Windows/macOS.
+2. In VS Code, the service is started automatically via the **Yamtrack: Start Service** task (`.vscode/tasks.json`, runs on folder open). Restart it with **Tasks: Restart Running Task**. Elsewhere, run:
 
    ```bash
    uvx honcho -e /dev/null start
    ```
 
-4. Open <http://localhost:8000>. Port 8000 is forwarded to the host.
+3. Open <http://localhost:8000> (port 8000 is forwarded).
 
-The virtualenv lives in a named volume at `/home/vscode/.venv`, and the SQLite database is `src/db/db.sqlite3`. The rest of this page covers setting up the same environment manually.
+## Manual
 
-## Prerequisites
+### Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [tailwindcss CLI](https://tailwindcss.com/docs/installation/tailwind-cli) (install with `npm install -g tailwindcss @tailwindcss/cli`)
 - Docker
 - Redis
 
-## General setup
+### General setup
 
-### Clone the repository
+#### Clone the repository
 
 ```bash
 git clone https://github.com/FuzzyGrim/Yamtrack.git
 cd Yamtrack
 ```
 
-### Start Redis
+#### Start Redis
 
 If you do not already have Redis running locally, start it with Docker:
 
@@ -42,7 +43,7 @@ If you do not already have Redis running locally, start it with Docker:
 docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:8-alpine
 ```
 
-### Install dependencies
+#### Install dependencies
 
 uv manages the Python environment and dependencies:
 
@@ -57,7 +58,7 @@ Installing the development dependencies includes pre-commit. After `uv run pre-c
 uv run pre-commit run --all-files
 ```
 
-### Configure environment values
+#### Configure environment values
 
 Create a `.env` file in the repository root:
 
@@ -74,14 +75,14 @@ DEBUG=True
 
 See [Environment Variables](env-variables.md) for the full list of supported settings.
 
-### Prepare the database
+#### Prepare the database
 
 ```bash
 cd src
 uv run manage.py migrate
 ```
 
-### Run the app
+#### Run the app
 
 The repository ships a `Procfile` that defines the web server, the Celery
 worker, and the Tailwind watcher. Run all three at once with
