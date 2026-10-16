@@ -250,8 +250,8 @@ class SteamImporter:
                 e,
             )
             self.warnings.append(
-                _("Couldn't find a match in %(source)s")
-                % {"source": Sources.IGDB.label}
+                _("%(name)s (%(appid)s): Couldn't find a match in %(source)s")
+                % {"source": Sources.IGDB.label, "name": name, "appid": appid}
             )
 
         except (ValueError, KeyError, TypeError) as e:

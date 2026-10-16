@@ -134,7 +134,7 @@ class YamtrackImporter:
                 episode_number,
             )
 
-        item, _ = app.models.Item.objects.update_or_create(
+        item, _created = app.models.Item.objects.update_or_create(
             media_id=row["media_id"],
             source=row["source"],
             media_type=media_type,

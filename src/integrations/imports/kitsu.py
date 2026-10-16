@@ -100,7 +100,8 @@ class KitsuImporter:
         if len(response["data"]) > 1:
             msg = _(
                 "Multiple users found for %(username)s, please use your user ID. "
-            ) + _("User IDs can be found in the URL when viewing your Kitsu profile.")
+                "User IDs can be found in the URL when viewing your Kitsu profile."
+            ) % {"username": username}
             raise MediaImportError(msg)
 
         return response["data"][0]["id"]

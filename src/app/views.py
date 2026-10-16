@@ -636,7 +636,7 @@ def media_save(request):
             source,
             [season_number],
         )
-        item, _ = Item.objects.get_or_create(
+        item, _created = Item.objects.get_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
@@ -779,8 +779,8 @@ def create_entry(request):
         # Handle duplicate item
         media_name = form.cleaned_data["title"]
         if form.cleaned_data.get("season_number"):
-            media_name += " - " + _("Season %(episode_number)s") % {
-                "episode_number": form.cleaned_data["season_number"]
+            media_name += " - " + _("Season %(season_number)s") % {
+                "season_number": form.cleaned_data["season_number"]
             }
         if form.cleaned_data.get("episode_number"):
             media_name += " - " + _("Episode %(episode_number)s") % {

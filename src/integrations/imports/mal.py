@@ -146,7 +146,7 @@ class MyAnimeListImporter:
         ):
             return
 
-        item, _ = app.models.Item.objects.get_or_create(
+        item, _created = app.models.Item.objects.get_or_create(
             media_id=str(content["node"]["id"]),
             source=Sources.MAL.value,
             media_type=media_type,
@@ -176,7 +176,7 @@ class MyAnimeListImporter:
                 status = Status.IN_PROGRESS.value
 
         if repeats >= 1:
-            for _ in range(repeats):
+            for _repeat_index in range(repeats):
                 max_progress = content["node"].get("num_episodes") or content[
                     "node"
                 ].get(

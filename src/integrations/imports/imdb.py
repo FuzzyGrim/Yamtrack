@@ -139,18 +139,16 @@ class IMDBImporter:
             if title_type in UNSUPPORTED_TYPES:
                 self.warnings.append(
                     _(
-                        "Unsupported title type '%(title_type)s' for title: "
-                        "%(title)s - skipped"
+                        "%(title)s: Unsupported title type '%(title_type)s' - skipped"
                     )
-                    % {"title_type": title_type, "title": title}
+                    % {"title": title, "title_type": title_type}
                 )
             else:
                 self.warnings.append(
                     _(
-                        "Unknown title type '%(title_type)s' for title: "
-                        "%(title)s - skipped"
+                        "%(title)s: Unknown title type '%(title_type)s' - skipped"
                     )
-                    % {"title_type": title_type, "title": title}
+                    % {"title": title, "title_type": title_type}
                 )
             return
 
@@ -200,7 +198,7 @@ class IMDBImporter:
         ):
             return
 
-        item, _ = self._create_or_update_item(tmdb_data, media_type)
+        item, _created = self._create_or_update_item(tmdb_data, media_type)
         instance = self._create_media_instance(item, row, media_type)
         self.bulk_media[media_type].append(instance)
 

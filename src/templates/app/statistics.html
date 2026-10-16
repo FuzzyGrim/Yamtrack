@@ -113,7 +113,7 @@
           {% include "app/icons/states/in-progress.svg" with classes="w-8 h-8 text-sky-400" %}
         </div>
         <div>
-          <h3 class="text-sm font-medium text-gray-400">In Progress</h3>
+          <h3 class="text-sm font-medium text-gray-400">{% trans "In Progress" %}</h3>
           {% if media_count.total %}
             <p class="text-2xl font-bold">{{ in_progress_count }}</p>
           {% else %}

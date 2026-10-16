@@ -16,6 +16,7 @@
   {% trans "Import games" as import_games_label %}
   {% trans "Import movies and TV shows from your ratings" as import_imdb_ratings_label %}
   {% trans "Import from GoodReads backup" as import_from_goodreads_backup_label %}
+  {% trans "Import TV shows and movies" as import_trakt_label %}
   {% trans "File uploads are not available for periodic imports" as periodic_upload_unavailable_label %}
   <div class="space-y-6"
        x-data="{ importFrequency: 'once', importTime: '{% now "H:i" %}', importMode: 'new' }">
@@ -81,7 +82,7 @@
              x-data="{ traktImportMethod: 'public' }">
           <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? 'Import TV shows and movies' : 'File uploads are not available for periodic imports'">
+             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? '{{ import_trakt_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
 
           <div class="mb-3">
@@ -104,7 +105,7 @@
             <input type="hidden" name="mode" x-model="importMode">
 
             <div class="flex w-full">
-              <input placeholder="Public Trakt username"
+              <input placeholder="{% trans 'Public Trakt username' %}"
                      name="user"
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text"
@@ -182,7 +183,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <div class="flex w-full">
-              <input placeholder="MAL username"
+              <input placeholder="{% trans 'MAL username' %}"
                      name="user"
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
@@ -219,7 +220,7 @@
             <input type="hidden" name="mode" x-model="importMode">
 
             <div class="flex w-full">
-              <input placeholder="Public AniList username"
+              <input placeholder="{% trans 'Public AniList username' %}"
                      name="user"
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text"
@@ -259,7 +260,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <div class="relative flex-1">
-              <input placeholder="Kitsu user ID"
+              <input placeholder="{% trans 'Kitsu user ID' %}"
                      name="user"
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
@@ -286,10 +287,10 @@
             <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration#yamtrack-csv-format"
                target="_blank"
                class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
-               title="View CSV format documentation">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
+               title="{% trans 'View CSV format documentation' %}">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
           </div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from YamTrack backup' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_from_yamtrack_backup_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_yamtrack' %}"
@@ -316,7 +317,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import games' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_games_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_hltb' %}"
@@ -351,7 +352,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <div class="relative flex-1">
-              <input placeholder="Steam 64-bit ID"
+              <input placeholder="{% trans 'Steam 64-bit ID' %}"
                      name="user"
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
@@ -378,7 +379,7 @@
             <div class="flex items-center">{% source_display "imdb" %}</div>
           </div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import movies and TV shows from your ratings' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_imdb_ratings_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_imdb' %}"
@@ -405,7 +406,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "goodreads" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from GoodReads backup' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_from_goodreads_backup_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_goodreads' %}"
@@ -441,7 +442,7 @@
       <input type="hidden" name="mode" x-model="importMode">
 
       <div class="flex w-full">
-        <input placeholder="Public Trakt username"
+        <input placeholder="{% trans 'Public Trakt username' %}"
                name="user"
                class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                type="text"
@@ -497,7 +498,7 @@
       <input type="hidden" name="time" x-model="importTime">
       <input type="hidden" name="mode" x-model="importMode">
       <div class="flex w-full">
-        <input placeholder="MAL username"
+        <input placeholder="{% trans 'MAL username' %}"
                name="user"
                class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                type="text">
@@ -534,7 +535,7 @@
       <input type="hidden" name="mode" x-model="importMode">
 
       <div class="flex w-full">
-        <input placeholder="Public AniList username"
+        <input placeholder="{% trans 'Public AniList username' %}"
                name="user"
                class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                type="text"
@@ -574,7 +575,7 @@
       <input type="hidden" name="time" x-model="importTime">
       <input type="hidden" name="mode" x-model="importMode">
       <div class="relative flex-1">
-        <input placeholder="Kitsu user ID"
+        <input placeholder="{% trans 'Kitsu user ID' %}"
                name="user"
                class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                type="text">
@@ -601,7 +602,7 @@
       <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration#yamtrack-csv-format"
          target="_blank"
          class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
-         title="View CSV format documentation">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
+         title="{% trans 'View CSV format documentation' %}">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
     </div>
     <p class="text-sm text-gray-400 mb-3"
        x-text="importFrequency === 'once' ? '{{ import_from_yamtrack_backup_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">

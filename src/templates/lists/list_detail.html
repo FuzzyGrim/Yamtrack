@@ -12,6 +12,9 @@
 {% endblock title %}
 
 {% block content %}
+  {% trans "Date Added" as date_added_label %}
+  {% trans "Title" as title_label %}
+  {% trans "Media Type" as media_type_label %}
   <div class="flex items-center justify-between mb-6"
        x-data="{ showModal: false }">
     <div>
@@ -42,7 +45,8 @@
     {% include "lists/components/list_form.html" %}
   </div>
 
-  <div x-data="{ sort: '{{ current_sort|escapejs }}', type: '{{ request.GET.type|default:'all'|escapejs }}', status: '{{ current_status|escapejs }}', query: '{{ request.GET.q|default:''|escapejs }}', mediaTypeLabels: { {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %} 'all': 'All Types' }, statusLabels: { {% for value, label in status_choices %} '{{ value }}': '{{ label }}' {% if not forloop.last %},{% endif %}  {% endfor %} }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
+  {% trans "All Types" as all_types_label %}
+  <div x-data="{ sort: '{{ current_sort|escapejs }}', type: '{{ request.GET.type|default:'all'|escapejs }}', status: '{{ current_status|escapejs }}', query: '{{ request.GET.q|default:''|escapejs }}', mediaTypeLabels: { {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %} 'all': '{{ all_types_label|escapejs }}' }, statusLabels: { {% for value, label in status_choices %} '{{ value }}': '{{ label }}' {% if not forloop.last %},{% endif %}  {% endfor %} }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -56,7 +60,7 @@
       {# Search #}
       <div class="relative flex-1">
         <input id="search-input"
-               placeholder="Search in collection..."
+               placeholder="{% trans 'Search in collection...' %}"
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="query"
@@ -156,7 +160,7 @@
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
                     :class="type === 'all' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                     @click="type = 'all'; open = false"
-                    type="button">All</button>
+                    type="button">{% trans "All" %}</button>
             {% for media_type in media_types %}
               <button hx-get="{% url 'list_detail' custom_list.id %}"
                       {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
@@ -177,7 +181,7 @@
                   type="button">
             {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
             <span class="text-sm"
-                  x-text="sort === 'date_added' ? 'Date Added' : (sort === 'title' ? 'Title' : 'Media Type')"></span>
+                  x-text="sort === 'date_added' ? '{{ date_added_label|escapejs }}' : (sort === 'title' ? '{{ title_label|escapejs }}' : '{{ media_type_label|escapejs }}')"></span>
             {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
           </button>
 

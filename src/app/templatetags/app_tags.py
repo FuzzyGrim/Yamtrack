@@ -63,6 +63,12 @@ def slug(arg1):
     return cleaned
 
 
+@register.simple_tag
+def inline_link(url, html_class, label):
+    """Build a safely escaped link fragment for translated template text."""
+    return format_html('<a href="{}" class="{}">{}</a>', url, html_class, label)
+
+
 @register.filter
 def date_format(datetime, user):
     """Format a datetime using user's preferred date format (date only, no time).

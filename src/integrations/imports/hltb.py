@@ -125,7 +125,7 @@ class HowLongToBeatImporter:
         if media_id_counts[media_id] > 1:
             return
 
-        item, _ = self._create_or_update_item(game)
+        item, _created = self._create_or_update_item(game)
 
         # Check if we should process this entry based on mode
         if not helpers.should_process_media(

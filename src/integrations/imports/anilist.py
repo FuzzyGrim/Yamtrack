@@ -282,7 +282,7 @@ class AniListImporter:
         else:
             status = content["status"].capitalize()
 
-        item, _ = app.models.Item.objects.get_or_create(
+        item, _created = app.models.Item.objects.get_or_create(
             media_id=str(content["media"]["idMal"]),
             source=Sources.MAL.value,
             media_type=media_type,
@@ -303,7 +303,7 @@ class AniListImporter:
             repeats_count = 1
 
         if repeats_count >= 1:
-            for _ in range(repeats_count):
+            for _repeat_index in range(repeats_count):
                 max_progress = content["media"].get("episodes") or content["media"].get(
                     "chapters",
                 )

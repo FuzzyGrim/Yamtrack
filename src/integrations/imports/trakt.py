@@ -502,7 +502,7 @@ class TraktImporter:
             "image": metadata["image"],
         }
 
-        item, _ = app.models.Item.objects.get_or_create(
+        item, _created = app.models.Item.objects.get_or_create(
             **item_kwargs,
             defaults=defaults,
         )
