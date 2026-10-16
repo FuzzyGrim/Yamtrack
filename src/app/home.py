@@ -1,6 +1,6 @@
 from django.utils.text import slugify
 
-from app.models import BasicMedia, Status
+from app.models import BasicMedia, MediaTypes, Status
 
 
 def build_home_section(key, media_types):
@@ -90,4 +90,13 @@ def _is_released_home_media(media, section_key):
     if section_key == Status.IN_PROGRESS.value:
         return is_active_in_progress_media(media)
 
-    return not _is_incoming_media(media)
+    # Movies release atomically, so max_progress is a static completion
+    # flag rather than a released-content count - an upcoming next_event
+    # always means nothing is available yet.
+    if media.item.media_type == MediaTypes.MOVIE.value:
+        return not _is_incoming_media(media)
+
+    # Other media types (e.g. TV seasons) can have some content already
+    # released even while future episodes are still upcoming, so fall
+    # back to comparing against progress rather than hiding outright.
+    return is_active_in_progress_media(media)

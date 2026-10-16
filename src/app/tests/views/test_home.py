@@ -305,6 +305,45 @@ class HomeViewTests(TestCase):
             any(media.item.media_id == "planning-with-release" for media in movies),
         )
 
+    def test_home_view_keeps_planning_season_with_partial_release(self):
+        """Planning season with some episodes already out stays when filtered."""
+        partial_item = Item.objects.create(
+            media_id="planning-partial-release",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Partially Released Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        Season.objects.create(
+            item=partial_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        Event.objects.create(
+            item=partial_item,
+            content_number=1,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=partial_item,
+            content_number=2,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("home") + "?hide_unreleased=true")
+
+        self.assertEqual(response.status_code, 200)
+        planning_section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.PLANNING.value
+        )
+        seasons = planning_section["media_types"][MediaTypes.SEASON.value]["items"]
+        self.assertTrue(
+            any(media.item.media_id == "planning-partial-release" for media in seasons),
+        )
+
     def test_home_view_htmx_load_more_preserves_hide_unreleased(self):
         """Test HTMX load more applies hide unreleased filter."""
         self.user.home_hide_unreleased = True
