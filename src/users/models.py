@@ -368,6 +368,12 @@ class User(AbstractUser):
         help_text="Region to show watch providers for",
     )
 
+    # Show paid (buy/rent) watch providers
+    show_paid_providers = models.BooleanField(
+        default=False,
+        help_text="Show buy/rent watch providers in addition to no charge options",
+    )
+
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,
