@@ -280,7 +280,8 @@ class MediaManager(models.Manager):
         )
 
         if media_type == MediaTypes.SEASON.value:
-            return base_queryset.prefetch_related(
+            # related_tv holds the rewatch date needed to resolve progress
+            return base_queryset.select_related("related_tv").prefetch_related(
                 Prefetch(
                     "episodes",
                     queryset=Episode.objects.select_related("item"),
@@ -298,14 +299,24 @@ class MediaManager(models.Manager):
 
         return self._sort_generic_media_list(queryset, sort_filter)
 
+    def _current_run_filter(self, episode_path, rewatch_path):
+        """Return a filter keeping only the plays of the current run."""
+        return models.Q(**{f"{rewatch_path}__isnull": True}) | models.Q(
+            **{f"{episode_path}__end_date__gte": models.F(rewatch_path)},
+        )
+
     def _sort_tv_media_list(self, queryset, sort_filter):
         """Sort TV media list based on the sort criteria."""
+        current_run = models.Q(
+            seasons__item__season_number__gt=0,
+        ) & self._current_run_filter("seasons__episodes", "rewatch_since")
+
         if sort_filter == "start_date":
             # Annotate with the minimum start_date from related seasons/episodes
             queryset = queryset.annotate(
                 calculated_start_date=models.Min(
                     "seasons__episodes__end_date",
-                    filter=models.Q(seasons__item__season_number__gt=0),
+                    filter=current_run,
                 ),
             )
             return queryset.order_by(
@@ -318,7 +329,7 @@ class MediaManager(models.Manager):
             queryset = queryset.annotate(
                 calculated_end_date=models.Max(
                     "seasons__episodes__end_date",
-                    filter=models.Q(seasons__item__season_number__gt=0),
+                    filter=current_run,
                 ),
             )
             return queryset.order_by(
@@ -332,7 +343,7 @@ class MediaManager(models.Manager):
                 # Count episodes in regular seasons (season_number > 0)
                 calculated_progress=models.Count(
                     "seasons__episodes",
-                    filter=models.Q(seasons__item__season_number__gt=0),
+                    filter=current_run,
                 ),
             )
             return queryset.order_by(
@@ -345,10 +356,18 @@ class MediaManager(models.Manager):
 
     def _sort_season_media_list(self, queryset, sort_filter):
         """Sort Season media list based on the sort criteria."""
+        current_run = self._current_run_filter(
+            "episodes",
+            "related_tv__rewatch_since",
+        )
+
         if sort_filter == "start_date":
             # Annotate with the minimum end_date from related episodes
             queryset = queryset.annotate(
-                calculated_start_date=models.Min("episodes__end_date"),
+                calculated_start_date=models.Min(
+                    "episodes__end_date",
+                    filter=current_run,
+                ),
             )
             return queryset.order_by(
                 models.F("calculated_start_date").asc(nulls_last=True),
@@ -358,7 +377,10 @@ class MediaManager(models.Manager):
         if sort_filter == "end_date":
             # Annotate with the maximum end_date from related episodes
             queryset = queryset.annotate(
-                calculated_end_date=models.Max("episodes__end_date"),
+                calculated_end_date=models.Max(
+                    "episodes__end_date",
+                    filter=current_run,
+                ),
             )
             return queryset.order_by(
                 models.F("calculated_end_date").desc(nulls_last=True),
@@ -368,7 +390,10 @@ class MediaManager(models.Manager):
         if sort_filter == "progress":
             # Annotate with the maximum episode number
             queryset = queryset.annotate(
-                calculated_progress=models.Max("episodes__item__episode_number"),
+                calculated_progress=models.Max(
+                    "episodes__item__episode_number",
+                    filter=current_run,
+                ),
             )
             return queryset.order_by(
                 "-calculated_progress",
@@ -967,6 +992,10 @@ class BasicMedia(Media):
 class TV(Media):
     """Model for TV shows."""
 
+    # While set, only plays from this moment on count towards progress. Older
+    # plays stay in history and statistics, they just stop contributing.
+    rewatch_since = models.DateTimeField(null=True, blank=True)
+
     tracker = FieldTracker()
 
     class Meta:
@@ -985,6 +1014,9 @@ class TV(Media):
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)
 
+        if self.tracker.has_changed("rewatch_since"):
+            self._recompute_season_statuses()
+
         if self.tracker.has_changed("status"):
             if self.status == Status.COMPLETED.value:
                 self._completed()
@@ -999,6 +1031,64 @@ class TV(Media):
                 self._start_next_available_season()
 
             self.item.fetch_releases(delay=True)
+
+    def _recompute_season_statuses(self):
+        """Align season and show statuses with the plays of the current run.
+
+        Starting a rewatch drops most seasons back to no progress and ending
+        one restores the full history, so the stored statuses would otherwise
+        contradict the progress on screen.
+        """
+        seasons = [
+            season
+            for season in self.seasons.select_related("item", "user").all()
+            if season.item.season_number != 0
+        ]
+
+        if not seasons:
+            return
+
+        BasicMedia.objects.annotate_max_progress(seasons, MediaTypes.SEASON.value)
+
+        seasons_to_update = []
+        for season in seasons:
+            status = self._get_run_status(season)
+            if status and season.status != status:
+                season.status = status
+                seasons_to_update.append(season)
+
+        if seasons_to_update:
+            bulk_update_with_history(seasons_to_update, Season, fields=["status"])
+
+        show_status = (
+            Status.COMPLETED.value
+            if all(season.status == Status.COMPLETED.value for season in seasons)
+            else Status.IN_PROGRESS.value
+        )
+
+        if self.status != show_status:
+            self.status = show_status
+            bulk_update_with_history([self], TV, fields=["status"])
+
+    def _get_run_status(self, season):
+        """Return the status matching a season's progress in the current run.
+
+        Returns None when the release calendar has no episode count for the
+        season, as there is then no way to tell a finished season from one
+        still in progress.
+        """
+        if not season.max_progress:
+            return None
+
+        progress = season.progress
+
+        if progress == 0:
+            return Status.PLANNING.value
+
+        if progress >= season.max_progress:
+            return Status.COMPLETED.value
+
+        return Status.IN_PROGRESS.value
 
     @property
     def progress(self):
@@ -1020,7 +1110,7 @@ class TV(Media):
             }
             for season in self.seasons.all()
             if hasattr(season, "episodes") and season.item.season_number != 0
-            for episode in season.episodes.all()
+            for episode in season.current_run_episodes
             if episode.end_date is not None
         ]
 
@@ -1453,11 +1543,17 @@ class Season(Media):
             self.item.fetch_releases(delay=True)
 
     def _get_latest_watched_episode_number(self):
-        """Return the highest watched episode number for the season."""
+        """Return the highest episode number watched during the current run."""
         if self.pk is None:
             return 0
 
-        latest_watched_ep_num = Episode.objects.filter(related_season=self).aggregate(
+        episodes = Episode.objects.filter(related_season=self)
+
+        cutoff = self.rewatch_cutoff
+        if cutoff is not None:
+            episodes = episodes.filter(end_date__gte=cutoff)
+
+        latest_watched_ep_num = episodes.aggregate(
             latest_watched_ep_num=Max("item__episode_number"),
         )["latest_watched_ep_num"]
 
@@ -1492,9 +1588,33 @@ class Season(Media):
         return unreleased_only_status
 
     @property
+    def rewatch_cutoff(self):
+        """Return the moment the show's current rewatch started, or None."""
+        return self.related_tv.rewatch_since
+
+    @property
+    def current_run_episodes(self):
+        """Return the plays counting towards progress for the current run.
+
+        Everything counts outside a rewatch. While one is running, plays from
+        before it stay in history but no longer contribute to progress.
+        """
+        cutoff = self.rewatch_cutoff
+        episodes = self.episodes.all()
+
+        if cutoff is None:
+            return list(episodes)
+
+        return [
+            episode
+            for episode in episodes
+            if episode.end_date is not None and episode.end_date >= cutoff
+        ]
+
+    @property
     def progress(self):
         """Return the current episode number of the season."""
-        episodes = self.episodes.all()
+        episodes = self.current_run_episodes
         if not episodes:
             return 0
 
@@ -1523,7 +1643,7 @@ class Season(Media):
         """Return the date when the last episode was watched."""
         dates = [
             episode.end_date
-            for episode in self.episodes.all()
+            for episode in self.current_run_episodes
             if episode.end_date is not None
         ]
         return max(dates) if dates else None
@@ -1533,7 +1653,7 @@ class Season(Media):
         """Return the date of the first episode watched."""
         dates = [
             episode.end_date
-            for episode in self.episodes.all()
+            for episode in self.current_run_episodes
             if episode.end_date is not None
         ]
         return min(dates) if dates else None
@@ -1543,7 +1663,7 @@ class Season(Media):
         """Return the date of the last episode watched."""
         dates = [
             episode.end_date
-            for episode in self.episodes.all()
+            for episode in self.current_run_episodes
             if episode.end_date is not None
         ]
         return max(dates) if dates else None
