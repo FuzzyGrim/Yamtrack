@@ -669,8 +669,10 @@ def calculate_streaks(date_counts, end_date):
     longest_streak = 1
     streak_count = 1
 
-    # Check if the most recent active date is today/end_date
-    is_current = active_dates[0] == end_date
+    # Today is still in progress, so it doesn't break a streak yet. end_date
+    # comes from the date range picker, so it isn't necessarily today.
+    yesterday = timezone.localdate() - datetime.timedelta(days=1)
+    is_current = active_dates[0] >= min(end_date, yesterday)
 
     current_streak = 1 if is_current else 0
 
