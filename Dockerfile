@@ -41,7 +41,7 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 # Generate a copy of the nginx config with IPv6 support.
 RUN sed 's/listen 8000;/listen 8000; listen [::]:8000;/' /etc/nginx/nginx.conf > /etc/nginx/nginx.ipv6.conf
 
-RUN apk add --no-cache nginx shadow \
+RUN apk add --no-cache nginx shadow gettext \
     # create user abc for later PUID/PGID mapping
     && useradd -U -M -s /bin/sh abc \
     # Create required nginx directories and set permissions
