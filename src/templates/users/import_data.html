@@ -418,6 +418,38 @@
           </form>
         </div>
 
+        {# Calibre-Web-NextGen #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "calibre-web-nextgen" %}</div>
+          <div class="flex flex-col gap-1 mb-3">
+            <p class="text-sm text-gray-400">Import books and progress</p>
+          </div>
+          <form class="flex flex-col gap-2"
+                method="post"
+                action="{% url 'import_calibre_web_nextgen' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <input placeholder="Calibre-Web-NextGen URL"
+                   name="url"
+                   class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="text">
+            <input placeholder="Username"
+                   name="username"
+                   class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="text">
+            <input placeholder="Password"
+                   name="password"
+                   class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="password">
+            <button type="submit"
+                    class="mt-2 px-3 w-full py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+              Import
+            </button>
+          </form>
+        </div>
+
       </div>
     </div>
 

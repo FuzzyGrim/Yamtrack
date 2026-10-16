@@ -19,6 +19,7 @@ from django.views.decorators.http import require_GET, require_POST
 import users
 from app import helpers as app_helpers
 from integrations import exports, tasks
+from integrations.forms import CalibreWebNextGenImportDataForm, ImportFrequency
 from integrations.imports import anilist, helpers, simkl, trakt
 from integrations.webhooks import emby, jellyfin, plex
 
@@ -481,6 +482,56 @@ def import_goodreads(request):
         request,
         "The task to import media from GoodReads CSV file has been queued.",
     )
+    return redirect("import_data")
+
+
+@require_POST
+def import_calibre_web_nextgen(request):
+    """View for importing books and progress from Calibre-Web-NextGen."""
+    form = CalibreWebNextGenImportDataForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(
+            request,
+            f"Some fields are not valid: {', '.join(form.errors.keys())}",
+        )
+        return redirect("import_data")
+
+    url = form.cleaned_data["url"]
+    encrypted_password = helpers.encrypt(form.cleaned_data["password"])
+    username = form.cleaned_data["username"]
+    frequency = form.cleaned_data["frequency"]
+    mode = form.cleaned_data["mode"]
+
+    if frequency == ImportFrequency.ONCE.value:
+        tasks.import_calibre_web_nextgen.delay(
+            username=username,
+            user_id=request.user.id,
+            mode=mode,
+            url=url,
+            encrypted_password=encrypted_password,
+        )
+        messages.info(
+            request,
+            "The task to import media from Calibre-Web-NextGen has been queued.",
+        )
+    else:
+        # time is validated on CalibreWebNextGenImportDataForm,
+        # but we need to use raw value for create_import_schedule
+        import_time = request.POST.get("time")
+        helpers.create_import_schedule(
+            username,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Calibre-Web-NextGen",
+            task_kwargs={
+                "url": url,
+                "encrypted_password": encrypted_password,
+            },
+        )
+
     return redirect("import_data")
 
 
