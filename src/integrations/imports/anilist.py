@@ -7,6 +7,7 @@ from django.apps import apps
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 import app
 from app import helpers as app_helpers
@@ -44,7 +45,7 @@ def get_token(request):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid Anilist secret key."
+            msg = _("Invalid Anilist secret key.")
             raise MediaImportError(msg) from error
         raise
 
@@ -79,7 +80,7 @@ def get_username_from_oauth(access_token):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid AniList access token."
+            msg = _("Invalid AniList access token.")
             raise MediaImportError(msg) from error
         raise
 
@@ -281,7 +282,7 @@ class AniListImporter:
         else:
             status = content["status"].capitalize()
 
-        item, _ = app.models.Item.objects.get_or_create(
+        item, _created = app.models.Item.objects.get_or_create(
             media_id=str(content["media"]["idMal"]),
             source=Sources.MAL.value,
             media_type=media_type,
@@ -302,7 +303,7 @@ class AniListImporter:
             repeats_count = 1
 
         if repeats_count >= 1:
-            for _ in range(repeats_count):
+            for _repeat_index in range(repeats_count):
                 max_progress = content["media"].get("episodes") or content["media"].get(
                     "chapters",
                 )

@@ -121,16 +121,20 @@ class AppTagsTests(TestCase):
 
     def test_media_type_readable_plural(self):
         """Test the media_type_readable_plural filter."""
-        # Test all media types from the MediaTypes class
-        for media_type, label in MediaTypes.choices:
-            singular = label
+        expected_plurals = {
+            MediaTypes.TV.value: "TV Shows",
+            MediaTypes.SEASON.value: "TV Seasons",
+            MediaTypes.EPISODE.value: "Episodes",
+            MediaTypes.MOVIE.value: "Movies",
+            MediaTypes.ANIME.value: "Anime",
+            MediaTypes.MANGA.value: "Manga",
+            MediaTypes.GAME.value: "Games",
+            MediaTypes.BOOK.value: "Books",
+            MediaTypes.COMIC.value: "Comics",
+            MediaTypes.BOARDGAME.value: "Boardgames",
+        }
 
-            # Special cases that don't change in plural form
-            if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
-                expected = singular
-            else:
-                expected = f"{singular}s"
-
+        for media_type, expected in expected_plurals.items():
             self.assertEqual(app_tags.media_type_readable_plural(media_type), expected)
 
     def test_default_source(self):

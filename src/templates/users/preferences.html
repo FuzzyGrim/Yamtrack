@@ -1,6 +1,7 @@
 {% extends "users/base.html" %}
 {% load user_tags %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
   Preferences - Yamtrack
@@ -10,9 +11,18 @@
   <div class="bg-[#2a2f35] rounded-lg p-6">
     <div class="flex items-center mb-4">
       {% include "app/icons/vertical-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-      <h2 class="text-xl font-semibold">Preferences</h2>
+      <h2 class="text-xl font-semibold">{% trans "Preferences" %}</h2>
     </div>
-    <p class="text-gray-400 mb-5 text-sm">Customize the look and behavior of the application.</p>
+    <p class="text-gray-400 mb-5 text-sm">{% trans "Customize the look and behavior of the application." %}</p>
+
+    <form id="language-form"
+          action="{% url 'set_language' %}"
+          method="post"
+          class="hidden">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    </form>
+
     <form method="post">
       {% csrf_token %}
 
@@ -22,11 +32,10 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/image.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Hide Hover Overlay on Touch Devices</span>
+              <span class="text-sm font-medium">{% trans "Hide Hover Overlay on Touch Devices" %}</span>
             </div>
             <p class="text-xs text-gray-400 ml-7">
-              Hide the media card hover overlay with action buttons on touch devices for a cleaner mobile experience.
-              On desktop, the overlay will still appear when you hover your mouse over media cards.
+              {% trans "Hide the media card hover overlay with action buttons on touch devices for a cleaner mobile experience. On desktop, the overlay will still appear when you hover your mouse over media cards." %}
             </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer ml-4">
@@ -46,9 +55,11 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/eye.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Obfuscate Unseen Episodes</span>
+              <span class="text-sm font-medium">{% trans "Obfuscate Unseen Episodes" %}</span>
             </div>
-            <p class="text-xs text-gray-400 ml-7">When enabled, unseen episode images and descriptions will be blurred.</p>
+            <p class="text-xs text-gray-400 ml-7">
+              {% trans "When enabled, unseen episode images and descriptions will be blurred." %}
+            </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer ml-4">
             <input class="sr-only peer"
@@ -67,10 +78,10 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Bulk Completion Date</span>
+              <span class="text-sm font-medium">{% trans "Bulk Completion Date" %}</span>
             </div>
             <p class="text-xs text-gray-400 ml-7">
-              When marking a TV show or season as completed, its episodes will be marked as completed with this date.
+              {% trans "When marking a TV show or season as completed, its episodes will be marked as completed with this date." %}
             </p>
           </div>
           <select name="quick_watch_date"
@@ -89,10 +100,10 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/minus.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Show progress bar on media items</span>
+              <span class="text-sm font-medium">{% trans "Show progress bar on media items" %}</span>
             </div>
             <p class="text-xs text-gray-400 ml-7">
-              Display a progress bar on media items. Items which don't have max progress will be using a dotted line.
+              {% trans "Display a progress bar on media items. Items which don't have max progress will be using a dotted line." %}
             </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer ml-4">
@@ -112,10 +123,10 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/circle-check.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Hide completed media in recommendations</span>
+              <span class="text-sm font-medium">{% trans "Hide completed media in recommendations" %}</span>
             </div>
             <p class="text-xs text-gray-400 ml-7">
-              Hide media you've already completed from the recommendations section on detail pages.
+              {% trans "Hide media you've already completed from the recommendations section on detail pages." %}
             </p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer ml-4">
@@ -135,9 +146,9 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/star.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Hide zero ratings</span>
+              <span class="text-sm font-medium">{% trans "Hide zero ratings" %}</span>
             </div>
-            <p class="text-xs text-gray-400 ml-7">Hide the rating badge from media cards when the rating is zero.</p>
+            <p class="text-xs text-gray-400 ml-7">{% trans "Hide the rating badge from media cards when the rating is zero." %}</p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer ml-4">
             <input class="sr-only peer"
@@ -156,9 +167,9 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/calendar.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Date Format</span>
+              <span class="text-sm font-medium">{% trans "Date Format" %}</span>
             </div>
-            <p class="text-xs text-gray-400 ml-7">Choose how dates are displayed throughout the application.</p>
+            <p class="text-xs text-gray-400 ml-7">{% trans "Choose how dates are displayed throughout the application." %}</p>
           </div>
           <select name="date_format"
                   class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
@@ -176,9 +187,9 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Time Format</span>
+              <span class="text-sm font-medium">{% trans "Time Format" %}</span>
             </div>
-            <p class="text-xs text-gray-400 ml-7">Choose between 12-hour or 24-hour clock display.</p>
+            <p class="text-xs text-gray-400 ml-7">{% trans "Choose between 12-hour or 24-hour clock display." %}</p>
           </div>
           <select name="time_format"
                   class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
@@ -216,10 +227,10 @@
           <div class="flex-1">
             <div class="flex items-center text-gray-200 mb-1">
               {% include "app/icons/globe.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Watch provider region</span>
+              <span class="text-sm font-medium">{% trans "Watch Provider Region" %}</span>
             </div>
             <p class="text-xs text-gray-400 ml-7">
-              Choose the region to show watch providers for. Setting this to disabled will hide the box from the media page.
+              {% trans "Choose the region to show watch providers for. Setting this to disabled will hide the box from the media page." %}
             </p>
           </div>
           <select name="watch_provider_region"
@@ -232,16 +243,40 @@
         </div>
       </div>
 
+      {# Language Switcher #}
+      <div class="mb-5">
+        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+          <div class="flex-1">
+            <div class="flex items-center text-gray-200 mb-1">
+              {% include "app/icons/language.svg" with classes="w-5 h-5 mr-2" %}
+              <span class="text-sm font-medium">{% trans "Language" %}</span>
+            </div>
+            <p class="text-xs text-gray-400 ml-7">{% trans "Select your preferred language for the application interface." %}</p>
+          </div>
+          {% get_current_language as CURRENT_LANGUAGE %}
+          {% get_available_languages as AVAILABLE_LANGUAGES %}
+          <select name="language"
+                  form="language-form"
+                  onchange="document.getElementById('language-form').submit()"
+                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {% for code, name in AVAILABLE_LANGUAGES %}
+              <option value="{{ code }}"
+                      {% if code == CURRENT_LANGUAGE %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
       <div class="border-t border-gray-600 my-5"></div>
 
       {# Media Types Settings #}
       <div class="mb-5">
         <div class="flex items-center mb-4">
           {% include "app/icons/four-square.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-          <h3 class="text-lg font-semibold">Media Types</h3>
+          <h3 class="text-lg font-semibold">{% trans "Media Types" %}</h3>
         </div>
         <p class="text-gray-400 mb-4 text-sm">
-          Control which media types are visible throughout the app (sidebar, search, calendar, notifications).
+          {% trans "Control which media types are visible throughout the app (sidebar, search, calendar, notifications)." %}
         </p>
 
         <div class="grid gap-3 md:grid-cols-3">
@@ -271,7 +306,7 @@
         <button type="submit"
                 class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
           {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
-          Save Preferences
+          {% trans "Save Preferences" %}
         </button>
       </div>
     </form>

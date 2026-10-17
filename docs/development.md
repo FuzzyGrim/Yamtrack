@@ -108,6 +108,10 @@ Open the development server at:
 http://localhost:8000
 ```
 
+## Localization (i18n)
+
+See [Localization](localization.md).
+
 ## Documentation
 
 Install the docs dependency group, then serve the docs from the current checkout:
