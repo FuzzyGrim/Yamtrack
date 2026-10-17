@@ -253,7 +253,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 19,
+        "VERSION": 20,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -405,6 +405,8 @@ MAL_API = config(
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
 
 MU_NSFW = config("MU_NSFW", default=False, cast=bool)
+
+ANILIST_NSFW = config("ANILIST_NSFW", default=False, cast=bool)
 
 IGDB_ID = config(
     "IGDB_ID",

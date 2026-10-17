@@ -38,7 +38,7 @@ def get_token(request):
 
     try:
         token_response = app.providers.services.api_request(
-            "ANILIST",
+            Sources.ANILIST.value,
             "POST",
             url,
             params=params,
@@ -72,7 +72,7 @@ def get_username_from_oauth(access_token):
 
     try:
         response = app.providers.services.api_request(
-            "ANILIST",
+            Sources.ANILIST.value,
             "POST",
             "https://graphql.anilist.co",
             headers=headers,
@@ -156,6 +156,7 @@ class AniListImporter:
                             coverImage {
                                 large
                             }
+                            id
                             idMal
                             chapters
                             episodes
@@ -190,6 +191,7 @@ class AniListImporter:
                             coverImage {
                                 large
                             }
+                            id
                             idMal
                             chapters
                         }
@@ -229,7 +231,7 @@ class AniListImporter:
 
         try:
             response = app.providers.services.api_request(
-                "ANILIST",
+                Sources.ANILIST.value,
                 "POST",
                 url,
                 params={"query": query, "variables": variables},
@@ -279,20 +281,21 @@ class AniListImporter:
 
     def _process_entry(self, content, media_type):
         """Process a single entry from AniList."""
+        # Keep using MAL IDs when available, AniList only entries use AniList IDs
         if content["media"]["idMal"] is None:
-            title = content["media"]["title"]["userPreferred"]
-            self.warnings.append(f"{title}: No matching MAL ID.")
-            return
-
-        media_id = str(content["media"]["idMal"])
-        existing = self._get_existing(media_type, media_id)
+            source = Sources.ANILIST.value
+            media_id = str(content["media"]["id"])
+        else:
+            source = Sources.MAL.value
+            media_id = str(content["media"]["idMal"])
+        existing = self._get_existing(media_type, source, media_id)
 
         # Check if we should process this entry based on mode
         if not existing and not helpers.should_process_media(
             self.existing_media,
             self.to_delete,
             media_type,
-            Sources.MAL.value,
+            source,
             media_id,
             self.mode,
         ):
@@ -335,7 +338,7 @@ class AniListImporter:
 
         item, _created = app.models.Item.objects.get_or_create(
             media_id=media_id,
-            source=Sources.MAL.value,
+            source=source,
             media_type=media_type,
             defaults={
                 "title": content["media"]["title"]["userPreferred"],
@@ -369,12 +372,12 @@ class AniListImporter:
 
         self.bulk_media[media_type].append(instance)
 
-    def _get_existing(self, media_type, media_id):
+    def _get_existing(self, media_type, source, media_id):
         """Get the current entry of media already in Yamtrack, only in "new" mode."""
         if self.mode != "new":
             return None
 
-        entries = self.existing_entries.get((media_type, Sources.MAL.value, media_id))
+        entries = self.existing_entries.get((media_type, source, media_id))
         return helpers.get_current_entry(entries) if entries else None
 
     def _sync_existing(self, media_type, media, current, max_progress, entries):
@@ -387,7 +390,7 @@ class AniListImporter:
             len(
                 self.existing_entries[
                     media_type,
-                    Sources.MAL.value,
+                    media.item.source,
                     media.item.media_id,
                 ],
             ),

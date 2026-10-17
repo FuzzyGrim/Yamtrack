@@ -12,11 +12,16 @@ This page outlines the environment variables used in the YamTrack project.
 | `MAL_API`       | MyAnimeList API key for anime and manga. A default key is provided.                                                                                                                                                                                   |
 | `MAL_NSFW`      | Default to `False`. Set to `True` to include adult content in anime and manga searches from MyAnimeList.                                                                                                                                              |
 | `MU_NSFW`       | Default to `False`. Set to `True` to include adult content in manga searches from MangaUpdates.                                                                                                                                                       |
+| `ANILIST_NSFW`  | Default to `False`. Set to `True` to include adult content in anime and manga searches from AniList.                                                                                                                                                  |
 | `IGDB_ID`       | IGDB API key for games. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                                   |
 | `IGDB_SECRET`   | IGDB API secret for games. A default value is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                              |
 | `IGDB_NSFW`     | Default to `False`. Set to `True` to include adult content in game searches.                                                                                                                                                                          |
 | `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
+
+!!! warning "AniList"
+
+    AniList allows its data to be used in self-hosted instances, but not in instances open to the public. Don't offer AniList as a source on an instance anyone can sign up to.
 
 ## Media Import
 

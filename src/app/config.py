@@ -153,7 +153,7 @@ MEDIA_TYPE_CONFIG = {
         "date_key": "release_date",
     },
     MediaTypes.ANIME.value: {
-        "sources": [Sources.MAL],
+        "sources": [Sources.MAL, Sources.ANILIST],
         "default_source": Sources.MAL,
         "sample_query": "Perfect Blue",
         "unicode_icon": "🎭",
@@ -176,7 +176,7 @@ MEDIA_TYPE_CONFIG = {
         "date_key": "end_date",
     },
     MediaTypes.MANGA.value: {
-        "sources": [Sources.MAL, Sources.MANGAUPDATES],
+        "sources": [Sources.MAL, Sources.MANGAUPDATES, Sources.ANILIST],
         "default_source": Sources.MAL,
         "sample_query": "Berserk",
         "unicode_icon": "📚",

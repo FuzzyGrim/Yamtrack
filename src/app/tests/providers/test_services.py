@@ -222,6 +222,36 @@ class ServicesTests(TestCase):
 
         mock_manga.assert_called_once_with("1")
 
+    @patch("app.providers.anilist.anime")
+    def test_get_media_metadata_anime_anilist(self, mock_anime):
+        """Test the get_media_metadata function for anime from AniList."""
+        mock_anime.return_value = {"title": "Test Anime"}
+
+        result = services.get_media_metadata(
+            MediaTypes.ANIME.value,
+            "1",
+            Sources.ANILIST.value,
+        )
+
+        self.assertEqual(result, {"title": "Test Anime"})
+
+        mock_anime.assert_called_once_with("1")
+
+    @patch("app.providers.anilist.manga")
+    def test_get_media_metadata_manga_anilist(self, mock_manga):
+        """Test the get_media_metadata function for manga from AniList."""
+        mock_manga.return_value = {"title": "Test Manga"}
+
+        result = services.get_media_metadata(
+            MediaTypes.MANGA.value,
+            "1",
+            Sources.ANILIST.value,
+        )
+
+        self.assertEqual(result, {"title": "Test Manga"})
+
+        mock_manga.assert_called_once_with("1")
+
     @patch("app.providers.tmdb.tv")
     def test_get_media_metadata_tv(self, mock_tv):
         """Test the get_media_metadata function for TV shows."""
@@ -471,6 +501,38 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Manga"}]
 
         result = services.search(MediaTypes.MANGA.value, "test", 1)
+
+        self.assertEqual(result, [{"title": "Test Manga"}])
+
+        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test", 1)
+
+    @patch("app.providers.anilist.search")
+    def test_search_anime_anilist(self, mock_search):
+        """Test the search function for anime from AniList."""
+        mock_search.return_value = [{"title": "Test Anime"}]
+
+        result = services.search(
+            MediaTypes.ANIME.value,
+            "test",
+            1,
+            source=Sources.ANILIST.value,
+        )
+
+        self.assertEqual(result, [{"title": "Test Anime"}])
+
+        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test", 1)
+
+    @patch("app.providers.anilist.search")
+    def test_search_manga_anilist(self, mock_search):
+        """Test the search function for manga from AniList."""
+        mock_search.return_value = [{"title": "Test Manga"}]
+
+        result = services.search(
+            MediaTypes.MANGA.value,
+            "test",
+            1,
+            source=Sources.ANILIST.value,
+        )
 
         self.assertEqual(result, [{"title": "Test Manga"}])
 

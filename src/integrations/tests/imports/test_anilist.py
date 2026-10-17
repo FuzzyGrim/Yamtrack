@@ -10,6 +10,7 @@ from django.utils import timezone
 from app.models import (
     Anime,
     Manga,
+    Sources,
     Status,
 )
 from integrations.imports import (
@@ -112,14 +113,15 @@ class ImportAniListNewMode(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
-    def anime(self, status, progress, score=0, repeat=0):
+    def anime(self, status, progress, score=0, repeat=0, mal_id=1):
         """Return an AniList anime list entry."""
         completed = status == "COMPLETED"
         return {
             "media": {
                 "title": {"userPreferred": "Cowboy Bebop"},
                 "coverImage": {"large": "https://example.com/image.jpg"},
-                "idMal": 1,
+                "id": 1,
+                "idMal": mal_id,
                 "chapters": None,
                 "episodes": 26,
             },
@@ -221,3 +223,17 @@ class ImportAniListNewMode(TestCase):
 
         entries = Manga.objects.filter(user=self.user)
         self.assertEqual([manga.progress for manga in entries], [162, 162])
+
+    def test_anime_without_mal_id_uses_anilist(self):
+        """An anime without a MAL ID is imported and synced with its AniList ID."""
+        self.run_import(self.anime("CURRENT", 3, mal_id=None))
+
+        anime = Anime.objects.get(user=self.user)
+        self.assertEqual(anime.item.source, Sources.ANILIST.value)
+        self.assertEqual(anime.item.media_id, "1")
+
+        self.run_import(self.anime("COMPLETED", 26, mal_id=None))
+
+        anime = Anime.objects.get(user=self.user)
+        self.assertEqual(anime.progress, 26)
+        self.assertEqual(anime.status, Status.COMPLETED.value)

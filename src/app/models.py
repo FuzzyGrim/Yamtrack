@@ -42,6 +42,7 @@ class Sources(models.TextChoices):
 
     TMDB = "tmdb", "The Movie Database"
     MAL = "mal", "MyAnimeList"
+    ANILIST = "anilist", "AniList"
     MANGAUPDATES = "mangaupdates", "MangaUpdates"
     IGDB = "igdb", "Internet Game Database"
     OPENLIBRARY = "openlibrary", "Open Library"

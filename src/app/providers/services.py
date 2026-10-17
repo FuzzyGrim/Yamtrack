@@ -12,6 +12,7 @@ from requests_ratelimiter import LimiterAdapter, LimiterSession
 
 from app.models import MediaTypes, Sources
 from app.providers import (
+    anilist,
     bgg,
     comicvine,
     hardcover,
@@ -240,12 +241,15 @@ def get_media_metadata(
         return manual.metadata(media_id, media_type)
 
     metadata_retrievers = {
-        MediaTypes.ANIME.value: lambda: mal.anime(media_id),
-        MediaTypes.MANGA.value: lambda: (
-            mangaupdates.manga(media_id)
-            if source == Sources.MANGAUPDATES.value
-            else mal.manga(media_id)
+        MediaTypes.ANIME.value: lambda: (
+            anilist.anime(media_id)
+            if source == Sources.ANILIST.value
+            else mal.anime(media_id)
         ),
+        MediaTypes.MANGA.value: lambda: {
+            Sources.MANGAUPDATES.value: mangaupdates.manga,
+            Sources.ANILIST.value: anilist.manga,
+        }.get(source, mal.manga)(media_id),
         MediaTypes.TV.value: lambda: tmdb.tv(media_id),
         "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers),
         MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
@@ -275,9 +279,15 @@ def search(media_type, query, page, source=None):
         MediaTypes.MANGA.value: lambda: (
             mangaupdates.search(query, page)
             if source == Sources.MANGAUPDATES.value
+            else anilist.search(media_type, query, page)
+            if source == Sources.ANILIST.value
             else mal.search(media_type, query, page)
         ),
-        MediaTypes.ANIME.value: lambda: mal.search(media_type, query, page),
+        MediaTypes.ANIME.value: lambda: (
+            anilist.search(media_type, query, page)
+            if source == Sources.ANILIST.value
+            else mal.search(media_type, query, page)
+        ),
         MediaTypes.TV.value: lambda: tmdb.search(media_type, query, page),
         MediaTypes.MOVIE.value: lambda: tmdb.search(media_type, query, page),
         MediaTypes.SEASON.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),

@@ -1,11 +1,13 @@
 from pathlib import Path
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from app.models import MediaTypes, Sources
 from app.providers import (
+    anilist,
     hardcover,
     igdb,
     mal,
@@ -72,6 +74,76 @@ class Search(TestCase):
             mangaupdates.search("mu nsfw enabled", 1)
         params = mock_api_request.call_args.kwargs["params"]
         self.assertNotIn("exclude_genre", params)
+
+    def test_anilist_anime(self):
+        """Test the search method for anime from AniList.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = anilist.search(MediaTypes.ANIME.value, "Cowboy Bebop", 1)
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        self.assertTrue(response["results"])
+        for anime in response["results"]:
+            self.assertTrue(all(key in anime for key in required_keys))
+            self.assertEqual(anime["source"], Sources.ANILIST.value)
+
+    def test_anilist_manga(self):
+        """Test the search method for manga from AniList.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = anilist.search(MediaTypes.MANGA.value, "Berserk", 1)
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        self.assertTrue(response["results"])
+        for manga in response["results"]:
+            self.assertTrue(all(key in manga for key in required_keys))
+            self.assertEqual(manga["media_type"], MediaTypes.MANGA.value)
+
+    @patch("app.providers.anilist.services.api_request")
+    def test_anilist_search_variables_and_pages(self, mock_api_request):
+        """Test the AniList search excludes adult media and counts pages."""
+        mock_api_request.return_value = {
+            "data": {
+                "Page": {
+                    "pageInfo": {"hasNextPage": True},
+                    "media": [
+                        {
+                            "id": 1,
+                            "type": "ANIME",
+                            "title": {"userPreferred": "Cowboy Bebop"},
+                            "coverImage": {"large": "bebop.jpg"},
+                        },
+                    ],
+                },
+            },
+        }
+
+        response = anilist.search(MediaTypes.ANIME.value, "anilist pages", 2)
+
+        variables = mock_api_request.call_args.kwargs["params"]["variables"]
+        self.assertEqual(variables["type"], "ANIME")
+        self.assertEqual(variables["page"], 2)
+        self.assertFalse(variables["isAdult"])
+        self.assertEqual(
+            response["total_results"],
+            settings.PER_PAGE + 1 + settings.PER_PAGE,
+        )
+        self.assertEqual(response["results"][0]["media_id"], 1)
+
+    @override_settings(ANILIST_NSFW=True)
+    @patch("app.providers.anilist.services.api_request")
+    def test_anilist_search_nsfw(self, mock_api_request):
+        """Test the AniList search leaves out the adult filter when allowed."""
+        mock_api_request.return_value = {
+            "data": {"Page": {"pageInfo": {"hasNextPage": False}, "media": []}},
+        }
+
+        anilist.search(MediaTypes.MANGA.value, "anilist nsfw", 1)
+
+        variables = mock_api_request.call_args.kwargs["params"]["variables"]
+        self.assertNotIn("isAdult", variables)
 
     def test_tv(self):
         """Test the search method for TV shows.

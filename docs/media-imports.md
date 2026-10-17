@@ -47,6 +47,8 @@ Create a SIMKL application: <https://simkl.com/settings/developer/new/custom-sea
 
 ## AniList
 
+Entries are imported with their MyAnimeList ID when AniList links one, otherwise they are imported from AniList.
+
 ### Public Profile Import
 
 If you have a public AniList profile, you can import your media by simply entering your username.
@@ -91,7 +93,7 @@ The order of rows matters for TV data: import `tv` rows first, then `season` row
 | Column Title   | Required? | Example Value                                  | Notes                                                                                                                                                                           |
 | -------------- | --------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | media_id       | No        | 12345                                          | ID of the item on the chosen provider. Must be unique per `(source, media_type)`. Leave blank to let YamTrack fetch the title from the provider automatically with the `title`. |
-| source         | **Yes**   | tmdb                                           | One of: `tmdb`, `mal`, `mangaupdates`, `igdb`, `openlibrary`, `hardcover`, `comicvine`, `manual`.                                                                               |
+| source         | **Yes**   | tmdb                                           | One of: `tmdb`, `mal`, `anilist`, `mangaupdates`, `igdb`, `openlibrary`, `hardcover`, `comicvine`, `manual`.                                                                    |
 | media_type     | **Yes**   | movie                                          | One of: `tv`, `season`, `episode`, `movie`, `anime`, `manga`, `game`, `book`, `comic`. For TV data, rows must be ordered as `tv`, then `season`, then `episode`.                |
 | title          | No        | Inception                                      | Leave blank to let YamTrack fetch the title from the provider automatically with the `media_id`.                                                                                |
 | image          | No        | <https://image.tmdb.org/t/p/w500/qmDpIH...jpg> | Public poster/cover URL. Leave blank to auto-fetch from the provider automatically with the `media_id` or `title`.                                                              |
