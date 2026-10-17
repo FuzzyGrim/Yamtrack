@@ -356,16 +356,3 @@ class SteamImporter:
             "title": game_details.get("title", game_name),
             "image": game_details["image"],
         }
-        logger.debug(
-            "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
-            game_name,
-            steam_appid,
-            igdb_game_id,
-        )
-        return {
-            "media_id": igdb_game_id,
-            "source": Sources.IGDB.value,
-            "media_type": MediaTypes.GAME.value,
-            "title": game_details.get("title", game_name),
-            "image": game_details["image"],
-        }
