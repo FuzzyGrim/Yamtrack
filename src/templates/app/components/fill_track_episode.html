@@ -47,7 +47,7 @@
                 <div class="min-w-0 text-sm text-white">
                   <div>
                     {% if entry.end_date %}
-                      {{ entry.end_date|datetime_format:request.user }}
+                      {{ entry.end_date|datetime_format }}
                     {% else %}
                       No date provided
                     {% endif %}
@@ -74,6 +74,8 @@
       {% endif %}
 
       {# Episode track form #}
+      {# localNow(offsetMs) shifts "now" forward, so a whole episode can be #}
+      {# stamped as finishing one runtime from the moment you start it. #}
       {# djlint:off #}
       <form hx-post="{% url 'episode_save' %}?next={{ request.path }}"
             hx-swap="none"
@@ -84,8 +86,7 @@
               dropdownOpen: false,
               pointerOnPickerIcon: false,
               localNow(offsetMs = 0) {
-                const iso = new Date(Date.now() + offsetMs - new Date().getTimezoneOffset() * 60000).toISOString();
-                return this.trackTime ? iso.slice(0, 16) : iso.slice(0, 10);
+                return window.yamtrackNowForInput(this.trackTime, offsetMs);
               },
               init() { this.inputDateTime = this.localNow(); }
             }">
@@ -108,6 +109,8 @@
                  @focus="if (!pointerOnPickerIcon) { $el.showPicker?.() }"
                  @click="pointerOnPickerIcon = false"
                  x-model="inputDateTime">
+          {# Companion carrying the UTC instant; filled by localTime.js on submit. #}
+          <input type="hidden" name="end_date_utc">
         </div>
 
         <div class="mt-4">

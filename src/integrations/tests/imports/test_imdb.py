@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from django.utils import timezone
 
 from app.models import (
     TV,
@@ -48,10 +47,11 @@ class ImportIMDB(TestCase):
         self.assertEqual(movie_1.score, 9)
         self.assertEqual(movie_1.status, Status.COMPLETED.value)
         self.assertEqual(movie_1.progress, 1)
-        self.assertEqual(
-            movie_1.end_date,
-            datetime(2025, 2, 3, tzinfo=timezone.get_current_timezone()),
-        )
+        # A date-only export value is anchored at noon UTC, not at midnight in
+        # whatever zone the server happens to run in: the browser renders the
+        # stored instant, and a local midnight lands on the previous day for
+        # every viewer west of the server.
+        self.assertEqual(movie_1.end_date, datetime(2025, 2, 3, 12, tzinfo=UTC))
 
         game_of_thrones = TV.objects.get(item__title="Game of Thrones")
         self.assertEqual(game_of_thrones.status, Status.PLANNING.value)

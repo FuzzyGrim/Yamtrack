@@ -1,14 +1,13 @@
 import logging
 from collections import defaultdict
-from datetime import datetime
 
 import requests
 from django.apps import apps
 from django.conf import settings
-from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import app
+import app.helpers
 from app.models import MediaTypes, Sources, Status
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
@@ -227,12 +226,7 @@ class MyAnimeListImporter:
         ):
             date_str = f"{date_str}-01"  # Default to first day of the month
 
-        return datetime.strptime(date_str, "%Y-%m-%d").replace(
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
-        )
+        return app.helpers.date_only_instant(date_str)
 
     def _get_status(self, status):
         """Convert the status from MyAnimeList to the status used in the app."""

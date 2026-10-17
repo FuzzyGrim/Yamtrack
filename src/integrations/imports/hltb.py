@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 from io import StringIO
 
 from django.apps import apps
-from django.utils import timezone
 
 import app
+import app.helpers
 import app.providers
 from app.models import MediaTypes, Sources, Status
 from integrations.imports import helpers
@@ -237,12 +237,7 @@ class HowLongToBeatImporter:
         if not date_str:
             return None
 
-        return datetime.strptime(date_str, "%Y-%m-%d").replace(
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
-        )
+        return app.helpers.date_only_instant(date_str)
 
     def _create_media_instance(self, item, row):
         """Create media instance with all parameters."""

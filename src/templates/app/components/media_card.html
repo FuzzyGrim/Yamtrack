@@ -19,9 +19,9 @@
           {% endif %}
 
           {% if media.end_date is not None %}
-            <span class="text-sm text-white">{{ media.end_date|date_format:user }}</span>
+            <span class="text-sm text-white">{{ media.end_date|date_format }}</span>
           {% elif media.start_date is not None %}
-            <span class="text-sm text-white">{{ media.start_date|date_format:user }}</span>
+            <span class="text-sm text-white">{{ media.start_date|date_format }}</span>
           {% endif %}
 
         </div>

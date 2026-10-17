@@ -143,15 +143,9 @@ if (!window.__mediaFormRegistered) {
     },
 
     getCurrentDateTime(field) {
-      const now = new Date();
-      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-
-      if (field.type === "datetime-local") {
-        return local.toISOString().slice(0, 16);
-      }
-
-      // "date" type and fallback both use the local date.
-      return local.toISOString().slice(0, 10);
+      // Seeded in the zone the server parses this input back with, not the
+      // browser's, so the two cannot disagree.
+      return window.yamtrackNowForInput(field.type === "datetime-local");
     },
   }));
   });

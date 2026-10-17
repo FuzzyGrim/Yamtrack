@@ -26,7 +26,7 @@
             {% if media.next_event.content_number %}
               {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} •
             {% endif %}
-            {{ media.next_event.datetime|natural_day:user }}
+            {{ media.next_event.datetime|natural_day }}
           </span>
         </div>
       {% endif %}

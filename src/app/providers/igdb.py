@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC
 from enum import IntEnum
 
 import requests
@@ -411,10 +412,18 @@ def get_start_date(response):
     # when no release date, first_release_date is not present in the response
     # e.g game: 210710
     try:
-        return timezone.datetime.fromtimestamp(
-            response["first_release_date"],
-            tz=timezone.get_current_timezone(),
-        ).strftime("%Y-%m-%d")
+        # UTC because IGDB stamps these at midnight UTC, so any other zone can
+        # report the previous day. A string because "release_date" is
+        # partial-precision across providers ("2013", "2013-09"), which no date
+        # object holds and which callers read as text.
+        return (
+            timezone.datetime.fromtimestamp(
+                response["first_release_date"],
+                tz=UTC,
+            )
+            .date()
+            .isoformat()
+        )
     except KeyError:
         return None
 

@@ -440,9 +440,11 @@ def format_notification(releases):
                 # Don't show time for sentinel times
                 notification_body.append(f"  • {event}")
             else:
-                # Convert to local timezone and format
+                # Localized on server time, which is what TZ is for. The zone
+                # is named because a reader cannot tell which one a bare
+                # "14:00" belongs to.
                 local_dt = timezone.localtime(event.datetime)
-                time_str = local_dt.strftime("%H:%M")
+                time_str = local_dt.strftime("%H:%M %Z")
                 notification_body.append(f"  • {event} ({time_str})")
 
         # Add a blank line between media types

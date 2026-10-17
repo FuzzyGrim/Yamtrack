@@ -451,8 +451,8 @@
             <div class="text-sm text-gray-400 space-y-1">
               <div>Username: {{ periodic_import.username }}</div>
               <div>Mode: {{ periodic_import.mode }}</div>
-              <div>Last Import: {{ periodic_import.last_run|datetime_format:user }}</div>
-              <div>Next Import: {{ periodic_import.next_run|datetime_format:user }}</div>
+              <div>Last Import: {{ periodic_import.last_run|datetime_format }}</div>
+              <div>Next Import: {{ periodic_import.next_run|datetime_format }}</div>
             </div>
           </div>
         {% empty %}
@@ -495,7 +495,7 @@
 
                 {% source_display result.source %}
               </div>
-              <span class="text-xs text-gray-400">{{ result.date|datetime_format:user }}</span>
+              <span class="text-xs text-gray-400">{{ result.date|datetime_format }}</span>
             </div>
 
             {% if result.status %}
