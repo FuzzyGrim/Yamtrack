@@ -253,6 +253,31 @@ def sync_existing_media(media, values):
     return changed
 
 
+def sync_existing_entries(media, current, max_progress, entries, existing_counts):
+    """Sync the current entry of existing media from a list import.
+
+    A fresh import creates `entries` entries of the media, its completed repeats
+    and its current one. When Yamtrack has fewer, its current entry was finished
+    and the missing ones should be added after it.
+
+    Returns whether the media changed and how many entries are missing.
+    """
+    item = media.item
+    existing_count = existing_counts[item.media_type, item.source, item.media_id]
+    missing = max(entries - existing_count, 0)
+
+    values = current
+    if missing:
+        values = {
+            "score": current["score"],
+            "notes": current["notes"],
+            "status": Status.COMPLETED.value,
+            "progress": max_progress,
+        }
+
+    return sync_existing_media(media, values), missing
+
+
 def should_process_media(existing_media, to_delete, media_type, source, media_id, mode):
     """Determine if a media item should be processed based on mode."""
     exists = media_id in existing_media[media_type][source]

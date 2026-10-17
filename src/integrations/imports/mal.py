@@ -250,29 +250,15 @@ class MyAnimeListImporter:
         return self.existing_media[media_type][Sources.MAL.value].get(media_id)
 
     def _sync_existing(self, media_type, media, current, max_progress, entries):
-        """Sync existing media and return how many of its entries are missing.
-
-        A fresh import creates `entries` entries, the completed repeats and the
-        current one. When Yamtrack has fewer, its current entry was finished and
-        the missing ones are added after it.
-        """
-        existing_count = self.existing_counts[
-            media_type,
-            Sources.MAL.value,
-            media.item.media_id,
-        ]
-        missing = max(entries - existing_count, 0)
-
-        values = current
-        if missing:
-            values = {
-                "score": current["score"],
-                "notes": current["notes"],
-                "status": Status.COMPLETED.value,
-                "progress": max_progress,
-            }
-
-        if helpers.sync_existing_media(media, values):
+        """Sync existing media and return how many of its entries are missing."""
+        changed, missing = helpers.sync_existing_entries(
+            media,
+            current,
+            max_progress,
+            entries,
+            self.existing_counts,
+        )
+        if changed:
             self.to_update[media_type][media.pk] = media
 
         return missing

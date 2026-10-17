@@ -116,6 +116,17 @@ class AniListImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track how many entries of each media exist to add missing repeats
+        self.existing_counts = {}
+        if mode == "new":
+            self.existing_counts = helpers.get_existing_media_counts(
+                user,
+                [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
+            )
+
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -236,6 +247,11 @@ class AniListImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -265,13 +281,16 @@ class AniListImporter:
             self.warnings.append(f"{title}: No matching MAL ID.")
             return
 
+        media_id = str(content["media"]["idMal"])
+        existing = self._get_existing(media_type, media_id)
+
         # Check if we should process this entry based on mode
-        if not helpers.should_process_media(
+        if not existing and not helpers.should_process_media(
             self.existing_media,
             self.to_delete,
             media_type,
             Sources.MAL.value,
-            str(content["media"]["idMal"]),
+            media_id,
             self.mode,
         ):
             return
@@ -281,8 +300,38 @@ class AniListImporter:
         else:
             status = content["status"].capitalize()
 
+        current = {
+            # AniList scores unrated media as 0
+            "score": content["score"] or None,
+            "progress": content["progress"] or 0,
+            "status": status,
+            "start_date": self._get_date(content["startedAt"]),
+            "end_date": self._get_date(content["completedAt"]),
+            "notes": content["notes"] or "",
+        }
+        max_progress = content["media"].get("episodes") or content["media"].get(
+            "chapters",
+        )
+
+        repeats_count = content["repeat"]
+        if content["status"] == "REPEATING" and repeats_count == 0:
+            repeats_count = 1
+
+        # Existing media only gets the repeats it is missing
+        if existing:
+            missing = self._sync_existing(
+                media_type,
+                existing,
+                current,
+                max_progress,
+                repeats_count + 1,
+            )
+            if not missing:
+                return
+            repeats_count = missing - 1
+
         item, _ = app.models.Item.objects.get_or_create(
-            media_id=str(content["media"]["idMal"]),
+            media_id=media_id,
             source=Sources.MAL.value,
             media_type=media_type,
             defaults={
@@ -297,42 +346,46 @@ class AniListImporter:
             else timezone.datetime.fromtimestamp(content["updatedAt"], tz=UTC)
         )
 
-        repeats_count = content["repeat"]
-        if content["status"] == "REPEATING" and repeats_count == 0:
-            repeats_count = 1
+        # Add completed repeats
+        for _ in range(repeats_count):
+            instance = model(
+                item=item,
+                user=self.user,
+                **{
+                    **current,
+                    "progress": max_progress or 0,
+                    "status": Status.COMPLETED.value,
+                    "end_date": None,
+                },
+            )
+            instance._history_date = updated_at
+            self.bulk_media[media_type].append(instance)
 
-        if repeats_count >= 1:
-            for _ in range(repeats_count):
-                max_progress = content["media"].get("episodes") or content["media"].get(
-                    "chapters",
-                )
-
-                instance = model(
-                    item=item,
-                    user=self.user,
-                    score=content["score"],
-                    progress=max_progress or 0,
-                    status=Status.COMPLETED.value,
-                    start_date=self._get_date(content["startedAt"]),
-                    end_date=None,
-                    notes=content["notes"] or "",
-                )
-                instance._history_date = updated_at
-                self.bulk_media[media_type].append(instance)
-
-        instance = model(
-            item=item,
-            user=self.user,
-            score=content["score"],
-            progress=content["progress"] or 0,
-            status=status,
-            start_date=self._get_date(content["startedAt"]),
-            end_date=self._get_date(content["completedAt"]),
-            notes=content["notes"] or "",
-        )
+        instance = model(item=item, user=self.user, **current)
         instance._history_date = updated_at
 
         self.bulk_media[media_type].append(instance)
+
+    def _get_existing(self, media_type, media_id):
+        """Get the current entry of media already in Yamtrack, only in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        return self.existing_media[media_type][Sources.MAL.value].get(media_id)
+
+    def _sync_existing(self, media_type, media, current, max_progress, entries):
+        """Sync existing media and return how many of its entries are missing."""
+        changed, missing = helpers.sync_existing_entries(
+            media,
+            current,
+            max_progress,
+            entries,
+            self.existing_counts,
+        )
+        if changed:
+            self.to_update[media_type][media.pk] = media
+
+        return missing
 
     def _get_date(self, date_dict):
         """Return date object from date dict."""
