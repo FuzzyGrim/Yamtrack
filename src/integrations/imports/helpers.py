@@ -3,7 +3,7 @@ import datetime
 import hashlib
 import json
 import logging
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from cryptography.fernet import Fernet
 from django.apps import apps
@@ -48,6 +48,16 @@ EXISTING_MEDIA_UPDATE_FIELDS = {
         "notes",
         "progress",
         "progressed_at",
+        "start_date",
+        "end_date",
+    ],
+    MediaTypes.MANGA.value: [
+        "status",
+        "score",
+        "notes",
+        "progress",
+        "progressed_at",
+        "start_date",
         "end_date",
     ],
 }
@@ -82,6 +92,23 @@ def get_existing_media(user):
     ]
     logger.debug("Existing media for user %s: %s", user.username, ", ".join(counts))
     return existing
+
+
+def get_existing_media_counts(user, media_types):
+    """Count the user's entries of each media by media type, source and media ID.
+
+    Used in "new" mode to know how many repeats of a media are already tracked.
+    """
+    counts = Counter()
+    for media_type in media_types:
+        media_model = apps.get_model(app_label="app", model_name=media_type)
+        entries = media_model.objects.filter(user=user).values_list(
+            "item__source",
+            "item__media_id",
+        )
+        for source, media_id in entries:
+            counts[media_type, source, media_id] += 1
+    return counts
 
 
 def get_existing_seasons(user):
@@ -190,6 +217,39 @@ def fill_empty_fields(media, values):
             continue
         setattr(media, field, value)
         changed = True
+    return changed
+
+
+def sync_existing_media(media, values):
+    """Sync existing media with the values of an import, return whether it changed.
+
+    Fills the score, notes and dates the media is missing, moves its status
+    forward and raises its progress, without undoing anything tracked in Yamtrack.
+    """
+    changed = fill_empty_fields(media, values)
+
+    if advance_status(media, values.get("status")):
+        changed = True
+
+    progress = values.get("progress")
+    if progress and progress > media.progress:
+        media.progress = progress
+        media.progressed_at = timezone.now()
+        changed = True
+
+    if media.start_date is None and values.get("start_date"):
+        media.start_date = values["start_date"]
+        changed = True
+
+    # Only finished media has an end date
+    if (
+        media.end_date is None
+        and media.status == Status.COMPLETED.value
+        and values.get("end_date")
+    ):
+        media.end_date = values["end_date"]
+        changed = True
+
     return changed
 
 

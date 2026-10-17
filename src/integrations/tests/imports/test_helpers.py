@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -7,6 +8,7 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from app.models import (
     TV,
+    Anime,
     Episode,
     Item,
     MediaTypes,
@@ -171,3 +173,96 @@ class HelpersTest(TestCase):
 
         schedule = CrontabSchedule.objects.first()
         self.assertEqual(schedule.day_of_week, "*/2")
+
+
+class SyncExistingMediaTest(TestCase):
+    """Test syncing existing media with the values of an import."""
+
+    def setUp(self):
+        """Create an unsaved in progress anime."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Cowboy Bebop",
+            image="https://example.com/image.jpg",
+        )
+        self.anime = Anime(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=5,
+        )
+
+    def test_fills_missing_values(self):
+        """Missing values are filled, progress raised and the status advanced."""
+        start_date = datetime(2023, 1, 1, tzinfo=UTC)
+        end_date = datetime(2023, 2, 1, tzinfo=UTC)
+
+        changed = helpers.sync_existing_media(
+            self.anime,
+            {
+                "status": Status.COMPLETED.value,
+                "score": 8,
+                "notes": "Great",
+                "progress": 26,
+                "start_date": start_date,
+                "end_date": end_date,
+            },
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(self.anime.status, Status.COMPLETED.value)
+        self.assertEqual(self.anime.score, 8)
+        self.assertEqual(self.anime.notes, "Great")
+        self.assertEqual(self.anime.progress, 26)
+        self.assertIsNotNone(self.anime.progressed_at)
+        self.assertEqual(self.anime.start_date, start_date)
+        self.assertEqual(self.anime.end_date, end_date)
+
+    def test_keeps_tracked_values(self):
+        """Values tracked in Yamtrack are never overwritten or lowered."""
+        self.anime.status = Status.PAUSED.value
+        self.anime.score = 6
+
+        changed = helpers.sync_existing_media(
+            self.anime,
+            {
+                "status": Status.COMPLETED.value,
+                "score": 8,
+                "progress": 3,
+                "end_date": datetime(2023, 2, 1, tzinfo=UTC),
+            },
+        )
+
+        self.assertFalse(changed)
+        self.assertEqual(self.anime.status, Status.PAUSED.value)
+        self.assertEqual(self.anime.score, 6)
+        self.assertEqual(self.anime.progress, 5)
+        # Unfinished media doesn't get an end date
+        self.assertIsNone(self.anime.end_date)
+
+    def test_get_existing_media_counts(self):
+        """Every entry of a media is counted, including repeats."""
+        Anime.objects.bulk_create(
+            [
+                Anime(item=self.anime.item, user=self.user, status=status)
+                for status in (Status.COMPLETED.value, Status.IN_PROGRESS.value)
+            ],
+        )
+
+        counts = helpers.get_existing_media_counts(
+            self.user,
+            [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
+        )
+
+        self.assertEqual(
+            counts[MediaTypes.ANIME.value, Sources.MAL.value, "1"],
+            2,
+        )
+        self.assertEqual(
+            counts[MediaTypes.MANGA.value, Sources.MAL.value, "1"],
+            0,
+        )
