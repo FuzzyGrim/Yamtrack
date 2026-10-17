@@ -33,51 +33,26 @@ WATCH_MATCH_TOLERANCE = datetime.timedelta(minutes=5)
 EXISTING_MEDIA_UPDATE_FIELDS = {
     MediaTypes.TV.value: ["status", "score", "notes"],
     MediaTypes.SEASON.value: ["status", "score", "notes"],
-    MediaTypes.MOVIE.value: [
-        "status",
-        "score",
-        "notes",
-        "progress",
-        "progressed_at",
-        "start_date",
-        "end_date",
-    ],
-    MediaTypes.ANIME.value: [
-        "status",
-        "score",
-        "notes",
-        "progress",
-        "progressed_at",
-        "start_date",
-        "end_date",
-    ],
-    MediaTypes.MANGA.value: [
-        "status",
-        "score",
-        "notes",
-        "progress",
-        "progressed_at",
-        "start_date",
-        "end_date",
-    ],
-    MediaTypes.GAME.value: [
-        "status",
-        "score",
-        "notes",
-        "progress",
-        "progressed_at",
-        "start_date",
-        "end_date",
-    ],
-    MediaTypes.BOOK.value: [
-        "status",
-        "score",
-        "notes",
-        "progress",
-        "progressed_at",
-        "start_date",
-        "end_date",
-    ],
+    **{
+        media_type: [
+            "status",
+            "score",
+            "notes",
+            "progress",
+            "progressed_at",
+            "start_date",
+            "end_date",
+        ]
+        for media_type in (
+            MediaTypes.MOVIE.value,
+            MediaTypes.ANIME.value,
+            MediaTypes.MANGA.value,
+            MediaTypes.GAME.value,
+            MediaTypes.BOOK.value,
+            MediaTypes.COMIC.value,
+            MediaTypes.BOARDGAME.value,
+        )
+    },
 }
 
 
@@ -186,15 +161,19 @@ def get_existing_watches(user):
     return watches
 
 
+def is_same_watch_date(date, other_date):
+    """Return whether two end dates are of the same watch."""
+    if date is None or other_date is None:
+        return date == other_date
+    return abs(date - other_date) <= WATCH_MATCH_TOLERANCE
+
+
 def is_existing_watch(existing_watches, watch_key, end_date):
     """Return whether the user already has a watch at around the same date."""
-    for existing_date in existing_watches.get(watch_key, ()):
-        if existing_date is None or end_date is None:
-            if existing_date == end_date:
-                return True
-        elif abs(existing_date - end_date) <= WATCH_MATCH_TOLERANCE:
-            return True
-    return False
+    return any(
+        is_same_watch_date(existing_date, end_date)
+        for existing_date in existing_watches.get(watch_key, ())
+    )
 
 
 def advance_status(media, status):
