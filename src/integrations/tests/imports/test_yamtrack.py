@@ -598,3 +598,37 @@ class ImportYamtrackNewMode(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.title, "Title")
         self.assertEqual(item.image, "https://example.com/image.jpg")
+
+    @patch("integrations.imports.yamtrack.services.search")
+    def test_title_only_row_overwrites_existing_media(self, mock_search):
+        """In overwrite mode, a row without an ID replaces the matched media."""
+        mock_search.return_value = {
+            "results": [
+                {
+                    "title": "Perfect Blue",
+                    "source": Sources.TMDB.value,
+                    "media_id": 10494,
+                    "image": "https://example.com/image.jpg",
+                },
+            ],
+        }
+        item = self.get_item(MediaTypes.MOVIE.value, "10494")
+        Movie.objects.bulk_create(
+            [
+                Movie(item=item, user=self.user, status=Status.COMPLETED.value)
+                for _ in range(2)
+            ],
+        )
+
+        csv = self.HEADER + self.row(
+            MediaTypes.MOVIE.value,
+            "",
+            source="",
+            title="Perfect Blue",
+            image="",
+            status=Status.PLANNING.value,
+        )
+        yamtrack.importer(BytesIO(csv.encode()), self.user, "overwrite")
+
+        movie = Movie.objects.get(user=self.user)
+        self.assertEqual(movie.status, Status.PLANNING.value)
