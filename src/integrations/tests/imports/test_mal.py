@@ -200,6 +200,55 @@ class ImportMALNewMode(TestCase):
             [(Status.COMPLETED.value, 26), (Status.COMPLETED.value, 26)],
         )
 
+    def create_paused_anime(self):
+        """Create an existing anime paused at episode 5."""
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Cowboy Bebop",
+            image="https://example.com/image.jpg",
+        )
+        Anime.objects.bulk_create(
+            [
+                Anime(
+                    item=item,
+                    user=self.user,
+                    status=Status.PAUSED.value,
+                    progress=5,
+                ),
+            ],
+        )
+
+    def test_paused_entry_is_completed_by_rewatch(self):
+        """A paused entry is the finished first watch of a completed rewatch."""
+        self.create_paused_anime()
+
+        self.run_import(self.anime("completed", 26, rewatched=1))
+
+        entries = Anime.objects.filter(user=self.user).order_by("created_at")
+        self.assertEqual(
+            [(anime.status, anime.progress) for anime in entries],
+            [(Status.COMPLETED.value, 26), (Status.COMPLETED.value, 26)],
+        )
+
+    def test_paused_rewatch_is_the_main_entry(self):
+        """A paused rewatch is added as the main entry after the finished one."""
+        self.create_paused_anime()
+
+        self.run_import(self.anime("on_hold", 5, rewatched=1))
+
+        entries = Anime.objects.filter(user=self.user).order_by("created_at")
+        self.assertEqual(
+            [(anime.status, anime.progress) for anime in entries],
+            [(Status.COMPLETED.value, 26), (Status.PAUSED.value, 5)],
+        )
+        # The details page shows the newest entry as the main one
+        self.assertEqual(
+            Anime.objects.filter(user=self.user).first().status,
+            Status.PAUSED.value,
+        )
+
     def test_missing_repeats_are_added(self):
         """Repeats finished outside Yamtrack are added as completed entries."""
         self.run_import(self.anime("watching", 10))
