@@ -293,16 +293,19 @@ class SteamImporter:
         The playtime tracked in Yamtrack can include time played outside Steam,
         so it is never lowered.
         """
-        if helpers.sync_existing_media(
+        status = self._determine_game_status(playtime_forever, playtime_2weeks)
+        changed = helpers.sync_existing_media(
             game,
-            {
-                "progress": playtime_forever,
-                "status": self._determine_game_status(
-                    playtime_forever,
-                    playtime_2weeks,
-                ),
-            },
-        ):
+            {"progress": playtime_forever, "status": status},
+        )
+
+        # Planned games that were played but not recently are paused, like in a
+        # fresh import, as paused isn't a status an import moves forward to
+        if game.status == Status.PLANNING.value and status == Status.PAUSED.value:
+            game.status = status
+            changed = True
+
+        if changed:
             self.bulk_media_updates[MediaTypes.GAME.value].append(game)
             logger.debug("Queued Steam sync for existing game %s", game)
 

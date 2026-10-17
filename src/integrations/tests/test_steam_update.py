@@ -172,3 +172,25 @@ class ImportSteamUpdate(TestCase):
         self.assertEqual(imported_counts, {})
         self.assertEqual(game.progress, 2000)
         self.assertEqual(game.status, Status.COMPLETED.value)
+
+    def test_new_mode_pauses_planned_game_played_long_ago(
+        self,
+        mock_get_metadata,
+        mock_external_game,
+        mock_api_request,
+    ):
+        """Test that a planned game played but not recently is paused."""
+        self._setup_mocks(
+            mock_get_metadata,
+            mock_external_game,
+            mock_api_request,
+            playtime=600,
+        )
+        mock_api_request.return_value["response"]["games"][0]["playtime_2weeks"] = 0
+        game = self._create_game()
+
+        steam.importer("76561198000000000", self.user, "new")
+
+        game.refresh_from_db()
+        self.assertEqual(game.progress, 600)
+        self.assertEqual(game.status, Status.PAUSED.value)
