@@ -577,3 +577,24 @@ class ImportYamtrackNewMode(TestCase):
         )
 
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)
+
+    def test_existing_item_metadata_is_kept(self):
+        """The title and image of an existing item aren't replaced by the file."""
+        item = self.get_item(MediaTypes.MOVIE.value, "10494")
+        Movie.objects.bulk_create(
+            [Movie(item=item, user=self.user, status=Status.COMPLETED.value)],
+        )
+
+        self.run_import(
+            self.row(
+                MediaTypes.MOVIE.value,
+                "10494",
+                title="Old Title",
+                image="https://example.com/old.jpg",
+                status=Status.COMPLETED.value,
+            ),
+        )
+
+        item.refresh_from_db()
+        self.assertEqual(item.title, "Title")
+        self.assertEqual(item.image, "https://example.com/image.jpg")

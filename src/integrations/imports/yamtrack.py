@@ -170,7 +170,13 @@ class YamtrackImporter:
         ):
             return
 
-        item, _ = app.models.Item.objects.update_or_create(
+        # "new" mode doesn't replace the metadata of existing items with the file's
+        get_item = (
+            app.models.Item.objects.get_or_create
+            if self.mode == "new"
+            else app.models.Item.objects.update_or_create
+        )
+        item, _ = get_item(
             media_id=row["media_id"],
             source=row["source"],
             media_type=media_type,
