@@ -14,8 +14,10 @@ from django.db.models import (
     Count,
     F,
     Max,
+    OuterRef,
     Prefetch,
     Q,
+    Subquery,
     UniqueConstraint,
     Window,
 )
@@ -380,6 +382,17 @@ class MediaManager(models.Manager):
 
     def _sort_generic_media_list(self, queryset, sort_filter):
         """Apply generic sorting logic for all media types."""
+        if sort_filter == "release_date":
+            release_date = (
+                events.models.Event.objects.filter(item=OuterRef("item"))
+                .order_by("datetime")
+                .values("datetime")[:1]
+            )
+            return queryset.annotate(release_date=Subquery(release_date)).order_by(
+                models.F("release_date").desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
         # Handle sorting by date fields with special null handling
         if sort_filter in ("start_date", "end_date"):
             # For start_date, sort ascending (earliest first)
