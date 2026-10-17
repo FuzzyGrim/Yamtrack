@@ -234,15 +234,17 @@ def sync_existing_media(media, values):
         media.progressed_at = timezone.now()
         changed = True
 
-    if media.start_date is None and values.get("start_date"):
+    # Values are checked first, as shows and seasons get their dates by querying
+    # their episodes
+    if values.get("start_date") and media.start_date is None:
         media.start_date = values["start_date"]
         changed = True
 
     # Only finished media has an end date
     if (
-        media.end_date is None
+        values.get("end_date")
         and media.status == Status.COMPLETED.value
-        and values.get("end_date")
+        and media.end_date is None
     ):
         media.end_date = values["end_date"]
         changed = True

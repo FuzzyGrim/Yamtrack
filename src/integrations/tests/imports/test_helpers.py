@@ -244,6 +244,26 @@ class SyncExistingMediaTest(TestCase):
         # Unfinished media doesn't get an end date
         self.assertIsNone(self.anime.end_date)
 
+    def test_show_sync_does_not_query_dates(self):
+        """Syncing a show doesn't query its episodes for dates it isn't given."""
+        item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="https://example.com/image.jpg",
+        )
+        tv = TV(item=item, user=self.user, status=Status.IN_PROGRESS.value)
+        TV.objects.bulk_create([tv])
+
+        with self.assertNumQueries(0):
+            changed = helpers.sync_existing_media(
+                tv,
+                {"status": Status.COMPLETED.value, "score": 8, "notes": ""},
+            )
+
+        self.assertTrue(changed)
+
     def test_get_existing_media_counts(self):
         """Every entry of a media is counted, including repeats."""
         Anime.objects.bulk_create(
