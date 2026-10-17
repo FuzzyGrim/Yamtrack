@@ -190,6 +190,7 @@ class AniListImporter:
                                 large
                             }
                             idMal
+                            chapters
                         }
                         status
                         score(format: POINT_10_DECIMAL)

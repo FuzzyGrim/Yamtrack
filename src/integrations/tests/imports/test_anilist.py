@@ -184,3 +184,40 @@ class ImportAniListNewMode(TestCase):
         self.assertTrue(
             all(anime.status == Status.COMPLETED.value for anime in entries),
         )
+
+    def test_manga_reread_uses_chapters(self):
+        """A finished manga reread is imported with the manga chapters."""
+        manga = {
+            "media": {
+                "title": {"userPreferred": "Monster"},
+                "coverImage": {"large": "https://example.com/image.jpg"},
+                "idMal": 1,
+                "chapters": 162,
+            },
+            "status": "COMPLETED",
+            "score": 0,
+            "progress": 162,
+            "startedAt": {"year": None, "month": None, "day": None},
+            "completedAt": {"year": None, "month": None, "day": None},
+            "updatedAt": 1672531200,
+            "repeat": 1,
+            "notes": None,
+        }
+        response = {
+            "data": {
+                "anime": {"lists": []},
+                "manga": {"lists": [{"isCustomList": False, "entries": [manga]}]},
+            },
+        }
+        with patch(
+            "app.providers.services.api_request",
+            return_value=response,
+        ) as mock_api_request:
+            anilist.importer(None, self.user, "new", "test")
+
+        query = mock_api_request.call_args.kwargs["params"]["query"]
+        manga_query = query.split("manga: MediaListCollection")[1]
+        self.assertIn("chapters", manga_query)
+
+        entries = Manga.objects.filter(user=self.user)
+        self.assertEqual([manga.progress for manga in entries], [162, 162])
