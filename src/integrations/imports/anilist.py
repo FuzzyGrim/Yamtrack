@@ -116,10 +116,11 @@ class AniListImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
-        # Track how many entries of each media exist to add missing repeats
-        self.existing_counts = {}
+        # Track every entry of each media to sync the current one and add the
+        # missing repeats in "new" mode
+        self.existing_entries = {}
         if mode == "new":
-            self.existing_counts = helpers.get_existing_media_counts(
+            self.existing_entries = helpers.get_existing_entries(
                 user,
                 [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
             )
@@ -371,7 +372,8 @@ class AniListImporter:
         if self.mode != "new":
             return None
 
-        return self.existing_media[media_type][Sources.MAL.value].get(media_id)
+        entries = self.existing_entries.get((media_type, Sources.MAL.value, media_id))
+        return helpers.get_current_entry(entries) if entries else None
 
     def _sync_existing(self, media_type, media, current, max_progress, entries):
         """Sync existing media and return how many of its entries are missing."""
@@ -380,7 +382,13 @@ class AniListImporter:
             current,
             max_progress,
             entries,
-            self.existing_counts,
+            len(
+                self.existing_entries[
+                    media_type,
+                    Sources.MAL.value,
+                    media.item.media_id,
+                ],
+            ),
         )
         if changed:
             self.to_update[media_type][media.pk] = media

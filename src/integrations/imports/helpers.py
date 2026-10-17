@@ -3,7 +3,7 @@ import datetime
 import hashlib
 import json
 import logging
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 from cryptography.fernet import Fernet
 from django.apps import apps
@@ -87,21 +87,36 @@ def get_existing_media(user):
     return existing
 
 
-def get_existing_media_counts(user, media_types):
-    """Count the user's entries of each media by media type, source and media ID.
+def get_existing_entries(user, media_types):
+    """Get every entry of the user's media, newest first, including repeats.
 
-    Used in "new" mode to know how many repeats of a media are already tracked.
+    Used in "new" mode to know which entries of a media are already tracked,
+    keyed by media type, source and media ID.
     """
-    counts = Counter()
+    entries = defaultdict(list)
     for media_type in media_types:
         media_model = apps.get_model(app_label="app", model_name=media_type)
-        entries = media_model.objects.filter(user=user).values_list(
-            "item__source",
-            "item__media_id",
+        queryset = (
+            media_model.objects.filter(user=user)
+            .select_related("item")
+            .order_by("-created_at")
         )
-        for source, media_id in entries:
-            counts[media_type, source, media_id] += 1
-    return counts
+        for media in queryset:
+            key = (media_type, media.item.source, media.item.media_id)
+            entries[key].append(media)
+    return entries
+
+
+def get_current_entry(entries):
+    """Return the entry being tracked now out of the entries of a media.
+
+    Repeats are completed, so an unfinished entry is the current one even when
+    it isn't the newest, like after importing a file in a different order.
+    """
+    return next(
+        (entry for entry in entries if entry.status != Status.COMPLETED.value),
+        entries[0],
+    )
 
 
 def get_existing_seasons(user):
@@ -252,7 +267,7 @@ def sync_existing_media(media, values):
     return changed
 
 
-def sync_existing_entries(media, current, max_progress, entries, existing_counts):
+def sync_existing_entries(media, current, max_progress, entries, existing_count):
     """Sync the current entry of existing media from a list import.
 
     A fresh import creates `entries` entries of the media, its completed repeats
@@ -262,8 +277,6 @@ def sync_existing_entries(media, current, max_progress, entries, existing_counts
 
     Returns whether the media changed and how many entries are missing.
     """
-    item = media.item
-    existing_count = existing_counts[item.media_type, item.source, item.media_id]
     missing = max(entries - existing_count, 0)
 
     if not missing:

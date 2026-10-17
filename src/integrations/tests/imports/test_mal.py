@@ -249,6 +249,41 @@ class ImportMALNewMode(TestCase):
             Status.PAUSED.value,
         )
 
+    def test_unfinished_entry_is_synced_when_not_newest(self):
+        """The unfinished entry is synced even if a repeat was created after it."""
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Cowboy Bebop",
+            image="https://example.com/image.jpg",
+        )
+        # A file import creates the current entry before the older repeat
+        Anime.objects.bulk_create(
+            [
+                Anime(
+                    item=item,
+                    user=self.user,
+                    status=Status.IN_PROGRESS.value,
+                    progress=3,
+                ),
+                Anime(
+                    item=item,
+                    user=self.user,
+                    status=Status.COMPLETED.value,
+                    progress=26,
+                ),
+            ],
+        )
+
+        self.run_import(self.anime("watching", 10, rewatching=True, rewatched=1))
+
+        entries = Anime.objects.filter(user=self.user).order_by("created_at")
+        self.assertEqual(
+            [(anime.status, anime.progress) for anime in entries],
+            [(Status.IN_PROGRESS.value, 10), (Status.COMPLETED.value, 26)],
+        )
+
     def test_missing_repeats_are_added(self):
         """Repeats finished outside Yamtrack are added as completed entries."""
         self.run_import(self.anime("watching", 10))

@@ -51,7 +51,21 @@ class YamtrackImporter:
         if mode == "new":
             self.existing_seasons = helpers.get_existing_seasons(user)
             self.existing_watches = helpers.get_existing_watches(user)
-            self.existing_entries = self._get_existing_entries()
+            # Each row of the file is a single entry, so rows are matched to the
+            # entries already in Yamtrack instead of to the media
+            self.existing_entries = helpers.get_existing_entries(
+                user,
+                [
+                    media_type
+                    for media_type in MediaTypes.values
+                    if media_type
+                    not in (
+                        MediaTypes.TV.value,
+                        MediaTypes.SEASON.value,
+                        MediaTypes.EPISODE.value,
+                    )
+                ],
+            )
 
         # Track existing media changed in "new" mode, by primary key
         self.to_update = defaultdict(dict)
@@ -114,30 +128,6 @@ class YamtrackImporter:
 
         deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
         return imported_counts, deduplicated_messages
-
-    def _get_existing_entries(self):
-        """Get every entry of the user's media, including repeats.
-
-        Each row of the file is a single entry, so rows are matched to the
-        entries already in Yamtrack instead of to the media.
-        """
-        excluded_types = [
-            MediaTypes.TV.value,
-            MediaTypes.SEASON.value,
-            MediaTypes.EPISODE.value,
-        ]
-        entries = defaultdict(list)
-
-        for media_type in MediaTypes.values:
-            if media_type in excluded_types:
-                continue
-
-            model = apps.get_model(app_label="app", model_name=media_type)
-            for media in model.objects.filter(user=self.user).select_related("item"):
-                key = (media_type, media.item.source, media.item.media_id)
-                entries[key].append(media)
-
-        return entries
 
     def _process_row(self, row):
         """Process a single row from the CSV file."""

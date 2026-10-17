@@ -43,10 +43,11 @@ class KitsuImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
-        # Track how many entries of each media exist to add missing repeats
-        self.existing_counts = {}
+        # Track every entry of each media to sync the current one and add the
+        # missing repeats in "new" mode
+        self.existing_entries = {}
         if mode == "new":
-            self.existing_counts = helpers.get_existing_media_counts(
+            self.existing_entries = helpers.get_existing_entries(
                 user,
                 [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
             )
@@ -247,7 +248,9 @@ class KitsuImporter:
                 current,
                 max_progress,
                 repeats_count + 1,
-                self.existing_counts,
+                len(
+                    self.existing_entries[media_type, item.source, item.media_id],
+                ),
             )
             if changed:
                 self.to_update[media_type][existing.pk] = existing
@@ -277,7 +280,8 @@ class KitsuImporter:
         if self.mode != "new":
             return None
 
-        return self.existing_media[media_type][source].get(media_id)
+        entries = self.existing_entries.get((media_type, source, media_id))
+        return helpers.get_current_entry(entries) if entries else None
 
     def _fetch_media_from_related_url(self, relationship, media_type):
         """Fetch media data from Kitsu related URL when relationship data is null."""

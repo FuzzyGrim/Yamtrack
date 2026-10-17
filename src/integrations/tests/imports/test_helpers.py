@@ -264,25 +264,34 @@ class SyncExistingMediaTest(TestCase):
 
         self.assertTrue(changed)
 
-    def test_get_existing_media_counts(self):
-        """Every entry of a media is counted, including repeats."""
+    def test_get_existing_entries(self):
+        """Every entry of a media is returned newest first, including repeats."""
+        # Created in file order by an import, so the current entry is the oldest
         Anime.objects.bulk_create(
             [
                 Anime(item=self.anime.item, user=self.user, status=status)
-                for status in (Status.COMPLETED.value, Status.IN_PROGRESS.value)
+                for status in (Status.IN_PROGRESS.value, Status.COMPLETED.value)
             ],
         )
 
-        counts = helpers.get_existing_media_counts(
+        existing_entries = helpers.get_existing_entries(
             self.user,
             [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
         )
 
+        entries = existing_entries[MediaTypes.ANIME.value, Sources.MAL.value, "1"]
         self.assertEqual(
-            counts[MediaTypes.ANIME.value, Sources.MAL.value, "1"],
-            2,
+            [entry.status for entry in entries],
+            [Status.COMPLETED.value, Status.IN_PROGRESS.value],
         )
+        self.assertNotIn(
+            (MediaTypes.MANGA.value, Sources.MAL.value, "1"),
+            existing_entries,
+        )
+
+        # The unfinished entry is the current one, not the newest repeat
         self.assertEqual(
-            counts[MediaTypes.MANGA.value, Sources.MAL.value, "1"],
-            0,
+            helpers.get_current_entry(entries).status,
+            Status.IN_PROGRESS.value,
         )
+        self.assertEqual(helpers.get_current_entry(entries[:1]), entries[0])
