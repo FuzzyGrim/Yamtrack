@@ -58,6 +58,21 @@ class Search(TestCase):
 
         self.assertEqual(response["results"], [])
 
+    @patch("app.providers.mangaupdates.services.api_request")
+    def test_mangaupdates_nsfw_setting(self, mock_api_request):
+        """Test MangaUpdates adult genres follow MU_NSFW, not MAL_NSFW."""
+        mock_api_request.return_value = {"results": [], "total_hits": 0}
+
+        with self.settings(MU_NSFW=False, MAL_NSFW=True):
+            mangaupdates.search("mu nsfw disabled", 1)
+        params = mock_api_request.call_args.kwargs["params"]
+        self.assertIn("Hentai", params["exclude_genre"])
+
+        with self.settings(MU_NSFW=True, MAL_NSFW=False):
+            mangaupdates.search("mu nsfw enabled", 1)
+        params = mock_api_request.call_args.kwargs["params"]
+        self.assertNotIn("exclude_genre", params)
+
     def test_tv(self):
         """Test the search method for TV shows.
 
