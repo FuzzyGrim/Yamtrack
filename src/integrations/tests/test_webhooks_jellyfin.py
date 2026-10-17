@@ -821,6 +821,34 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(movie[0].status, Status.COMPLETED.value)
         self.assertEqual(movie[1].status, Status.COMPLETED.value)
 
+    def test_unfinished_playback_of_completed_movie_is_ignored(self):
+        """Test starting a completed movie again does not open a new entry."""
+        item = {
+            "Type": "Movie",
+            "ProductionYear": 1999,
+            "Name": "The Matrix",
+            "ProviderIds": {"Tmdb": "603"},
+        }
+        watched = {"Event": "Stop", "Item": {**item, "UserData": {"Played": True}}}
+        self.client.post(
+            self.url,
+            data=json.dumps(watched),
+            content_type="application/json",
+        )
+
+        for event in ("Play", "Stop"):
+            payload = {"Event": event, "Item": {**item, "UserData": {"Played": False}}}
+            response = self.client.post(
+                self.url,
+                data=json.dumps(payload),
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+
+        movie = Movie.objects.get(item__media_id="603")
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+
     def test_extract_external_ids(self):
         """Test extracting external IDs from provider payload."""
         payload = {
