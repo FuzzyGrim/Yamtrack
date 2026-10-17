@@ -60,6 +60,24 @@ EXISTING_MEDIA_UPDATE_FIELDS = {
         "start_date",
         "end_date",
     ],
+    MediaTypes.GAME.value: [
+        "status",
+        "score",
+        "notes",
+        "progress",
+        "progressed_at",
+        "start_date",
+        "end_date",
+    ],
+    MediaTypes.BOOK.value: [
+        "status",
+        "score",
+        "notes",
+        "progress",
+        "progressed_at",
+        "start_date",
+        "end_date",
+    ],
 }
 
 
