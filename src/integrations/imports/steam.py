@@ -72,7 +72,7 @@ class SteamImporter:
         helpers.bulk_create_media(self.bulk_media, self.user)
         helpers.bulk_update_media(
             self.bulk_media_updates,
-            {MediaTypes.GAME.value: ["progress", "status"]},
+            {MediaTypes.GAME.value: ["progress", "progressed_at", "status"]},
             self.user,
         )
 
@@ -194,6 +194,15 @@ class SteamImporter:
                 )
                 return
 
+            # Existing games only get the playtime they are missing
+            if existing_game and self.mode == "new":
+                self._sync_existing_game(
+                    existing_game,
+                    playtime_forever,
+                    playtime_2weeks,
+                )
+                return
+
             if not helpers.should_process_media(
                 self.existing_media,
                 self.to_delete,
@@ -277,6 +286,25 @@ class SteamImporter:
         if changed:
             self.bulk_media_updates[MediaTypes.GAME.value].append(game)
             logger.debug("Queued Steam update for existing game %s", game)
+
+    def _sync_existing_game(self, game, playtime_forever, playtime_2weeks):
+        """Raise the playtime of an existing game and move its status forward.
+
+        The playtime tracked in Yamtrack can include time played outside Steam,
+        so it is never lowered.
+        """
+        if helpers.sync_existing_media(
+            game,
+            {
+                "progress": playtime_forever,
+                "status": self._determine_game_status(
+                    playtime_forever,
+                    playtime_2weeks,
+                ),
+            },
+        ):
+            self.bulk_media_updates[MediaTypes.GAME.value].append(game)
+            logger.debug("Queued Steam sync for existing game %s", game)
 
     def _determine_game_status(self, playtime_forever, playtime_2weeks):
         """Determine game status based on Steam playtime data.
