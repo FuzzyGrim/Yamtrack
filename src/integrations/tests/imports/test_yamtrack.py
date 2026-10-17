@@ -527,3 +527,53 @@ class ImportYamtrackNewMode(TestCase):
         movie = Movie.objects.get(user=self.user)
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
+
+    def test_undated_entry_matches_dated_row(self):
+        """A completed entry without end date gets the date of the same watch."""
+        Movie.objects.bulk_create(
+            [
+                Movie(
+                    item=self.get_item(MediaTypes.MOVIE.value, "10494"),
+                    user=self.user,
+                    status=Status.COMPLETED.value,
+                    progress=1,
+                ),
+            ],
+        )
+
+        self.run_import(
+            self.row(
+                MediaTypes.MOVIE.value,
+                "10494",
+                status=Status.COMPLETED.value,
+                end_date="2024-02-09 00:00:00+00:00",
+            ),
+        )
+
+        movie = Movie.objects.get(user=self.user)
+        self.assertEqual(movie.end_date, datetime(2024, 2, 9, tzinfo=UTC))
+
+    def test_dated_entry_matches_undated_row(self):
+        """A completed row without end date is the same as a dated entry."""
+        Anime.objects.bulk_create(
+            [
+                Anime(
+                    item=self.get_item(MediaTypes.ANIME.value, "1"),
+                    user=self.user,
+                    status=Status.COMPLETED.value,
+                    progress=26,
+                    end_date=datetime(2024, 2, 9, tzinfo=UTC),
+                ),
+            ],
+        )
+
+        self.run_import(
+            self.row(
+                MediaTypes.ANIME.value,
+                "1",
+                status=Status.COMPLETED.value,
+                progress="26",
+            ),
+        )
+
+        self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)

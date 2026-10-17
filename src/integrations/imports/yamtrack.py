@@ -277,8 +277,9 @@ class YamtrackImporter:
         """Match the entry of the row to one already in Yamtrack.
 
         The row is the same entry as one that ended at around the same date, or
-        else as one still open in Yamtrack. Each entry is matched only once, so
-        rows left unmatched are repeats missing from Yamtrack.
+        else as one still open in Yamtrack, or else as one with the same status
+        where only one of them has an end date. Each entry is matched only once,
+        so rows left unmatched are repeats missing from Yamtrack.
         """
         item = instance.item
         entries = self.existing_entries.get(
@@ -287,26 +288,27 @@ class YamtrackImporter:
         if not entries:
             return None
 
-        match = next(
-            (
-                entry
-                for entry in entries
-                if helpers.is_same_watch_date(entry.end_date, instance.end_date)
+        matchers = (
+            lambda entry: helpers.is_same_watch_date(
+                entry.end_date,
+                instance.end_date,
             ),
-            None,
-        ) or next(
-            (
-                entry
-                for entry in entries
-                if entry.end_date is None
+            lambda entry: (
+                entry.end_date is None
                 and entry.status in (Status.PLANNING.value, Status.IN_PROGRESS.value)
             ),
-            None,
+            lambda entry: (
+                entry.status == instance.status
+                and (entry.end_date is None) != (instance.end_date is None)
+            ),
         )
+        for matches in matchers:
+            match = next((entry for entry in entries if matches(entry)), None)
+            if match:
+                entries.remove(match)
+                return match
 
-        if match:
-            entries.remove(match)
-        return match
+        return None
 
     def _reopen_existing_shows(self):
         """Reopen completed shows and seasons that got episodes never watched.
