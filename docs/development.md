@@ -2,23 +2,40 @@
 
 This page covers working on Yamtrack from source.
 
-## Prerequisites
+## Dev container
+
+The repository includes a [dev container](https://containers.dev/) which includes all of the dependencies for you.  The only local requirements are Docker and VS Code (or another dev container client).
+
+1. Open the Dev Container in your IDE
+   1. Run **Dev Containers: Reopen in Container** or
+   2. *(Preferred)* Run **Clone Repository in Container Volume** for faster file watching on Windows/macOS.
+2. In VS Code, the service is started automatically via the **Yamtrack: Start Service** task (`.vscode/tasks.json`, runs on folder open). Restart it with **Tasks: Restart Running Task**. Elsewhere, run:
+
+   ```bash
+   uvx honcho -e /dev/null start
+   ```
+
+3. Open <http://localhost:8000> (port 8000 is forwarded).
+
+## Manual
+
+### Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [tailwindcss CLI](https://tailwindcss.com/docs/installation/tailwind-cli) (install with `npm install -g tailwindcss @tailwindcss/cli`)
 - Docker
 - Redis
 
-## General setup
+### General setup
 
-### Clone the repository
+#### Clone the repository
 
 ```bash
 git clone https://github.com/FuzzyGrim/Yamtrack.git
 cd Yamtrack
 ```
 
-### Start Redis
+#### Start Redis
 
 If you do not already have Redis running locally, start it with Docker:
 
@@ -26,7 +43,7 @@ If you do not already have Redis running locally, start it with Docker:
 docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:8-alpine
 ```
 
-### Install dependencies
+#### Install dependencies
 
 uv manages the Python environment and dependencies:
 
@@ -41,7 +58,7 @@ Installing the development dependencies includes pre-commit. After `uv run pre-c
 uv run pre-commit run --all-files
 ```
 
-### Configure environment values
+#### Configure environment values
 
 Create a `.env` file in the repository root:
 
@@ -58,14 +75,14 @@ DEBUG=True
 
 See [Environment Variables](env-variables.md) for the full list of supported settings.
 
-### Prepare the database
+#### Prepare the database
 
 ```bash
 cd src
 uv run manage.py migrate
 ```
 
-### Run the app
+#### Run the app
 
 The repository ships a `Procfile` that defines the web server, the Celery
 worker, and the Tailwind watcher. Run all three at once with

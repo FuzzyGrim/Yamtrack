@@ -1,0 +1,19 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/python:1-3.12-bookworm
+    command: sleep infinity
+    volumes:
+      - ../..:/workspaces:cached
+      - venv:/home/vscode/.venv      # Linux venv kept off the Windows bind mount
+    environment:
+      UV_PROJECT_ENVIRONMENT: /home/vscode/.venv
+      UV_LINK_MODE: copy
+      REDIS_URL: redis://redis:6379
+      DEBUG: "True"
+    depends_on: [redis]
+
+  redis:
+    image: redis:8-alpine
+
+volumes:
+  venv:
