@@ -41,6 +41,9 @@ class HowLongToBeatImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -89,6 +92,11 @@ class HowLongToBeatImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -124,6 +132,13 @@ class HowLongToBeatImporter:
         if media_id_counts[media_id] > 1:
             return
 
+        # Existing games only get what they are missing
+        existing = self._get_existing(str(media_id))
+        if existing:
+            if helpers.sync_existing_media(existing, self._get_values(row)):
+                self.to_update[MediaTypes.GAME.value][existing.pk] = existing
+            return
+
         item, _ = self._create_or_update_item(game)
 
         # Check if we should process this entry based on mode
@@ -139,6 +154,15 @@ class HowLongToBeatImporter:
 
         instance = self._create_media_instance(item, row)
         self.bulk_media[MediaTypes.GAME.value].append(instance)
+
+    def _get_existing(self, media_id):
+        """Get the game already in Yamtrack, only tracked in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        return self.existing_media[MediaTypes.GAME.value][Sources.IGDB.value].get(
+            media_id,
+        )
 
     def _add_duplicate_warnings(self, media_id_counts, media_id_titles):
         """Add warnings for duplicate games."""
@@ -244,13 +268,32 @@ class HowLongToBeatImporter:
             tzinfo=timezone.get_current_timezone(),
         )
 
-    def _create_media_instance(self, item, row):
-        """Create media instance with all parameters."""
+    def _get_values(self, row):
+        """Get the values of the game tracked in the row."""
         progress = self._format_time(row["Progress"])
         main_story = self._format_time(row["Main Story"])
         main_extra = self._format_time(row["Main + Extras"])
         completionist = self._format_time(row["Completionist"])
 
+        return {
+            # HowLongToBeat reviews unrated games as 0
+            "score": int(row["Review"]) / 10 or None,
+            "progress": max(
+                [
+                    x
+                    for x in [progress, main_story, main_extra, completionist]
+                    if x is not None
+                ],
+                default=0,
+            ),
+            "status": self._determine_status(row),
+            "start_date": self._parse_hltb_date(row["Start Date"]),
+            "end_date": self._parse_hltb_date(row["Completion Date"]),
+            "notes": self._format_notes(row),
+        }
+
+    def _create_media_instance(self, item, row):
+        """Create media instance with all parameters."""
         model = apps.get_model(app_label="app", model_name=MediaTypes.GAME.value)
         updated_at = datetime.strptime(
             row["Updated"],
@@ -259,22 +302,6 @@ class HowLongToBeatImporter:
             tzinfo=UTC,
         )
 
-        instance = model(
-            item=item,
-            user=self.user,
-            score=int(row["Review"]) / 10,
-            progress=max(
-                [
-                    x
-                    for x in [progress, main_story, main_extra, completionist]
-                    if x is not None
-                ],
-                default=0,
-            ),
-            status=self._determine_status(row),
-            start_date=self._parse_hltb_date(row["Start Date"]),
-            end_date=self._parse_hltb_date(row["Completion Date"]),
-            notes=self._format_notes(row),
-        )
+        instance = model(item=item, user=self.user, **self._get_values(row))
         instance._history_date = updated_at
         return instance
