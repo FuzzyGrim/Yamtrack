@@ -86,17 +86,19 @@ services:
 
 ## PostgreSQL Environment Variables (YamTrack Container)
 
-| Name               | Notes                                                                                                    |
-| ------------------ | --------------------------------------------------------------------------------------------------------- |
-| `DB_HOST`          | The hostname or IP address of the PostgreSQL server. If not set, SQLite is used as the default database. |
-| `DB_PORT`          | The port number on which the PostgreSQL server is listening.                                             |
-| `DB_NAME`          | The name of the database to connect to.                                                                  |
-| `DB_USER`          | The username used to authenticate with the PostgreSQL server.                                            |
-| `DB_PASSWORD`      | The password for the specified user.                                                                     |
-| `DB_POOL_MIN_SIZE` | Default to `1`. Minimum number of connections each process keeps open in its connection pool.            |
-| `DB_POOL_MAX_SIZE` | Default to `4`. Maximum number of connections each process can open in its connection pool.              |
+| Name               | Notes                                                                                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `DB_HOST`          | The hostname or IP address of the PostgreSQL server. Optional; if omitted, SQLite is used as the default database instead.   |
+| `DB_PORT`          | The port number on which the PostgreSQL server is listening. Optional; if omitted, the PostgreSQL client's default is used.  |
+| `DB_NAME`          | The name of the database to connect to. Required when using PostgreSQL.                                                      |
+| `DB_USER`          | The username used to authenticate with the PostgreSQL server. Optional; if omitted, the OS user running the process is used. |
+| `DB_PASSWORD`      | The password for the specified user. Optional; not needed for local Unix socket connections using peer/ident authentication. |
+| `DB_POOL_MIN_SIZE` | Default to `1`. Minimum number of connections each process keeps open in its connection pool.                                |
+| `DB_POOL_MAX_SIZE` | Default to `4`. Maximum number of connections each process can open in its connection pool.                                  |
 
 **Note:** Check the example `docker-compose.postgres.yml` in the root directory of the repo for a PostgreSQL configuration example.
+
+**Connecting via a local Unix socket:** set `DB_HOST` to an empty string (e.g. `DB_HOST=`). Yamtrack only falls back to SQLite when `DB_HOST` is omitted and not present in the environment at all; when `DB_HOST` is present but empty, it connects via the local Unix socket by default. `DB_PORT`, `DB_USER`, and `DB_PASSWORD` can likewise be left empty or omitted in this setup — only `DB_NAME` must be set.
 
 ### External PostgreSQL database with SSL (YamTrack Container)
 

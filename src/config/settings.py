@@ -36,15 +36,15 @@ def secret(key, default=undefined, **kwargs):
     If only the filename is given, try to read from /run/secrets/<key>.
     If an absolute path is specified, try to read from this path.
     """
-    if isinstance(default, Undefined):
-        default = None
+    has_default = not isinstance(default, Undefined)
+    file_default = default if has_default else None
 
-    file = config(key, default, **kwargs)
+    file = config(key, file_default, **kwargs)
 
     if file is None:
-        return undefined
-    if file == default:
-        return default
+        return default if has_default else undefined
+    if file == file_default:
+        return file_default
 
     path = Path(file)
     try:
@@ -190,7 +190,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # create db folder if it doesn't exist
 Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
 
-if config("DB_HOST", default=None):
+if config("DB_HOST", default=None) is not None:
     DB_POOL_MIN_SIZE = config("DB_POOL_MIN_SIZE", default=1, cast=int)
     DB_POOL_MAX_SIZE = config("DB_POOL_MAX_SIZE", default=4, cast=int)
 
@@ -199,9 +199,12 @@ if config("DB_HOST", default=None):
             "ENGINE": "django.db.backends.postgresql",
             "HOST": config("DB_HOST"),
             "NAME": config("DB_NAME", default=secret("DB_NAME_FILE")),
-            "USER": config("DB_USER", default=secret("DB_USER_FILE")),
-            "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
-            "PORT": config("DB_PORT"),
+            "USER": config("DB_USER", default=secret("DB_USER_FILE", default=None)),
+            "PASSWORD": config(
+                "DB_PASSWORD",
+                default=secret("DB_PASSWORD_FILE", default=None),
+            ),
+            "PORT": config("DB_PORT", default=""),
             "OPTIONS": {
                 "pool": {
                     "min_size": DB_POOL_MIN_SIZE,
