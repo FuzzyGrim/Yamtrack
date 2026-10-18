@@ -201,6 +201,7 @@ class HowLongToBeatImporter:
             MediaTypes.GAME.value,
             row["Title"],
             1,
+            show_adult_title=self.user.show_adult_titles,
         ).get(
             "results",
             [],

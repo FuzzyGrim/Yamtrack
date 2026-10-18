@@ -43,11 +43,9 @@ def handle_error(error):
     )
 
 
-def search(query, page):
+def search(query, page, *, show_adult_titles=True):
     """Search for media on MangaUpdates."""
-    cache_key = (
-        f"search_{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{query}_{page}"
-    )
+    cache_key = f"search_{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{query}_{page}_{show_adult_titles}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -60,7 +58,7 @@ def search(query, page):
             "page": page,
         }
 
-        if not settings.MAL_NSFW:
+        if not settings.MU_NSFW or not show_adult_titles:
             params["exclude_genre"] = [
                 "Adult",
                 "Hentai",
