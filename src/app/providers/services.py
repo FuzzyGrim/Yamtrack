@@ -54,7 +54,7 @@ session.mount(
 )
 session.mount(
     "https://graphql.anilist.co",
-    LimiterAdapter(per_minute=85),
+    LimiterAdapter(per_minute=28),
 )
 session.mount(
     "https://api.igdb.com/v4",
