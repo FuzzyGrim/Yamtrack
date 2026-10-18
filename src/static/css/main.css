@@ -1811,6 +1811,9 @@
   .text-pretty {
     text-wrap: pretty;
   }
+  .break-words {
+    overflow-wrap: break-word;
+  }
   .wrap-break-word {
     overflow-wrap: break-word;
   }
