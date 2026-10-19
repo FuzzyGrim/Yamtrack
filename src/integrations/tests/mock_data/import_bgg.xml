@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items totalitems="3">
+  <item objecttype="thing" objectid="1" subtype="boardgame" collid="1">
+    <name sortindex="1">Catan</name>
+    <thumbnail>http://example.com/catan_thumb.jpg</thumbnail>
+    <image>http://example.com/catan.jpg</image>
+    <stats>
+      <rating value="8">
+        <average value="7" />
+      </rating>
+    </stats>
+    <status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0"
+            wanttobuy="0" wishlist="0" preordered="0"
+            lastmodified="2026-07-10 10:30:00" />
+    <numplays>5</numplays>
+  </item>
+  <item objecttype="thing" objectid="2" subtype="boardgame" collid="2">
+    <name sortindex="1">Carcassonne</name>
+    <thumbnail>http://example.com/carcassonne_thumb.jpg</thumbnail>
+    <stats>
+      <rating value="N/A" />
+    </stats>
+    <status own="0" prevowned="0" fortrade="0" want="0" wanttoplay="1"
+            wanttobuy="0" wishlist="1" preordered="0"
+            lastmodified="2026-07-11 08:00:00" />
+    <numplays>0</numplays>
+  </item>
+  <item objecttype="thing" objectid="3" subtype="boardgame" collid="3">
+    <name sortindex="1">Ticket to Ride</name>
+    <image>http://example.com/ttr.jpg</image>
+    <stats>
+      <rating value="7" />
+    </stats>
+    <status own="0" prevowned="1" fortrade="0" want="0" wanttoplay="0"
+            wanttobuy="0" wishlist="0" preordered="0"
+            lastmodified="2026-07-12 12:00:00" />
+    <numplays>3</numplays>
+  </item>
+</items>
