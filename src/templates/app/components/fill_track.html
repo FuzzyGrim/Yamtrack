@@ -12,6 +12,7 @@
   <form hx-post="{% url 'media_save' %}?next={{ return_url }}"
         hx-swap="none"
         x-data="mediaForm"
+        data-default-edit-entry-date="{{ request.user.default_edit_entry_date }}"
         x-init="init">
     {% csrf_token %}
     {{ form.instance_id }}
