@@ -134,8 +134,13 @@ class AppTagsTests(TestCase):
             MediaTypes.BOARDGAME.value: "Boardgames",
         }
 
-        for media_type, expected in expected_plurals.items():
-            self.assertEqual(app_tags.media_type_readable_plural(media_type), expected)
+        for media_type, _label in MediaTypes.choices:
+            with self.subTest(media_type=media_type):
+                self.assertIn(media_type, expected_plurals)
+                self.assertEqual(
+                    app_tags.media_type_readable_plural(media_type),
+                    expected_plurals[media_type],
+                )
 
     def test_default_source(self):
         """Test the default_source filter."""
