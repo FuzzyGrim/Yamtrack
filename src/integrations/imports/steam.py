@@ -73,7 +73,7 @@ class SteamImporter:
         helpers.bulk_create_media(self.bulk_media, self.user)
         helpers.bulk_update_media(
             self.bulk_media_updates,
-            {MediaTypes.GAME.value: ["progress", "status"]},
+            {MediaTypes.GAME.value: ["progress", "progressed_at", "status"]},
             self.user,
         )
 
@@ -198,6 +198,15 @@ class SteamImporter:
                 )
                 return
 
+            # Existing games only get the playtime they are missing
+            if existing_game and self.mode == "new":
+                self._sync_existing_game(
+                    existing_game,
+                    playtime_forever,
+                    playtime_2weeks,
+                )
+                return
+
             if not helpers.should_process_media(
                 self.existing_media,
                 self.to_delete,
@@ -286,6 +295,28 @@ class SteamImporter:
             self.bulk_media_updates[MediaTypes.GAME.value].append(game)
             logger.debug("Queued Steam update for existing game %s", game)
 
+    def _sync_existing_game(self, game, playtime_forever, playtime_2weeks):
+        """Raise the playtime of an existing game and move its status forward.
+
+        The playtime tracked in Yamtrack can include time played outside Steam,
+        so it is never lowered.
+        """
+        status = self._determine_game_status(playtime_forever, playtime_2weeks)
+        changed = helpers.sync_existing_media(
+            game,
+            {"progress": playtime_forever, "status": status},
+        )
+
+        # Planned games that were played but not recently are paused, like in a
+        # fresh import, as paused isn't a status an import moves forward to
+        if game.status == Status.PLANNING.value and status == Status.PAUSED.value:
+            game.status = status
+            changed = True
+
+        if changed:
+            self.bulk_media_updates[MediaTypes.GAME.value].append(game)
+            logger.debug("Queued Steam sync for existing game %s", game)
+
     def _determine_game_status(self, playtime_forever, playtime_2weeks):
         """Determine game status based on Steam playtime data.
 
@@ -323,19 +354,6 @@ class SteamImporter:
             Sources.IGDB.value,
         )
 
-        logger.debug(
-            "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
-            game_name,
-            steam_appid,
-            igdb_game_id,
-        )
-        return {
-            "media_id": igdb_game_id,
-            "source": Sources.IGDB.value,
-            "media_type": MediaTypes.GAME.value,
-            "title": game_details.get("title", game_name),
-            "image": game_details["image"],
-        }
         logger.debug(
             "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
             game_name,

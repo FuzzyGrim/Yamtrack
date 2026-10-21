@@ -1,4 +1,5 @@
 from csv import DictReader, DictWriter
+from datetime import date
 from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -6,9 +7,12 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from app.models import (
     Book,
+    Item,
+    MediaTypes,
     Sources,
     Status,
 )
@@ -191,3 +195,75 @@ class ImportGoodreadsProviderErrors(TestCase):
             warnings,
         )
         self.assertIn("There was an error contacting the Hardcover API", warnings)
+
+
+class ImportGoodreadsNewMode(TestCase):
+    """Test that "new" mode only imports what is missing from Yamtrack."""
+
+    def setUp(self):
+        """Create user and an existing planned book for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+        item = Item.objects.create(
+            media_id="1215032",
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            title="The Wise Man's Fear",
+            image="https://example.com/image.jpg",
+        )
+        Book.objects.bulk_create(
+            [Book(item=item, user=self.user, status=Status.PLANNING.value)],
+        )
+
+    @patch("integrations.imports.goodreads.GoodReadsImporter._search_book")
+    def run_import(self, mock_search_book, **fields):
+        """Run a GoodReads import in "new" mode of the existing book."""
+        mock_search_book.return_value = {
+            "media_id": "1215032",
+            "title": "The Wise Man's Fear",
+            "image": "https://example.com/image.jpg",
+        }
+
+        with Path(mock_path / "import_goodreads.csv").open(newline="") as file:
+            reader = DictReader(file)
+            row = next(row for row in reader if row["Exclusive Shelf"] == "read")
+        row.update(fields)
+
+        buffer = StringIO(newline="")
+        writer = DictWriter(buffer, fieldnames=reader.fieldnames)
+        writer.writeheader()
+        writer.writerow(row)
+
+        return goodreads.importer(
+            BytesIO(buffer.getvalue().encode()),
+            self.user,
+            "new",
+        )
+
+    def test_read_book_is_completed(self):
+        """A planned book read on GoodReads is completed with its rating."""
+        imported_counts, _ = self.run_import(
+            **{"My Rating": "4", "Number of Pages": "994", "Date Read": "2024/05/01"},
+        )
+
+        book = Book.objects.get(user=self.user)
+        self.assertEqual(imported_counts, {})
+        self.assertEqual(book.status, Status.COMPLETED.value)
+        self.assertEqual(book.score, 8)
+        self.assertEqual(book.progress, 994)
+        self.assertEqual(timezone.localdate(book.end_date), date(2024, 5, 1))
+
+    def test_existing_values_are_kept(self):
+        """The status and score tracked in Yamtrack are not overwritten."""
+        Book.objects.filter(user=self.user).update(
+            status=Status.PAUSED.value,
+            score=5,
+        )
+
+        self.run_import(**{"My Rating": "4"})
+
+        book = Book.objects.get(user=self.user)
+        self.assertEqual(book.status, Status.PAUSED.value)
+        self.assertEqual(book.score, 5)
+        self.assertIsNone(book.end_date)

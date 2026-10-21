@@ -585,27 +585,18 @@ class SimklImporter:
 
     def _sync_existing_anime(self, existing_anime, anime, anime_status):
         """Raise the progress of an existing anime and fill what it is missing."""
-        self._sync_existing(
-            MediaTypes.ANIME.value,
+        if helpers.sync_existing_media(
             existing_anime,
-            anime,
-            anime_status,
-        )
-
-        progress = anime["watched_episodes_count"] or 0
-        if progress > existing_anime.progress:
-            existing_anime.progress = progress
-            existing_anime.progressed_at = timezone.now()
+            {
+                "status": anime_status,
+                "score": anime["user_rating"],
+                "notes": self._get_notes(anime),
+                "progress": anime["watched_episodes_count"],
+                "start_date": self._get_start_date(anime),
+                "end_date": self._get_date(anime.get("last_watched_at")),
+            },
+        ):
             self.to_update[MediaTypes.ANIME.value][existing_anime.pk] = existing_anime
-
-        if existing_anime.pk not in self.to_update[MediaTypes.ANIME.value]:
-            return
-
-        if existing_anime.end_date is None:
-            existing_anime.end_date = self._get_end_date(
-                existing_anime.status,
-                anime.get("last_watched_at"),
-            )
 
     def _process_anime_list(self, anime_list):
         """Process anime list from Simkl."""
