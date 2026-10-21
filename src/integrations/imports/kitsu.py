@@ -265,7 +265,7 @@ class KitsuImporter:
                 return
             repeats_count = missing - 1
 
-        for _ in range(repeats_count):
+        for _count in range(repeats_count):
             instance = model(
                 item=item,
                 user=self.user,

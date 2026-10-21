@@ -333,7 +333,7 @@ class AniListImporter:
                 return
             repeats_count = missing - 1
 
-        item, _ = app.models.Item.objects.get_or_create(
+        item, _created = app.models.Item.objects.get_or_create(
             media_id=media_id,
             source=Sources.MAL.value,
             media_type=media_type,
@@ -350,7 +350,7 @@ class AniListImporter:
         )
 
         # Add completed repeats
-        for _ in range(repeats_count):
+        for _count in range(repeats_count):
             instance = model(
                 item=item,
                 user=self.user,

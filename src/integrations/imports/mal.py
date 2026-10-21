@@ -192,7 +192,7 @@ class MyAnimeListImporter:
                 return
             repeats = missing - 1
 
-        item, _ = app.models.Item.objects.get_or_create(
+        item, _created = app.models.Item.objects.get_or_create(
             media_id=media_id,
             source=Sources.MAL.value,
             media_type=media_type,
@@ -206,7 +206,7 @@ class MyAnimeListImporter:
         updated_at = parse_datetime(list_status.get("updated_at"))
 
         # Add completed repeats
-        for _ in range(repeats):
+        for _count in range(repeats):
             instance = model(
                 item=item,
                 user=self.user,

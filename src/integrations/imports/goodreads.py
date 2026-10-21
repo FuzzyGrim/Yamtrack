@@ -160,7 +160,7 @@ class GoodReadsImporter:
                 self.to_update[MediaTypes.BOOK.value][existing.pk] = existing
             return
 
-        item, _ = self._create_or_update_item(book)
+        item, _created = self._create_or_update_item(book)
 
         # Check if we should process this entry based on mode
         if not helpers.should_process_media(

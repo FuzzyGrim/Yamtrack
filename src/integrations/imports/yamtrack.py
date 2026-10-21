@@ -181,7 +181,7 @@ class YamtrackImporter:
             if self.mode == "new"
             else app.models.Item.objects.update_or_create
         )
-        item, _ = get_item(
+        item, _created = get_item(
             media_id=row["media_id"],
             source=row["source"],
             media_type=media_type,

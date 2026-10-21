@@ -146,16 +146,12 @@ class IMDBImporter:
         if not self._is_supported_type(title_type):
             if title_type in UNSUPPORTED_TYPES:
                 self.warnings.append(
-                    _(
-                        "%(title)s: Unsupported title type '%(title_type)s' - skipped"
-                    )
+                    _("%(title)s: Unsupported title type '%(title_type)s' - skipped")
                     % {"title": title, "title_type": title_type}
                 )
             else:
                 self.warnings.append(
-                    _(
-                        "%(title)s: Unknown title type '%(title_type)s' - skipped"
-                    )
+                    _("%(title)s: Unknown title type '%(title_type)s' - skipped")
                     % {"title": title, "title_type": title_type}
                 )
             return
