@@ -1,7 +1,6 @@
 from django import template
 from django.templatetags.static import static
 from django.utils.html import format_html
-from django.utils.translation import gettext_lazy as _
 
 register = template.Library()
 
