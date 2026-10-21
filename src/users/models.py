@@ -323,6 +323,14 @@ class User(AbstractUser):
         help_text="Date to use when bulk-marking media as completed",
     )
 
+    complete_season_on_last_episode = models.BooleanField(
+        default=True,
+        help_text=(
+            "Marking the last episode of a season as watched sets the "
+            "season as completed"
+        ),
+    )
+
     date_format = models.CharField(
         max_length=20,
         default=DateFormatChoices.ISO,
