@@ -98,6 +98,20 @@ class UserUpdatePreferenceTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.tv_enabled, False)
 
+    def test_update_preference_home_hide_unavailable_to_stream(self):
+        """Test update_preference with the hide-unavailable-to-stream toggle."""
+        self.user.home_hide_unavailable_to_stream = False
+        self.user.save()
+
+        result = self.user.update_preference(
+            field_name="home_hide_unavailable_to_stream",
+            new_value=True,
+        )
+
+        self.assertEqual(result, True)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.home_hide_unavailable_to_stream, True)
+
     def test_update_preference_last_search_type_valid(self):
         """Test update_preference with last_search_type and valid value."""
         # Set initial value

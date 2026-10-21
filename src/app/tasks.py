@@ -5,9 +5,16 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
+from app import stream_availability_sync
 from app.models import UserMessage
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task(name="Refresh stream availability")
+def refresh_stream_availability(*, force=False):
+    """Backfill and periodically refresh watch-provider availability."""
+    return stream_availability_sync.refresh_stream_availability(force=force)
 
 
 @shared_task(name="Cleanup user messages")
