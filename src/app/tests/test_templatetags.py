@@ -142,6 +142,9 @@ class AppTagsTests(TestCase):
                     expected_plurals[media_type],
                 )
 
+        with self.assertRaises(KeyError):
+            app_tags.media_type_readable_plural("unknown")
+
     def test_default_source(self):
         """Test the default_source filter."""
         # Test all media types from the MediaTypes class
