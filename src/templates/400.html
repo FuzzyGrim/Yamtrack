@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load app_tags %}
 {% load i18n %}
 
 {% block title %}
@@ -16,14 +17,19 @@
           {% trans "The server could not understand the request due to invalid syntax or missing parameters." %}
         </p>
         <p class="text-sm text-gray-500 mb-6">
-          {% blocktrans trimmed with link_start='<a href="https://github.com/fuzzygrim/yamtrack/issues">'|safe link_end='</a>'|safe %}
-          If you believe this was a bug, please {{ link_start }}report the issue{{ link_end }}.
-          {% endblocktrans %}
+          {# Translators: In "If you believe this was a bug, please report the issue.", this is the linked text. #}
+          {% trans "report the issue." as issue_link_label %}
+          {% with html_class="text-indigo-400 hover:underline" %}
+            {% inline_link "https://github.com/fuzzygrim/yamtrack/issues" html_class issue_link_label new_tab=True as issue_link %}
+            {% blocktrans trimmed %}
+              If you believe this was a bug, please {{ issue_link }}
+            {% endblocktrans %}
+          {% endwith %}
         </p>
       </div>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="{% url 'home' %}"
-          class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+           class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
           {% include "app/icons/house.svg" with classes="w-5 h-5" %}
           <span>{% trans "Back to Home" %}</span></a>
       </div>

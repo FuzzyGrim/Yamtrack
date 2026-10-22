@@ -429,3 +429,27 @@ class AppTagsTests(TestCase):
         for seconds, expected in cases:
             with self.subTest(seconds=seconds):
                 self.assertEqual(app_tags.seconds_to_duration(seconds), expected)
+
+    def test_inline_link(self):
+        """Test inline_link builds an escaped link."""
+        result = app_tags.inline_link("/path?a=1&b=2", "text-indigo-400", "<label>")
+
+        self.assertEqual(
+            result,
+            '<a href="/path?a=1&amp;b=2" class="text-indigo-400">&lt;label&gt;</a>',
+        )
+
+    def test_inline_link_new_tab(self):
+        """Test inline_link with new_tab opens the link in a new tab."""
+        result = app_tags.inline_link(
+            "https://example.com",
+            "text-indigo-400",
+            "label",
+            new_tab=True,
+        )
+
+        self.assertEqual(
+            result,
+            '<a href="https://example.com" class="text-indigo-400" '
+            'target="_blank" rel="noopener noreferrer">label</a>',
+        )

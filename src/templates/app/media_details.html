@@ -677,10 +677,13 @@
               <h2 class="text-xl font-bold mb-4">{% trans "Streaming" %}</h2>
               {% if watch_provider_region == "UNSET" %}
                 {% url 'preferences' as preferences_url %}
+                {# Translators: In "Watch provider region is not configured. Set a region or disable this feature in preferences.", this is the linked text. #}
                 {% trans "preferences" as link_label %}
                 {% with html_class="text-indigo-400 hover:text-indigo-300 hover:underline" %}
                   {% inline_link preferences_url html_class link_label as preferences_link %}
-                  {% blocktrans trimmed %}Watch provider region is not configured. Set a region or disable this feature in {{ preferences_link }}.{% endblocktrans %}
+                  {% blocktrans trimmed %}
+                    Watch provider region is not configured. Set a region or disable this feature in {{ preferences_link }}.
+                  {% endblocktrans %}
                 {% endwith %}
               {% else %}
                 <div class="flex flex-wrap gap-3">

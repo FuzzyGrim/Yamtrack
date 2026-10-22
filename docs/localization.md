@@ -63,3 +63,36 @@ Recommended contribution flow:
 
 !!! warning IMPORTANT
     If you modify an existing language, you need test it by running the development server and switching to the new language from the app language selector. More infos at [General setup](development.md#general-setup).
+
+### Translating strings with links
+
+Use the `inline_link` template tag when a translated sentence contains a link. It builds an HTML anchor with `format_html`, so the URL, CSS class, and translated label are escaped safely. The HTML stays out of the `.po` message and translators can move the link placeholder to fit their language.
+
+Load `app_tags`, define the URL and translated label, then assign the tag output to a variable for use in `blocktrans`:
+
+```django
+{% load app_tags i18n %}
+
+{% url 'url-of-page' as test_url %}
+{# Translators: In "Watch provider region is not configured. Set a region or disable this feature in clickable text of the link.", this is the linked text. #}
+{% trans "clickable text of the link" as link_label %}
+{% with html_class="text-indigo-400 hover:text-indigo-300 hover:underline" %}
+    {% inline_link test_url html_class link_label as test_link %}
+    {% blocktrans trimmed %}
+        Watch provider region is not configured. Set a region or disable this feature in {{ test_link }}.
+    {% endblocktrans %}
+{% endwith %}
+```
+
+The extracted message contains a placeholder such as `%(test_link)s`, not the anchor markup. Keep the link label in its own `{% trans %}` string so it can be translated independently. Add a `{# Translators: ... #}` comment immediately before that string, giving the complete sentence and explaining which words form the link; Django includes this comment in the `.po` file with the label. `inline_link` is a simple tag, not a filter: pass its three arguments separated by spaces, then use `as` to capture its output. Avoid marking arbitrary values safe; `inline_link` handles escaping through `format_html`.
+
+For external pages, add `new_tab=True` so the link opens in a new tab with `target="_blank" rel="noopener noreferrer"`:
+
+```django
+{% trans "link" as repository_link_label %}
+{% inline_link "https://example.com/manifest.json" html_class repository_link_label new_tab=True as repository_link %}
+{% blocktrans trimmed %}
+    Add this repository {{ repository_link }} to your "Plugins Catalog" in Jellyfin settings.
+{% endblocktrans %}
+```
+

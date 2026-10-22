@@ -64,8 +64,18 @@ def slug(arg1):
 
 
 @register.simple_tag
-def inline_link(url, html_class, label):
-    """Build a safely escaped link fragment for translated template text."""
+def inline_link(url, html_class, label, *, new_tab=False):
+    """Build a safely escaped link fragment for translated template text.
+
+    With new_tab=True the link opens in a new tab, for external pages.
+    """
+    if new_tab:
+        return format_html(
+            '<a href="{}" class="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            url,
+            html_class,
+            label,
+        )
     return format_html('<a href="{}" class="{}">{}</a>', url, html_class, label)
 
 

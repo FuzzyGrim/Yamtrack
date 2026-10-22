@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load app_tags %}
 {% load i18n %}
 
 {% block title %}
@@ -20,31 +21,36 @@
           <p class="text-sm text-gray-400">
             {% blocktrans trimmed with code_start='<code class="bg-[#39404b] px-1 py-0.5 rounded">'|safe code_end='</code>'|safe %}
             If you're accessing YamTrack through a reverse proxy, you need to set the {{ code_start }}URLS{{ code_end }} environment variable to your application URL.
-          {% endblocktrans %}
-        </p>
+{% endblocktrans %}
+</p>
 
-        <p class="text-sm text-gray-400 mt-2">
-          {% trans "For example " %}, <code class="bg-[#39404b] px-1 py-0.5 rounded">https://yamtrack.mydomain.com</code>.
-        </p>
-      </div>
-      <p class="text-sm text-gray-500 mb-6">
-        {% blocktrans trimmed with link_start='<a href="https://github.com/fuzzygrim/yamtrack/issues">'|safe link_end='</a>'|safe %}
-          If you believe this was a bug, please {{ link_start }}report the issue{{ link_end }}.
-        {% endblocktrans %}
-      </p>
-    </div>
-    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-      <a href="{% url 'account_login' %}"
-         class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-        {% include "app/icons/padlock.svg" with classes="w-5 h-5" %}
-        <span>{% trans "Log In" %}</span></a>
+<p class="text-sm text-gray-400 mt-2">
+  {% trans "For example " %}, <code class="bg-[#39404b] px-1 py-0.5 rounded">https://yamtrack.mydomain.com</code>.
+</p>
+</div>
+<p class="text-sm text-gray-500 mb-6">
+  {# Translators: In "If you believe this was a bug, please report the issue.", this is the linked text. #}
+  {% trans "report the issue." as issue_link_label %}
+  {% with html_class="text-indigo-400 hover:underline" %}
+    {% inline_link "https://github.com/fuzzygrim/yamtrack/issues" html_class issue_link_label new_tab=True as issue_link %}
+    {% blocktrans trimmed %}
+      If you believe this was a bug, please {{ issue_link }}
+    {% endblocktrans %}
+  {% endwith %}
+</p>
+</div>
+<div class="flex flex-col sm:flex-row gap-4 justify-center">
+  <a href="{% url 'account_login' %}"
+     class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+    {% include "app/icons/padlock.svg" with classes="w-5 h-5" %}
+    <span>{% trans "Log In" %}</span></a>
 
-      <a href="{% url 'home' %}"
-         class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
-        {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-        <span>{% trans "Back to Home" %}</span></a>
-    </div>
-  </div>
+  <a href="{% url 'home' %}"
+     class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
+    {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+    <span>{% trans "Back to Home" %}</span></a>
+</div>
+</div>
 </div>
 {% endblock body %}
 
