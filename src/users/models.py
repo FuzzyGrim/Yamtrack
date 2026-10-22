@@ -1,5 +1,6 @@
 import secrets
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -342,6 +343,12 @@ class User(AbstractUser):
         default=WeekStartDayChoices.MONDAY,
         choices=WeekStartDayChoices,
         help_text="First day of the week",
+    )
+
+    language = models.CharField(
+        max_length=15,
+        default=settings.LANGUAGE_CODE,
+        help_text=_("Preferred interface language"),
     )
 
     # Progress bar

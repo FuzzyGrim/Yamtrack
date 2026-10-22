@@ -15,14 +15,6 @@
     </div>
     <p class="text-gray-400 mb-5 text-sm">{% trans "Customize the look and behavior of the application." %}</p>
 
-    <form id="language-form"
-          action="{% url 'set_language' %}"
-          method="post"
-          class="hidden">
-      {% csrf_token %}
-      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-    </form>
-
     <form method="post">
       {% csrf_token %}
 
@@ -253,15 +245,11 @@
             </div>
             <p class="text-xs text-gray-400 ml-7">{% trans "Select your preferred language for the application interface." %}</p>
           </div>
-          {% get_current_language as CURRENT_LANGUAGE %}
           {% get_available_languages as AVAILABLE_LANGUAGES %}
           <select name="language"
-                  form="language-form"
-                  onchange="document.getElementById('language-form').submit()"
                   class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
             {% for code, name in AVAILABLE_LANGUAGES %}
-              <option value="{{ code }}"
-                      {% if code == CURRENT_LANGUAGE %}selected{% endif %}>{{ name }}</option>
+              <option value="{{ code }}" {% if code == user.language %}selected{% endif %}>{{ name }}</option>
             {% endfor %}
           </select>
         </div>

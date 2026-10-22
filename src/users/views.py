@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import translation
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -265,6 +266,9 @@ def preferences(request):
     week_start_day = request.POST.get("week_start_day")
     if week_start_day in WeekStartDayChoices.values:
         request.user.week_start_day = week_start_day
+    language = request.POST.get("language")
+    if language in dict(settings.LANGUAGES):
+        request.user.language = language
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     provider_region = request.POST.get("watch_provider_region", "")
@@ -283,6 +287,7 @@ def preferences(request):
 
     # Save changes and redirect
     request.user.save()
+    translation.activate(request.user.language)
     messages.success(request, _("Settings updated."))
 
     return redirect("preferences")

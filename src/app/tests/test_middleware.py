@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.middleware import AuthenticationMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory, TestCase, override_settings
+from django.urls import reverse
+from django.utils import translation
 
 from app.middleware import AutoLoginMiddleware
 
@@ -73,3 +75,40 @@ class AutoLoginMiddlewareTest(TestCase):
         self.run_middleware(request)
 
         self.assertFalse(request.user.is_authenticated)
+
+
+class UserLanguageMiddlewareTest(TestCase):
+    """Test cases for UserLanguageMiddleware."""
+
+    def setUp(self):
+        """Create a test user."""
+        # Requests activate a language that would otherwise leak into later tests
+        self.addCleanup(translation.deactivate)
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = UserModel.objects.create_user(**self.credentials)
+
+    def test_authenticated_user_language(self):
+        """Test the user's saved language is used for authenticated users."""
+        self.user.language = "it"
+        self.user.save()
+        self.client.login(**self.credentials)
+
+        response = self.client.get(reverse("lists"), headers={"accept-language": "en"})
+
+        self.assertEqual(response.headers["Content-Language"], "it")
+
+    def test_authenticated_user_ignores_accept_language(self):
+        """Test the browser language doesn't override the saved language."""
+        self.client.login(**self.credentials)
+
+        response = self.client.get(reverse("lists"), headers={"accept-language": "it"})
+
+        self.assertEqual(response.headers["Content-Language"], "en")
+
+    def test_anonymous_user_accept_language(self):
+        """Test anonymous users still get the browser language."""
+        response = self.client.get(
+            reverse("account_login"), headers={"accept-language": "it"}
+        )
+
+        self.assertEqual(response.headers["Content-Language"], "it")

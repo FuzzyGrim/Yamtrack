@@ -40,8 +40,8 @@ From the repository root, run:
 
 ```bash
 cd src
-uv run manage.py makemessages -d django -l en -l it
-uv run manage.py makemessages -d djangojs -l en -l it
+uv run manage.py makemessages -d django -l it
+uv run manage.py makemessages -d djangojs -l it
 ```
 
 You need to add all the supported languages with the `-l` flag.
@@ -96,3 +96,17 @@ For external pages, add `new_tab=True` so the link opens in a new tab with `targ
 {% endblocktrans %}
 ```
 
+### User language and background tasks
+
+The selected language is saved on the user account (`User.language`), not in a browser cookie. `app.middleware.UserLanguageMiddleware` activates it on every request of an authenticated user, so the browser's `Accept-Language` header is only used for anonymous pages such as the login page.
+
+Celery tasks run outside a request, so no language is active and every string falls back to `LANGUAGE_CODE`. When a task builds text that a user will read (import summaries and warnings, notifications), wrap that code in `translation.override(user.language)`:
+
+```python
+from django.utils import translation
+
+with translation.override(user.language):
+    message = _("Imported %(media_list)s.") % {"media_list": media_list}
+```
+
+For strings defined once and used for several users, such as a notification title, use `gettext_lazy` and convert them with `str()` inside the `override` block.
