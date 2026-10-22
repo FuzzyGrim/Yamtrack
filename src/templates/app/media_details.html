@@ -516,7 +516,7 @@
                     <p class="text-xs text-gray-400 mt-1">
                       {{ user_media.formatted_progress }}
                       {% if media.media_type != MediaTypes.GAME.value %}
-                        {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
+                        {{ media_type|unit_for_count:user_media.progress|lower }}
                       {% endif %}
                     </p>
                   {% endif %}

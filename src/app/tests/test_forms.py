@@ -1,11 +1,16 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import translation
 
 from app.forms import (
     AnimeForm,
+    BoardgameForm,
+    BookForm,
+    ComicForm,
     EpisodeForm,
     GameForm,
+    MangaForm,
     ManualItemForm,
     SeasonForm,
     TvForm,
@@ -28,7 +33,6 @@ class BasicMediaForm(TestCase):
             title="Test Anime",
             image="http://example.com/image.jpg",
         )
-
         Item.objects.create(
             media_id="1",
             source=Sources.TMDB.value,
@@ -36,6 +40,23 @@ class BasicMediaForm(TestCase):
             title="Test tv",
             image="http://example.com/image.jpg",
         )
+
+    def test_progress_unit_labels_are_translated(self):
+        """Progress form labels use translated plural units."""
+        expected_labels = {
+            MangaForm: "Progresso (Capitoli)",
+            BookForm: "Progresso (Pagine)",
+            ComicForm: "Progresso (Numeri)",
+            BoardgameForm: "Progresso (Partite)",
+        }
+
+        with translation.override("it"):
+            for form_class, expected_label in expected_labels.items():
+                with self.subTest(form=form_class.__name__):
+                    self.assertEqual(
+                        form_class().fields["progress"].label,
+                        expected_label,
+                    )
 
     def test_valid_media_form(self):
         """Test the standard media form with valid data."""

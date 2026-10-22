@@ -2,8 +2,9 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
 
+from app import config
 from app.models import Item, MediaTypes, Sources
 from app.templatetags import app_tags
 
@@ -167,8 +168,82 @@ class AppTagsTests(TestCase):
         for media_type in MediaTypes.values:
             result = app_tags.media_past_verb(media_type)
 
-            # Check that it returns a non-empty string
-            self.assertTrue(isinstance(result, str))
+            # Lazy translations resolve to strings when rendered.
+            self.assertTrue(str(result))
+
+    def test_media_verbs_are_translated(self):
+        """Translate configured present and past verbs into Italian."""
+        expected_verbs = {
+            MediaTypes.TV.value: ("guardare", "guardato"),
+            MediaTypes.SEASON.value: ("guardare", "guardato"),
+            MediaTypes.EPISODE.value: ("guardare", "guardato"),
+            MediaTypes.MOVIE.value: ("guardare", "guardato"),
+            MediaTypes.ANIME.value: ("guardare", "guardato"),
+            MediaTypes.MANGA.value: ("leggere", "letto"),
+            MediaTypes.GAME.value: ("giocare", "giocato"),
+            MediaTypes.BOOK.value: ("leggere", "letto"),
+            MediaTypes.COMIC.value: ("leggere", "letto"),
+            MediaTypes.BOARDGAME.value: ("giocare", "giocato"),
+        }
+
+        with translation.override("it"):
+            for media_type, expected in expected_verbs.items():
+                with self.subTest(media_type=media_type):
+                    self.assertEqual(
+                        config.get_translated_verb(media_type, past_tense=False),
+                        expected[0],
+                    )
+                    self.assertEqual(
+                        config.get_translated_verb(media_type, past_tense=True),
+                        expected[1],
+                    )
+
+    def test_media_units_are_translated(self):
+        """Translate singular and plural units into Italian."""
+        expected_units = {
+            MediaTypes.SEASON.value: ("Episodio", "Episodi"),
+            MediaTypes.ANIME.value: ("Episodio", "Episodi"),
+            MediaTypes.MANGA.value: ("Capitolo", "Capitoli"),
+            MediaTypes.BOOK.value: ("Pagina", "Pagine"),
+            MediaTypes.COMIC.value: ("Numero", "Numeri"),
+            MediaTypes.BOARDGAME.value: ("Partita", "Partite"),
+        }
+        expected_short_units = {
+            MediaTypes.SEASON.value: "E",
+            MediaTypes.ANIME.value: "E",
+            MediaTypes.MANGA.value: "#",
+            MediaTypes.BOOK.value: "P",
+            MediaTypes.COMIC.value: "#",
+            MediaTypes.BOARDGAME.value: "#",
+        }
+
+        with translation.override("it"):
+            for media_type, expected in expected_units.items():
+                with self.subTest(media_type=media_type):
+                    self.assertEqual(
+                        config.get_translated_unit(media_type),
+                        expected[0],
+                    )
+                    self.assertEqual(
+                        config.get_translated_unit(media_type, plural=True),
+                        expected[1],
+                    )
+                    self.assertEqual(
+                        app_tags.unit_for_count(media_type, 1),
+                        expected[0],
+                    )
+                    self.assertEqual(
+                        app_tags.unit_for_count(media_type, 2),
+                        expected[1],
+                    )
+                    self.assertEqual(
+                        config.get_translated_short_unit(media_type),
+                        expected_short_units[media_type],
+                    )
+                    self.assertEqual(
+                        app_tags.short_unit(media_type),
+                        expected_short_units[media_type],
+                    )
 
     def test_sample_search(self):
         """Test the sample_search filter."""

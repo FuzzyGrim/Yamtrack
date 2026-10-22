@@ -73,6 +73,26 @@ class MediaListViewTests(TestCase):
             app_tags.media_type_readable_plural(MediaTypes.MOVIE.value).lower(),
         )
 
+    def test_empty_media_list_labels_use_singular_and_plural(self):
+        """The empty state uses a singular title and plural description."""
+        self.user.language = "it"
+        self.user.save()
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.COMIC.value])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Nessun elemento di tipo Fumetto tracciato",
+        )
+        self.assertContains(
+            response,
+            "Inizia a tenere traccia di Fumetti per conservare uno storico "
+            "di ciò che hai letto.",
+        )
+
     def test_media_list_with_filters(self):
         """Test the media list view with filters."""
         response = self.client.get(

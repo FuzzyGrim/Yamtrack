@@ -125,10 +125,12 @@
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             {% include "app/icons/edit.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
-          <h3 class="text-xl font-semibold mb-2">{% blocktrans with media_plural=media_type|media_type_readable_plural %}No {{ media_plural }} Tracked Yet{% endblocktrans %}</h3>
+          <h3 class="text-xl font-semibold mb-2">{% blocktrans with media_type_label=media_type|media_type_readable %}No {{ media_type_label }} Tracked Yet{% endblocktrans %}</h3>
           {% if request.user == target_user %}
             <p class="text-gray-400 mb-6">
-              {% blocktrans with media_type=media_type|media_type_readable %}Start tracking your {{ media_type }} to keep a record of what you've {{ media_type|media_past_verb }}.{% endblocktrans %}
+              {% blocktrans trimmed with media_type_plural=media_type|media_type_readable_plural past_verb=media_type|media_past_verb %}
+                Start tracking your {{ media_type_plural }} to keep a record of what you've {{ past_verb }}.
+              {% endblocktrans %}
             </p>
             <a href="{{ media_type|sample_search }}"
                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
