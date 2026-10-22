@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.template.loader import get_template
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils import translation
 
 from app.models import MediaTypes
 from lists.models import CustomList
@@ -31,6 +32,8 @@ class PageRenderingPerLanguageTests(TestCase):
 
     def setUp(self):
         """Create a user with a custom list."""
+        # Requests activate a language that would otherwise leak into later tests
+        self.addCleanup(translation.deactivate)
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.custom_list = CustomList.objects.create(name="Test", owner=self.user)
@@ -69,13 +72,19 @@ class PageRenderingPerLanguageTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Language"], language)
+        catalog_url = f"{reverse('javascript-catalog')}?language={language}"
+        self.assertContains(
+            response,
+            f'<script src="{catalog_url}"></script>',
+        )
 
     def test_pages_render_for_each_language(self):
         """Render every logged-in page in each configured language."""
         self.client.login(**self.credentials)
 
         for language, _name in settings.LANGUAGES:
-            self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = language
+            self.user.language = language
+            self.user.save()
             for url in self._pages():
                 with self.subTest(language=language, url=url):
                     self._assert_renders(url, language)
