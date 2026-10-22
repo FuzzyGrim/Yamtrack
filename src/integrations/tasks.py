@@ -2,6 +2,7 @@ import logging
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
+from django.utils import translation
 from django.utils.translation import gettext as _
 
 import events
@@ -66,26 +67,29 @@ def import_media(
     """Handle the import process for different media services."""
     user = get_user_model().objects.get(id=user_id)
 
-    with disable_fetch_releases():
-        if oauth_username is None:
-            imported_counts, warnings = importer_func(
-                identifier,
-                user,
-                mode,
-                **kwargs,
-            )
-        else:
-            imported_counts, warnings = importer_func(
-                identifier,
-                user,
-                mode,
-                username=oauth_username,
-                **kwargs,
-            )
+    # Celery tasks run outside a request, so build the warnings, errors and
+    # summary in the user's language instead of LANGUAGE_CODE
+    with translation.override(user.language):
+        with disable_fetch_releases():
+            if oauth_username is None:
+                imported_counts, warnings = importer_func(
+                    identifier,
+                    user,
+                    mode,
+                    **kwargs,
+                )
+            else:
+                imported_counts, warnings = importer_func(
+                    identifier,
+                    user,
+                    mode,
+                    username=oauth_username,
+                    **kwargs,
+                )
 
-    events.tasks.reload_calendar.delay()
+        events.tasks.reload_calendar.delay()
 
-    return format_import_message(imported_counts, warnings)
+        return format_import_message(imported_counts, warnings)
 
 
 @shared_task(name="Import from Trakt")
