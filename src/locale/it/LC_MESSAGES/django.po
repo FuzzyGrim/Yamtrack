@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-22 23:21+0000\n"
-"PO-Revision-Date: 2026-10-23 01:26+0200\n"
+"POT-Creation-Date: 2026-10-22 23:37+0000\n"
+"PO-Revision-Date: 2026-10-23 01:31+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -256,10 +256,43 @@ msgstr "La stagione degli episodi è obbligatoria"
 msgid "Title is required for this media type"
 msgstr "Il titolo è obbligatorio per questo tipo di media"
 
-#: app/forms.py:259 app/forms.py:314 app/forms.py:329 app/forms.py:344
+#: app/forms.py:226 templates/app/create_entry.html:252
+#: templates/app/media_list.html:151
+msgid "Score"
+msgstr "Punteggio"
+
+#: app/forms.py:227 templates/app/create_entry.html:278
+#: templates/app/media_details.html:273 templates/app/media_list.html:153
+#: users/models.py:43
+msgid "Progress"
+msgstr "Progresso"
+
+#: app/forms.py:228 templates/app/create_entry.html:308
+#: templates/app/media_list.html:158
+msgid "Status"
+msgstr "Stato"
+
+#: app/forms.py:229
+msgid "Start date"
+msgstr "Data di inizio"
+
+#: app/forms.py:230
+msgid "End date"
+msgstr "Data di fine"
+
+#: app/forms.py:231 templates/app/components/fill_track_episode.html:116
+#: templates/app/create_entry.html:340
+msgid "Notes"
+msgstr "Note"
+
+#: app/forms.py:267 app/forms.py:322 app/forms.py:337 app/forms.py:352
 #, python-brace-format
 msgid "Progress ({unit})"
 msgstr "Progresso ({unit})"
+
+#: app/forms.py:304
+msgid "Progress (Time Played)"
+msgstr "Progresso (Tempo di gioco)"
 
 #: app/models.py:50
 msgid "Manual"
@@ -1072,11 +1105,6 @@ msgstr "Nessuna data fornita"
 msgid "Watch Date"
 msgstr "Visto il"
 
-#: templates/app/components/fill_track_episode.html:116
-#: templates/app/create_entry.html:340
-msgid "Notes"
-msgstr "Note"
-
 #: templates/app/components/fill_track_episode.html:121
 #: templates/app/create_entry.html:344
 msgid "Add any notes or comments..."
@@ -1234,19 +1262,6 @@ msgstr "URL dell'immagine"
 #: templates/app/create_entry.html:236
 msgid "Enter image URL"
 msgstr "Inserisci URL dell'immagine"
-
-#: templates/app/create_entry.html:252 templates/app/media_list.html:151
-msgid "Score"
-msgstr "Punteggio"
-
-#: templates/app/create_entry.html:278 templates/app/media_details.html:273
-#: templates/app/media_list.html:153 users/models.py:43
-msgid "Progress"
-msgstr "Progresso"
-
-#: templates/app/create_entry.html:308 templates/app/media_list.html:158
-msgid "Status"
-msgstr "Stato"
 
 #: templates/app/create_entry.html:322 templates/app/journal.html:63
 #: templates/app/media_list.html:159 templates/app/statistics.html:62

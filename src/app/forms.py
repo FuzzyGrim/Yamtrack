@@ -222,6 +222,14 @@ class MediaForm(forms.ModelForm):
     class Meta:
         """Define fields and input types."""
 
+        labels = {
+            "score": _("Score"),
+            "progress": _("Progress"),
+            "status": _("Status"),
+            "start_date": _("Start date"),
+            "end_date": _("End date"),
+            "notes": _("Notes"),
+        }
         fields = [
             "score",
             "progress",
@@ -293,7 +301,7 @@ class GameForm(MediaForm):
     progress = CustomDurationField(
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "hh:mm"}),
-        label="Progress (Time Played)",
+        label=_("Progress (Time Played)"),
     )
 
     class Meta(MediaForm.Meta):
