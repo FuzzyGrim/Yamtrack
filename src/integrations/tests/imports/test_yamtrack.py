@@ -87,6 +87,17 @@ test","2026-05-14 11:09:00+00:00","2026-05-14 11:09:00+00:00","10","2026-05-14 1
         tv = TV.objects.get(user=self.user, item__media_id="123192")
         self.assertEqual(tv.notes, "test\ntest")
 
+    @patch("integrations.imports.yamtrack.services.get_media_metadata")
+    def test_optional_columns_can_be_missing(self, mock_metadata):
+        """Test that a file with only the required columns imports."""
+        mock_metadata.return_value = {"title": "Dark", "image": "http://img/dark.jpg"}
+        csv_content = b"media_id,source,media_type,status\n65494,tmdb,tv,Planning\n"
+
+        yamtrack.importer(BytesIO(csv_content), self.user, "new")
+
+        tv = TV.objects.get(user=self.user, item__media_id="65494")
+        self.assertEqual(tv.status, Status.PLANNING.value)
+
     def test_missing_metadata_handling(self):
         """Test _handle_missing_metadata method directly."""
         test_rows = [

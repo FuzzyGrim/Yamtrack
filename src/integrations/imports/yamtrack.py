@@ -134,17 +134,17 @@ class YamtrackImporter:
         media_type = row["media_type"]
 
         season_number = (
-            int(row["season_number"]) if row["season_number"] != "" else None
+            int(row["season_number"]) if row.get("season_number", "") != "" else None
         )
         episode_number = (
-            int(row["episode_number"]) if row["episode_number"] != "" else None
+            int(row["episode_number"]) if row.get("episode_number", "") != "" else None
         )
 
-        if row["progress"] == "":
+        if row.get("progress", "") == "":
             row["progress"] = 0
 
         # Rows without an ID only get one from the metadata
-        if row["title"] == "" or row["image"] == "":
+        if row.get("title", "") == "" or row.get("image", "") == "":
             self._handle_missing_metadata(
                 row,
                 media_type,
@@ -342,7 +342,7 @@ class YamtrackImporter:
 
     def _handle_missing_metadata(self, row, media_type, season_number, episode_number):
         """Handle missing metadata by fetching from provider."""
-        if row["source"] == Sources.MANUAL.value and row["image"] == "":
+        if row["source"] == Sources.MANUAL.value and row.get("image", "") == "":
             row["image"] = settings.IMG_NONE
             return
 
