@@ -27,7 +27,10 @@ class ImportMediaLanguageTests(TestCase):
 
         result = import_media(importer, "identifier", self.user.id, "new")
 
-        self.assertEqual(result, "Nessun media è stato importato.")
+        with translation.override("it"):
+            expected = translation.gettext("No media was imported.")
+        self.assertNotEqual(expected, "No media was imported.")
+        self.assertEqual(result, expected)
 
     @patch("integrations.tasks.events.tasks.reload_calendar.delay")
     def test_importer_runs_in_user_language(self, _mock_reload_calendar):

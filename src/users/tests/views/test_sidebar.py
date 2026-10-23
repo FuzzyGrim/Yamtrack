@@ -215,9 +215,13 @@ class SidebarViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.language, "it")
 
+        with translation.override("it"):
+            expected_message = translation.gettext("Settings updated.")
+        self.assertNotEqual(expected_message, "Settings updated.")
+
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
-        self.assertEqual(str(messages[0]), "Impostazioni aggiornate.")
+        self.assertEqual(str(messages[0]), expected_message)
 
     def test_post_ignores_invalid_language(self):
         """Posting a language not in LANGUAGES leaves the value unchanged."""
