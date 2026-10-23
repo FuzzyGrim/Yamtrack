@@ -60,6 +60,12 @@ jobs:
           uv sync --locked --no-default-groups --group test
           uv run playwright install
 
+      - name: Compile translations
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext
+          cd src && uv run manage.py compilemessages
+
       - name: Set environment variables from secrets
         run: |
           if [ -n "${{ secrets.SECRET }}" ]; then echo "SECRET=${{ secrets.SECRET }}" >> $GITHUB_ENV; fi
