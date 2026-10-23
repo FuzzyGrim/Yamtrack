@@ -1,8 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
+from django.utils.translation import pgettext
 
 from app import config
 from app.models import Item, MediaTypes, Sources
@@ -172,78 +174,87 @@ class AppTagsTests(TestCase):
             self.assertTrue(str(result))
 
     def test_media_verbs_are_translated(self):
-        """Translate configured present and past verbs into Italian."""
-        expected_verbs = {
-            MediaTypes.TV.value: ("guardare", "guardato"),
-            MediaTypes.SEASON.value: ("guardare", "guardato"),
-            MediaTypes.EPISODE.value: ("guardare", "guardato"),
-            MediaTypes.MOVIE.value: ("guardare", "guardato"),
-            MediaTypes.ANIME.value: ("guardare", "guardato"),
-            MediaTypes.MANGA.value: ("leggere", "letto"),
-            MediaTypes.GAME.value: ("giocare", "giocato"),
-            MediaTypes.BOOK.value: ("leggere", "letto"),
-            MediaTypes.COMIC.value: ("leggere", "letto"),
-            MediaTypes.BOARDGAME.value: ("giocare", "giocato"),
+        """Each media type uses its own present and past verb in every language."""
+        verb_contexts = {
+            MediaTypes.TV.value: ("tv", "watch", "watched"),
+            MediaTypes.SEASON.value: ("season", "watch", "watched"),
+            MediaTypes.EPISODE.value: ("episode", "watch", "watched"),
+            MediaTypes.MOVIE.value: ("movie", "watch", "watched"),
+            MediaTypes.ANIME.value: ("anime", "watch", "watched"),
+            MediaTypes.MANGA.value: ("manga", "read", "read"),
+            MediaTypes.GAME.value: ("game", "play", "played"),
+            MediaTypes.BOOK.value: ("book", "read", "read"),
+            MediaTypes.COMIC.value: ("comic", "read", "read"),
+            MediaTypes.BOARDGAME.value: ("board game", "play", "played"),
         }
 
-        with translation.override("it"):
-            for media_type, expected in expected_verbs.items():
-                with self.subTest(media_type=media_type):
-                    self.assertEqual(
-                        config.get_translated_verb(media_type, past_tense=False),
-                        expected[0],
-                    )
-                    self.assertEqual(
-                        config.get_translated_verb(media_type, past_tense=True),
-                        expected[1],
-                    )
+        for language, _name in settings.LANGUAGES:
+            with translation.override(language):
+                for media_type, (context, present, past) in verb_contexts.items():
+                    with self.subTest(language=language, media_type=media_type):
+                        self.assertEqual(
+                            config.get_translated_verb(media_type, past_tense=False),
+                            pgettext(f"{context} tracking verb present", present),
+                        )
+                        self.assertEqual(
+                            config.get_translated_verb(media_type, past_tense=True),
+                            pgettext(f"{context} tracking verb past", past),
+                        )
+                        self.assertEqual(
+                            app_tags.media_past_verb(media_type),
+                            pgettext(f"{context} tracking verb past", past),
+                        )
 
     def test_media_units_are_translated(self):
-        """Translate singular and plural units into Italian."""
-        expected_units = {
-            MediaTypes.SEASON.value: ("Episodio", "Episodi"),
-            MediaTypes.ANIME.value: ("Episodio", "Episodi"),
-            MediaTypes.MANGA.value: ("Capitolo", "Capitoli"),
-            MediaTypes.BOOK.value: ("Pagina", "Pagine"),
-            MediaTypes.COMIC.value: ("Numero", "Numeri"),
-            MediaTypes.BOARDGAME.value: ("Partita", "Partite"),
-        }
-        expected_short_units = {
-            MediaTypes.SEASON.value: "E",
-            MediaTypes.ANIME.value: "E",
-            MediaTypes.MANGA.value: "#",
-            MediaTypes.BOOK.value: "P",
-            MediaTypes.COMIC.value: "#",
-            MediaTypes.BOARDGAME.value: "#",
+        """Each media type uses its own units in every language."""
+        unit_contexts = {
+            MediaTypes.SEASON.value: ("season", "Episode", "Episodes", "E"),
+            MediaTypes.ANIME.value: ("anime", "Episode", "Episodes", "E"),
+            MediaTypes.MANGA.value: ("manga", "Chapter", "Chapters", "#"),
+            MediaTypes.BOOK.value: ("book", "Page", "Pages", "P"),
+            MediaTypes.COMIC.value: ("comic", "Issue", "Issues", "#"),
+            MediaTypes.BOARDGAME.value: ("board game", "Play", "Plays", "#"),
         }
 
-        with translation.override("it"):
-            for media_type, expected in expected_units.items():
-                with self.subTest(media_type=media_type):
-                    self.assertEqual(
-                        config.get_translated_unit(media_type),
-                        expected[0],
-                    )
-                    self.assertEqual(
-                        config.get_translated_unit(media_type, plural=True),
-                        expected[1],
-                    )
-                    self.assertEqual(
-                        app_tags.unit_for_count(media_type, 1),
-                        expected[0],
-                    )
-                    self.assertEqual(
-                        app_tags.unit_for_count(media_type, 2),
-                        expected[1],
-                    )
-                    self.assertEqual(
-                        config.get_translated_short_unit(media_type),
-                        expected_short_units[media_type],
-                    )
-                    self.assertEqual(
-                        app_tags.short_unit(media_type),
-                        expected_short_units[media_type],
-                    )
+        for language, _name in settings.LANGUAGES:
+            with translation.override(language):
+                for media_type, units in unit_contexts.items():
+                    context, singular, plural, short = units
+                    with self.subTest(language=language, media_type=media_type):
+                        expected_singular = pgettext(
+                            f"{context} progress unit singular", singular
+                        )
+                        expected_plural = pgettext(
+                            f"{context} progress unit plural", plural
+                        )
+                        expected_short = pgettext(
+                            f"{context} progress unit short", short
+                        )
+
+                        self.assertEqual(
+                            config.get_translated_unit(media_type),
+                            expected_singular,
+                        )
+                        self.assertEqual(
+                            config.get_translated_unit(media_type, plural=True),
+                            expected_plural,
+                        )
+                        self.assertEqual(
+                            app_tags.unit_for_count(media_type, 1),
+                            expected_singular,
+                        )
+                        self.assertEqual(
+                            app_tags.unit_for_count(media_type, 2),
+                            expected_plural,
+                        )
+                        self.assertEqual(
+                            config.get_translated_short_unit(media_type),
+                            expected_short,
+                        )
+                        self.assertEqual(
+                            app_tags.short_unit(media_type),
+                            expected_short,
+                        )
 
     def test_sample_search(self):
         """Test the sample_search filter."""

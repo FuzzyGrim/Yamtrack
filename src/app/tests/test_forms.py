@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import translation
 
+from app import config
 from app.forms import (
     AnimeForm,
     BoardgameForm,
@@ -42,21 +43,27 @@ class BasicMediaForm(TestCase):
         )
 
     def test_progress_unit_labels_are_translated(self):
-        """Progress form labels use translated plural units."""
-        expected_labels = {
-            MangaForm: "Progresso (Capitoli)",
-            BookForm: "Progresso (Pagine)",
-            ComicForm: "Progresso (Numeri)",
-            BoardgameForm: "Progresso (Partite)",
+        """Progress labels follow the active language, not the one at import."""
+        form_media_types = {
+            MangaForm: MediaTypes.MANGA.value,
+            BookForm: MediaTypes.BOOK.value,
+            ComicForm: MediaTypes.COMIC.value,
+            BoardgameForm: MediaTypes.BOARDGAME.value,
         }
 
-        with translation.override("it"):
-            for form_class, expected_label in expected_labels.items():
-                with self.subTest(form=form_class.__name__):
-                    self.assertEqual(
-                        form_class().fields["progress"].label,
-                        expected_label,
-                    )
+        for language, _name in settings.LANGUAGES:
+            with translation.override(language):
+                for form_class, media_type in form_media_types.items():
+                    with self.subTest(language=language, form=form_class.__name__):
+                        expected_label = translation.gettext(
+                            "Progress ({unit})"
+                        ).format(
+                            unit=config.get_translated_unit(media_type, plural=True)
+                        )
+                        self.assertEqual(
+                            form_class().fields["progress"].label,
+                            expected_label,
+                        )
 
     def test_valid_media_form(self):
         """Test the standard media form with valid data."""
