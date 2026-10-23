@@ -96,6 +96,17 @@ For external pages, add `new_tab=True` so the link opens in a new tab with `targ
 {% endblocktrans %}
 ```
 
+### Translating strings with inline code
+
+Use `inline_code` for inline code or configuration values inside a translated sentence. Like `inline_link`, it creates one escaped HTML fragment so translators can move the placeholder without handling HTML tags:
+
+```django
+{% inline_code "URLS" "bg-[#39404b] px-1 py-0.5 rounded" as urls_code %}
+{% blocktrans trimmed %}
+    Set the {{ urls_code }} environment variable to your application URL.
+{% endblocktrans %}
+```
+
 ### User language and background tasks
 
 The selected language is saved on the user account (`User.language`), not in a browser cookie. `app.middleware.UserLanguageMiddleware` activates it on every request of an authenticated user, so the browser's `Accept-Language` header is only used for anonymous pages such as the login page.

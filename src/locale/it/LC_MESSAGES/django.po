@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-22 23:37+0000\n"
-"PO-Revision-Date: 2026-10-23 10:38+0200\n"
+"PO-Revision-Date: 2026-10-23 17:53+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -956,11 +956,10 @@ msgstr "Stai utilizzando un reverse proxy?"
 #, python-format
 msgid ""
 "If you're accessing YamTrack through a reverse proxy, you need to set the "
-"%(code_start)sURLS%(code_end)s environment variable to your application URL."
+"%(urls_code)s environment variable to your application URL."
 msgstr ""
 "Se stai accedendo a YamTrack tramite un reverse proxy, devi impostare la "
-"variabile d'ambiente %(code_start)sURLS%(code_end)s con l'URL della tua "
-"applicazione."
+"variabile d'ambiente %(urls_code)s con l'URL della tua applicazione."
 
 #: templates/403_csrf.html:28
 msgid "For example "
@@ -2664,12 +2663,8 @@ msgstr "E molti altri..."
 
 #: templates/users/notifications.html:59
 #, python-format
-msgid ""
-"Enter one URL per line. Example: %(code_start)sdiscord://webhook_id/"
-"webhook_token%(code_end)s"
-msgstr ""
-"Inserisci un URL per riga. Esempio: %(code_start)sdiscord://webhook_id/"
-"webhook_token%(code_end)s"
+msgid "Enter one URL per line. Example: %(webhook_example)s"
+msgstr "Inserisci un URL per riga. Esempio: %(webhook_example)s"
 
 #: templates/users/notifications.html:67
 msgid ""

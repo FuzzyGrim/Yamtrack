@@ -79,6 +79,12 @@ def inline_link(url, html_class, label, *, new_tab=False):
     return format_html('<a href="{}" class="{}">{}</a>', url, html_class, label)
 
 
+@register.simple_tag
+def inline_code(text, html_class):
+    """Build a safely escaped code fragment for translated template text."""
+    return format_html('<code class="{}">{}</code>', html_class, text)
+
+
 @register.filter
 def date_format(datetime, user):
     """Format a datetime using user's preferred date format (date only, no time).

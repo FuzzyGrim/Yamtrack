@@ -528,3 +528,12 @@ class AppTagsTests(TestCase):
             '<a href="https://example.com" class="text-indigo-400" '
             'target="_blank" rel="noopener noreferrer">label</a>',
         )
+
+    def test_inline_code(self):
+        """Test inline_code builds an escaped code fragment."""
+        result = app_tags.inline_code("<URLS>", "text-indigo-400")
+
+        self.assertEqual(
+            result,
+            '<code class="text-indigo-400">&lt;URLS&gt;</code>',
+        )
