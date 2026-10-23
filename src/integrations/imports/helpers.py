@@ -10,6 +10,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
@@ -337,7 +338,7 @@ def cleanup_existing_media(to_delete, user):
             if not media_ids:
                 continue
 
-            deleted_count, _ = model.objects.filter(
+            deleted_count, _deleted_objects = model.objects.filter(
                 item__media_id__in=media_ids,
                 item__source=source,
                 user=user,
@@ -492,18 +493,18 @@ def create_import_schedule(
             .time()
         )
     except ValueError:
-        messages.error(request, "Invalid import time.")
+        messages.error(request, _("Invalid import time."))
         return
 
     task_name = f"Import from {source} for {username} at {import_time} {frequency}"
     if PeriodicTask.objects.filter(name=task_name).exists():
         messages.error(
             request,
-            "The same import task is already scheduled.",
+            _("The same import task is already scheduled."),
         )
         return
 
-    crontab, _ = CrontabSchedule.objects.get_or_create(
+    crontab, _created = CrontabSchedule.objects.get_or_create(
         hour=import_time.hour,
         minute=import_time.minute,
         day_of_week="*" if frequency == "daily" else "*/2",
@@ -527,7 +528,9 @@ def create_import_schedule(
         kwargs=json.dumps(kwargs),
         start_time=timezone.now(),
     )
-    messages.success(request, f"{source} import task scheduled.")
+    messages.success(
+        request, _("%(source)s import task scheduled.") % {"source": source}
+    )
 
 
 def join_with_commas_and(items):

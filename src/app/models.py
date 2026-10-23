@@ -21,6 +21,7 @@ from django.db.models import (
 )
 from django.db.models.functions import RowNumber
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
 from simple_history.models import HistoricalRecords
@@ -46,22 +47,22 @@ class Sources(models.TextChoices):
     HARDCOVER = "hardcover", "Hardcover"
     COMICVINE = "comicvine", "Comic Vine"
     BGG = "bgg", "BoardGameGeek"
-    MANUAL = "manual", "Manual"
+    MANUAL = "manual", _("Manual")
 
 
 class MediaTypes(models.TextChoices):
     """Choices for the media type of the item."""
 
-    TV = "tv", "TV Show"
-    SEASON = "season", "TV Season"
-    EPISODE = "episode", "Episode"
-    MOVIE = "movie", "Movie"
-    ANIME = "anime", "Anime"
-    MANGA = "manga", "Manga"
-    GAME = "game", "Game"
-    BOOK = "book", "Book"
-    COMIC = "comic", "Comic"
-    BOARDGAME = "boardgame", "Boardgame"
+    TV = "tv", _("TV Show")
+    SEASON = "season", _("TV Season")
+    EPISODE = "episode", _("Episode")
+    MOVIE = "movie", _("Movie")
+    ANIME = "anime", _("Anime")
+    MANGA = "manga", _("Manga")
+    GAME = "game", _("Game")
+    BOOK = "book", _("Book")
+    COMIC = "comic", _("Comic")
+    BOARDGAME = "boardgame", _("Boardgame")
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -771,20 +772,20 @@ class MediaManager(models.Manager):
 class Status(models.TextChoices):
     """Choices for item status."""
 
-    COMPLETED = "Completed", "Completed"
-    IN_PROGRESS = "In progress", "In Progress"
-    PLANNING = "Planning", "Planning"
-    PAUSED = "Paused", "Paused"
-    DROPPED = "Dropped", "Dropped"
+    COMPLETED = "Completed", _("Completed")
+    IN_PROGRESS = "In progress", _("In Progress")
+    PLANNING = "Planning", _("Planning")
+    PAUSED = "Paused", _("Paused")
+    DROPPED = "Dropped", _("Dropped")
 
 
 class UserMessageLevel(models.TextChoices):
     """Choices for persistent user messages."""
 
-    SUCCESS = "success", "Success"
-    WARNING = "warning", "Warning"
-    ERROR = "error", "Error"
-    INFO = "info", "Info"
+    SUCCESS = "success", _("Success")
+    WARNING = "warning", _("Warning")
+    ERROR = "error", _("Error")
+    INFO = "info", _("Info")
 
 
 class UserMessage(models.Model):
@@ -1096,7 +1097,7 @@ class TV(Media):
         for season_number in season_numbers:
             season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-            item, _ = Item.objects.get_or_create(
+            item, _created = Item.objects.get_or_create(
                 media_id=self.item.media_id,
                 source=self.item.source,
                 media_type=MediaTypes.SEASON.value,
@@ -1236,7 +1237,7 @@ class TV(Media):
                 continue
 
             if next_unwatched_season is None:
-                item, _ = Item.objects.get_or_create(
+                item, _created = Item.objects.get_or_create(
                     media_id=self.item.media_id,
                     source=self.item.source,
                     media_type=MediaTypes.SEASON.value,
@@ -1650,7 +1651,7 @@ class Season(Media):
             else:
                 status = self.status
 
-            item, _ = Item.objects.get_or_create(
+            item, _created = Item.objects.get_or_create(
                 media_id=self.item.media_id,
                 source=Sources.TMDB.value,
                 media_type=MediaTypes.TV.value,
@@ -1736,7 +1737,7 @@ class Season(Media):
                     image = settings.IMG_NONE
                 break
 
-        item, _ = Item.objects.get_or_create(
+        item, _created = Item.objects.get_or_create(
             media_id=self.item.media_id,
             source=self.item.source,
             media_type=MediaTypes.EPISODE.value,

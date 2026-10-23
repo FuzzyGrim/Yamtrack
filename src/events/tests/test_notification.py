@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.test import TestCase, override_settings
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.utils.translation import gettext_lazy
 
 from app.models import TV, Anime, Item, Manga, MediaTypes, Season, Sources, Status
 from events.models import Event
@@ -1148,3 +1149,35 @@ class NotificationTests(TestCase):
 
         # Verify the result message
         self.assertEqual(result, "Daily digest sent for 5 releases")
+
+    @patch("apprise.Apprise")
+    def test_send_notifications_in_user_language(self, mock_apprise):
+        """Test notifications are built in each user's saved language."""
+        mock_instance = MagicMock()
+        mock_apprise.return_value = mock_instance
+        mock_instance.notify.return_value = True
+
+        self.user1.language = "it"
+        self.user1.save()
+        language_before = translation.get_language()
+
+        users = get_user_model().objects.filter(id=self.user1.id)
+        recent_events = Event.objects.filter(
+            notification_sent=False,
+        ).select_related("item")
+
+        title = gettext_lazy("📆 YamTrack: Today's Releases 📆")
+        send_notifications(recent_events, users, title)
+
+        with translation.override("it"):
+            expected_title = str(title)
+            expected_closing = translation.gettext("Enjoy your media!")
+        self.assertNotEqual(expected_title, "📆 YamTrack: Today's Releases 📆")
+        self.assertNotEqual(expected_closing, "Enjoy your media!")
+
+        mock_instance.notify.assert_called_once()
+        kwargs = mock_instance.notify.call_args.kwargs
+        self.assertEqual(kwargs["title"], expected_title)
+        self.assertIn(expected_closing, kwargs["body"])
+        # The override doesn't leak outside the per-user block
+        self.assertEqual(translation.get_language(), language_before)

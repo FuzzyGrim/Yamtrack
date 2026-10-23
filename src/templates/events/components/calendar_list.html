@@ -1,5 +1,6 @@
 {% load app_tags %}
 {% load events_tags %}
+{% load i18n %}
 
 <div class="space-y-6">
   {% for day, releases in release_dict.items %}
@@ -7,7 +8,7 @@
       <div class="px-4 py-3 font-medium flex items-center justify-between {% if day == today.day and month == today.month and year == today.year %}bg-indigo-600{% else %}bg-gray-600{% endif %}">
         <span>{% day_of_week day month year %}, {{ month_name }} {{ day }}</span>
         {% if day == today.day and month == today.month and year == today.year %}
-          <span class="text-sm bg-white text-indigo-600 px-2 py-0.5 rounded-full">Today</span>
+          <span class="text-sm bg-white text-indigo-600 px-2 py-0.5 rounded-full">{% trans "Today" %}</span>
         {% endif %}
       </div>
 

@@ -6,6 +6,7 @@ from io import StringIO
 
 from django.apps import apps
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 import app
 import app.providers
@@ -61,7 +62,7 @@ class HowLongToBeatImporter:
         try:
             decoded_file = self.file.read().decode("utf-8")
         except UnicodeDecodeError as e:
-            msg = "Invalid file format. Please upload a CSV file."
+            msg = _("Invalid file format. Please upload a CSV file.")
             raise MediaImportError(msg) from e
 
         reader = DictReader(StringIO(decoded_file, newline=""))
@@ -76,7 +77,7 @@ class HowLongToBeatImporter:
             try:
                 self._process_first_pass(row, media_id_counts, media_id_titles)
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         # Second pass: add non-duplicates to bulk_media
@@ -84,7 +85,7 @@ class HowLongToBeatImporter:
             try:
                 self._process_second_pass(row, media_id_counts)
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         # Add consolidated warnings for duplicates
@@ -111,8 +112,8 @@ class HowLongToBeatImporter:
         game = self._search_game(row)
         if not game:
             self.warnings.append(
-                f"{row['Title']}: Couldn't find a game with this title in "
-                f"{Sources.IGDB.label}",
+                _("%(title)s: Couldn't find a game with this title in %(source)s")
+                % {"title": row["Title"], "source": Sources.IGDB.label}
             )
             return
 
@@ -139,7 +140,7 @@ class HowLongToBeatImporter:
                 self.to_update[MediaTypes.GAME.value][existing.pk] = existing
             return
 
-        item, _ = self._create_or_update_item(game)
+        item, _created = self._create_or_update_item(game)
 
         # Check if we should process this entry based on mode
         if not helpers.should_process_media(
@@ -171,8 +172,11 @@ class HowLongToBeatImporter:
                 titles = media_id_titles[media_id]
                 title_list = helpers.join_with_commas_and(titles)
                 self.warnings.append(
-                    f"{title_list}: They were matched to the same ID {media_id} "
-                    "- none imported",
+                    _(
+                        "%(title_list)s: They were matched to the same ID"
+                        " %(media_id)s - none imported"
+                    )
+                    % {"title_list": title_list, "media_id": media_id}
                 )
 
     def _format_time(self, time):

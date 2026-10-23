@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.dateparse import parse_date
 from django.utils.html import format_html
+from django.utils.translation import pgettext
 from unidecode import unidecode
 
 from app import config, helpers
@@ -60,6 +61,28 @@ def slug(arg1):
                 cleaned = template.defaultfilters.urlencode(arg1)
 
     return cleaned
+
+
+@register.simple_tag
+def inline_link(url, html_class, label, *, new_tab=False):
+    """Build a safely escaped link fragment for translated template text.
+
+    With new_tab=True the link opens in a new tab, for external pages.
+    """
+    if new_tab:
+        return format_html(
+            '<a href="{}" class="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            url,
+            html_class,
+            label,
+        )
+    return format_html('<a href="{}" class="{}">{}</a>', url, html_class, label)
+
+
+@register.simple_tag
+def inline_code(text, html_class):
+    """Build a safely escaped code fragment for translated template text."""
+    return format_html('<code class="{}">{}</code>', html_class, text)
 
 
 @register.filter
@@ -141,13 +164,27 @@ def media_type_readable(media_type):
 @register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
-    singular = MediaTypes(media_type).label
+    # Keep literal strings inside pgettext so makemessages can extract them.
+    plural_translators = {
+        MediaTypes.TV.value: lambda: pgettext("media type plural label", "TV Shows"),
+        MediaTypes.SEASON.value: lambda: pgettext(
+            "media type plural label", "TV Seasons"
+        ),
+        MediaTypes.EPISODE.value: lambda: pgettext(
+            "media type plural label", "Episodes"
+        ),
+        MediaTypes.MOVIE.value: lambda: pgettext("media type plural label", "Movies"),
+        MediaTypes.ANIME.value: lambda: pgettext("media type plural label", "Anime"),
+        MediaTypes.MANGA.value: lambda: pgettext("media type plural label", "Manga"),
+        MediaTypes.GAME.value: lambda: pgettext("media type plural label", "Games"),
+        MediaTypes.BOOK.value: lambda: pgettext("media type plural label", "Books"),
+        MediaTypes.COMIC.value: lambda: pgettext("media type plural label", "Comics"),
+        MediaTypes.BOARDGAME.value: lambda: pgettext(
+            "media type plural label", "Boardgames"
+        ),
+    }
 
-    # Special cases that don't change in plural form
-    if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
-        return singular
-
-    return f"{singular}s"
+    return plural_translators[media_type]()
 
 
 @register.filter
@@ -165,7 +202,7 @@ def default_source(media_type):
 @register.filter
 def media_past_verb(media_type):
     """Return the past tense verb for the given media type."""
-    return config.get_verb(media_type, past_tense=True)
+    return config.get_translated_verb(media_type, past_tense=True)
 
 
 @register.filter
@@ -177,13 +214,19 @@ def sample_search(media_type):
 @register.filter
 def short_unit(media_type):
     """Return the short unit for the media type."""
-    return config.get_unit(media_type, short=True)
+    return config.get_translated_short_unit(media_type)
 
 
 @register.filter
 def long_unit(media_type):
     """Return the long unit for the media type."""
-    return config.get_unit(media_type, short=False)
+    return config.get_translated_unit(media_type)
+
+
+@register.filter
+def unit_for_count(media_type, count):
+    """Return the translated unit in singular or plural form for a count."""
+    return config.get_translated_unit(media_type, plural=count != 1)
 
 
 @register.filter

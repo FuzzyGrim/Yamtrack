@@ -1,9 +1,12 @@
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.utils.translation import pgettext
 
+from app import config
 from app.models import Item, MediaTypes, Sources
 from app.templatetags import app_tags
 
@@ -121,17 +124,29 @@ class AppTagsTests(TestCase):
 
     def test_media_type_readable_plural(self):
         """Test the media_type_readable_plural filter."""
-        # Test all media types from the MediaTypes class
-        for media_type, label in MediaTypes.choices:
-            singular = label
+        expected_plurals = {
+            MediaTypes.TV.value: "TV Shows",
+            MediaTypes.SEASON.value: "TV Seasons",
+            MediaTypes.EPISODE.value: "Episodes",
+            MediaTypes.MOVIE.value: "Movies",
+            MediaTypes.ANIME.value: "Anime",
+            MediaTypes.MANGA.value: "Manga",
+            MediaTypes.GAME.value: "Games",
+            MediaTypes.BOOK.value: "Books",
+            MediaTypes.COMIC.value: "Comics",
+            MediaTypes.BOARDGAME.value: "Boardgames",
+        }
 
-            # Special cases that don't change in plural form
-            if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
-                expected = singular
-            else:
-                expected = f"{singular}s"
+        for media_type, _label in MediaTypes.choices:
+            with self.subTest(media_type=media_type):
+                self.assertIn(media_type, expected_plurals)
+                self.assertEqual(
+                    app_tags.media_type_readable_plural(media_type),
+                    expected_plurals[media_type],
+                )
 
-            self.assertEqual(app_tags.media_type_readable_plural(media_type), expected)
+        with self.assertRaises(KeyError):
+            app_tags.media_type_readable_plural("unknown")
 
     def test_default_source(self):
         """Test the default_source filter."""
@@ -155,8 +170,91 @@ class AppTagsTests(TestCase):
         for media_type in MediaTypes.values:
             result = app_tags.media_past_verb(media_type)
 
-            # Check that it returns a non-empty string
-            self.assertTrue(isinstance(result, str))
+            # Lazy translations resolve to strings when rendered.
+            self.assertTrue(str(result))
+
+    def test_media_verbs_are_translated(self):
+        """Each media type uses its own present and past verb in every language."""
+        verb_contexts = {
+            MediaTypes.TV.value: ("tv", "watch", "watched"),
+            MediaTypes.SEASON.value: ("season", "watch", "watched"),
+            MediaTypes.EPISODE.value: ("episode", "watch", "watched"),
+            MediaTypes.MOVIE.value: ("movie", "watch", "watched"),
+            MediaTypes.ANIME.value: ("anime", "watch", "watched"),
+            MediaTypes.MANGA.value: ("manga", "read", "read"),
+            MediaTypes.GAME.value: ("game", "play", "played"),
+            MediaTypes.BOOK.value: ("book", "read", "read"),
+            MediaTypes.COMIC.value: ("comic", "read", "read"),
+            MediaTypes.BOARDGAME.value: ("board game", "play", "played"),
+        }
+
+        for language, _name in settings.LANGUAGES:
+            with translation.override(language):
+                for media_type, (context, present, past) in verb_contexts.items():
+                    with self.subTest(language=language, media_type=media_type):
+                        self.assertEqual(
+                            config.get_translated_verb(media_type, past_tense=False),
+                            pgettext(f"{context} tracking verb present", present),
+                        )
+                        self.assertEqual(
+                            config.get_translated_verb(media_type, past_tense=True),
+                            pgettext(f"{context} tracking verb past", past),
+                        )
+                        self.assertEqual(
+                            app_tags.media_past_verb(media_type),
+                            pgettext(f"{context} tracking verb past", past),
+                        )
+
+    def test_media_units_are_translated(self):
+        """Each media type uses its own units in every language."""
+        unit_contexts = {
+            MediaTypes.SEASON.value: ("season", "Episode", "Episodes", "E"),
+            MediaTypes.ANIME.value: ("anime", "Episode", "Episodes", "E"),
+            MediaTypes.MANGA.value: ("manga", "Chapter", "Chapters", "#"),
+            MediaTypes.BOOK.value: ("book", "Page", "Pages", "P"),
+            MediaTypes.COMIC.value: ("comic", "Issue", "Issues", "#"),
+            MediaTypes.BOARDGAME.value: ("board game", "Play", "Plays", "#"),
+        }
+
+        for language, _name in settings.LANGUAGES:
+            with translation.override(language):
+                for media_type, units in unit_contexts.items():
+                    context, singular, plural, short = units
+                    with self.subTest(language=language, media_type=media_type):
+                        expected_singular = pgettext(
+                            f"{context} progress unit singular", singular
+                        )
+                        expected_plural = pgettext(
+                            f"{context} progress unit plural", plural
+                        )
+                        expected_short = pgettext(
+                            f"{context} progress unit short", short
+                        )
+
+                        self.assertEqual(
+                            config.get_translated_unit(media_type),
+                            expected_singular,
+                        )
+                        self.assertEqual(
+                            config.get_translated_unit(media_type, plural=True),
+                            expected_plural,
+                        )
+                        self.assertEqual(
+                            app_tags.unit_for_count(media_type, 1),
+                            expected_singular,
+                        )
+                        self.assertEqual(
+                            app_tags.unit_for_count(media_type, 2),
+                            expected_plural,
+                        )
+                        self.assertEqual(
+                            config.get_translated_short_unit(media_type),
+                            expected_short,
+                        )
+                        self.assertEqual(
+                            app_tags.short_unit(media_type),
+                            expected_short,
+                        )
 
     def test_sample_search(self):
         """Test the sample_search filter."""
@@ -417,3 +515,36 @@ class AppTagsTests(TestCase):
         for seconds, expected in cases:
             with self.subTest(seconds=seconds):
                 self.assertEqual(app_tags.seconds_to_duration(seconds), expected)
+
+    def test_inline_link(self):
+        """Test inline_link builds an escaped link."""
+        result = app_tags.inline_link("/path?a=1&b=2", "text-indigo-400", "<label>")
+
+        self.assertEqual(
+            result,
+            '<a href="/path?a=1&amp;b=2" class="text-indigo-400">&lt;label&gt;</a>',
+        )
+
+    def test_inline_link_new_tab(self):
+        """Test inline_link with new_tab opens the link in a new tab."""
+        result = app_tags.inline_link(
+            "https://example.com",
+            "text-indigo-400",
+            "label",
+            new_tab=True,
+        )
+
+        self.assertEqual(
+            result,
+            '<a href="https://example.com" class="text-indigo-400" '
+            'target="_blank" rel="noopener noreferrer">label</a>',
+        )
+
+    def test_inline_code(self):
+        """Test inline_code builds an escaped code fragment."""
+        result = app_tags.inline_code("<URLS>", "text-indigo-400")
+
+        self.assertEqual(
+            result,
+            '<code class="text-indigo-400">&lt;URLS&gt;</code>',
+        )
