@@ -1,10 +1,13 @@
+import datetime
 import secrets
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
+import app.helpers
 from app.models import Item, MediaTypes, Status
 from users import helpers
 
@@ -621,7 +624,17 @@ class User(AbstractUser):
             return None
 
         if self.quick_watch_date == QuickWatchDateChoices.RELEASE_DATE:
-            return release_date  # Will be None if not available in metadata
+            if isinstance(release_date, datetime.datetime) and timezone.is_aware(
+                release_date,
+            ):
+                return release_date
+
+            # Providers give bare day strings, which have to be anchored to an
+            # instant. Assigning one straight to the DateTimeField let Django
+            # localize a naive midnight, which warned and put the entry a day
+            # earlier for viewers west of the server. None when the metadata
+            # has no usable date.
+            return app.helpers.date_only_instant(release_date)
 
         # CURRENT_DATE is the default
         return now

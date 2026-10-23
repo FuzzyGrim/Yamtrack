@@ -1,6 +1,7 @@
 import calendar
 import datetime
 import logging
+import zoneinfo
 from collections import defaultdict
 
 from dateutil.relativedelta import relativedelta
@@ -10,7 +11,7 @@ from django.db.models import (
     Prefetch,
     Q,
 )
-from django.utils import timezone
+from django.utils import formats, timezone
 from django.utils.dateparse import parse_date
 
 from app import config
@@ -21,34 +22,82 @@ from users.models import WeekStartDayChoices
 logger = logging.getLogger(__name__)
 
 
-def parse_activity_date_range(request):
+# The query parameter through which the browser names its timezone. This is the
+# only route by which a client timezone enters the server at all: every other
+# timestamp is stored and rendered as UTC and localized in the browser.
+TIMEZONE_PARAM = "tz"
+
+
+def bucketing_timezone_from_request(request):
+    """Return the zone the request's days should be grouped in.
+
+    Falls back to UTC when the caller did not name one -- the pages that need
+    it always do, so this covers a direct request. The server's own
+    ``TIME_ZONE`` is deliberately not used: it has no bearing on what a viewer
+    sees anywhere else, and it should not quietly decide this either.
+    """
+    name = request.GET.get(TIMEZONE_PARAM) if request else None
+    if not name:
+        return datetime.UTC
+
+    try:
+        return zoneinfo.ZoneInfo(name)
+    except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+        logger.warning("Ignoring unknown %s parameter %r", TIMEZONE_PARAM, name)
+        return datetime.UTC
+
+
+def _day_starts(day, bucketing_timezone):
+    """Return the instant a calendar day begins in the bucketing timezone."""
+    return timezone.make_aware(
+        datetime.datetime.combine(day, datetime.datetime.min.time()),
+        bucketing_timezone,
+    )
+
+
+def _day_ends(day, bucketing_timezone):
+    """Return the last instant of a calendar day in the bucketing timezone."""
+    return timezone.make_aware(
+        datetime.datetime.combine(day, datetime.datetime.max.time()),
+        bucketing_timezone,
+    )
+
+
+def parse_activity_date_range(request, bucketing_timezone):
     """Parse ``start-date``/``end-date`` params into an aware datetime range.
 
     Defaults to the last year. ``all`` for both means no range (``None``).
+
+    ``bucketing_timezone`` is what gives "day" a meaning: the chosen days start
+    and end in it. Required, because a day boundary is undefined without a zone
+    and defaulting it would quietly reinstate the server's clock.
     """
-    timeformat = "%Y-%m-%d"
-    today = timezone.localdate()
-    # relativedelta clamps Feb 29 to Feb 28 instead of raising ValueError.
-    one_year_ago = today - relativedelta(years=1)
+    today = timezone.localdate(timezone=bucketing_timezone)
+    start_param = request.GET.get("start-date")
+    end_param = request.GET.get("end-date")
 
-    start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
-    end_date_str = request.GET.get("end-date") or today.strftime(timeformat)
-
-    if start_date_str == "all" and end_date_str == "all":
+    if start_param == "all" and end_param == "all":
         return None, None
 
-    start_date = parse_date(start_date_str)
-    end_date = parse_date(end_date_str)
+    # Only the supplied parameters are parsed; the defaults are already dates,
+    # so there is nothing to format and read back.
+    # relativedelta clamps Feb 29 to Feb 28 instead of raising ValueError.
+    start_date = parse_date(start_param) if start_param else None
+    end_date = parse_date(end_param) if end_param else None
 
-    if start_date and end_date:
-        start_date = timezone.make_aware(
-            datetime.datetime.combine(start_date, datetime.datetime.min.time()),
-        )
-        end_date = timezone.make_aware(
-            datetime.datetime.combine(end_date, datetime.datetime.max.time()),
-        )
+    # A supplied bound that will not parse leaves the range unusable, so drop
+    # the filter entirely rather than passing half of one to a __range lookup.
+    if (start_param and start_date is None) or (end_param and end_date is None):
+        return None, None
 
-    return start_date, end_date
+    start = _day_starts(
+        start_date or today - relativedelta(years=1),
+        bucketing_timezone,
+    )
+
+    # No explicit end means today: the same day boundary a chosen range uses,
+    # resolved on the same clock.
+    return start, _day_ends(end_date or today, bucketing_timezone)
 
 
 def get_user_media(user, start_date, end_date):
@@ -466,12 +515,12 @@ def _build_month_labels(date_range, week_start_weekday):
     """Build month labels and their corresponding week counts for the activity grid."""
     months = []
     weeks_per_month = []
-    current_month = date_range[0].strftime("%b")
+    current_month = formats.date_format(date_range[0], "M")
     week_count = 0
 
     for current_date in date_range:
         if current_date.weekday() == week_start_weekday:
-            month = current_date.strftime("%b")
+            month = formats.date_format(current_date, "M")
 
             if current_month != month:
                 if current_month is not None:
@@ -493,28 +542,39 @@ def _build_month_labels(date_range, week_start_weekday):
     return months, weeks_per_month
 
 
-def get_activity_data(user, start_date, end_date):
-    """Get daily activity counts for the last year."""
-    if end_date is None:
-        end_date = timezone.localtime()
+def get_activity_data(user, start_date, end_date, bucketing_timezone):
+    """Get daily activity counts for the last year.
+
+    ``start_date`` and ``end_date`` are instants (or None for all time), and
+    ``bucketing_timezone`` is the zone they are grouped into days in -- the one
+    thing on this page the browser cannot work out for itself, because the
+    counts are aggregated before it ever sees them.
+
+    It is passed explicitly rather than inferred from whatever tzinfo a bound
+    happens to carry, so the grouping cannot silently change with it.
+    """
+    end_date = end_date or timezone.now()
+    end_day = timezone.localdate(end_date, bucketing_timezone)
 
     week_start_sunday = user.week_start_day == WeekStartDayChoices.SUNDAY
-    start_date_aligned = get_aligned_week_start(
-        start_date,
-        week_start_sunday=week_start_sunday,
+    start_day = (
+        timezone.localdate(start_date, bucketing_timezone) if start_date else None
+    )
+    aligned = get_aligned_week_start(start_day, week_start_sunday=week_start_sunday)
+
+    combined_data = get_filtered_historical_data(
+        _day_starts(aligned, bucketing_timezone) if aligned else None,
+        end_date,
+        user,
+        bucketing_timezone,
     )
 
-    combined_data = get_filtered_historical_data(start_date_aligned, end_date, user)
-
-    # update start_date values from historical records if not provided
-    if start_date is None:
+    # For all time, the first day comes from the records themselves.
+    if start_day is None:
         dates = [item["date"] for item in combined_data]
-        start_date = datetime.datetime.combine(
-            min(dates) if dates else timezone.localdate(),
-            datetime.time.min,
-        )
-        start_date_aligned = get_aligned_week_start(
-            start_date,
+        start_day = min(dates) if dates else end_day
+        aligned = get_aligned_week_start(
+            start_day,
             week_start_sunday=week_start_sunday,
         )
 
@@ -525,24 +585,21 @@ def get_activity_data(user, start_date, end_date):
         date_counts[date] = date_counts.get(date, 0) + item["count"]
 
     date_range = [
-        start_date_aligned.date() + datetime.timedelta(days=x)
-        for x in range((end_date.date() - start_date_aligned.date()).days + 1)
+        aligned + datetime.timedelta(days=x)
+        for x in range((end_day - aligned).days + 1)
     ]
 
     # Calculate activity statistics
     most_active_day, day_percentage = calculate_day_of_week_stats(
         date_counts,
-        start_date.date(),
+        start_day,
     )
-    current_streak, longest_streak = calculate_streaks(
-        date_counts,
-        end_date.date(),
-    )
+    current_streak, longest_streak = calculate_streaks(date_counts, end_day)
 
     # Create complete date range including padding days
     activity_data = [
         {
-            "date": current_date.strftime("%Y-%m-%d"),
+            "date": current_date,
             "count": date_counts.get(current_date, 0),
             "level": get_level(date_counts.get(current_date, 0)),
         }
@@ -596,10 +653,13 @@ def get_level(count):
     return 4
 
 
-def get_filtered_historical_data(start_date, end_date, user):
-    """Return [{"date": datetime.date, "count": int}]."""
+def get_filtered_historical_data(start_date, end_date, user, bucketing_timezone):
+    """Return [{"date": datetime.date, "count": int}].
+
+    ``bucketing_timezone`` is the zone each record's instant is grouped into a
+    day in.
+    """
     historical_models = BasicMedia.objects.get_historical_models()
-    local_tz = timezone.get_current_timezone()
 
     day_buckets = defaultdict(int)
 
@@ -615,7 +675,7 @@ def get_filtered_historical_data(start_date, end_date, user):
 
         # We only need the timestamp, stream results to keep memory usage flat
         for ts in qs.values_list("history_date", flat=True).iterator(chunk_size=2_000):
-            aware_ts = timezone.localtime(ts, local_tz)
+            aware_ts = timezone.localtime(ts, bucketing_timezone)
 
             day_buckets[aware_ts.date()] += 1
 
@@ -641,7 +701,7 @@ def calculate_day_of_week_stats(date_counts, start_date):
         if date < start_date:
             continue
         if date_counts[date] > 0:
-            day_name = date.strftime("%A")  # Get full day name
+            day_name = formats.date_format(date, "l")
             day_counts[day_name] += 1
             total_active_days += 1
 

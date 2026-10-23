@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime, time
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 
 from django.apps import apps
@@ -18,6 +18,7 @@ from app.models import BasicMedia, Item, MediaTypes, Status
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
+DATE_ONLY_ANCHOR_HOUR = 12
 
 
 def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
@@ -142,30 +143,61 @@ def format_search_response(page, per_page, total_results, results):
     }
 
 
+def parse_date_only(value):
+    """Return the calendar day a date-shaped value refers to, or None.
+
+    Accepts a date, a datetime, or an ISO string that may carry only a year or
+    a year and month, which providers do when that is all they know.
+    """
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str):
+        return None
+
+    parts = value.split("-")
+    if len(parts) == YEAR_ONLY_PARTS:
+        value = f"{value}-01-01"
+    elif len(parts) == YEAR_MONTH_PARTS:
+        value = f"{value}-01"
+
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def date_only_instant(value):
+    """Return the instant standing in for a date that has no time of day.
+
+    Anchored at noon UTC rather than a local midnight. Stored instants are
+    rendered in the viewer's timezone, and midnight in the server's zone lands
+    on the previous day for every viewer west of it -- with the default
+    ``TZ=UTC`` that is the whole of the Americas. Noon holds the day from
+    UTC-12 through UTC+11; the offset range spans 26 hours, so no single
+    anchor can cover the far-east Pacific as well.
+
+    Returns None when the value is not date-shaped.
+    """
+    day = parse_date_only(value)
+    if day is None:
+        return None
+
+    return datetime.combine(day, time(hour=DATE_ONLY_ANCHOR_HOUR), tzinfo=UTC)
+
+
 def is_released_date(air_date, current_date=None):
     """Return whether the supplied air date has already passed."""
     current_date = current_date or timezone.localdate()
     normalized_air_date = None
 
-    if isinstance(air_date, datetime):
-        if timezone.is_naive(air_date):
-            normalized_air_date = air_date.date()
-        else:
-            normalized_air_date = timezone.localtime(air_date).date()
-    elif isinstance(air_date, date):
-        normalized_air_date = air_date
-    elif isinstance(air_date, str):
-        parts = air_date.split("-")
-        if len(parts) == YEAR_ONLY_PARTS:
-            air_date = f"{air_date}-01-01"
-        elif len(parts) == YEAR_MONTH_PARTS:
-            air_date = f"{air_date}-01"
-
-        try:
-            normalized_air_date = date.fromisoformat(air_date)
-        except ValueError:
-            return False
+    if isinstance(air_date, datetime) and not timezone.is_naive(air_date):
+        normalized_air_date = timezone.localtime(air_date).date()
     else:
+        normalized_air_date = parse_date_only(air_date)
+
+    if normalized_air_date is None:
         return False
 
     return normalized_air_date <= current_date

@@ -27,6 +27,25 @@
           type="text/css"
           href="{% static 'css/main.css' %}{% get_static_file_mtime 'css/main.css' %}">
 
+    {# Without JavaScript nothing rewrites the stamps, so show the UTC value. #}
+    <noscript>
+      <style>time[data-yt] { visibility: visible !important; }</style>
+    </noscript>
+
+    {% comment %}
+      Timestamps render as UTC and are localized in the browser; these are the
+      display preferences that pass needs. Loaded before Alpine so the date
+      widgets seed "now" from the same place.
+    {% endcomment %}
+    <script>
+      window.YAMTRACK_FORMATS = {
+        date: "{{ user.date_format|escapejs|default:'Y-m-d' }}",
+        time: "{{ user.time_format|escapejs|default:'H:i' }}",
+        trackTime: {% if TRACK_TIME %}true{% else %}false{% endif %}
+      };
+    </script>
+    <script src="{% static 'js/localTime.js' %}{% get_static_file_mtime 'js/localTime.js' %}"></script>
+
     <script src="{% static 'js/libraries/htmx-2.0.4.min.js' %}"></script>
     <script defer src="{% static 'js/libraries/alpinejs-3.14.9.min.js' %}"></script>
     <script src="{% static 'js/libraries/lazysizes-5.3.2.min.js' %}" async></script>

@@ -8,6 +8,13 @@
   display: none !important;
 }
 
+/* Timestamps render as UTC and are rewritten to the browser's zone by
+   localTime.js. Hiding them until then avoids flashing the wrong time; without
+   JavaScript the UTC value is shown instead of nothing. */
+time[data-yt]:not([data-yt-ready]) {
+  visibility: hidden;
+}
+
 .htmx-indicator {
   display: none;
 }

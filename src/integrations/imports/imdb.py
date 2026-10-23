@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import app
+import app.helpers
 import app.providers
 from app.models import MediaTypes, Sources, Status
 from app.providers.services import ProviderAPIError
@@ -373,9 +374,4 @@ class IMDBImporter:
             logger.warning("Could not parse date: %s", date_str)
             return None
 
-        return date.replace(
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
-        )
+        return app.helpers.date_only_instant(date)
