@@ -40,6 +40,30 @@
           </form>
         </div>
       </div>
+
+      <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+        <div class="flex items-center mb-3">
+          {% include "app/icons/star.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+          <h3 class="text-base font-medium">Refresh TMDB Ratings</h3>
+        </div>
+        <p class="text-gray-400 mb-4 text-sm">
+          This walks all movie, TV and season items, refetching their TMDB rating.
+          It respects TMDB's rate limits and may take a while on a large library.
+          <br>
+          The daily background job already refreshes about one seventh of titles each night,
+          so this is only needed if you want everything updated right away.
+        </p>
+        <div class="flex space-x-3">
+          <form method="post" action="{% url 'refresh_tmdb_ratings' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+              {% include "app/icons/star.svg" with classes="w-4 h-4 mr-2" %}
+              Refresh TMDB Ratings
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 

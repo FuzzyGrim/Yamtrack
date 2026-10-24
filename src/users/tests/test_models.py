@@ -9,6 +9,7 @@ from django_celery_results.models import TaskResult
 
 from users.models import (
     HomeSortChoices,
+    MediaSortChoices,
     MediaTypes,
     QuickWatchDateChoices,
     WeekStartDayChoices,
@@ -130,6 +131,52 @@ class UserUpdatePreferenceTests(TestCase):
         # Should not change the value
         self.user.refresh_from_db()
         self.assertEqual(self.user.last_search_type, MediaTypes.TV.value)
+
+    def test_update_preference_home_sort_tmdb_rating(self):
+        """Test update_preference accepts the new home_sort TMDB Rating value."""
+        self.user.home_sort = HomeSortChoices.UPCOMING
+        self.user.save()
+
+        result = self.user.update_preference("home_sort", HomeSortChoices.TMDB_RATING)
+
+        self.assertEqual(result, HomeSortChoices.TMDB_RATING)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.home_sort, HomeSortChoices.TMDB_RATING)
+
+    def test_update_preference_home_sort_score(self):
+        """Test update_preference accepts the new home_sort Rating value."""
+        self.user.home_sort = HomeSortChoices.UPCOMING
+        self.user.save()
+
+        result = self.user.update_preference("home_sort", HomeSortChoices.SCORE)
+
+        self.assertEqual(result, HomeSortChoices.SCORE)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.home_sort, HomeSortChoices.SCORE)
+
+    def test_update_preference_movie_sort_tmdb_rating(self):
+        """Test update_preference accepts the new movie_sort TMDB Rating value."""
+        self.user.movie_sort = MediaSortChoices.SCORE
+        self.user.save()
+
+        result = self.user.update_preference("movie_sort", MediaSortChoices.TMDB_RATING)
+
+        self.assertEqual(result, MediaSortChoices.TMDB_RATING)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.movie_sort, MediaSortChoices.TMDB_RATING)
+
+    def test_update_preference_movie_sort_release_date(self):
+        """Test update_preference accepts the new movie_sort Release Date value."""
+        self.user.movie_sort = MediaSortChoices.SCORE
+        self.user.save()
+
+        result = self.user.update_preference(
+            "movie_sort", MediaSortChoices.RELEASE_DATE
+        )
+
+        self.assertEqual(result, MediaSortChoices.RELEASE_DATE)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.movie_sort, MediaSortChoices.RELEASE_DATE)
 
     def test_update_preference_daily_digest_enabled(self):
         """Test update_preference with daily_digest_enabled field."""
