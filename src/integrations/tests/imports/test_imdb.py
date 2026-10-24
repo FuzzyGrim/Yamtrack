@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -8,8 +9,10 @@ from django.utils import timezone
 
 from app.models import (
     TV,
+    Item,
     MediaTypes,
     Movie,
+    Sources,
     Status,
 )
 from integrations.imports import (
@@ -137,3 +140,84 @@ class ImportIMDB(TestCase):
         self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value, 0), 5)
 
         self.assertIn("They were matched to the same TMDB ID 155", warnings)
+
+
+class ImportIMDBNewMode(TestCase):
+    """Test that "new" mode only imports what is missing from Yamtrack."""
+
+    HEADER = "Const,Title,Title Type,Created,Modified,Your Rating,Date Rated\n"
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    def create_media(self, model, media_type, **kwargs):
+        """Create existing media without triggering save side effects."""
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.TMDB.value,
+            media_type=media_type,
+            title="Title",
+            image="https://example.com/image.jpg",
+        )
+        model.objects.bulk_create([model(item=item, user=self.user, **kwargs)])
+
+    def run_import(self, title_type, rating):
+        """Run an IMDB import in "new" mode with one row."""
+        csv = self.HEADER + (
+            f"tt0000001,Title,{title_type},2025-01-01,2025-01-02,{rating},2025-02-03\n"
+        )
+        result = {
+            "id": 1,
+            "title": "Title",
+            "name": "Title",
+            "poster_path": "/poster.jpg",
+        }
+        with patch(
+            "app.providers.tmdb.find",
+            return_value={"movie_results": [result], "tv_results": [result]},
+        ):
+            return imdb.importer(BytesIO(csv.encode()), self.user, "new")
+
+    def test_rated_planned_movie_is_completed(self):
+        """A planned movie rated on IMDB gets the score and is completed."""
+        self.create_media(Movie, MediaTypes.MOVIE.value, status=Status.PLANNING.value)
+
+        imported_counts, _ = self.run_import("Movie", 8)
+
+        movie = Movie.objects.get(user=self.user)
+        self.assertEqual(imported_counts, {})
+        self.assertEqual(movie.score, 8)
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+        self.assertEqual(
+            movie.end_date,
+            datetime(2025, 2, 3, tzinfo=timezone.get_current_timezone()),
+        )
+
+    def test_existing_score_is_kept(self):
+        """The score tracked in Yamtrack is not overwritten."""
+        self.create_media(
+            Movie,
+            MediaTypes.MOVIE.value,
+            status=Status.COMPLETED.value,
+            progress=1,
+            score=6,
+        )
+
+        self.run_import("Movie", 8)
+
+        movie = Movie.objects.get(user=self.user)
+        self.assertEqual(movie.score, 6)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    def test_rated_show_only_gets_score(self):
+        """A rated show gets the score but its status is left untouched."""
+        self.create_media(TV, MediaTypes.TV.value, status=Status.IN_PROGRESS.value)
+
+        self.run_import("TV Series", 9)
+
+        tv = TV.objects.get(user=self.user)
+        self.assertEqual(tv.score, 9)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)

@@ -1529,6 +1529,7 @@ class Season(Media):
             elif (
                 self.status == Status.DROPPED.value
                 and self.related_tv.status != Status.DROPPED.value
+                and self.item.season_number != 0
             ):
                 self.related_tv.status = Status.DROPPED.value
                 bulk_update_with_history(
@@ -1672,7 +1673,7 @@ class Season(Media):
         else:
             logger.info("No more episodes to watch.")
 
-    def watch(self, episode_number, end_date):
+    def watch(self, episode_number, end_date, notes=""):
         """Create or add a repeat to an episode of the season."""
         item = self.get_episode_item(episode_number)
 
@@ -1680,6 +1681,7 @@ class Season(Media):
             related_season=self,
             item=item,
             end_date=end_date,
+            notes=notes,
         )
         logger.info(
             "%s created successfully.",
@@ -1863,6 +1865,7 @@ class Episode(models.Model):
         related_name="episodes",
     )
     end_date = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
 
     class Meta:
         """Meta options for the model."""
