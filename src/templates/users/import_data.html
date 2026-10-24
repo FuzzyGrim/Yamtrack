@@ -1,9 +1,10 @@
 {% extends "users/base.html" %}
+{% load i18n %}
 {% load user_tags %}
 {% load app_tags %}
 
 {% block title %}
-  Import - Yamtrack
+  {% translate "Import" %} - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
@@ -14,36 +15,36 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
         {% include "app/icons/horizontal-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Import Settings</h2>
+        <h2 class="text-xl font-semibold">{% translate "Import Settings" %}</h2>
       </div>
-      <p class="text-gray-400 mb-5 text-sm">Configure your import preferences.</p>
+      <p class="text-gray-400 mb-5 text-sm">{% translate "Configure your import preferences." %}</p>
       <div class="bg-[#39404b] p-5 rounded-lg">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm text-gray-400 mb-2">Import Frequency</label>
+            <label class="block text-sm text-gray-400 mb-2">{% translate "Import Frequency" %}</label>
             <div class="relative">
               <select x-model="importFrequency"
                       class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-                <option value="once">One Time Import</option>
-                <option value="daily">Every Day</option>
-                <option value="2days">Every 2 Days</option>
+                <option value="once">{% translate "One Time Import" %}</option>
+                <option value="daily">{% translate "Every Day" %}</option>
+                <option value="2days">{% translate "Every 2 Days" %}</option>
               </select>
               {% include "app/icons/chevron-down.svg" with classes="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" %}
             </div>
             <div x-cloak class="mt-4" x-show="importFrequency !== 'once'">
-              <label class="block text-sm text-gray-400 mb-2">Import Time</label>
+              <label class="block text-sm text-gray-400 mb-2">{% translate "Import Time" %}</label>
               <input x-model="importTime"
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 scheme-dark"
                      type="time">
             </div>
           </div>
           <div>
-            <label class="block text-sm text-gray-400 mb-2">Import Mode</label>
+            <label class="block text-sm text-gray-400 mb-2">{% translate "Import Mode" %}</label>
             <div class="relative">
               <select x-model="importMode"
                       class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-                <option value="new">Only Sync New Items</option>
-                <option value="overwrite">Sync New Items and Overwrite Existing</option>
+                <option value="new">{% translate "Only Sync New Items" %}</option>
+                <option value="overwrite">{% translate "Sync New Items and Overwrite Existing" %}</option>
               </select>
               {% include "app/icons/chevron-down.svg" with classes="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" %}
             </div>
@@ -56,13 +57,13 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
         {% include "app/icons/database.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Import Sources</h2>
+        <h2 class="text-xl font-semibold">{% translate "Import Sources" %}</h2>
       </div>
       <p class="text-gray-400 mb-5 text-sm">
-        Some of these require additional configuration, check the
+        {% translate "Some of these require additional configuration, check the" %}
         <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration"
            target="_blank"
-           class="text-indigo-400 hover:text-indigo-300 underline">import configuration guide</a>.
+           class="text-indigo-400 hover:text-indigo-300 underline">{% translate "import configuration guide" %}</a>.
       </p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -71,16 +72,16 @@
              x-data="{ traktImportMethod: 'public' }">
           <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? 'Import TV shows and movies' : 'File uploads are not available for periodic imports'">
+             x-text="traktImportMethod !== 'export' || importFrequency === 'once' ? '{% filter escapejs %}{% translate "Import TV shows and movies" %}{% endfilter %}' : '{% filter escapejs %}{% translate "File uploads are not available for periodic imports" %}{% endfilter %}'">
           </p>
 
           <div class="mb-3">
-            <label class="block text-sm font-medium text-gray-300 mb-2">Import method</label>
+            <label class="block text-sm font-medium text-gray-300 mb-2">{% translate "Import method" %}</label>
             <select x-model="traktImportMethod"
                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-              <option value="public">Public</option>
-              <option value="private">Private (requires authentication)</option>
-              <option value="export">Export (requires ZIP file)</option>
+              <option value="public">{% translate "Public" %}</option>
+              <option value="private">{% translate "Private (requires authentication)" %}</option>
+              <option value="export">{% translate "Export (requires ZIP file)" %}</option>
             </select>
           </div>
 
@@ -94,14 +95,14 @@
             <input type="hidden" name="mode" x-model="importMode">
 
             <div class="flex w-full">
-              <input placeholder="Public Trakt username"
+              <input placeholder="{% translate "Public Trakt username" %}"
                      name="user"
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text"
                      required>
               <button type="submit"
                       class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-                Import
+                {% translate "Import" %}
               </button>
             </div>
           </form>
@@ -117,7 +118,7 @@
 
             <button type="submit"
                     class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
-              Connect with Trakt & Import
+              {% translate "Connect with Trakt & Import" %}
             </button>
           </form>
 
@@ -139,7 +140,7 @@
                      type="file"
                      :disabled="importFrequency !== 'once'"
                      @change="importFrequency === 'once' && $el.form.submit()">
-              Select ZIP File
+              {% translate "Select ZIP File" %}
             </label>
           </form>
         </div>
@@ -147,7 +148,7 @@
         {# Simkl #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "simkl" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import TV shows, movies and anime</p>
+          <p class="text-sm text-gray-400 mb-3">{% translate "Import TV shows, movies and anime" %}</p>
           <form method="post" action="{% url 'simkl_oauth' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
@@ -155,7 +156,7 @@
             <input type="hidden" name="mode" x-model="importMode">
             <button type="submit"
                     class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
-              Connect with Simkl & Import
+              {% translate "Connect with Simkl & Import" %}
             </button>
           </form>
         </div>
@@ -163,7 +164,7 @@
         {# MyAnimeList #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "myanimelist" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
+          <p class="text-sm text-gray-400 mb-3">{% translate "Import anime and manga" %}</p>
           <form class="flex items-center"
                 method="post"
                 action="{% url 'import_mal' %}">
@@ -172,13 +173,13 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <div class="flex w-full">
-              <input placeholder="MAL username"
+              <input placeholder="{% translate "MAL username" %}"
                      name="user"
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
               <button type="submit"
                       class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-                Import
+                {% translate "Import" %}
               </button>
             </div>
           </form>
@@ -188,14 +189,14 @@
         <div class="bg-[#39404b] p-4 rounded-lg"
              x-data="{ usePrivateImport: false }">
           <div class="flex items-center mb-3">{% source_display "anilist" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
+          <p class="text-sm text-gray-400 mb-3">{% translate "Import anime and manga" %}</p>
 
           <div class="mb-3">
             <label class="flex items-center text-sm text-gray-300">
               <input type="checkbox"
                      x-model="usePrivateImport"
                      class="mr-2 rounded bg-[#2a2f35] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0">
-              Import private profile (requires authentication)
+              {% translate "Import private profile (requires authentication)" %}
             </label>
           </div>
 
@@ -209,14 +210,14 @@
             <input type="hidden" name="mode" x-model="importMode">
 
             <div class="flex w-full">
-              <input placeholder="Public AniList username"
+              <input placeholder="{% translate "Public AniList username" %}"
                      name="user"
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text"
                      required>
               <button type="submit"
                       class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-                Import
+                {% translate "Import" %}
               </button>
             </div>
           </form>
@@ -232,7 +233,7 @@
 
             <button type="submit"
                     class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
-              Connect with AniList & Import
+              {% translate "Connect with AniList & Import" %}
             </button>
           </form>
         </div>
@@ -240,7 +241,7 @@
         {# Kitsu #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "kitsu" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
+          <p class="text-sm text-gray-400 mb-3">{% translate "Import anime and manga" %}</p>
           <form class="flex items-center"
                 method="post"
                 action="{% url 'import_kitsu' %}">
@@ -249,14 +250,14 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <div class="relative flex-1">
-              <input placeholder="Kitsu user ID"
+              <input placeholder="{% translate "Kitsu user ID" %}"
                      name="user"
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
               <div class="group absolute right-2 top-1/2 -translate-y-1/2">
                 {% include "app/icons/info.svg" with classes="w-4 h-4 text-gray-400" %}
                 <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
-                  Find it on your Kitsu profile URL:
+                  {% translate "Find it on your Kitsu profile URL:" %}
                   <br>
                   kitsu.app/users/<span class="text-indigo-400">1234567</span>
                 </div>
@@ -264,7 +265,7 @@
             </div>
             <button type="submit"
                     class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-              Import
+              {% translate "Import" %}
             </button>
           </form>
         </div>
@@ -276,10 +277,10 @@
             <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration#yamtrack-csv-format"
                target="_blank"
                class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
-               title="View CSV format documentation">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
+               title="{% translate "View CSV format documentation" %}">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
           </div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from YamTrack backup' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{% filter escapejs %}{% translate "Import from YamTrack backup" %}{% endfilter %}' : '{% filter escapejs %}{% translate "File uploads are not available for periodic imports" %}{% endfilter %}'">
           </p>
           <form method="post"
                 action="{% url 'import_yamtrack' %}"
@@ -297,7 +298,7 @@
                      type="file"
                      :disabled="importFrequency !== 'once'"
                      @change="importFrequency === 'once' && $el.form.submit()">
-              Select CSV File
+              {% translate "Select CSV File" %}
             </label>
           </form>
         </div>
@@ -306,7 +307,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import games' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{% filter escapejs %}{% translate "Import games" %}{% endfilter %}' : '{% filter escapejs %}{% translate "File uploads are not available for periodic imports" %}{% endfilter %}'">
           </p>
           <form method="post"
                 action="{% url 'import_hltb' %}"
@@ -324,7 +325,7 @@
                      type="file"
                      :disabled="importFrequency !== 'once'"
                      @change="importFrequency === 'once' && $el.form.submit()">
-              Select CSV File
+              {% translate "Select CSV File" %}
             </label>
           </form>
         </div>
@@ -332,7 +333,7 @@
         {# Steam #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "steam" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import games from your Steam library</p>
+          <p class="text-sm text-gray-400 mb-3">{% translate "Import games from your Steam library" %}</p>
           <form class="flex items-center"
                 method="post"
                 action="{% url 'import_steam' %}">
@@ -341,23 +342,23 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <div class="relative flex-1">
-              <input placeholder="Steam 64-bit ID"
+              <input placeholder="{% translate "Steam 64-bit ID" %}"
                      name="user"
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
               <div class="group absolute right-2 top-1/2 -translate-y-1/2">
                 {% include "app/icons/info.svg" with classes="w-4 h-4 text-gray-400" %}
                 <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
-                  Find it on your Steam account details page under your username.
+                  {% translate "Find it on your Steam account details page under your username." %}
                   <br>
                   <br>
-                  Your profile must be public if the API key you are using is not linked to the steamid you are requesting.
+                  {% translate "Your profile must be public if the API key you are using is not linked to the steamid you are requesting." %}
                 </div>
               </div>
             </div>
             <button type="submit"
                     class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-              Import
+              {% translate "Import" %}
             </button>
           </form>
         </div>
@@ -368,7 +369,7 @@
             <div class="flex items-center">{% source_display "imdb" %}</div>
           </div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import movies and TV shows from your ratings' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{% filter escapejs %}{% translate "Import movies and TV shows from your ratings" %}{% endfilter %}' : '{% filter escapejs %}{% translate "File uploads are not available for periodic imports" %}{% endfilter %}'">
           </p>
           <form method="post"
                 action="{% url 'import_imdb' %}"
@@ -386,7 +387,7 @@
                      type="file"
                      :disabled="importFrequency !== 'once'"
                      @change="importFrequency === 'once' && $el.form.submit()">
-              Select CSV File
+              {% translate "Select CSV File" %}
             </label>
           </form>
         </div>
@@ -395,7 +396,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "goodreads" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from GoodReads backup' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{% filter escapejs %}{% translate "Import from GoodReads backup" %}{% endfilter %}' : '{% filter escapejs %}{% translate "File uploads are not available for periodic imports" %}{% endfilter %}'">
           </p>
           <form method="post"
                 action="{% url 'import_goodreads' %}"
@@ -413,7 +414,7 @@
                      type="file"
                      :disabled="importFrequency !== 'once'"
                      @change="importFrequency === 'once' && $el.form.submit()">
-              Select CSV File
+              {% translate "Select CSV File" %}
             </label>
           </form>
         </div>
@@ -425,10 +426,10 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
         {% include "app/icons/clock.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Active Periodic Imports</h2>
+        <h2 class="text-xl font-semibold">{% translate "Active Periodic Imports" %}</h2>
       </div>
       <p class="text-gray-400 mb-5 text-sm">
-        Automated imports that run on a schedule. These will continue to sync your media until disabled.
+        {% translate "Automated imports that run on a schedule. These will continue to sync your media until disabled." %}
       </p>
       <div class="space-y-3">
         {% for periodic_import in import_tasks.schedules %}
@@ -449,16 +450,16 @@
               </form>
             </div>
             <div class="text-sm text-gray-400 space-y-1">
-              <div>Username: {{ periodic_import.username }}</div>
-              <div>Mode: {{ periodic_import.mode }}</div>
-              <div>Last Import: {{ periodic_import.last_run|datetime_format:user }}</div>
-              <div>Next Import: {{ periodic_import.next_run|datetime_format:user }}</div>
+              <div>{% blocktranslate with username=periodic_import.username %}Username: {{ username }}{% endblocktranslate %}</div>
+              <div>{% blocktranslate with mode=periodic_import.mode %}Mode: {{ mode }}{% endblocktranslate %}</div>
+              <div>{% blocktranslate with date=periodic_import.last_run|datetime_format:user %}Last Import: {{ date }}{% endblocktranslate %}</div>
+              <div>{% blocktranslate with date=periodic_import.next_run|datetime_format:user %}Next Import: {{ date }}{% endblocktranslate %}</div>
             </div>
           </div>
         {% empty %}
           <div class="bg-[#39404b] rounded-lg p-6 text-center">
-            <p class="text-gray-400 text-sm">No periodic imports configured</p>
-            <p class="text-gray-500 text-xs mt-1">Set up an import with a daily or 2-day frequency to see it here</p>
+            <p class="text-gray-400 text-sm">{% translate "No periodic imports configured" %}</p>
+            <p class="text-gray-500 text-xs mt-1">{% translate "Set up an import with a daily or 2-day frequency to see it here" %}</p>
           </div>
         {% endfor %}
       </div>
@@ -468,10 +469,10 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
         {% include "app/icons/clock-reversing.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Import History</h2>
+        <h2 class="text-xl font-semibold">{% translate "Import History" %}</h2>
       </div>
 
-      <p class="text-gray-400 mb-5 text-sm">Showing import activity from the last 7 days.</p>
+      <p class="text-gray-400 mb-5 text-sm">{% translate "Showing import activity from the last 7 days." %}</p>
 
       <div class="space-y-3">
         {% for result in import_tasks.results %}
@@ -480,17 +481,17 @@
               <div class="flex items-center gap-3">
                 {% if result.status == "SUCCESS" %}
                   {% if result.errors %}
-                    <span class="px-2 py-1 rounded text-xs font-medium text-emerald-400 bg-emerald-400/10">Finished</span>
+                    <span class="px-2 py-1 rounded text-xs font-medium text-emerald-400 bg-emerald-400/10">{% translate "Finished" %}</span>
                   {% else %}
-                    <span class="px-2 py-1 rounded text-xs font-medium text-green-400 bg-green-400/10">Success</span>
+                    <span class="px-2 py-1 rounded text-xs font-medium text-green-400 bg-green-400/10">{% translate "Success" %}</span>
 
                   {% endif %}
                 {% elif result.status == "STARTED" %}
-                  <span class="px-2 py-1 rounded text-xs font-medium text-blue-400 bg-blue-400/10">Started</span>
+                  <span class="px-2 py-1 rounded text-xs font-medium text-blue-400 bg-blue-400/10">{% translate "Started" %}</span>
                 {% elif result.status == "FAILURE" %}
-                  <span class="px-2 py-1 rounded text-xs font-medium text-red-400 bg-red-400/10">Failed</span>
+                  <span class="px-2 py-1 rounded text-xs font-medium text-red-400 bg-red-400/10">{% translate "Failed" %}</span>
                 {% else %}
-                  <span class="px-2 py-1 rounded text-xs font-medium text-yellow-400 bg-yellow-400/10">Pending</span>
+                  <span class="px-2 py-1 rounded text-xs font-medium text-yellow-400 bg-yellow-400/10">{% translate "Pending" %}</span>
                 {% endif %}
 
                 {% source_display result.source %}
@@ -506,12 +507,12 @@
                   {% if result.status == "SUCCESS" %}
                     <button @click="showDetails = !showDetails"
                             class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide failed items' : 'Show failed items'">Show failed items</button>
+                            x-text="showDetails ? '{% filter escapejs %}{% translate "Hide failed items" %}{% endfilter %}' : '{% filter escapejs %}{% translate "Show failed items" %}{% endfilter %}'">{% translate "Show failed items" %}</button>
 
                   {% elif result.status == "FAILURE" %}
                     <button @click="showDetails = !showDetails"
                             class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide traceback' : 'Show traceback'">Show traceback</button>
+                            x-text="showDetails ? '{% filter escapejs %}{% translate "Hide traceback" %}{% endfilter %}' : '{% filter escapejs %}{% translate "Show traceback" %}{% endfilter %}'">{% translate "Show traceback" %}</button>
                   {% endif %}
 
                   <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded overflow-x-auto wrap-break-word"
@@ -526,8 +527,8 @@
           </div>
         {% empty %}
           <div class="bg-[#39404b] rounded-lg p-6 text-center">
-            <p class="text-gray-400 text-sm">No imports in the last 7 days</p>
-            <p class="text-gray-500 text-xs mt-1">Import your media from any source to see the history here</p>
+            <p class="text-gray-400 text-sm">{% translate "No imports in the last 7 days" %}</p>
+            <p class="text-gray-500 text-xs mt-1">{% translate "Import your media from any source to see the history here" %}</p>
           </div>
         {% endfor %}
       </div>

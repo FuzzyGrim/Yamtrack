@@ -1,0 +1,3234 @@
+# French translation of Yamtrack.
+# This file is distributed under the same license as the Yamtrack package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Yamtrack\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-24 17:47-0500\n"
+"PO-Revision-Date: 2026-10-25 01:30+0200\n"
+"Last-Translator: Nicolas (Nadios-Vistos)\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: app/forms.py:69
+msgid "Invalid time format"
+msgstr "Format de durée invalide"
+
+#: app/forms.py:91
+msgid ""
+"Invalid time format. Provide duration in hours (e.g., '5', '1.5'), hours and "
+"minutes (e.g., '5:30', '5h 30min'), or just minutes (e.g., '30min')."
+msgstr ""
+"Format de durée invalide. Indiquez une durée en heures (ex. « 5 », « 1.5 »), "
+"en heures et minutes (ex. « 5:30 », « 5h 30min ») ou seulement en minutes "
+"(ex. « 30min »)."
+
+#: app/forms.py:104 app/forms.py:111
+msgid "Select"
+msgstr "Choisir"
+
+#: app/forms.py:105 templates/app/create_entry.html:137
+msgid "Parent TV Show"
+msgstr "Série parente"
+
+#: app/forms.py:112 templates/app/create_entry.html:184
+msgid "Parent Season"
+msgstr "Saison parente"
+
+#: app/forms.py:236 templates/app/components/fill_track_episode.html:121
+#: templates/app/create_entry.html:344
+msgid "Add any notes or comments..."
+msgstr "Ajoutez des notes ou des commentaires…"
+
+#: app/forms.py:240 templates/app/components/js_i18n.html:15
+#: templates/app/create_entry.html:252 templates/app/media_list.html:167
+msgid "Score"
+msgstr "Note"
+
+#: app/forms.py:241 templates/app/create_entry.html:79
+#: templates/app/create_entry.html:278 templates/app/media_list.html:168
+#: users/models.py:42
+msgid "Progress"
+msgstr "Progression"
+
+#: app/forms.py:242 templates/app/create_entry.html:308
+#: templates/app/media_list.html:170
+msgid "Status"
+msgstr "Statut"
+
+#: app/forms.py:243 templates/app/create_entry.html:322
+#: templates/app/journal.html:63 templates/app/media_list.html:171
+#: templates/app/statistics.html:62 users/models.py:43
+msgid "Start Date"
+msgstr "Date de début"
+
+#: app/forms.py:244 app/forms.py:376 templates/app/create_entry.html:331
+#: templates/app/journal.html:70 templates/app/media_list.html:172
+#: templates/app/statistics.html:69 users/models.py:44
+msgid "End Date"
+msgstr "Date de fin"
+
+#: app/forms.py:245 app/forms.py:377
+#: templates/app/components/fill_track_episode.html:116
+#: templates/app/create_entry.html:340
+msgid "Notes"
+msgstr "Notes"
+
+#: app/forms.py:258 templates/app/create_entry.html:76
+msgid "Progress (Chapters)"
+msgstr "Progression (chapitres)"
+
+#: app/forms.py:293
+msgid "Progress (Time Played)"
+msgstr "Progression (temps de jeu)"
+
+#: app/forms.py:311 templates/app/create_entry.html:78
+msgid "Progress (Pages)"
+msgstr "Progression (pages)"
+
+#: app/forms.py:324
+msgid "Progress (Issues)"
+msgstr "Progression (numéros)"
+
+#: app/forms.py:337
+msgid "Progress (Plays)"
+msgstr "Progression (parties)"
+
+#: app/history_processor.py:105 templates/app/components/js_i18n.html:4
+#: templates/events/calendar.html:33
+#: templates/events/components/calendar_list.html:11
+msgid "Today"
+msgstr "Aujourd'hui"
+
+#: app/history_processor.py:107 templates/app/components/js_i18n.html:5
+msgid "Yesterday"
+msgstr "Hier"
+
+#: app/history_processor.py:286
+#, python-format
+msgid "Watched episode %(number)s"
+msgstr "Épisode %(number)s vu"
+
+#: app/history_processor.py:298
+#, python-format
+msgid "Updated episode %(number)s"
+msgstr "Épisode %(number)s modifié"
+
+#: app/history_processor.py:457 app/history_processor.py:635
+#: app/history_processor.py:697
+#, python-format
+msgid "Started on %(date)s"
+msgstr "Commencé le %(date)s"
+
+#: app/history_processor.py:468 app/history_processor.py:638
+#, python-format
+msgid "Finished on %(date)s"
+msgstr "Terminé le %(date)s"
+
+#: app/history_processor.py:493
+msgid "Marked as currently watching"
+msgstr "Marqué comme en cours de visionnage"
+
+#: app/history_processor.py:494
+msgid "Marked as currently reading"
+msgstr "Marqué comme en cours de lecture"
+
+#: app/history_processor.py:495
+msgid "Marked as currently playing"
+msgstr "Marqué comme en cours de jeu"
+
+#: app/history_processor.py:498
+msgid "Marked as finished watching"
+msgstr "Marqué comme vu"
+
+#: app/history_processor.py:499
+msgid "Marked as finished reading"
+msgstr "Marqué comme lu"
+
+#: app/history_processor.py:500
+msgid "Marked as finished playing"
+msgstr "Marqué comme terminé"
+
+#: app/history_processor.py:503
+msgid "Added to watching list"
+msgstr "Ajouté à la liste à voir"
+
+#: app/history_processor.py:504
+msgid "Added to reading list"
+msgstr "Ajouté à la liste à lire"
+
+#: app/history_processor.py:505
+msgid "Added to playing list"
+msgstr "Ajouté à la liste à jouer"
+
+#: app/history_processor.py:508
+msgid "Marked as paused watching"
+msgstr "Visionnage mis en pause"
+
+#: app/history_processor.py:509
+msgid "Marked as paused reading"
+msgstr "Lecture mise en pause"
+
+#: app/history_processor.py:510
+msgid "Marked as paused playing"
+msgstr "Partie mise en pause"
+
+#: app/history_processor.py:516
+msgid "Currently watching"
+msgstr "Visionnage en cours"
+
+#: app/history_processor.py:517
+msgid "Currently reading"
+msgstr "Lecture en cours"
+
+#: app/history_processor.py:518
+msgid "Currently playing"
+msgstr "Partie en cours"
+
+#: app/history_processor.py:521
+msgid "Finished watching"
+msgstr "Visionnage terminé"
+
+#: app/history_processor.py:522
+msgid "Finished reading"
+msgstr "Lecture terminée"
+
+#: app/history_processor.py:523
+msgid "Finished playing"
+msgstr "Partie terminée"
+
+#: app/history_processor.py:526
+msgid "Paused watching"
+msgstr "Visionnage mis en pause"
+
+#: app/history_processor.py:527
+msgid "Paused reading"
+msgstr "Lecture mise en pause"
+
+#: app/history_processor.py:528
+msgid "Paused playing"
+msgstr "Partie mise en pause"
+
+#: app/history_processor.py:531
+msgid "Resumed watching"
+msgstr "Visionnage repris"
+
+#: app/history_processor.py:532
+msgid "Resumed reading"
+msgstr "Lecture reprise"
+
+#: app/history_processor.py:533
+msgid "Resumed playing"
+msgstr "Partie reprise"
+
+#: app/history_processor.py:536
+msgid "Stopped watching"
+msgstr "Visionnage abandonné"
+
+#: app/history_processor.py:537
+msgid "Stopped reading"
+msgstr "Lecture abandonnée"
+
+#: app/history_processor.py:538
+msgid "Stopped playing"
+msgstr "Partie abandonnée"
+
+#: app/history_processor.py:543
+#, python-format
+msgid "Watched up to episode %(number)s"
+msgstr "Vu jusqu'à l'épisode %(number)s"
+
+#: app/history_processor.py:544
+#, python-format
+msgid "Read up to chapter %(number)s"
+msgstr "Lu jusqu'au chapitre %(number)s"
+
+#: app/history_processor.py:545
+#, python-format
+msgid "Read up to page %(number)s"
+msgstr "Lu jusqu'à la page %(number)s"
+
+#: app/history_processor.py:546
+#, python-format
+msgid "Read up to issue %(number)s"
+msgstr "Lu jusqu'au numéro %(number)s"
+
+#: app/history_processor.py:547
+#, python-format
+msgid "Played up to play %(number)s"
+msgstr "Joué jusqu'à la partie %(number)s"
+
+#: app/history_processor.py:555
+#, python-format
+msgid "Progress set to %(number)s episode"
+msgid_plural "Progress set to %(number)s episodes"
+msgstr[0] "Progression fixée à %(number)s épisode"
+msgstr[1] "Progression fixée à %(number)s épisodes"
+
+#: app/history_processor.py:560
+#, python-format
+msgid "Progress set to %(number)s chapter"
+msgid_plural "Progress set to %(number)s chapters"
+msgstr[0] "Progression fixée à %(number)s chapitre"
+msgstr[1] "Progression fixée à %(number)s chapitres"
+
+#: app/history_processor.py:565
+#, python-format
+msgid "Progress set to %(number)s page"
+msgid_plural "Progress set to %(number)s pages"
+msgstr[0] "Progression fixée à %(number)s page"
+msgstr[1] "Progression fixée à %(number)s pages"
+
+#: app/history_processor.py:570
+#, python-format
+msgid "Progress set to %(number)s issue"
+msgid_plural "Progress set to %(number)s issues"
+msgstr[0] "Progression fixée à %(number)s numéro"
+msgstr[1] "Progression fixée à %(number)s numéros"
+
+#: app/history_processor.py:575
+#, python-format
+msgid "Progress set to %(number)s play"
+msgid_plural "Progress set to %(number)s plays"
+msgstr[0] "Progression fixée à %(number)s partie"
+msgstr[1] "Progression fixée à %(number)s parties"
+
+#: app/history_processor.py:612
+msgid "Marked as dropped"
+msgstr "Marqué comme abandonné"
+
+#: app/history_processor.py:618 app/history_processor.py:661
+#, python-format
+msgid "Rated %(score)s/10"
+msgstr "Noté %(score)s/10"
+
+#: app/history_processor.py:622
+#, python-format
+msgid "Played for %(time)s"
+msgstr "Joué pendant %(time)s"
+
+#: app/history_processor.py:636
+msgid "Started without date"
+msgstr "Commencé sans date"
+
+#: app/history_processor.py:639
+msgid "Finished without date"
+msgstr "Terminé sans date"
+
+#: app/history_processor.py:642 app/history_processor.py:705
+msgid "Added notes"
+msgstr "Notes ajoutées"
+
+#: app/history_processor.py:644
+#, python-format
+msgid "Set %(field)s to %(value)s"
+msgstr "%(field)s défini à %(value)s"
+
+#: app/history_processor.py:654
+#, python-format
+msgid "Changed status from %(old)s to %(new)s"
+msgstr "Statut changé de %(old)s à %(new)s"
+
+#: app/history_processor.py:662
+#, python-format
+msgid "Changed rating from %(old)s to %(new)s"
+msgstr "Note changée de %(old)s à %(new)s"
+
+#: app/history_processor.py:673
+#, python-format
+msgid "Added %(time)s of playtime"
+msgstr "%(time)s de jeu ajoutées"
+
+#: app/history_processor.py:676
+#, python-format
+msgid "Removed %(time)s of playtime"
+msgstr "%(time)s de jeu retirées"
+
+#: app/history_processor.py:693
+msgid "Removed start date"
+msgstr "Date de début supprimée"
+
+#: app/history_processor.py:694
+msgid "Removed end date"
+msgstr "Date de fin supprimée"
+
+#: app/history_processor.py:698
+#, python-format
+msgid "Ended on %(date)s"
+msgstr "Terminé le %(date)s"
+
+#: app/history_processor.py:700
+#, python-format
+msgid "Start date changed to %(date)s"
+msgstr "Date de début changée au %(date)s"
+
+#: app/history_processor.py:701
+#, python-format
+msgid "End date changed to %(date)s"
+msgstr "Date de fin changée au %(date)s"
+
+#: app/history_processor.py:707
+msgid "Removed notes"
+msgstr "Notes supprimées"
+
+#: app/history_processor.py:708
+msgid "Updated notes"
+msgstr "Notes modifiées"
+
+#: app/history_processor.py:711
+#, python-format
+msgid "Updated %(field)s from %(old)s to %(new)s"
+msgstr "%(field)s modifié de %(old)s à %(new)s"
+
+#: app/models.py:51
+msgid "Manual"
+msgstr "Manuel"
+
+#: app/models.py:57
+msgid "TV Show"
+msgstr "Série"
+
+#: app/models.py:58
+msgid "TV Season"
+msgstr "Saison"
+
+#: app/models.py:59 app/templatetags/app_tags.py:38
+msgid "Episode"
+msgstr "Épisode"
+
+#: app/models.py:60 app/templatetags/app_tags.py:104
+msgid "Movie"
+msgstr "Film"
+
+#: app/models.py:61 app/templatetags/app_tags.py:23
+msgid "Anime"
+msgstr "Animé"
+
+#: app/models.py:62 app/templatetags/app_tags.py:24
+msgid "Manga"
+msgstr "Manga"
+
+#: app/models.py:63
+msgid "Game"
+msgstr "Jeu vidéo"
+
+#: app/models.py:64
+msgid "Book"
+msgstr "Livre"
+
+#: app/models.py:65
+msgid "Comic"
+msgstr "BD / comic"
+
+#: app/models.py:66
+msgid "Boardgame"
+msgstr "Jeu de société"
+
+#: app/models.py:776
+msgid "Completed"
+msgstr "Terminé"
+
+#: app/models.py:777 templates/app/statistics.html:116
+msgid "In Progress"
+msgstr "En cours"
+
+#: app/models.py:778
+msgid "Planning"
+msgstr "Prévu"
+
+#: app/models.py:779
+msgid "Paused"
+msgstr "En pause"
+
+#: app/models.py:780
+msgid "Dropped"
+msgstr "Abandonné"
+
+#: app/models.py:786 templates/users/import_data.html:486
+msgid "Success"
+msgstr "Succès"
+
+#: app/models.py:787
+msgid "Warning"
+msgstr "Avertissement"
+
+#: app/models.py:788
+msgid "Error"
+msgstr "Erreur"
+
+#: app/models.py:789
+msgid "Info"
+msgstr "Info"
+
+#: app/models.py:1166 app/models.py:1418
+#, python-format
+msgid ""
+"%(title)s had %(count)d released episode marked as watched automatically."
+msgid_plural ""
+"%(title)s had %(count)d released episodes marked as watched automatically."
+msgstr[0] ""
+"%(title)s : %(count)d épisode sorti a été marqué comme vu automatiquement."
+msgstr[1] ""
+"%(title)s : %(count)d épisodes sortis ont été marqués comme vus "
+"automatiquement."
+
+#: app/models.py:1185
+#, python-format
+msgid ""
+"%(title)s was left in progress because unreleased episodes or seasons remain."
+msgstr ""
+"%(title)s reste en cours car des épisodes ou saisons ne sont pas encore "
+"sortis."
+
+#: app/models.py:1296
+#, python-format
+msgid "%(title)s Season %(number)s was marked as in progress automatically."
+msgstr ""
+"%(title)s saison %(number)s a été marquée comme en cours automatiquement."
+
+#: app/models.py:1334
+#, python-format
+msgid ""
+"%(title)s remains in progress because another season is still pending or has "
+"not aired yet."
+msgstr ""
+"%(title)s reste en cours car une autre saison est encore à voir ou n'est pas "
+"encore sortie."
+
+#: app/models.py:1349 app/models.py:1840
+#, python-format
+msgid "%(title)s was marked as completed automatically."
+msgstr "%(title)s a été marqué comme terminé automatiquement."
+
+#: app/models.py:1441
+#, python-format
+msgid "%(title)s was left in progress because unreleased episodes remain."
+msgstr "%(title)s reste en cours car des épisodes ne sont pas encore sortis."
+
+#: app/statistics.py:422
+msgid "TV episode watched"
+msgid_plural "TV episodes watched"
+msgstr[0] "épisode de série vu"
+msgstr[1] "épisodes de séries vus"
+
+#: app/statistics.py:427
+msgid "Movie watched"
+msgid_plural "Movies watched"
+msgstr[0] "film vu"
+msgstr[1] "films vus"
+
+#: app/statistics.py:432
+msgid "Anime episode watched"
+msgid_plural "Anime episodes watched"
+msgstr[0] "épisode d'animé vu"
+msgstr[1] "épisodes d'animés vus"
+
+#: app/statistics.py:437
+msgid "Manga chapter read"
+msgid_plural "Manga chapters read"
+msgstr[0] "chapitre de manga lu"
+msgstr[1] "chapitres de manga lus"
+
+#: app/statistics.py:442
+msgid "Game hour played"
+msgid_plural "Game hours played"
+msgstr[0] "heure de jeu"
+msgstr[1] "heures de jeu"
+
+#: app/statistics.py:447
+msgid "Book page read"
+msgid_plural "Book pages read"
+msgstr[0] "page de livre lue"
+msgstr[1] "pages de livres lues"
+
+#: app/statistics.py:452
+msgid "Comic issue read"
+msgid_plural "Comic issues read"
+msgstr[0] "numéro de BD lu"
+msgstr[1] "numéros de BD lus"
+
+#: app/statistics.py:457
+msgid "Boardgame play"
+msgid_plural "Boardgame plays"
+msgstr[0] "partie de jeu de société"
+msgstr[1] "parties de jeux de société"
+
+#: app/templatetags/app_tags.py:19
+msgid "TV Shows"
+msgstr "Séries"
+
+#: app/templatetags/app_tags.py:20
+msgid "TV Seasons"
+msgstr "Saisons"
+
+#: app/templatetags/app_tags.py:21
+#: templates/app/components/media_section_tabs.html:48
+#: templates/app/media_details.html:559
+msgid "Episodes"
+msgstr "Épisodes"
+
+#: app/templatetags/app_tags.py:22
+msgid "Movies"
+msgstr "Films"
+
+#: app/templatetags/app_tags.py:25
+msgid "Games"
+msgstr "Jeux vidéo"
+
+#: app/templatetags/app_tags.py:26
+msgid "Books"
+msgstr "Livres"
+
+#: app/templatetags/app_tags.py:27
+msgid "Comics"
+msgstr "BD / comics"
+
+#: app/templatetags/app_tags.py:28
+msgid "Boardgames"
+msgstr "Jeux de société"
+
+#: app/templatetags/app_tags.py:32
+msgctxt "past participle"
+msgid "watched"
+msgstr "vu"
+
+#: app/templatetags/app_tags.py:33
+msgctxt "past participle"
+msgid "read"
+msgstr "lu"
+
+#: app/templatetags/app_tags.py:34
+msgctxt "past participle"
+msgid "played"
+msgstr "joué"
+
+#: app/templatetags/app_tags.py:39
+msgid "Chapter"
+msgstr "Chapitre"
+
+#: app/templatetags/app_tags.py:40
+msgid "Page"
+msgstr "Page"
+
+#: app/templatetags/app_tags.py:41
+msgid "Issue"
+msgstr "Numéro"
+
+#: app/templatetags/app_tags.py:42
+msgid "Play"
+msgstr "Partie"
+
+#: app/templatetags/app_tags.py:47
+msgid "format"
+msgstr "format"
+
+#: app/templatetags/app_tags.py:48
+msgid "release date"
+msgstr "date de sortie"
+
+#: app/templatetags/app_tags.py:49
+msgid "first air date"
+msgstr "première diffusion"
+
+#: app/templatetags/app_tags.py:50
+msgid "last air date"
+msgstr "dernière diffusion"
+
+#: app/templatetags/app_tags.py:51
+msgid "status"
+msgstr "statut"
+
+#: app/templatetags/app_tags.py:52
+msgid "runtime"
+msgstr "durée"
+
+#: app/templatetags/app_tags.py:53
+msgid "total runtime"
+msgstr "durée totale"
+
+#: app/templatetags/app_tags.py:54
+msgid "studios"
+msgstr "studios"
+
+#: app/templatetags/app_tags.py:55
+msgid "country"
+msgstr "pays"
+
+#: app/templatetags/app_tags.py:56
+msgid "languages"
+msgstr "langues"
+
+#: app/templatetags/app_tags.py:57
+msgid "seasons"
+msgstr "saisons"
+
+#: app/templatetags/app_tags.py:58
+msgid "episodes"
+msgstr "épisodes"
+
+#: app/templatetags/app_tags.py:59
+msgid "recommendations"
+msgstr "recommandations"
+
+#: app/templatetags/app_tags.py:60
+msgid "genres"
+msgstr "genres"
+
+#: app/templatetags/app_tags.py:61
+msgid "source"
+msgstr "source"
+
+#: app/templatetags/app_tags.py:62
+msgid "start date"
+msgstr "date de début"
+
+#: app/templatetags/app_tags.py:63
+msgid "end date"
+msgstr "date de fin"
+
+#: app/templatetags/app_tags.py:64
+msgid "authors"
+msgstr "auteurs"
+
+#: app/templatetags/app_tags.py:65
+msgid "author"
+msgstr "auteur"
+
+#: app/templatetags/app_tags.py:66
+msgid "publishers"
+msgstr "éditeurs"
+
+#: app/templatetags/app_tags.py:67
+msgid "publisher"
+msgstr "éditeur"
+
+#: app/templatetags/app_tags.py:68
+msgid "publish date"
+msgstr "date de publication"
+
+#: app/templatetags/app_tags.py:69
+msgid "number of pages"
+msgstr "nombre de pages"
+
+#: app/templatetags/app_tags.py:70
+msgid "pages"
+msgstr "pages"
+
+#: app/templatetags/app_tags.py:71
+msgid "chapters"
+msgstr "chapitres"
+
+#: app/templatetags/app_tags.py:72
+msgid "volumes"
+msgstr "volumes"
+
+#: app/templatetags/app_tags.py:73
+msgid "platforms"
+msgstr "plateformes"
+
+#: app/templatetags/app_tags.py:74
+msgid "developers"
+msgstr "développeurs"
+
+#: app/templatetags/app_tags.py:75
+msgid "themes"
+msgstr "thèmes"
+
+#: app/templatetags/app_tags.py:76
+msgid "year"
+msgstr "année"
+
+#: app/templatetags/app_tags.py:77
+msgid "players"
+msgstr "joueurs"
+
+#: app/templatetags/app_tags.py:78
+msgid "playtime"
+msgstr "durée de partie"
+
+#: app/templatetags/app_tags.py:79
+msgid "issues"
+msgstr "numéros"
+
+#: app/templatetags/app_tags.py:80
+msgid "upcoming"
+msgstr "à venir"
+
+#: app/templatetags/app_tags.py:81
+msgid "recent"
+msgstr "récent"
+
+#: app/templatetags/app_tags.py:82
+msgid "completion"
+msgstr "avancement"
+
+#: app/templatetags/app_tags.py:83
+msgid "episodes left"
+msgstr "épisodes restants"
+
+#: app/templatetags/app_tags.py:84
+msgid "title"
+msgstr "titre"
+
+#: app/templatetags/app_tags.py:85
+#: templates/app/components/media_section_tabs.html:27
+#: templates/app/media_details.html:450
+msgid "DLCs"
+msgstr "DLC"
+
+#: app/templatetags/app_tags.py:86
+msgid "related"
+msgstr "liés"
+
+#: app/templatetags/app_tags.py:87
+msgid "parent"
+msgstr "parent"
+
+#: app/templatetags/app_tags.py:88
+msgid "sequels"
+msgstr "suites"
+
+#: app/templatetags/app_tags.py:89
+msgid "prequels"
+msgstr "préquelles"
+
+#: app/templatetags/app_tags.py:90
+msgid "side stories"
+msgstr "histoires parallèles"
+
+#: app/templatetags/app_tags.py:91
+msgid "spin offs"
+msgstr "spin-off"
+
+#: app/templatetags/app_tags.py:92
+msgid "adaptations"
+msgstr "adaptations"
+
+#: app/templatetags/app_tags.py:93
+msgid "alternative versions"
+msgstr "versions alternatives"
+
+#: app/templatetags/app_tags.py:94
+msgid "expansions"
+msgstr "extensions"
+
+#: app/templatetags/app_tags.py:95
+msgid "remakes"
+msgstr "remakes"
+
+#: app/templatetags/app_tags.py:96
+msgid "remasters"
+msgstr "remasters"
+
+#: app/templatetags/app_tags.py:97
+msgid "similar games"
+msgstr "jeux similaires"
+
+#: app/templatetags/app_tags.py:98
+msgid "collections"
+msgstr "collections"
+
+#: app/templatetags/app_tags.py:99
+msgid "series"
+msgstr "séries"
+
+#: app/templatetags/app_tags.py:105
+msgid "TV"
+msgstr "Série"
+
+#: app/templatetags/app_tags.py:106
+msgid "Released"
+msgstr "Sorti"
+
+#: app/templatetags/app_tags.py:107
+msgid "Ended"
+msgstr "Terminée"
+
+#: app/templatetags/app_tags.py:108
+msgid "Returning Series"
+msgstr "En cours de diffusion"
+
+#: app/templatetags/app_tags.py:109
+msgid "Canceled"
+msgstr "Annulée"
+
+#: app/templatetags/app_tags.py:110
+msgid "In Production"
+msgstr "En production"
+
+#: app/templatetags/app_tags.py:111
+msgid "Planned"
+msgstr "Prévu"
+
+#: app/templatetags/app_tags.py:112
+msgid "Post Production"
+msgstr "Post-production"
+
+#: app/templatetags/app_tags.py:113
+msgid "Rumored"
+msgstr "Rumeur"
+
+#: app/templatetags/app_tags.py:114
+msgid "Pilot"
+msgstr "Pilote"
+
+#: app/templatetags/app_tags.py:115 templates/app/media_details.html:386
+msgid "Unknown"
+msgstr "Inconnu"
+
+#: app/templatetags/app_tags.py:116
+msgid "Finished Airing"
+msgstr "Diffusion terminée"
+
+#: app/templatetags/app_tags.py:117
+msgid "Currently Airing"
+msgstr "En cours de diffusion"
+
+#: app/templatetags/app_tags.py:118
+msgid "Not yet aired"
+msgstr "Pas encore diffusé"
+
+#: app/templatetags/app_tags.py:119 templates/users/import_data.html:484
+msgid "Finished"
+msgstr "Terminé"
+
+#: app/templatetags/app_tags.py:120
+msgid "Publishing"
+msgstr "En cours de publication"
+
+#: app/templatetags/app_tags.py:121
+msgid "On Hiatus"
+msgstr "En pause"
+
+#: app/templatetags/app_tags.py:122
+msgid "Discontinued"
+msgstr "Arrêté"
+
+#: app/templatetags/app_tags.py:404
+#, python-format
+msgid "Today %(time)s"
+msgstr "Aujourd'hui %(time)s"
+
+#: app/templatetags/app_tags.py:406
+#, python-format
+msgid "Tomorrow %(time)s"
+msgstr "Demain %(time)s"
+
+#: app/views.py:447
+msgid "Manual items cannot be synced."
+msgstr "Les éléments manuels ne peuvent pas être synchronisés."
+
+#: app/views.py:463
+msgid "The data was recently synced, please wait a few seconds."
+msgstr ""
+"Les données viennent d'être synchronisées, patientez quelques secondes."
+
+#: app/views.py:539
+#, python-format
+msgid "%(title)s was synced to %(source)s successfully."
+msgstr "%(title)s a bien été synchronisé avec %(source)s."
+
+#: app/views.py:790
+#, python-format
+msgid "%(name)s already exists in the database."
+msgstr "%(name)s existe déjà dans la base de données."
+
+#: app/views.py:822
+#, python-format
+msgid "%(item)s added successfully."
+msgstr "%(item)s a bien été ajouté."
+
+#: events/notifications.py:51
+msgid "🔔 YamTrack: New Releases Available! 🔔"
+msgstr "🔔 YamTrack : nouvelles sorties disponibles ! 🔔"
+
+#: events/notifications.py:106
+msgid "📆 YamTrack: Today's Releases 📆"
+msgstr "📆 YamTrack : les sorties du jour 📆"
+
+#: events/notifications.py:454
+msgid "Enjoy your media!"
+msgstr "Bon visionnage !"
+
+#: events/views.py:116
+msgid "The task to refresh upcoming releases has been queued."
+msgstr "La mise à jour des prochaines sorties a été lancée."
+
+#: integrations/imports/helpers.py:496
+msgid "Invalid import time."
+msgstr "Heure d'import invalide."
+
+#: integrations/imports/helpers.py:503
+msgid "The same import task is already scheduled."
+msgstr "Le même import est déjà programmé."
+
+#: integrations/imports/helpers.py:533
+#, python-format
+msgid "%(source)s import task scheduled."
+msgstr "Import %(source)s programmé."
+
+#: integrations/views.py:66
+msgid "Invalid or expired Trakt authorization request."
+msgstr "Demande d'autorisation Trakt invalide ou expirée."
+
+#: integrations/views.py:71
+msgid "Trakt authorization failed."
+msgstr "L'autorisation Trakt a échoué."
+
+#: integrations/views.py:94 integrations/views.py:129
+msgid "The task to import media from Trakt has been queued."
+msgstr "L'import depuis Trakt a été lancé."
+
+#: integrations/views.py:115
+msgid "Trakt username is required."
+msgstr "Le nom d'utilisateur Trakt est obligatoire."
+
+#: integrations/views.py:149
+msgid "Trakt export zip file is required."
+msgstr "Le fichier ZIP d'export Trakt est obligatoire."
+
+#: integrations/views.py:160
+msgid "The task to import media from Trakt export file has been queued."
+msgstr "L'import depuis le fichier d'export Trakt a été lancé."
+
+#: integrations/views.py:210
+msgid "The task to import media from Simkl has been queued."
+msgstr "L'import depuis Simkl a été lancé."
+
+#: integrations/views.py:231
+msgid "MyAnimeList username is required."
+msgstr "Le nom d'utilisateur MyAnimeList est obligatoire."
+
+#: integrations/views.py:241
+msgid "The task to import media from MyAnimeList has been queued."
+msgstr "L'import depuis MyAnimeList a été lancé."
+
+#: integrations/views.py:296 integrations/views.py:329
+msgid "AniList username is required."
+msgstr "Le nom d'utilisateur AniList est obligatoire."
+
+#: integrations/views.py:310 integrations/views.py:342
+msgid "AniList import queued."
+msgstr "L'import depuis AniList a été lancé."
+
+#: integrations/views.py:360
+msgid "Kitsu user ID is required."
+msgstr "L'identifiant Kitsu est obligatoire."
+
+#: integrations/views.py:369
+msgid "The task to import media from Kitsu has been queued."
+msgstr "L'import depuis Kitsu a été lancé."
+
+#: integrations/views.py:390
+msgid "Yamtrack CSV file is required."
+msgstr "Le fichier CSV Yamtrack est obligatoire."
+
+#: integrations/views.py:401
+msgid "The task to import media from Yamtrack CSV file has been queued."
+msgstr "L'import depuis le fichier CSV Yamtrack a été lancé."
+
+#: integrations/views.py:412
+msgid "HowLongToBeat CSV file is required."
+msgstr "Le fichier CSV HowLongToBeat est obligatoire."
+
+#: integrations/views.py:424
+msgid "The task to import media from HowLongToBeat CSV file has been queued."
+msgstr "L'import depuis le fichier CSV HowLongToBeat a été lancé."
+
+#: integrations/views.py:435
+msgid "Steam ID is required."
+msgstr "L'identifiant Steam est obligatoire."
+
+#: integrations/views.py:444
+msgid "The task to import media from Steam has been queued."
+msgstr "L'import depuis Steam a été lancé."
+
+#: integrations/views.py:464
+msgid "IMDB CSV file is required."
+msgstr "Le fichier CSV IMDB est obligatoire."
+
+#: integrations/views.py:475
+msgid "The task to import media from IMDB CSV file has been queued."
+msgstr "L'import depuis le fichier CSV IMDB a été lancé."
+
+#: integrations/views.py:486
+msgid "GoodReads CSV file is required."
+msgstr "Le fichier CSV GoodReads est obligatoire."
+
+#: integrations/views.py:497
+msgid "The task to import media from GoodReads CSV file has been queued."
+msgstr "L'import depuis le fichier CSV GoodReads a été lancé."
+
+#: lists/forms.py:23 templates/lists/custom_lists.html:60 users/models.py:76
+msgid "Name"
+msgstr "Nom"
+
+#: lists/forms.py:24 templates/users/about.html:19
+msgid "Description"
+msgstr "Description"
+
+#: lists/forms.py:25
+msgid "Collaborators"
+msgstr "Collaborateurs"
+
+#: lists/forms.py:31
+msgid "Search users to add..."
+msgstr "Rechercher des utilisateurs à ajouter…"
+
+#: templates/400.html:6 templates/400.html:14
+msgid "Bad Request"
+msgstr "Requête invalide"
+
+#: templates/400.html:16
+msgid ""
+"The server could not understand the request due to invalid syntax or missing "
+"parameters."
+msgstr ""
+"Le serveur n'a pas compris la requête : syntaxe invalide ou paramètres "
+"manquants."
+
+#: templates/400.html:19 templates/403.html:20 templates/403_csrf.html:29
+#: templates/404.html:17 templates/500.html:23
+msgid "If you believe this was a bug, please"
+msgstr "Si vous pensez qu'il s'agit d'un bug, merci de"
+
+#: templates/400.html:20 templates/403.html:21 templates/403_csrf.html:30
+#: templates/404.html:18 templates/500.html:24
+msgid "report the issue."
+msgstr "signaler le problème."
+
+#: templates/400.html:27 templates/403.html:33 templates/403_csrf.html:42
+#: templates/404.html:25 templates/500.html:36
+#: templates/socialaccount/connections.html:95
+msgid "Back to Home"
+msgstr "Retour à l'accueil"
+
+#: templates/403.html:6 templates/403_csrf.html:6
+msgid "Forbidden"
+msgstr "Accès interdit"
+
+#: templates/403.html:14 templates/403_csrf.html:14
+msgid "Access Forbidden"
+msgstr "Accès interdit"
+
+#: templates/403.html:16 templates/403_csrf.html:16
+msgid ""
+"You don't have permission to access this resource. Please log in or contact "
+"an administrator."
+msgstr ""
+"Vous n'avez pas l'autorisation d'accéder à cette ressource. Connectez-vous ou"
+" contactez un administrateur."
+
+#: templates/403.html:28 templates/403_csrf.html:37
+msgid "Log In"
+msgstr "Se connecter"
+
+#: templates/403_csrf.html:19
+msgid "Using a Reverse Proxy?"
+msgstr "Vous utilisez un reverse proxy ?"
+
+#: templates/403_csrf.html:21
+msgid ""
+"If you're accessing YamTrack through a reverse proxy, you need to set the "
+"<code class=\"bg-[#39404b] px-1 py-0.5 rounded\">URLS</code> environment "
+"variable to your application URL."
+msgstr ""
+"Si vous accédez à YamTrack via un reverse proxy, vous devez renseigner la "
+"variable d'environnement <code class=\"bg-[#39404b] px-1 py-0.5 "
+"rounded\">URLS</code> avec l'adresse de l'application."
+
+#: templates/403_csrf.html:25
+msgid "For example,"
+msgstr "Par exemple,"
+
+#: templates/404.html:6
+msgid "Page not found"
+msgstr "Page introuvable"
+
+#: templates/404.html:14
+msgid "Page Not Found"
+msgstr "Page introuvable"
+
+#: templates/404.html:15
+msgid "The page you are looking for doesn't exist or has been moved."
+msgstr "La page que vous cherchez n'existe pas ou a été déplacée."
+
+#: templates/500.html:6
+msgid "Server Error"
+msgstr "Erreur du serveur"
+
+#: templates/500.html:14
+msgid "Something Went Wrong"
+msgstr "Une erreur est survenue"
+
+#: templates/500.html:19
+msgid "We're sorry, but there was an error processing your request."
+msgstr "Désolé, une erreur est survenue lors du traitement de votre demande."
+
+#: templates/500.html:31
+msgid "Try Again"
+msgstr "Réessayer"
+
+#: templates/account/login.html:7
+msgid "Login"
+msgstr "Connexion"
+
+#: templates/account/login.html:11
+msgid "Sign in to your account"
+msgstr "Connectez-vous à votre compte"
+
+#: templates/account/login.html:28 templates/app/media_list.html:241
+msgid "Sign In"
+msgstr "Se connecter"
+
+#: templates/account/login.html:41
+msgid "Need an account?"
+msgstr "Pas encore de compte ?"
+
+#: templates/account/login.html:43
+msgid "Register now"
+msgstr "Inscrivez-vous"
+
+#: templates/account/signup.html:6
+msgid "Register"
+msgstr "Inscription"
+
+#: templates/account/signup.html:10
+msgid "Create your account"
+msgstr "Créez votre compte"
+
+#: templates/account/signup.html:26
+msgid "Create Account"
+msgstr "Créer le compte"
+
+#: templates/account/signup.html:38
+msgid "Already have an account?"
+msgstr "Vous avez déjà un compte ?"
+
+#: templates/account/signup.html:40
+msgid "Sign in"
+msgstr "Se connecter"
+
+#: templates/allauth/elements/hr.html:4
+msgid "Or continue with"
+msgstr "Ou continuer avec"
+
+#: templates/app/components/cast_card.html:14
+#, python-format
+msgid "Open TMDB page for %(name)s"
+msgstr "Ouvrir la page TMDB de %(name)s"
+
+#: templates/app/components/fill_history.html:6 templates/app/journal.html:145
+msgid "Activity History"
+msgstr "Historique d'activité"
+
+#: templates/app/components/fill_history.html:16
+#, python-format
+msgid "Instance #%(number)s"
+msgstr "Visionnage n°%(number)s"
+
+#: templates/app/components/fill_history.html:29
+msgid "You haven't started tracking it yet."
+msgstr "Vous ne le suivez pas encore."
+
+#: templates/app/components/fill_track.html:75
+msgid "Update"
+msgstr "Mettre à jour"
+
+#: templates/app/components/fill_track.html:77
+#: templates/lists/components/list_item_button.html:16
+msgid "Add"
+msgstr "Ajouter"
+
+#: templates/app/components/fill_track.html:85
+#: templates/app/components/fill_track_episode.html:67
+#: templates/app/components/journal_items.html:73
+#: templates/lists/components/list_form.html:46
+msgid "Delete"
+msgstr "Supprimer"
+
+#: templates/app/components/fill_track_episode.html:14
+#: templates/app/media_details.html:587
+msgid "Track Episode"
+msgstr "Suivre l'épisode"
+
+#: templates/app/components/fill_track_episode.html:27
+#: templates/app/media_details.html:579
+#, python-format
+msgid "Episode %(number)s"
+msgstr "Épisode %(number)s"
+
+#: templates/app/components/fill_track_episode.html:30
+msgid "Watched once"
+msgstr "Vu une fois"
+
+#: templates/app/components/fill_track_episode.html:32
+#: templates/app/media_details.html:658
+#, python-format
+msgid "Watched %(count)s times"
+msgstr "Vu %(count)s fois"
+
+#: templates/app/components/fill_track_episode.html:35
+msgid "Not watched yet"
+msgstr "Pas encore vu"
+
+#: templates/app/components/fill_track_episode.html:44
+msgid "Previous Watches"
+msgstr "Visionnages précédents"
+
+#: templates/app/components/fill_track_episode.html:53
+#: templates/app/media_details.html:656
+msgid "No date provided"
+msgstr "Sans date"
+
+#: templates/app/components/fill_track_episode.html:101
+msgid "Watch Date"
+msgstr "Date de visionnage"
+
+#: templates/app/components/fill_track_episode.html:132
+msgid "Add watched entry with current settings"
+msgstr "Ajouter un visionnage avec ces réglages"
+
+#: templates/app/components/fill_track_episode.html:132
+msgid "Add watch"
+msgstr "Ajouter le visionnage"
+
+#: templates/app/components/fill_track_episode.html:158
+msgid "Fills in the current date and time"
+msgstr "Remplit avec la date et l'heure actuelles"
+
+#: templates/app/components/fill_track_episode.html:158
+msgid "Fill in current time"
+msgstr "Maintenant"
+
+#: templates/app/components/fill_track_episode.html:165
+msgid "Fills in the date and time the episode will be finished if started now"
+msgstr "Remplit avec l'heure de fin de l'épisode s'il est lancé maintenant"
+
+#: templates/app/components/fill_track_episode.html:166
+msgid "Fill in end time"
+msgstr "Heure de fin"
+
+#: templates/app/components/fill_track_episode.html:175
+msgid "Fills in the air date of the episode, if available"
+msgstr "Remplit avec la date de diffusion de l'épisode, si elle est connue"
+
+#: templates/app/components/fill_track_episode.html:175
+msgid "Fill in air date"
+msgstr "Date de diffusion"
+
+#: templates/app/components/fill_track_episode.html:182
+msgid "Clears the watch date and time"
+msgstr "Efface la date et l'heure de visionnage"
+
+#: templates/app/components/fill_track_episode.html:182
+msgid "Fill in no date"
+msgstr "Sans date"
+
+#: templates/app/components/home_grid.html:40
+#: templates/app/components/media_card.html:72
+#: templates/app/components/media_card_list.html:47
+#: templates/app/media_details.html:35
+msgid "Add to tracker"
+msgstr "Ajouter au suivi"
+
+#: templates/app/components/home_grid.html:48
+#: templates/app/components/media_card.html:82
+#: templates/app/components/media_card_list.html:56
+#: templates/app/media_details.html:307 templates/app/media_details.html:603
+msgid "Add to custom lists"
+msgstr "Ajouter à des listes"
+
+#: templates/app/components/home_grid.html:56
+#: templates/app/components/media_card.html:91
+#: templates/app/components/media_card_list.html:65
+#: templates/app/media_details.html:332 templates/app/media_details.html:625
+msgid "View your activity history"
+msgstr "Voir votre historique d'activité"
+
+#: templates/app/components/home_section.html:25
+#: templates/lists/list_detail.html:32
+#, python-format
+msgid "%(counter)s item"
+msgid_plural "%(counter)s items"
+msgstr[0] "%(counter)s élément"
+msgstr[1] "%(counter)s éléments"
+
+#: templates/app/components/home_section.html:59
+#, python-format
+msgid "Load all (%(total)s)"
+msgstr "Tout afficher (%(total)s)"
+
+#: templates/app/components/home_section.html:83
+msgid "Nothing is actively moving right now"
+msgstr "Rien en cours pour le moment"
+
+#: templates/app/components/home_section.html:85
+msgid "Your planning shelf is still empty"
+msgstr "Rien de prévu pour l'instant"
+
+#: templates/app/components/home_section.html:90
+msgid ""
+"Start a title and mark it as in progress to see quick updates and release "
+"reminders here."
+msgstr ""
+"Commencez un titre et marquez-le comme en cours pour retrouver ici vos mises "
+"à jour rapides et les prochaines sorties."
+
+#: templates/app/components/home_section.html:92
+msgid "Add a few titles to planning to see them here."
+msgstr "Ajoutez quelques titres en « Prévu » pour les retrouver ici."
+
+#: templates/app/components/home_section.html:99
+msgid "Browse media"
+msgstr "Parcourir"
+
+#: templates/app/components/journal_items.html:30
+msgid "Delete activity"
+msgstr "Supprimer l'activité"
+
+#: templates/app/components/journal_items.html:51
+msgid "Delete activity?"
+msgstr "Supprimer l'activité ?"
+
+#: templates/app/components/journal_items.html:53
+msgid "This removes “"
+msgstr "Cela supprime « "
+
+#: templates/app/components/journal_items.html:58
+#, python-format
+msgid "” for %(item)s from your history. This can't be undone."
+msgstr " » pour %(item)s de votre historique. Cette action est irréversible."
+
+#: templates/app/components/journal_items.html:64 templates/app/journal.html:81
+#: templates/app/statistics.html:80
+msgid "Cancel"
+msgstr "Annuler"
+
+#: templates/app/components/js_i18n.html:6
+msgid "This Week"
+msgstr "Cette semaine"
+
+#: templates/app/components/js_i18n.html:7
+msgid "Last 7 Days"
+msgstr "7 derniers jours"
+
+#: templates/app/components/js_i18n.html:8
+msgid "This Month"
+msgstr "Ce mois-ci"
+
+#: templates/app/components/js_i18n.html:9
+msgid "Last 30 Days"
+msgstr "30 derniers jours"
+
+#: templates/app/components/js_i18n.html:10
+msgid "Last 90 Days"
+msgstr "90 derniers jours"
+
+#: templates/app/components/js_i18n.html:11
+msgid "This Year"
+msgstr "Cette année"
+
+#: templates/app/components/js_i18n.html:12
+msgid "Last 6 Months"
+msgstr "6 derniers mois"
+
+#: templates/app/components/js_i18n.html:13
+msgid "Last 12 Months"
+msgstr "12 derniers mois"
+
+#: templates/app/components/js_i18n.html:14
+msgid "All Time"
+msgstr "Depuis le début"
+
+#: templates/app/components/js_i18n.html:16
+msgid "Number of Items"
+msgstr "Nombre d'éléments"
+
+#: templates/app/components/js_i18n.html:17
+msgid "Average Score"
+msgstr "Note moyenne"
+
+#: templates/app/components/js_i18n.html:18
+msgid "item"
+msgstr "élément"
+
+#: templates/app/components/js_i18n.html:19
+msgid "items"
+msgstr "éléments"
+
+#: templates/app/components/js_i18n.html:20
+msgid ""
+"Could not copy to clipboard. Please select the text and press Ctrl+C/Cmd+C to"
+" copy."
+msgstr ""
+"Impossible de copier dans le presse-papiers. Sélectionnez le texte et faites "
+"Ctrl+C / Cmd+C."
+
+#: templates/app/components/media_section_tabs.html:9
+msgid "Overview"
+msgstr "Aperçu"
+
+#: templates/app/components/media_section_tabs.html:16
+#: templates/app/media_details.html:422
+msgid "Cast"
+msgstr "Distribution"
+
+#: templates/app/components/media_section_tabs.html:40
+msgid "Repeats"
+msgstr "Revisionnages"
+
+#: templates/app/components/media_section_tabs.html:57
+#: templates/app/media_details.html:673
+msgid "Streaming"
+msgstr "Streaming"
+
+#: templates/app/components/media_section_tabs.html:66
+#: templates/app/media_details.html:700
+msgid "Time to Beat"
+msgstr "Durée de jeu"
+
+#: templates/app/components/search_parent_season.html:7
+#, python-format
+msgid "Season %(number)s of %(title)s"
+msgstr "Saison %(number)s de %(title)s"
+
+#: templates/app/components/search_parent_season.html:8
+#, python-format
+msgid "Season %(number)s"
+msgstr "Saison %(number)s"
+
+#: templates/app/components/search_parent_season.html:14
+#, python-format
+msgid ""
+"No seasons found matching \"%(query)s\". Please try a different search term."
+msgstr "Aucune saison ne correspond à « %(query)s ». Essayez un autre terme."
+
+#: templates/app/components/search_parent_tv.html:14
+#, python-format
+msgid ""
+"No TV shows found matching \"%(query)s\". Please try a different search term."
+msgstr "Aucune série ne correspond à « %(query)s ». Essayez un autre terme."
+
+#: templates/app/create_entry.html:6
+msgid "Create"
+msgstr "Créer"
+
+#: templates/app/create_entry.html:12
+msgid "Create Custom Entry"
+msgstr "Créer une entrée personnalisée"
+
+#: templates/app/create_entry.html:13
+msgid ""
+"Add a custom media entry to your collection if it's not available in the "
+"database."
+msgstr ""
+"Ajoutez une entrée personnalisée à votre collection si elle n'existe pas dans"
+" la base de données."
+
+#: templates/app/create_entry.html:75
+msgid "Progress (Episodes)"
+msgstr "Progression (épisodes)"
+
+#: templates/app/create_entry.html:77
+msgid "Progress (Play Time)"
+msgstr "Progression (temps de jeu)"
+
+#: templates/app/create_entry.html:87
+msgid "Please select a parent TV show from the dropdown"
+msgstr "Veuillez choisir une série parente dans la liste"
+
+#: templates/app/create_entry.html:96
+msgid "Please select a parent Season from the dropdown"
+msgstr "Veuillez choisir une saison parente dans la liste"
+
+#: templates/app/create_entry.html:111 templates/lists/list_detail.html:188
+#: users/models.py:86
+msgid "Media Type"
+msgstr "Type de média"
+
+#: templates/app/create_entry.html:127 templates/app/media_list.html:166
+#: templates/lists/list_detail.html:188 users/models.py:34 users/models.py:41
+#: users/models.py:85
+msgid "Title"
+msgstr "Titre"
+
+#: templates/app/create_entry.html:129
+msgid "Enter title"
+msgstr "Saisissez le titre"
+
+#: templates/app/create_entry.html:142
+msgid "Search for a TV show..."
+msgstr "Rechercher une série…"
+
+#: templates/app/create_entry.html:159
+msgid "Season Number"
+msgstr "Numéro de saison"
+
+#: templates/app/create_entry.html:189
+msgid "Search for a season..."
+msgstr "Rechercher une saison…"
+
+#: templates/app/create_entry.html:206
+msgid "Episode Number"
+msgstr "Numéro d'épisode"
+
+#: templates/app/create_entry.html:231
+msgid "Image URL"
+msgstr "URL de l'image"
+
+#: templates/app/create_entry.html:236
+msgid "Enter image URL"
+msgstr "Saisissez l'URL de l'image"
+
+#: templates/app/create_entry.html:351
+msgid "Create Entry"
+msgstr "Créer l'entrée"
+
+#: templates/app/home.html:6 templates/app/home.html:12 templates/base.html:87
+msgid "Home"
+msgstr "Accueil"
+
+#: templates/app/home.html:17
+msgid "Hide unreleased"
+msgstr "Masquer les non sortis"
+
+#: templates/app/journal.html:7 templates/app/journal.html:12
+#: templates/base.html:159
+msgid "Journal"
+msgstr "Journal"
+
+#: templates/app/journal.html:13
+msgid "A feed of everything you've done in Yamtrack"
+msgstr "Le fil de tout ce que vous avez fait dans Yamtrack"
+
+#: templates/app/journal.html:37 templates/app/statistics.html:36
+msgid "Predefined Ranges"
+msgstr "Périodes prédéfinies"
+
+#: templates/app/journal.html:40 templates/app/statistics.html:39
+msgid "Custom Range"
+msgstr "Période personnalisée"
+
+#: templates/app/journal.html:86 templates/app/statistics.html:85
+msgid "Apply Range"
+msgstr "Appliquer"
+
+#: templates/app/journal.html:101
+msgid "Tracked Activities"
+msgstr "Activités suivies"
+
+#: templates/app/journal.html:114
+msgid "Most Active Day"
+msgstr "Jour le plus actif"
+
+#: templates/app/journal.html:117
+#, python-format
+msgid "%(percentage)s%% of activity"
+msgstr "%(percentage)s%% de l'activité"
+
+#: templates/app/journal.html:128
+msgid "Current Streak"
+msgstr "Série en cours"
+
+#: templates/app/journal.html:131
+#, python-format
+msgid "%(counter)s day"
+msgid_plural "%(counter)s days"
+msgstr[0] "%(counter)s jour"
+msgstr[1] "%(counter)s jours"
+
+#: templates/app/journal.html:134
+#, python-format
+msgid "Longest: %(counter)s day"
+msgid_plural "Longest: %(counter)s days"
+msgstr[0] "Record : %(counter)s jour"
+msgstr[1] "Record : %(counter)s jours"
+
+#: templates/app/journal.html:190
+msgid "Less"
+msgstr "Moins"
+
+#: templates/app/journal.html:196
+msgid "More"
+msgstr "Plus"
+
+#: templates/app/journal.html:214
+msgid "No tracking activity in this date range."
+msgstr "Aucune activité sur cette période."
+
+#: templates/app/media_details.html:8
+#, python-format
+msgid "S%(number)s"
+msgstr "S%(number)s"
+
+#: templates/app/media_details.html:42
+msgid "More tracking options"
+msgstr "Plus d'options de suivi"
+
+#: templates/app/media_details.html:63
+msgid "Add new entry"
+msgstr "Ajouter une nouvelle entrée"
+
+#: templates/app/media_details.html:129
+#, python-format
+msgid "%(counter)s Episode"
+msgid_plural "%(counter)s Episodes"
+msgstr[0] "%(counter)s épisode"
+msgstr[1] "%(counter)s épisodes"
+
+#: templates/app/media_details.html:160 templates/app/media_details.html:294
+#: templates/app/media_details.html:545
+msgid "Show less"
+msgstr "Réduire"
+
+#: templates/app/media_details.html:160 templates/app/media_details.html:294
+#: templates/app/media_details.html:545
+msgid "Read more"
+msgstr "Lire la suite"
+
+#: templates/app/media_details.html:170
+#, python-format
+msgid "%(source)s SCORE"
+msgstr "NOTE %(source)s"
+
+#: templates/app/media_details.html:180
+#, python-format
+msgid "%(votes)s vote"
+msgid_plural "%(votes)s votes"
+msgstr[0] "%(votes)s vote"
+msgstr[1] "%(votes)s votes"
+
+#: templates/app/media_details.html:192
+msgid "YOUR SCORE"
+msgstr "VOTRE NOTE"
+
+#: templates/app/media_details.html:205
+msgid "Click to edit"
+msgstr "Cliquez pour modifier"
+
+#: templates/app/media_details.html:250
+msgid "Your History"
+msgstr "Votre historique"
+
+#: templates/app/media_details.html:256
+msgid "Started:"
+msgstr "Commencé :"
+
+#: templates/app/media_details.html:263
+msgid "Ended:"
+msgstr "Terminé :"
+
+#: templates/app/media_details.html:270
+msgid "Progress:"
+msgstr "Progression :"
+
+#: templates/app/media_details.html:286
+msgid "Your notes"
+msgstr "Vos notes"
+
+#: templates/app/media_details.html:302
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/app/media_details.html:316
+msgid "Add to lists"
+msgstr "Ajouter à des listes"
+
+#: templates/app/media_details.html:341
+msgid "Activity history"
+msgstr "Historique d'activité"
+
+#: templates/app/media_details.html:356
+msgid "Sync metadata with provider"
+msgstr "Resynchroniser les métadonnées avec la source"
+
+#: templates/app/media_details.html:371
+msgid "Sync metadata"
+msgstr "Resynchroniser"
+
+#: templates/app/media_details.html:376
+msgid "Details"
+msgstr "Détails"
+
+#: templates/app/media_details.html:392
+msgid "Provider"
+msgstr "Source"
+
+#: templates/app/media_details.html:399 templates/users/about.html:29
+msgid "Links"
+msgstr "Liens"
+
+#: templates/app/media_details.html:410
+msgid "No details available"
+msgstr "Aucun détail disponible"
+
+#: templates/app/media_details.html:434
+msgid "View all"
+msgstr "Tout voir"
+
+#: templates/app/media_details.html:435
+#, python-format
+msgid "%(count)s cast members"
+msgstr "%(count)s membres de la distribution"
+
+#: templates/app/media_details.html:473
+#, python-format
+msgid "Repeats (%(count)s)"
+msgstr "Revisionnages (%(count)s)"
+
+#: templates/app/media_details.html:492
+msgid "Edit entry"
+msgstr "Modifier l'entrée"
+
+#: templates/app/media_details.html:526
+#, python-format
+msgid "Started %(date)s"
+msgstr "Commencé le %(date)s"
+
+#: templates/app/media_details.html:528
+#, python-format
+msgid "Finished %(date)s"
+msgstr "Terminé le %(date)s"
+
+#: templates/app/media_details.html:579
+msgid "Unknown air date"
+msgstr "Date de diffusion inconnue"
+
+#: templates/app/media_details.html:652
+msgid "Last watched:"
+msgstr "Dernier visionnage :"
+
+#: templates/app/media_details.html:677
+msgid ""
+"Watch provider region is not configured. Set a region or disable this feature"
+" in the"
+msgstr ""
+"La région des plateformes de streaming n'est pas configurée. Choisissez une "
+"région ou désactivez cette fonction dans les"
+
+#: templates/app/media_details.html:679
+msgid "preferences"
+msgstr "préférences"
+
+#: templates/app/media_details.html:709
+msgid "Main Story"
+msgstr "Histoire principale"
+
+#: templates/app/media_details.html:720
+msgid "Main + Extra"
+msgstr "Principale + extras"
+
+#: templates/app/media_details.html:731
+msgid "Completionist"
+msgstr "Complétionniste"
+
+#: templates/app/media_list.html:7 templates/app/media_list.html:12
+#, python-format
+msgid "%(username)s's %(type)s"
+msgstr "%(type)s de %(username)s"
+
+#: templates/app/media_list.html:40
+#, python-format
+msgid "Search %(media_type_plural)s in %(username)s's list..."
+msgstr "Rechercher dans les %(media_type_plural)s de %(username)s…"
+
+#: templates/app/media_list.html:40
+#, python-format
+msgid "Search %(media_type_plural)s in your list..."
+msgstr "Rechercher dans vos %(media_type_plural)s…"
+
+#: templates/app/media_list.html:128 templates/app/search.html:26
+msgid "Grid View"
+msgstr "Vue en grille"
+
+#: templates/app/media_list.html:133
+msgid "Table View"
+msgstr "Vue en tableau"
+
+#: templates/app/media_list.html:146
+#, python-format
+msgid "No %(type)s Tracked Yet"
+msgstr "Aucun élément suivi dans « %(type)s » pour l'instant"
+
+#: templates/app/media_list.html:149
+#, python-format
+msgid ""
+"Start tracking your %(media_type_plural)s to keep a record of what you've "
+"%(verb)s."
+msgstr ""
+"Commencez à suivre vos %(media_type_plural)s pour garder une trace de ce que "
+"vous avez %(verb)s."
+
+#: templates/app/media_list.html:153
+#, python-format
+msgid "Browse %(type)s"
+msgstr "Parcourir : %(type)s"
+
+#: templates/app/media_list.html:169
+msgid "Last Watched"
+msgstr "Dernier visionnage"
+
+#: templates/app/media_list.html:198
+#, python-format
+msgid "%(username)s's Media:"
+msgstr "Médias de %(username)s :"
+
+#: templates/app/search.html:6 templates/base.html:260
+msgid "Search"
+msgstr "Rechercher"
+
+#: templates/app/search.html:11
+msgid "Search Results"
+msgstr "Résultats de recherche"
+
+#: templates/app/search.html:13
+msgid "Source:"
+msgstr "Source :"
+
+#: templates/app/search.html:29
+msgid "List View"
+msgstr "Vue en liste"
+
+#: templates/app/search.html:92
+#, python-format
+msgid "Page %(page)s of %(total_pages)s (%(total_results)s results)"
+msgstr "Page %(page)s sur %(total_pages)s (%(total_results)s résultats)"
+
+#: templates/app/search.html:100
+msgid "No results found"
+msgstr "Aucun résultat"
+
+#: templates/app/search.html:102
+#, python-format
+msgid ""
+"We couldn't find any matches for \"%(query)s\". Try checking your spelling or"
+" using different keywords."
+msgstr ""
+"Aucun résultat pour « %(query)s ». Vérifiez l'orthographe ou essayez d'autres"
+" mots-clés."
+
+#: templates/app/statistics.html:7 templates/app/statistics.html:12
+#: templates/base.html:144
+msgid "Statistics"
+msgstr "Statistiques"
+
+#: templates/app/statistics.html:13
+msgid "Track your media consumption habits"
+msgstr "Suivez vos habitudes de visionnage, de lecture et de jeu"
+
+#: templates/app/statistics.html:101
+msgid "Completed Items"
+msgstr "Éléments terminés"
+
+#: templates/app/statistics.html:129
+msgid "Average Rating"
+msgstr "Note moyenne"
+
+#: templates/app/statistics.html:144
+#, python-format
+msgid "%% Rated"
+msgstr "%% notés"
+
+#: templates/app/statistics.html:159
+msgid "Consumption"
+msgstr "Consommation"
+
+#: templates/app/statistics.html:177
+msgid "Media Type Distribution"
+msgstr "Répartition par type de média"
+
+#: templates/app/statistics.html:188
+msgid "No media types to display"
+msgstr "Aucun type de média à afficher"
+
+#: templates/app/statistics.html:189
+msgid "Add different types of media to see their distribution."
+msgstr "Ajoutez différents types de médias pour voir leur répartition."
+
+#: templates/app/statistics.html:196
+msgid "Status Distribution"
+msgstr "Répartition par statut"
+
+#: templates/app/statistics.html:207
+msgid "No status data to display"
+msgstr "Aucun statut à afficher"
+
+#: templates/app/statistics.html:208
+msgid "Track media items with different statuses to see their distribution."
+msgstr "Suivez des médias avec différents statuts pour voir leur répartition."
+
+#: templates/app/statistics.html:215
+msgid "Status Distribution by Media Type"
+msgstr "Répartition des statuts par type de média"
+
+#: templates/app/statistics.html:226
+msgid "No data available"
+msgstr "Aucune donnée disponible"
+
+#: templates/app/statistics.html:228
+msgid ""
+"Add media items with different statuses to see their distribution by type."
+msgstr ""
+"Ajoutez des médias avec différents statuts pour voir leur répartition par "
+"type."
+
+#: templates/app/statistics.html:236
+msgid "Score Distribution by Media Type"
+msgstr "Répartition des notes par type de média"
+
+#: templates/app/statistics.html:247 templates/app/statistics.html:269
+msgid "No ratings yet"
+msgstr "Aucune note pour l'instant"
+
+#: templates/app/statistics.html:248 templates/app/statistics.html:270
+msgid "Rate your media items to see score distribution statistics."
+msgstr "Notez vos médias pour voir la répartition des notes."
+
+#: templates/app/statistics.html:256
+msgid "Top Rated Media"
+msgstr "Les mieux notés"
+
+#: templates/base.html:12
+msgid "Search and track media on Yamtrack."
+msgstr "Recherchez et suivez vos médias avec Yamtrack."
+
+#: templates/base.html:129
+msgid "Create Custom"
+msgstr "Créer une entrée"
+
+#: templates/base.html:174 templates/lists/components/fill_lists.html:5
+#: templates/lists/custom_lists.html:10 templates/lists/custom_lists.html:17
+msgid "Lists"
+msgstr "Listes"
+
+#: templates/base.html:189 templates/events/calendar.html:6
+#: templates/events/calendar.html:11
+msgid "Calendar"
+msgstr "Calendrier"
+
+#: templates/base.html:215 templates/users/base.html:8
+msgid "Settings"
+msgstr "Paramètres"
+
+#: templates/base.html:224
+msgid "Logout"
+msgstr "Déconnexion"
+
+#: templates/events/calendar.html:12
+msgid "Track upcoming releases from your list."
+msgstr "Suivez les prochaines sorties de votre liste."
+
+#: templates/events/calendar.html:39
+msgid "Fetch New Releases"
+msgstr "Actualiser les sorties"
+
+#: templates/events/calendar.html:71
+msgid "Export link"
+msgstr "Lien d'abonnement"
+
+#: templates/events/calendar.html:74
+msgid ""
+"This link can be used to integrate your calendar into any of your calendar "
+"applications."
+msgstr ""
+"Ce lien permet d'ajouter ce calendrier à n'importe quelle application "
+"d'agenda."
+
+#: templates/events/components/calendar_list.html:27
+#, python-format
+msgid "%(number)s at %(time)s"
+msgstr "%(number)s à %(time)s"
+
+#: templates/lists/components/fill_lists.html:16
+msgid "You haven't created any lists yet."
+msgstr "Vous n'avez encore créé aucune liste."
+
+#: templates/lists/components/list_form.html:12
+#: templates/lists/list_detail.html:40
+msgid "Edit List"
+msgstr "Modifier la liste"
+
+#: templates/lists/components/list_form.html:14
+msgid "Create New List"
+msgstr "Créer une liste"
+
+#: templates/lists/components/list_form.html:41
+msgid "Save"
+msgstr "Enregistrer"
+
+#: templates/lists/components/list_form.html:53
+msgid "Create List"
+msgstr "Créer la liste"
+
+#: templates/lists/components/list_grid.html:17
+msgid "Edit list"
+msgstr "Modifier la liste"
+
+#: templates/lists/components/list_item_button.html:8
+msgid "Remove"
+msgstr "Retirer"
+
+#: templates/lists/custom_lists.html:18
+msgid "Organize and share your media lists"
+msgstr "Organisez et partagez vos listes de médias"
+
+#: templates/lists/custom_lists.html:23
+msgid "New List"
+msgstr "Nouvelle liste"
+
+#: templates/lists/custom_lists.html:37
+msgid "Search lists..."
+msgstr "Rechercher une liste…"
+
+#: templates/lists/custom_lists.html:60 users/models.py:75
+msgid "Last Item Added"
+msgstr "Dernier ajout"
+
+#: templates/lists/custom_lists.html:60 users/models.py:78
+msgid "Newest First"
+msgstr "Plus récentes d'abord"
+
+#: templates/lists/custom_lists.html:60 users/models.py:77
+msgid "Items Count"
+msgstr "Nombre d'éléments"
+
+#: templates/lists/custom_lists.html:99
+msgid "No Lists Created Yet"
+msgstr "Aucune liste pour l'instant"
+
+#: templates/lists/custom_lists.html:100
+msgid ""
+"Create custom lists to organize your media collection and share with friends."
+msgstr "Créez des listes pour organiser votre collection et la partager."
+
+#: templates/lists/custom_lists.html:103
+msgid "Create Your First List"
+msgstr "Créer votre première liste"
+
+#: templates/lists/list_detail.html:30
+#, python-format
+msgid "%(counter)s collaborator"
+msgid_plural "%(counter)s collaborators"
+msgstr[0] "%(counter)s collaborateur"
+msgstr[1] "%(counter)s collaborateurs"
+
+#: templates/lists/list_detail.html:47
+msgid "All Types"
+msgstr "Tous les types"
+
+#: templates/lists/list_detail.html:67
+msgid "Search in collection..."
+msgstr "Rechercher dans la liste…"
+
+#: templates/lists/list_detail.html:167 users/models.py:50
+msgid "All"
+msgstr "Tous"
+
+#: templates/lists/list_detail.html:188 users/models.py:84
+msgid "Date Added"
+msgstr "Date d'ajout"
+
+#: templates/lists/list_detail.html:224
+msgid "No items in this list yet"
+msgstr "Cette liste est encore vide"
+
+#: templates/lists/list_detail.html:225
+msgid "Start adding your favorite media to build your collection"
+msgstr "Ajoutez vos médias préférés pour constituer votre collection"
+
+#: templates/lists/list_detail.html:228
+msgid "Browse Media"
+msgstr "Parcourir"
+
+#: templates/socialaccount/connections.html:7
+#: templates/socialaccount/connections.html:11
+msgid "Account Connections"
+msgstr "Comptes connectés"
+
+#: templates/socialaccount/connections.html:18
+msgid ""
+"You can sign in to your account using any of the following third-party "
+"accounts:"
+msgstr "Vous pouvez vous connecter avec l'un des comptes externes suivants :"
+
+#: templates/socialaccount/connections.html:66
+msgid "Remove Selected"
+msgstr "Retirer la sélection"
+
+#: templates/socialaccount/connections.html:75
+msgid "You currently have no third-party accounts connected to this account."
+msgstr "Aucun compte externe n'est connecté à ce compte."
+
+#: templates/socialaccount/connections.html:83
+msgid "Add a Third-Party Account"
+msgstr "Ajouter un compte externe"
+
+#: templates/users/about.html:8 templates/users/base.html:68
+msgid "About"
+msgstr "À propos"
+
+#: templates/users/about.html:13
+msgid "About Yamtrack"
+msgstr "À propos de Yamtrack"
+
+#: templates/users/about.html:22
+msgid ""
+"Yamtrack is an open-source media tracker that helps you organize and track "
+"your media."
+msgstr "Yamtrack est un outil open source pour organiser et suivre vos médias."
+
+#: templates/users/about.html:37
+msgid "Source Code"
+msgstr "Code source"
+
+#: templates/users/about.html:46
+msgid "Documentation"
+msgstr "Documentation"
+
+#: templates/users/about.html:55
+msgid "Bug Reports"
+msgstr "Signaler un bug"
+
+#: templates/users/about.html:64
+msgid "License"
+msgstr "Licence"
+
+#: templates/users/about.html:67
+msgid "Yamtrack is licensed under the"
+msgstr "Yamtrack est distribué sous licence"
+
+#: templates/users/about.html:79
+msgid "Attribution"
+msgstr "Crédits"
+
+#: templates/users/about.html:82
+msgid "Movie and TV streaming providers from"
+msgstr "Plateformes de streaming fournies par"
+
+#: templates/users/about.html:95
+msgid "Version:"
+msgstr "Version :"
+
+#: templates/users/account.html:8 templates/users/base.html:19
+msgid "Account"
+msgstr "Compte"
+
+#: templates/users/account.html:16
+msgid "Profile Information"
+msgstr "Informations du profil"
+
+#: templates/users/account.html:29
+msgid "Username"
+msgstr "Nom d'utilisateur"
+
+#: templates/users/account.html:42
+msgid "Profile visibility"
+msgstr "Visibilité du profil"
+
+#: templates/users/account.html:47
+msgid "Private profile"
+msgstr "Profil privé"
+
+#: templates/users/account.html:49
+msgid "Hide your profile and media lists from anonymous visitors."
+msgstr "Masquer votre profil et vos listes aux visiteurs non connectés."
+
+#: templates/users/account.html:68 templates/users/integrations.html:149
+#: templates/users/integrations.html:275
+msgid "Save Changes"
+msgstr "Enregistrer"
+
+#: templates/users/account.html:77
+msgid "Change Password"
+msgstr "Changer le mot de passe"
+
+#: templates/users/account.html:92
+msgid "Current Password"
+msgstr "Mot de passe actuel"
+
+#: templates/users/account.html:116
+msgid "New Password"
+msgstr "Nouveau mot de passe"
+
+#: templates/users/account.html:140
+msgid "Confirm New Password"
+msgstr "Confirmer le nouveau mot de passe"
+
+#: templates/users/account.html:166
+msgid "Update Password"
+msgstr "Changer le mot de passe"
+
+#: templates/users/account.html:177
+msgid "Third-Party Connections"
+msgstr "Comptes externes"
+
+#: templates/users/account.html:179
+msgid "Manage your connected third-party accounts for easier sign-in."
+msgstr ""
+"Gérez les comptes externes connectés pour vous identifier plus facilement."
+
+#: templates/users/account.html:183
+msgid "Manage Account Connections"
+msgstr "Gérer les comptes connectés"
+
+#: templates/users/advanced.html:8 templates/users/advanced.html:17
+#: templates/users/base.html:61
+msgid "Advanced"
+msgstr "Avancé"
+
+#: templates/users/advanced.html:23 templates/users/advanced.html:38
+msgid "Clear Search Cache"
+msgstr "Vider le cache de recherche"
+
+#: templates/users/advanced.html:26
+msgid ""
+"Yamtrack stores your search results in a cache to speed up performance and "
+"reduce API calls."
+msgstr ""
+"Yamtrack garde vos résultats de recherche en cache pour aller plus vite et "
+"limiter les appels aux API."
+
+#: templates/users/advanced.html:28
+msgid ""
+"Normally, these cached results expire automatically after 24 hours. If your "
+"search results appear outdated, you can clear the cache manually."
+msgstr ""
+"Ces résultats expirent normalement au bout de 24 heures. S'ils vous semblent "
+"périmés, vous pouvez vider le cache manuellement."
+
+#: templates/users/advanced.html:30
+msgid "Your next search may be slightly slower as fresh data is retrieved."
+msgstr ""
+"La prochaine recherche sera un peu plus lente, le temps de récupérer des "
+"données à jour."
+
+#: templates/users/base.html:9
+msgid "Configure your account and preferences"
+msgstr "Configurez votre compte et vos préférences"
+
+#: templates/users/base.html:26 templates/users/preferences.html:7
+#: templates/users/preferences.html:14
+msgid "Preferences"
+msgstr "Préférences"
+
+#: templates/users/base.html:33 templates/users/notifications.html:7
+#: templates/users/notifications.html:16
+msgid "Notifications"
+msgstr "Notifications"
+
+#: templates/users/base.html:40 templates/users/integrations.html:7
+msgid "Integrations"
+msgstr "Intégrations"
+
+#: templates/users/base.html:47
+msgid "Import Data"
+msgstr "Importer"
+
+#: templates/users/base.html:54 templates/users/export_data.html:12
+msgid "Export Data"
+msgstr "Exporter"
+
+#: templates/users/components/excluded_items.html:4
+msgid "Currently Excluded:"
+msgstr "Actuellement exclus :"
+
+#: templates/users/components/excluded_items.html:30
+msgid "No media items excluded yet"
+msgstr "Aucun média exclu pour l'instant"
+
+#: templates/users/components/search_results.html:22
+msgid "Exclude"
+msgstr "Exclure"
+
+#: templates/users/components/search_results.html:28
+msgid "No matching items found"
+msgstr "Aucun élément correspondant"
+
+#: templates/users/export_data.html:5
+msgid "Export"
+msgstr "Export"
+
+#: templates/users/export_data.html:14
+msgid "Back up your data or export it for use with other services."
+msgstr "Sauvegardez vos données ou exportez-les vers d'autres services."
+
+#: templates/users/export_data.html:15
+msgid "Your export will include all your media items."
+msgstr "L'export contiendra tous vos médias."
+
+#: templates/users/export_data.html:19
+msgid "Export as CSV"
+msgstr "Exporter en CSV"
+
+#: templates/users/import_data.html:7 templates/users/import_data.html:105
+#: templates/users/import_data.html:182 templates/users/import_data.html:220
+#: templates/users/import_data.html:268 templates/users/import_data.html:361
+msgid "Import"
+msgstr "Importer"
+
+#: templates/users/import_data.html:18
+msgid "Import Settings"
+msgstr "Réglages d'import"
+
+#: templates/users/import_data.html:20
+msgid "Configure your import preferences."
+msgstr "Configurez vos préférences d'import."
+
+#: templates/users/import_data.html:24
+msgid "Import Frequency"
+msgstr "Fréquence d'import"
+
+#: templates/users/import_data.html:28
+msgid "One Time Import"
+msgstr "Import unique"
+
+#: templates/users/import_data.html:29
+msgid "Every Day"
+msgstr "Tous les jours"
+
+#: templates/users/import_data.html:30
+msgid "Every 2 Days"
+msgstr "Tous les 2 jours"
+
+#: templates/users/import_data.html:35
+msgid "Import Time"
+msgstr "Heure d'import"
+
+#: templates/users/import_data.html:42
+msgid "Import Mode"
+msgstr "Mode d'import"
+
+#: templates/users/import_data.html:46
+msgid "Only Sync New Items"
+msgstr "Seulement les nouveaux éléments"
+
+#: templates/users/import_data.html:47
+msgid "Sync New Items and Overwrite Existing"
+msgstr "Nouveaux éléments et écraser l'existant"
+
+#: templates/users/import_data.html:60
+msgid "Import Sources"
+msgstr "Sources d'import"
+
+#: templates/users/import_data.html:63
+msgid "Some of these require additional configuration, check the"
+msgstr "Certaines demandent une configuration supplémentaire, consultez le"
+
+#: templates/users/import_data.html:66
+msgid "import configuration guide"
+msgstr "guide de configuration des imports"
+
+#: templates/users/import_data.html:75
+msgid "Import TV shows and movies"
+msgstr "Importer séries et films"
+
+#: templates/users/import_data.html:75 templates/users/import_data.html:283
+#: templates/users/import_data.html:310 templates/users/import_data.html:372
+#: templates/users/import_data.html:399
+msgid "File uploads are not available for periodic imports"
+msgstr "L'envoi de fichiers n'est pas possible pour les imports programmés"
+
+#: templates/users/import_data.html:79
+msgid "Import method"
+msgstr "Méthode d'import"
+
+#: templates/users/import_data.html:82
+msgid "Public"
+msgstr "Public"
+
+#: templates/users/import_data.html:83
+msgid "Private (requires authentication)"
+msgstr "Privé (connexion requise)"
+
+#: templates/users/import_data.html:84
+msgid "Export (requires ZIP file)"
+msgstr "Export (fichier ZIP requis)"
+
+#: templates/users/import_data.html:98
+msgid "Public Trakt username"
+msgstr "Nom d'utilisateur Trakt public"
+
+#: templates/users/import_data.html:121
+msgid "Connect with Trakt & Import"
+msgstr "Se connecter à Trakt et importer"
+
+#: templates/users/import_data.html:143
+msgid "Select ZIP File"
+msgstr "Choisir un fichier ZIP"
+
+#: templates/users/import_data.html:151
+msgid "Import TV shows, movies and anime"
+msgstr "Importer séries, films et animés"
+
+#: templates/users/import_data.html:159
+msgid "Connect with Simkl & Import"
+msgstr "Se connecter à Simkl et importer"
+
+#: templates/users/import_data.html:167 templates/users/import_data.html:192
+#: templates/users/import_data.html:244
+msgid "Import anime and manga"
+msgstr "Importer animés et mangas"
+
+#: templates/users/import_data.html:176
+msgid "MAL username"
+msgstr "Nom d'utilisateur MAL"
+
+#: templates/users/import_data.html:199
+msgid "Import private profile (requires authentication)"
+msgstr "Importer un profil privé (connexion requise)"
+
+#: templates/users/import_data.html:213
+msgid "Public AniList username"
+msgstr "Nom d'utilisateur AniList public"
+
+#: templates/users/import_data.html:236
+msgid "Connect with AniList & Import"
+msgstr "Se connecter à AniList et importer"
+
+#: templates/users/import_data.html:253
+msgid "Kitsu user ID"
+msgstr "Identifiant Kitsu"
+
+#: templates/users/import_data.html:260
+msgid "Find it on your Kitsu profile URL:"
+msgstr "Il figure dans l'adresse de votre profil Kitsu :"
+
+#: templates/users/import_data.html:280
+msgid "View CSV format documentation"
+msgstr "Voir la documentation du format CSV"
+
+#: templates/users/import_data.html:283
+msgid "Import from YamTrack backup"
+msgstr "Importer une sauvegarde YamTrack"
+
+#: templates/users/import_data.html:301 templates/users/import_data.html:328
+#: templates/users/import_data.html:390 templates/users/import_data.html:417
+msgid "Select CSV File"
+msgstr "Choisir un fichier CSV"
+
+#: templates/users/import_data.html:310
+msgid "Import games"
+msgstr "Importer des jeux"
+
+#: templates/users/import_data.html:336
+msgid "Import games from your Steam library"
+msgstr "Importer les jeux de votre bibliothèque Steam"
+
+#: templates/users/import_data.html:345
+msgid "Steam 64-bit ID"
+msgstr "Identifiant Steam 64 bits"
+
+#: templates/users/import_data.html:352
+msgid "Find it on your Steam account details page under your username."
+msgstr ""
+"Il figure sur la page des détails de votre compte Steam, sous votre nom "
+"d'utilisateur."
+
+#: templates/users/import_data.html:355
+msgid ""
+"Your profile must be public if the API key you are using is not linked to the"
+" steamid you are requesting."
+msgstr ""
+"Votre profil doit être public si la clé d'API utilisée n'est pas liée à ce "
+"Steam ID."
+
+#: templates/users/import_data.html:372
+msgid "Import movies and TV shows from your ratings"
+msgstr "Importer films et séries depuis vos notes"
+
+#: templates/users/import_data.html:399
+msgid "Import from GoodReads backup"
+msgstr "Importer une sauvegarde GoodReads"
+
+#: templates/users/import_data.html:429
+msgid "Active Periodic Imports"
+msgstr "Imports programmés actifs"
+
+#: templates/users/import_data.html:432
+msgid ""
+"Automated imports that run on a schedule. These will continue to sync your "
+"media until disabled."
+msgstr ""
+"Imports automatiques exécutés selon un planning. Ils continuent de "
+"synchroniser vos médias jusqu'à ce que vous les désactiviez."
+
+#: templates/users/import_data.html:453
+#, python-format
+msgid "Username: %(username)s"
+msgstr "Utilisateur : %(username)s"
+
+#: templates/users/import_data.html:454
+#, python-format
+msgid "Mode: %(mode)s"
+msgstr "Mode : %(mode)s"
+
+#: templates/users/import_data.html:455
+#, python-format
+msgid "Last Import: %(date)s"
+msgstr "Dernier import : %(date)s"
+
+#: templates/users/import_data.html:456
+#, python-format
+msgid "Next Import: %(date)s"
+msgstr "Prochain import : %(date)s"
+
+#: templates/users/import_data.html:461
+msgid "No periodic imports configured"
+msgstr "Aucun import programmé"
+
+#: templates/users/import_data.html:462
+msgid "Set up an import with a daily or 2-day frequency to see it here"
+msgstr "Programmez un import quotidien ou tous les 2 jours pour le voir ici"
+
+#: templates/users/import_data.html:472
+msgid "Import History"
+msgstr "Historique des imports"
+
+#: templates/users/import_data.html:475
+msgid "Showing import activity from the last 7 days."
+msgstr "Imports des 7 derniers jours."
+
+#: templates/users/import_data.html:490
+msgid "Started"
+msgstr "Démarré"
+
+#: templates/users/import_data.html:492
+msgid "Failed"
+msgstr "Échec"
+
+#: templates/users/import_data.html:494
+msgid "Pending"
+msgstr "En attente"
+
+#: templates/users/import_data.html:510
+msgid "Hide failed items"
+msgstr "Masquer les éléments en échec"
+
+#: templates/users/import_data.html:510
+msgid "Show failed items"
+msgstr "Afficher les éléments en échec"
+
+#: templates/users/import_data.html:515
+msgid "Hide traceback"
+msgstr "Masquer le détail de l'erreur"
+
+#: templates/users/import_data.html:515
+msgid "Show traceback"
+msgstr "Afficher le détail de l'erreur"
+
+#: templates/users/import_data.html:530
+msgid "No imports in the last 7 days"
+msgstr "Aucun import ces 7 derniers jours"
+
+#: templates/users/import_data.html:531
+msgid "Import your media from any source to see the history here"
+msgstr "Importez vos médias depuis une source pour voir l'historique ici"
+
+#: templates/users/integrations.html:21
+msgid "Token"
+msgstr "Jeton"
+
+#: templates/users/integrations.html:23
+msgid ""
+"This token is used to authenticate webhook requests from your media servers."
+msgstr ""
+"Ce jeton authentifie les webhooks envoyés par vos serveurs multimédias."
+
+#: templates/users/integrations.html:32 templates/users/integrations.html:168
+#: templates/users/integrations.html:198 templates/users/integrations.html:233
+#: templates/users/integrations.html:303 templates/users/integrations.html:339
+msgid "Copy"
+msgstr "Copier"
+
+#: templates/users/integrations.html:41
+msgid "Regenerating will invalidate the previous token"
+msgstr "Le régénérer invalidera l'ancien jeton"
+
+#: templates/users/integrations.html:49
+msgid "Regenerate"
+msgstr "Régénérer"
+
+#: templates/users/integrations.html:58
+msgid "Media Servers"
+msgstr "Serveurs multimédias"
+
+#: templates/users/integrations.html:60
+msgid ""
+"Connect your media servers to automatically track your watching progress."
+msgstr ""
+"Connectez vos serveurs multimédias pour suivre automatiquement ce que vous "
+"regardez."
+
+#: templates/users/integrations.html:64
+msgid "Integration services"
+msgstr "Services d'intégration"
+
+#: templates/users/integrations.html:99
+msgid "Connect Jellyfin to automatically track your watching progress."
+msgstr "Connectez Jellyfin pour suivre automatiquement ce que vous regardez."
+
+#: templates/users/integrations.html:101
+msgid "Webhook Events"
+msgstr "Événements webhook"
+
+#: templates/users/integrations.html:103
+msgid ""
+"Play and Stop events are always processed. Enable these to sync manual "
+"watched changes from the unofficial Webhooks plugin."
+msgstr ""
+"Les événements Lecture et Arrêt sont toujours traités. Activez ceux-ci pour "
+"synchroniser les changements « vu » faits à la main via le plugin Webhooks "
+"non officiel."
+
+#: templates/users/integrations.html:113
+msgid "Process MarkPlayed events"
+msgstr "Traiter les événements MarkPlayed"
+
+#: templates/users/integrations.html:115
+msgid "Mark media as watched when it is manually marked played in Jellyfin."
+msgstr ""
+"Marquer le média comme vu quand il est marqué lu à la main dans Jellyfin."
+
+#: templates/users/integrations.html:130
+msgid "Process MarkUnplayed events"
+msgstr "Traiter les événements MarkUnplayed"
+
+#: templates/users/integrations.html:133
+msgid ""
+"Remove watched progress when it is manually marked unplayed in Jellyfin. This"
+" event can delete media from Yamtrack."
+msgstr ""
+"Retirer la progression quand le média est marqué non lu à la main dans "
+"Jellyfin. Cet événement peut supprimer des médias de Yamtrack."
+
+#: templates/users/integrations.html:155
+msgid "Official Webhook Plugin"
+msgstr "Plugin Webhook officiel"
+
+#: templates/users/integrations.html:157 templates/users/integrations.html:210
+msgid "You will need to have TMDB and TVDB as metadata providers in Jellyfin."
+msgstr ""
+"TMDB et TVDB doivent être configurés comme sources de métadonnées dans "
+"Jellyfin."
+
+#: templates/users/integrations.html:158
+msgid ""
+"Install the Webhook plugin from the 'Jellyfin Stable' repo via your server's "
+"Plugin Catalog."
+msgstr ""
+"Installez le plugin Webhook depuis le dépôt « Jellyfin Stable » via le "
+"catalogue de plugins de votre serveur."
+
+#: templates/users/integrations.html:160 templates/users/integrations.html:227
+msgid "Restart your server, then configure the plugin:"
+msgstr "Redémarrez votre serveur, puis configurez le plugin :"
+
+#: templates/users/integrations.html:162
+msgid "Click on the \"Add Generic Destination\" button to create a new webhook."
+msgstr "Cliquez sur « Add Generic Destination » pour créer un nouveau webhook."
+
+#: templates/users/integrations.html:163
+msgid "Name: Yamtrack"
+msgstr "Nom : Yamtrack"
+
+#: templates/users/integrations.html:166 templates/users/integrations.html:231
+#: templates/users/integrations.html:332
+msgid "URL:"
+msgstr "URL :"
+
+#: templates/users/integrations.html:174
+msgid "Notification Type: Playback Start and Playback Stop"
+msgstr "Type de notification : Playback Start et Playback Stop"
+
+#: templates/users/integrations.html:175
+msgid "User Filter: Your Jellyfin User"
+msgstr "Filtre utilisateur : votre utilisateur Jellyfin"
+
+#: templates/users/integrations.html:176
+msgid "Finally, under the \"Template\" section, paste the following code."
+msgstr "Enfin, dans la section « Template », collez le code suivant."
+
+#: templates/users/integrations.html:208
+msgid "Unofficial Webhooks Plugin"
+msgstr "Plugin Webhooks non officiel"
+
+#: templates/users/integrations.html:212
+msgid "Add this repository"
+msgstr "Ajoutez ce dépôt"
+
+#: templates/users/integrations.html:216
+msgid "link"
+msgstr "lien"
+
+#: templates/users/integrations.html:217
+msgid "to your \"Plugins Catalog\" in Jellyfin settings."
+msgstr "à votre « catalogue de plugins » dans les paramètres de Jellyfin."
+
+#: templates/users/integrations.html:220
+msgid "From your \"Plugins Catalog\", install the"
+msgstr "Depuis votre « catalogue de plugins », installez le"
+
+#: templates/users/integrations.html:224
+msgid "Unofficial Webhooks plugin"
+msgstr "plugin Webhooks non officiel"
+
+#: templates/users/integrations.html:239
+msgid "Payload format: Default"
+msgstr "Format de la charge utile : Default"
+
+#: templates/users/integrations.html:240
+msgid "Listen to events only for: Your Jellyfin User"
+msgstr "N'écouter que les événements de : votre utilisateur Jellyfin"
+
+#: templates/users/integrations.html:241
+msgid "Events: Play, Stop, MarkPlayed and MarkUnplayed"
+msgstr "Événements : Play, Stop, MarkPlayed et MarkUnplayed"
+
+#: templates/users/integrations.html:254
+msgid "Connect Plex to automatically track your watching progress."
+msgstr "Connectez Plex pour suivre automatiquement ce que vous regardez."
+
+#: templates/users/integrations.html:256
+msgid "Plex Usernames"
+msgstr "Noms d'utilisateur Plex"
+
+#: templates/users/integrations.html:263
+msgid ""
+"This username (or several, comma separated) will be used to filter which "
+"events are sent to your webhook."
+msgstr ""
+"Ce nom d'utilisateur (ou plusieurs, séparés par des virgules) sert à filtrer "
+"les événements envoyés à votre webhook."
+
+#: templates/users/integrations.html:268
+msgid "username1, username2, username3"
+msgstr "utilisateur1, utilisateur2, utilisateur3"
+
+#: templates/users/integrations.html:281 templates/users/integrations.html:323
+msgid "Setup Instructions"
+msgstr "Instructions de configuration"
+
+#: templates/users/integrations.html:283
+msgid "You will need to have a PlexPass in order to have webhooks enabled"
+msgstr "Un abonnement Plex Pass est nécessaire pour activer les webhooks"
+
+#: templates/users/integrations.html:284
+msgid "Go to Settings > Server > Network and enable Webhooks"
+msgstr "Allez dans Paramètres > Serveur > Réseau et activez les webhooks"
+
+#: templates/users/integrations.html:286
+msgid "In Plex settings, go to"
+msgstr "Dans les paramètres de Plex, allez dans"
+
+#: templates/users/integrations.html:293
+msgid ""
+"In the Webhooks section, click on \"Add Webhook\" and enter the following "
+"URL:"
+msgstr ""
+"Dans la section Webhooks, cliquez sur « Ajouter un webhook » et saisissez "
+"l'URL suivante :"
+
+#: templates/users/integrations.html:321
+msgid "Connect Emby to automatically track your watching progress."
+msgstr "Connectez Emby pour suivre automatiquement ce que vous regardez."
+
+#: templates/users/integrations.html:325
+msgid "In Emby, go to Settings > Notifications"
+msgstr "Dans Emby, allez dans Paramètres > Notifications"
+
+#: templates/users/integrations.html:326
+msgid "In the Notifications section, click on \"Add Notification\""
+msgstr ""
+"Dans la section Notifications, cliquez sur « Ajouter une notification »"
+
+#: templates/users/integrations.html:328
+msgid "In the Notification settings:"
+msgstr "Dans les réglages de la notification :"
+
+#: templates/users/integrations.html:346
+msgid "Request content type: multipart/form-data"
+msgstr "Type de contenu de la requête : multipart/form-data"
+
+#: templates/users/integrations.html:347
+msgid "Events: Play and Stop"
+msgstr "Événements : Play et Stop"
+
+#: templates/users/integrations.html:348
+msgid "Limit user events to: Your Emby User"
+msgstr "Limiter les événements utilisateur à : votre utilisateur Emby"
+
+#: templates/users/integrations.html:349
+msgid "\"Limit library events to\" and \"Limit devices events to\" are optional"
+msgstr ""
+"« Limiter les événements de bibliothèque à » et « Limiter les événements "
+"d'appareil à » sont facultatifs"
+
+#: templates/users/notifications.html:19
+msgid "Configure how you want to receive notifications about your media."
+msgstr "Choisissez comment recevoir les notifications sur vos médias."
+
+#: templates/users/notifications.html:27
+msgid "Apprise URLs"
+msgstr "URL Apprise"
+
+#: templates/users/notifications.html:39
+msgid "is a notification service that supports"
+msgstr "est un service de notification compatible avec"
+
+#: templates/users/notifications.html:43
+msgid "many platforms"
+msgstr "de nombreuses plateformes"
+
+#: templates/users/notifications.html:43
+msgid "including:"
+msgstr "dont :"
+
+#: templates/users/notifications.html:49
+msgid "Email"
+msgstr "E-mail"
+
+#: templates/users/notifications.html:52
+msgid "And many more..."
+msgstr "Et bien d'autres…"
+
+#: templates/users/notifications.html:55
+msgid "Enter one URL per line. Example:"
+msgstr "Une URL par ligne. Exemple :"
+
+#: templates/users/notifications.html:61
+msgid ""
+"Enter each Apprise URL on a separate line to send notifications to multiple "
+"services."
+msgstr ""
+"Saisissez chaque URL Apprise sur une ligne distincte pour notifier plusieurs "
+"services."
+
+#: templates/users/notifications.html:66
+msgid "Notification Settings"
+msgstr "Réglages des notifications"
+
+#: templates/users/notifications.html:75
+msgid "Enable Daily Digest"
+msgstr "Activer le récapitulatif quotidien"
+
+#: templates/users/notifications.html:78
+msgid ""
+"Receive a single notification each day with all media scheduled to release "
+"that day"
+msgstr ""
+"Recevoir chaque jour une seule notification avec tous les médias qui sortent "
+"ce jour-là"
+
+#: templates/users/notifications.html:97
+msgid "Receive notifications for recently released media"
+msgstr "Recevoir une notification pour les médias qui viennent de sortir"
+
+#: templates/users/notifications.html:99
+msgid "Get notified when new episodes, chapters, or other media are released"
+msgstr ""
+"Être prévenu à la sortie de nouveaux épisodes, chapitres ou autres médias"
+
+#: templates/users/notifications.html:119
+msgid "Test Notifications"
+msgstr "Tester les notifications"
+
+#: templates/users/notifications.html:124
+msgid "Save Settings"
+msgstr "Enregistrer"
+
+#: templates/users/notifications.html:134
+msgid "Excluded Media Items"
+msgstr "Médias exclus"
+
+#: templates/users/notifications.html:137
+msgid "Exclude specific media items from notifications:"
+msgstr "Exclure certains médias des notifications :"
+
+#: templates/users/notifications.html:140
+msgid "Search for media to exclude..."
+msgstr "Rechercher un média à exclure…"
+
+#: templates/users/preferences.html:16
+msgid "Customize the look and behavior of the application."
+msgstr "Personnalisez l'apparence et le comportement de l'application."
+
+#: templates/users/preferences.html:26
+msgid "Hide Hover Overlay on Touch Devices"
+msgstr "Masquer le survol sur les écrans tactiles"
+
+#: templates/users/preferences.html:29
+msgid ""
+"Hide the media card hover overlay with action buttons on touch devices for a "
+"cleaner mobile experience."
+msgstr ""
+"Masque le calque d'actions qui apparaît sur les fiches au survol, sur les "
+"écrans tactiles, pour un affichage mobile plus net."
+
+#: templates/users/preferences.html:30
+msgid ""
+"On desktop, the overlay will still appear when you hover your mouse over "
+"media cards."
+msgstr "Sur ordinateur, il reste visible au passage de la souris."
+
+#: templates/users/preferences.html:50
+msgid "Obfuscate Unseen Episodes"
+msgstr "Flouter les épisodes non vus"
+
+#: templates/users/preferences.html:52
+msgid "When enabled, unseen episode images and descriptions will be blurred."
+msgstr "Les images et résumés des épisodes non vus seront floutés."
+
+#: templates/users/preferences.html:71
+msgid "Bulk Completion Date"
+msgstr "Date de complétion groupée"
+
+#: templates/users/preferences.html:74
+msgid ""
+"When marking a TV show or season as completed, its episodes will be marked as"
+" completed with this date."
+msgstr ""
+"Quand une série ou une saison est marquée comme terminée, ses épisodes sont "
+"marqués comme vus à cette date."
+
+#: templates/users/preferences.html:93
+msgid "Show progress bar on media items"
+msgstr "Afficher une barre de progression sur les médias"
+
+#: templates/users/preferences.html:96
+msgid ""
+"Display a progress bar on media items. Items which don't have max progress "
+"will be using a dotted line."
+msgstr ""
+"Affiche une barre de progression sur les médias. Ceux sans progression "
+"maximale auront une ligne pointillée."
+
+#: templates/users/preferences.html:116
+msgid "Hide completed media in recommendations"
+msgstr "Masquer les médias terminés des recommandations"
+
+#: templates/users/preferences.html:119
+msgid ""
+"Hide media you've already completed from the recommendations section on "
+"detail pages."
+msgstr ""
+"Masque les médias déjà terminés dans les recommandations des fiches "
+"détaillées."
+
+#: templates/users/preferences.html:139
+msgid "Hide zero ratings"
+msgstr "Masquer les notes à zéro"
+
+#: templates/users/preferences.html:141
+msgid "Hide the rating badge from media cards when the rating is zero."
+msgstr "Masque le badge de note sur les fiches quand la note est zéro."
+
+#: templates/users/preferences.html:160
+msgid "Date Format"
+msgstr "Format de date"
+
+#: templates/users/preferences.html:162
+msgid "Choose how dates are displayed throughout the application."
+msgstr "Choisissez le format d'affichage des dates dans l'application."
+
+#: templates/users/preferences.html:180
+msgid "Time Format"
+msgstr "Format de l'heure"
+
+#: templates/users/preferences.html:182
+msgid "Choose between 12-hour or 24-hour clock display."
+msgstr "Affichage sur 12 ou 24 heures."
+
+#: templates/users/preferences.html:200
+msgid "Week Start Day"
+msgstr "Premier jour de la semaine"
+
+#: templates/users/preferences.html:202
+msgid "Choose which day the week starts on for calendars and statistics."
+msgstr ""
+"Choisissez le premier jour de la semaine pour le calendrier et les "
+"statistiques."
+
+#: templates/users/preferences.html:220
+msgid "Watch provider region"
+msgstr "Région des plateformes de streaming"
+
+#: templates/users/preferences.html:223
+msgid ""
+"Choose the region to show watch providers for. Setting this to disabled will "
+"hide the box from the media page."
+msgstr ""
+"Choisissez la région des plateformes de streaming à afficher. Désactivé "
+"masque l'encadré sur les fiches."
+
+#: templates/users/preferences.html:242
+msgid "Media Types"
+msgstr "Types de médias"
+
+#: templates/users/preferences.html:245
+msgid ""
+"Control which media types are visible throughout the app (sidebar, search, "
+"calendar, notifications)."
+msgstr ""
+"Choisissez les types de médias visibles dans l'application (menu, recherche, "
+"calendrier, notifications)."
+
+#: templates/users/preferences.html:275
+msgid "Save Preferences"
+msgstr "Enregistrer les préférences"
+
+#: users/forms.py:20
+msgid "Enter your username"
+msgstr "Votre nom d'utilisateur"
+
+#: users/forms.py:22
+msgid "Enter your password"
+msgstr "Votre mot de passe"
+
+#: users/forms.py:35
+msgid "Confirm Password"
+msgstr "Confirmer le mot de passe"
+
+#: users/forms.py:37
+msgid "Confirm your password"
+msgstr "Confirmez votre mot de passe"
+
+#: users/forms.py:48
+msgid "Changing the username is not allowed for the demo account."
+msgstr "Le compte de démonstration ne peut pas changer de nom d'utilisateur."
+
+#: users/forms.py:71
+msgid "Changing the password is not allowed for the demo account."
+msgstr "Le compte de démonstration ne peut pas changer de mot de passe."
+
+#: users/forms.py:119
+#, python-format
+msgid "'%(url)s' is not a valid Apprise URL."
+msgstr "« %(url)s » n'est pas une URL Apprise valide."
+
+#: users/models.py:30
+msgid "Upcoming"
+msgstr "À venir"
+
+#: users/models.py:31
+msgid "Recent"
+msgstr "Récent"
+
+#: users/models.py:32
+msgid "Completion"
+msgstr "Avancement"
+
+#: users/models.py:33
+msgid "Episodes Left"
+msgstr "Épisodes restants"
+
+#: users/models.py:40
+msgid "Rating"
+msgstr "Note"
+
+#: users/models.py:61 users/models.py:68
+msgid "Grid"
+msgstr "Grille"
+
+#: users/models.py:62
+msgid "Table"
+msgstr "Tableau"
+
+#: users/models.py:69
+msgid "List"
+msgstr "Liste"
+
+#: users/models.py:92
+msgid "Current Date"
+msgstr "Date du jour"
+
+#: users/models.py:93
+msgid "Release Date"
+msgstr "Date de sortie"
+
+#: users/models.py:94
+msgid "No Date"
+msgstr "Sans date"
+
+#: users/models.py:117
+msgid "Monday"
+msgstr "lundi"
+
+#: users/models.py:118
+msgid "Sunday"
+msgstr "dimanche"
+
+#: users/views.py:42
+msgid "Your profile has been updated!"
+msgstr "Votre profil a été mis à jour !"
+
+#: users/views.py:67
+msgid "Your password has been updated!"
+msgstr "Votre mot de passe a été modifié !"
+
+#: users/views.py:95
+msgid "Notification settings updated successfully!"
+msgstr "Réglages des notifications enregistrés !"
+
+#: users/views.py:195
+msgid "No notification URLs configured."
+msgstr "Aucune URL de notification configurée."
+
+#: users/views.py:203
+msgid "YamTrack Test Notification"
+msgstr "Notification de test YamTrack"
+
+#: users/views.py:205
+msgid ""
+"This is a test notification from YamTrack. If you're seeing this, your "
+"notifications are working correctly!"
+msgstr ""
+"Ceci est une notification de test de YamTrack. Si vous la voyez, vos "
+"notifications fonctionnent !"
+
+#: users/views.py:211
+msgid "Test notification sent successfully!"
+msgstr "Notification de test envoyée !"
+
+#: users/views.py:213
+msgid "Failed to send test notification."
+msgstr "Échec de l'envoi de la notification de test."
+
+#: users/views.py:243
+msgid "This section is view-only for demo accounts."
+msgstr "Cette section est en lecture seule pour les comptes de démonstration."
+
+#: users/views.py:287
+msgid "Settings updated."
+msgstr "Réglages enregistrés."
+
+#: users/views.py:333
+msgid "Import schedule deleted."
+msgstr "Import programmé supprimé."
+
+#: users/views.py:335
+msgid "Import schedule not found."
+msgstr "Import programmé introuvable."
+
+#: users/views.py:345
+msgid "Token regenerated successfully."
+msgstr "Jeton régénéré."
+
+#: users/views.py:370
+msgid "Plex usernames updated successfully"
+msgstr "Noms d'utilisateur Plex enregistrés"
+
+#: users/views.py:390
+msgid "Jellyfin webhook settings updated successfully"
+msgstr "Réglages du webhook Jellyfin enregistrés"
+
+#: users/views.py:403
+#, python-format
+msgid "Successfully cleared %(count)d search entry"
+msgid_plural "Successfully cleared %(count)d search entries"
+msgstr[0] "%(count)d recherche supprimée du cache"
+msgstr[1] "%(count)d recherches supprimées du cache"

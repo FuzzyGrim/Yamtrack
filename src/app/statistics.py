@@ -1,4 +1,3 @@
-import calendar
 import datetime
 import logging
 from collections import defaultdict
@@ -10,8 +9,10 @@ from django.db.models import (
     Prefetch,
     Q,
 )
-from django.utils import timezone
+from django.utils import dateformat, timezone
 from django.utils.dateparse import parse_date
+from django.utils.dates import WEEKDAYS_ABBR
+from django.utils.translation import ngettext
 
 from app import config
 from app.models import TV, BasicMedia, Episode, MediaManager, MediaTypes, Season, Status
@@ -414,8 +415,60 @@ def _consumption_label(media_type):
     return MediaTypes(media_type).label
 
 
+def _translated_consumption_descriptor(media_type, value):
+    """Return the translated descriptor for a media type, if one is defined."""
+    descriptors = {
+        MediaTypes.SEASON.value: lambda n: ngettext(
+            "TV episode watched",
+            "TV episodes watched",
+            n,
+        ),
+        MediaTypes.MOVIE.value: lambda n: ngettext(
+            "Movie watched",
+            "Movies watched",
+            n,
+        ),
+        MediaTypes.ANIME.value: lambda n: ngettext(
+            "Anime episode watched",
+            "Anime episodes watched",
+            n,
+        ),
+        MediaTypes.MANGA.value: lambda n: ngettext(
+            "Manga chapter read",
+            "Manga chapters read",
+            n,
+        ),
+        MediaTypes.GAME.value: lambda n: ngettext(
+            "Game hour played",
+            "Game hours played",
+            n,
+        ),
+        MediaTypes.BOOK.value: lambda n: ngettext(
+            "Book page read",
+            "Book pages read",
+            n,
+        ),
+        MediaTypes.COMIC.value: lambda n: ngettext(
+            "Comic issue read",
+            "Comic issues read",
+            n,
+        ),
+        MediaTypes.BOARDGAME.value: lambda n: ngettext(
+            "Boardgame play",
+            "Boardgame plays",
+            n,
+        ),
+    }
+    descriptor = descriptors.get(media_type)
+    return descriptor(value) if descriptor else None
+
+
 def _consumption_descriptor(media_type, value, unit_noun):
     """Build a descriptor like "TV episodes watched" or "Movies watched"."""
+    translated = _translated_consumption_descriptor(media_type, value)
+    if translated is not None:
+        return translated
+
     label = _consumption_label(media_type)
     verb = config.get_verb(media_type, past_tense=True)
     plural = "" if value == 1 else "s"
@@ -466,12 +519,12 @@ def _build_month_labels(date_range, week_start_weekday):
     """Build month labels and their corresponding week counts for the activity grid."""
     months = []
     weeks_per_month = []
-    current_month = date_range[0].strftime("%b")
+    current_month = dateformat.format(date_range[0], "M")
     week_count = 0
 
     for current_date in date_range:
         if current_date.weekday() == week_start_weekday:
-            month = current_date.strftime("%b")
+            month = dateformat.format(current_date, "M")
 
             if current_month != month:
                 if current_month is not None:
@@ -558,7 +611,7 @@ def get_activity_data(user, start_date, end_date):
     months, weeks_per_month = _build_month_labels(date_range, week_start_weekday)
 
     # Weekday labels depend on week start day
-    days = list(calendar.day_abbr)
+    days = [str(WEEKDAYS_ABBR[day]) for day in range(7)]
     weekday_labels = [days[6], *days[0:6]] if week_start_sunday else days
 
     return {
@@ -641,7 +694,7 @@ def calculate_day_of_week_stats(date_counts, start_date):
         if date < start_date:
             continue
         if date_counts[date] > 0:
-            day_name = date.strftime("%A")  # Get full day name
+            day_name = dateformat.format(date, "l")  # Get full day name
             day_counts[day_name] += 1
             total_active_days += 1
 

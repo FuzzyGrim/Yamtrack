@@ -1,0 +1,25 @@
+{% load i18n %}
+<script>
+  window.yamtrackI18n = {
+    "Today": "{% filter escapejs %}{% translate "Today" %}{% endfilter %}",
+    "Yesterday": "{% filter escapejs %}{% translate "Yesterday" %}{% endfilter %}",
+    "This Week": "{% filter escapejs %}{% translate "This Week" %}{% endfilter %}",
+    "Last 7 Days": "{% filter escapejs %}{% translate "Last 7 Days" %}{% endfilter %}",
+    "This Month": "{% filter escapejs %}{% translate "This Month" %}{% endfilter %}",
+    "Last 30 Days": "{% filter escapejs %}{% translate "Last 30 Days" %}{% endfilter %}",
+    "Last 90 Days": "{% filter escapejs %}{% translate "Last 90 Days" %}{% endfilter %}",
+    "This Year": "{% filter escapejs %}{% translate "This Year" %}{% endfilter %}",
+    "Last 6 Months": "{% filter escapejs %}{% translate "Last 6 Months" %}{% endfilter %}",
+    "Last 12 Months": "{% filter escapejs %}{% translate "Last 12 Months" %}{% endfilter %}",
+    "All Time": "{% filter escapejs %}{% translate "All Time" %}{% endfilter %}",
+    "Score": "{% filter escapejs %}{% translate "Score" %}{% endfilter %}",
+    "Number of Items": "{% filter escapejs %}{% translate "Number of Items" %}{% endfilter %}",
+    "Average Score": "{% filter escapejs %}{% translate "Average Score" %}{% endfilter %}",
+    "item": "{% filter escapejs %}{% translate "item" %}{% endfilter %}",
+    "items": "{% filter escapejs %}{% translate "items" %}{% endfilter %}",
+    "Could not copy to clipboard. Please select the text and press Ctrl+C/Cmd+C to copy.": "{% filter escapejs %}{% translate "Could not copy to clipboard. Please select the text and press Ctrl+C/Cmd+C to copy." %}{% endfilter %}",
+  };
+  window.yt = function (text) {
+    return (window.yamtrackI18n && window.yamtrackI18n[text]) || text;
+  };
+</script>
