@@ -2,7 +2,7 @@ from django.test import TestCase
 
 from app import config
 from app.history_processor import format_description
-from app.models import MediaTypes, Status
+from app.models import MediaTypes, ProgressUnit, Status
 
 
 class HistoryProcessorTests(TestCase):
@@ -166,6 +166,16 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description("progress", 10, 15, MediaTypes.BOOK.value),
             "Progress set to 15 pages",
+        )
+        self.assertEqual(
+            format_description(
+                "progress",
+                10,
+                15,
+                MediaTypes.BOOK.value,
+                progress_unit=ProgressUnit.PERCENTAGE,
+            ),
+            "Progress set to 15%",
         )
         self.assertEqual(
             format_description("progress", 5, 10, MediaTypes.MANGA.value),

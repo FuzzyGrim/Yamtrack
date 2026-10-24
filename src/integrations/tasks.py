@@ -4,7 +4,7 @@ from celery import shared_task
 from django.contrib.auth import get_user_model
 
 import events
-from app.mixins import disable_fetch_releases
+from app.mixins import disable_fetch_releases, disable_user_messages
 from app.models import MediaTypes
 from app.templatetags import app_tags
 from integrations.imports import (
@@ -63,7 +63,7 @@ def import_media(
     """Handle the import process for different media services."""
     user = get_user_model().objects.get(id=user_id)
 
-    with disable_fetch_releases():
+    with disable_fetch_releases(), disable_user_messages():
         if oauth_username is None:
             imported_counts, warnings = importer_func(
                 identifier,
