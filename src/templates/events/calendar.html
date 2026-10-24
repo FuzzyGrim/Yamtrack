@@ -29,7 +29,7 @@
 
       <div class="flex items-center gap-2">
         <a class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
-           href="{% url 'calendar' %}?month={{ today.month }}&year={{ today.year }}&view={{ view_type }}">Today</a>
+           href="{% url 'calendar' %}?month={{ today.month }}&year={{ today.year }}&view={{ view_type }}#today">Today</a>
 
         <form method="post" action="{% url 'reload_calendar' %}">
           {% csrf_token %}
