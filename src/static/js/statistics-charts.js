@@ -32,9 +32,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (chart.canvas.id === "scoreStackedChart") {
         const score = parseInt(title);
         if (score === 10) {
-          formattedTitle = `Score: 10`;
+          formattedTitle = `${window.yt("Score")}: 10`;
         } else {
-          formattedTitle = `Score: ${score}.0-${score}.9`;
+          formattedTitle = `${window.yt("Score")}: ${score}.0-${score}.9`;
         }
       }
 
@@ -336,23 +336,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // Add score-specific configurations
     scoreChartOptions.scales.x.title = {
       display: true,
-      text: "Score",
+      text: window.yt("Score"),
       color: "#D1D5DB",
       padding: { top: 10, bottom: 0 },
     };
 
     scoreChartOptions.scales.y.title = {
       display: true,
-      text: "Number of Items",
+      text: window.yt("Number of Items"),
       color: "#D1D5DB",
       padding: { top: 0, left: 10 },
     };
 
     scoreChartOptions.plugins.title = {
       display: true,
-      text: `Average Score: ${scoreData.average_score} (${
+      text: `${window.yt("Average Score")}: ${scoreData.average_score} (${
         scoreData.total_scored
-      } ${scoreData.total_scored === 1 ? "item" : "items"})`,
+      } ${scoreData.total_scored === 1 ? window.yt("item") : window.yt("items")})`,
       color: "#D1D5DB",
       padding: { bottom: 10 },
       font: { size: 14 },

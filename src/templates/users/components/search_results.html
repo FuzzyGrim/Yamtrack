@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load app_tags %}
 
 {% if items %}
@@ -18,12 +19,12 @@
             <p class="text-xs text-gray-400">{{ item.media_type|media_type_readable }}</p>
           </div>
         </div>
-        <span class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1 rounded transition-colors">Exclude</span>
+        <span class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1 rounded transition-colors">{% translate "Exclude" %}</span>
       </div>
     {% endfor %}
   </div>
 {% elif query %}
   <div class="max-h-48 overflow-y-auto bg-[#39404b] rounded-md mb-4">
-    <div class="p-3 text-sm text-gray-400 text-center">No matching items found</div>
+    <div class="p-3 text-sm text-gray-400 text-center">{% translate "No matching items found" %}</div>
   </div>
 {% endif %}

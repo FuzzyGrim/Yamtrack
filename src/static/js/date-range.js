@@ -9,6 +9,10 @@ function dateRangePicker() {
     endDate: new Date().toISOString().split("T")[0],
     customRangeLabel: "",
 
+    label(name) {
+      return window.yt ? window.yt(name) : name;
+    },
+
     predefinedRanges: [
       { name: "Today" },
       { name: "Yesterday" },

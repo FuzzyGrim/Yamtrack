@@ -9,6 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.dates import MONTHS, WEEKDAYS_ABBR
+from django.utils.translation import gettext
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -65,10 +67,10 @@ def calendar(request):
     )
     c = cal.Calendar(firstweekday=first_weekday)
     calendar_format = c.monthdayscalendar(year, month)
-    month_name = cal.month_name[month]
+    month_name = str(MONTHS[month])
 
     # Build weekday headers based on user preference
-    days = list(cal.day_abbr)
+    days = [str(WEEKDAYS_ABBR[day]) for day in range(7)]
     sunday = 6
     weekday_headers = (
         [days[sunday], *days[0:sunday]] if first_weekday == sunday else days
@@ -110,7 +112,9 @@ def calendar(request):
 def reload_calendar(request):
     """Refresh the calendar with the latest dates."""
     tasks.reload_calendar.delay(request.user)
-    messages.info(request, "The task to refresh upcoming releases has been queued.")
+    messages.info(
+        request, gettext("The task to refresh upcoming releases has been queued.")
+    )
     return redirect("calendar")
 
 
