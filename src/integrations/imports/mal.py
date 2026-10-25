@@ -42,6 +42,18 @@ class MyAnimeListImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track every entry of each media to sync the current one and add the
+        # missing repeats in "new" mode
+        self.existing_entries = {}
+        if mode == "new":
+            self.existing_entries = helpers.get_existing_entries(
+                user,
+                [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
+            )
+
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -61,6 +73,11 @@ class MyAnimeListImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -127,26 +144,55 @@ class MyAnimeListImporter:
     def _process_entry(self, content, media_type):
         """Process a single entry from MyAnimeList."""
         list_status = content["list_status"]
-        status = self._get_status(list_status["status"])
+        media_id = str(content["node"]["id"])
 
         try:
             image_url = content["node"]["main_picture"]["large"]
         except KeyError:
             image_url = settings.IMG_NONE
 
+        existing = self._get_existing(media_type, media_id)
+
         # Check if we should process this entry based on mode
-        if not helpers.should_process_media(
+        if not existing and not helpers.should_process_media(
             self.existing_media,
             self.to_delete,
             media_type,
             Sources.MAL.value,
-            str(content["node"]["id"]),
+            media_id,
             self.mode,
         ):
             return
 
+        progress, repeats, status = self._get_progress(list_status, media_type)
+        current = {
+            # MyAnimeList scores unrated media as 0
+            "score": list_status["score"] or None,
+            "progress": progress,
+            "status": status,
+            "start_date": self._parse_mal_date(list_status.get("start_date")),
+            "end_date": self._parse_mal_date(list_status.get("finish_date")),
+            "notes": list_status["comments"],
+        }
+        max_progress = content["node"].get("num_episodes") or content["node"].get(
+            "num_chapters",
+        )
+
+        # Existing media only gets the repeats it is missing
+        if existing:
+            missing = self._sync_existing(
+                media_type,
+                existing,
+                current,
+                max_progress,
+                repeats + 1,
+            )
+            if not missing:
+                return
+            repeats = missing - 1
+
         item, _ = app.models.Item.objects.get_or_create(
-            media_id=str(content["node"]["id"]),
+            media_id=media_id,
             source=Sources.MAL.value,
             media_type=media_type,
             defaults={
@@ -158,56 +204,72 @@ class MyAnimeListImporter:
         model = apps.get_model(app_label="app", model_name=media_type)
         updated_at = parse_datetime(list_status.get("updated_at"))
 
-        # Handle completed repeats
+        # Add completed repeats
+        for _ in range(repeats):
+            instance = model(
+                item=item,
+                user=self.user,
+                **{
+                    **current,
+                    "progress": max_progress or 0,
+                    "status": Status.COMPLETED.value,
+                },
+            )
+            instance._history_date = updated_at
+            self.bulk_media[media_type].append(instance)
+
+        # Add current status entry
+        instance = model(item=item, user=self.user, **current)
+        instance._history_date = updated_at
+        self.bulk_media[media_type].append(instance)
+
+    def _get_progress(self, list_status, media_type):
+        """Return the progress, completed repeats and status of an entry."""
+        status = self._get_status(list_status["status"])
+
         if media_type == MediaTypes.ANIME.value:
             progress = list_status["num_episodes_watched"]
             repeats = list_status["num_times_rewatched"]
-            if list_status["is_rewatching"]:
-                if repeats == 0:
-                    repeats = 1
-                status = Status.IN_PROGRESS.value
+            repeating = list_status["is_rewatching"]
         else:
             progress = list_status["num_chapters_read"]
             repeats = list_status["num_times_reread"]
-            if list_status["is_rereading"]:
-                if repeats == 0:
-                    repeats = 1
-                status = Status.IN_PROGRESS.value
+            repeating = list_status["is_rereading"]
 
-        if repeats >= 1:
-            for _ in range(repeats):
-                max_progress = content["node"].get("num_episodes") or content[
-                    "node"
-                ].get(
-                    "num_chapters",
-                )
-                instance = model(
-                    item=item,
-                    user=self.user,
-                    score=list_status["score"],
-                    progress=max_progress or 0,
-                    status=Status.COMPLETED.value,
-                    start_date=self._parse_mal_date(list_status.get("start_date")),
-                    end_date=self._parse_mal_date(list_status.get("finish_date")),
-                    notes=list_status["comments"],
-                )
+        if repeating:
+            if repeats == 0:
+                repeats = 1
+            status = Status.IN_PROGRESS.value
 
-                instance._history_date = updated_at
-                self.bulk_media[media_type].append(instance)
+        return progress, repeats, status
 
-        # Add current status entry
-        instance = model(
-            item=item,
-            user=self.user,
-            score=list_status["score"],
-            progress=progress,
-            status=status,
-            start_date=self._parse_mal_date(list_status.get("start_date")),
-            end_date=self._parse_mal_date(list_status.get("finish_date")),
-            notes=list_status["comments"],
+    def _get_existing(self, media_type, media_id):
+        """Get the current entry of media already in Yamtrack, only in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        entries = self.existing_entries.get((media_type, Sources.MAL.value, media_id))
+        return helpers.get_current_entry(entries) if entries else None
+
+    def _sync_existing(self, media_type, media, current, max_progress, entries):
+        """Sync existing media and return how many of its entries are missing."""
+        changed, missing = helpers.sync_existing_entries(
+            media,
+            current,
+            max_progress,
+            entries,
+            len(
+                self.existing_entries[
+                    media_type,
+                    Sources.MAL.value,
+                    media.item.media_id,
+                ],
+            ),
         )
-        instance._history_date = updated_at
-        self.bulk_media[media_type].append(instance)
+        if changed:
+            self.to_update[media_type][media.pk] = media
+
+        return missing
 
     def _parse_mal_date(self, date_str):
         """Parse MAL date string (YYYY-MM-YY) into datetime object."""
