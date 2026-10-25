@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 14:53+0000\n"
-"PO-Revision-Date: 2026-10-25 15:53+0100\n"
+"POT-Creation-Date: 2026-10-25 15:04+0000\n"
+"PO-Revision-Date: 2026-10-25 16:04+0100\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -591,7 +591,7 @@ msgstr "Serie TV"
 msgid "TV Season"
 msgstr "Stagione"
 
-#: app/models.py:58 templates/app/media_details.html:579
+#: app/models.py:58 templates/app/media_details.html:577
 msgid "Episode"
 msgstr "Episodio"
 
@@ -1495,7 +1495,7 @@ msgid "Delete"
 msgstr "Elimina"
 
 #: templates/app/components/fill_track_episode.html:14
-#: templates/app/media_details.html:587
+#: templates/app/media_details.html:585
 msgid "Track Episode"
 msgstr "Traccia episodio"
 
@@ -1504,7 +1504,7 @@ msgid "Watched once"
 msgstr "Guardato una volta"
 
 #: templates/app/components/fill_track_episode.html:32
-#: templates/app/media_details.html:658
+#: templates/app/media_details.html:656
 #, python-format
 msgid "Watched %(watch_count)s times"
 msgstr "Guardato %(watch_count)s volte"
@@ -1518,7 +1518,7 @@ msgid "Previous Watches"
 msgstr "Visioni precedenti"
 
 #: templates/app/components/fill_track_episode.html:53
-#: templates/app/media_details.html:656
+#: templates/app/media_details.html:654
 msgid "No date provided"
 msgstr "Nessuna data fornita"
 
@@ -1583,14 +1583,14 @@ msgstr "Aggiungi al tracker"
 #: templates/app/components/home_grid.html:48
 #: templates/app/components/media_card.html:82
 #: templates/app/components/media_card_list.html:56
-#: templates/app/media_details.html:310 templates/app/media_details.html:603
+#: templates/app/media_details.html:310 templates/app/media_details.html:601
 msgid "Add to custom lists"
 msgstr "Aggiungi agli elenchi personalizzati"
 
 #: templates/app/components/home_grid.html:56
 #: templates/app/components/media_card.html:91
 #: templates/app/components/media_card_list.html:65
-#: templates/app/media_details.html:335 templates/app/media_details.html:625
+#: templates/app/media_details.html:335 templates/app/media_details.html:623
 msgid "View your activity history"
 msgstr "Visualizza la cronologia delle attività"
 
@@ -1630,17 +1630,17 @@ msgid "Repeats"
 msgstr "Ripetizioni"
 
 #: templates/app/components/media_section_tabs.html:44
-#: templates/app/media_details.html:559
+#: templates/app/media_details.html:557
 msgid "Episodes"
 msgstr "Episodi"
 
 #: templates/app/components/media_section_tabs.html:53
-#: templates/app/media_details.html:673
+#: templates/app/media_details.html:671
 msgid "Streaming"
 msgstr "Streaming"
 
 #: templates/app/components/media_section_tabs.html:62
-#: templates/app/media_details.html:703
+#: templates/app/media_details.html:701
 msgid "Time to Beat"
 msgstr "Time to Beat"
 
@@ -1882,7 +1882,7 @@ msgstr "Clicca per modificare"
 msgid "Your History"
 msgstr "La tua cronologia"
 
-#: templates/app/media_details.html:259 templates/app/media_details.html:525
+#: templates/app/media_details.html:259 templates/app/media_details.html:523
 #: templates/users/import_data.html:506
 msgid "Started"
 msgstr "Iniziato"
@@ -1940,33 +1940,33 @@ msgstr "Vedi tutti"
 msgid "%(count)s cast members"
 msgstr "%(count)s membri del cast"
 
-#: templates/app/media_details.html:472
+#: templates/app/media_details.html:470
 #, python-format
 msgid "Repeats (%(repeats)s)"
 msgstr "Ripetizioni (%(repeats)s)"
 
-#: templates/app/media_details.html:491
+#: templates/app/media_details.html:489
 msgid "Edit entry"
 msgstr "Modifica elemento"
 
-#: templates/app/media_details.html:527 templates/users/import_data.html:500
+#: templates/app/media_details.html:525 templates/users/import_data.html:500
 msgid "Finished"
 msgstr "Concluso"
 
-#: templates/app/media_details.html:557
+#: templates/app/media_details.html:555
 msgid "Unknown air date"
 msgstr "Data di trasmissione sconosciuta"
 
-#: templates/app/media_details.html:652
+#: templates/app/media_details.html:650
 msgid "Last watched:"
 msgstr "Visto l'ultima volta:"
 
 #. Translators: In "Watch provider region is not configured. Set a region or disable this feature in preferences.", this is the linked text.
-#: templates/app/media_details.html:677
+#: templates/app/media_details.html:675
 msgid "preferences"
 msgstr "preferenze"
 
-#: templates/app/media_details.html:680
+#: templates/app/media_details.html:678
 #, python-format
 msgid ""
 "Watch provider region is not configured. Set a region or disable this "
@@ -1975,15 +1975,15 @@ msgstr ""
 "La regione dei provider di contenuti non è configurata. Imposta una regione "
 "o disattiva questa funzione nelle %(preferences_link)s."
 
-#: templates/app/media_details.html:712
+#: templates/app/media_details.html:710
 msgid "Main Story"
 msgstr "Storia principale"
 
-#: templates/app/media_details.html:723
+#: templates/app/media_details.html:721
 msgid "Main + Extra"
 msgstr "Principale + Extra"
 
-#: templates/app/media_details.html:734
+#: templates/app/media_details.html:732
 msgid "Completionist"
 msgstr "Completista"
 
