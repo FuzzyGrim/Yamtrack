@@ -245,10 +245,12 @@ function dateRangePicker() {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
-      const shortMonth = date.toLocaleString(undefined, { month: "short" });
-      const longMonth = date.toLocaleString(undefined, { month: "long" });
-      const shortWeekday = date.toLocaleString(undefined, { weekday: "short" });
-      const longWeekday = date.toLocaleString(undefined, { weekday: "long" });
+      // Use the page language set by Django, not the browser's locale
+      const locale = document.documentElement.lang || undefined;
+      const shortMonth = date.toLocaleString(locale, { month: "short" });
+      const longMonth = date.toLocaleString(locale, { month: "long" });
+      const shortWeekday = date.toLocaleString(locale, { weekday: "short" });
+      const longWeekday = date.toLocaleString(locale, { weekday: "long" });
       const ordinalSuffix = this.getOrdinalSuffix(date.getDate());
 
       const formatters = {

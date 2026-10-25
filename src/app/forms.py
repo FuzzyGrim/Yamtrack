@@ -250,7 +250,7 @@ class MediaForm(forms.ModelForm):
             if settings.TRACK_TIME
             else forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(
-                attrs={"placeholder": "Add any notes or comments...", "rows": "5"},
+                attrs={"placeholder": _("Add any notes or comments..."), "rows": "5"},
             ),
         }
 

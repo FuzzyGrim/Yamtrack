@@ -141,7 +141,7 @@ class User(AbstractUser):
     )
     home_hide_unreleased = models.BooleanField(
         default=False,
-        help_text="Hide unreleased media from the home page",
+        help_text=_("Hide unreleased media from the home page"),
     )
 
     # Media type preferences: TV Shows
@@ -342,7 +342,7 @@ class User(AbstractUser):
         max_length=10,
         default=WeekStartDayChoices.MONDAY,
         choices=WeekStartDayChoices,
-        help_text="First day of the week",
+        help_text=_("First day of the week"),
     )
 
     language = models.CharField(
@@ -433,11 +433,11 @@ class User(AbstractUser):
     )
     jellyfin_mark_played_enabled = models.BooleanField(
         default=False,
-        help_text="Process Jellyfin MarkPlayed webhook events",
+        help_text=_("Process Jellyfin MarkPlayed webhook events"),
     )
     jellyfin_mark_unplayed_enabled = models.BooleanField(
         default=False,
-        help_text="Process Jellyfin MarkUnplayed webhook events",
+        help_text=_("Process Jellyfin MarkUnplayed webhook events"),
     )
 
     class Meta:

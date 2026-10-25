@@ -68,6 +68,65 @@ def related_section_label(name):
 
 
 @register.filter
+def media_detail_label(name):
+    """Return the translated label for a key of a media's details."""
+    # Keep literal strings inside pgettext so makemessages can extract them.
+    labels = {
+        "author": lambda: pgettext("media detail", "Author"),
+        "authors": lambda: pgettext("media detail", "Authors"),
+        "broadcast": lambda: pgettext("media detail", "Broadcast"),
+        "companies": lambda: pgettext("media detail", "Companies"),
+        "country": lambda: pgettext("media detail", "Country"),
+        "designers": lambda: pgettext("media detail", "Designers"),
+        "end_date": lambda: pgettext("media detail", "End date"),
+        "episodes": lambda: pgettext("media detail", "Episodes"),
+        "first_air_date": lambda: pgettext("media detail", "First air date"),
+        "format": lambda: pgettext("media detail", "Format"),
+        "isbn": lambda: pgettext("media detail", "ISBN"),
+        "issues_count": lambda: pgettext("media detail", "Issues"),
+        "languages": lambda: pgettext("media detail", "Languages"),
+        "last_air_date": lambda: pgettext("media detail", "Last air date"),
+        "last_issue_name": lambda: pgettext("media detail", "Last issue name"),
+        "last_issue_number": lambda: pgettext("media detail", "Last issue number"),
+        "last_updated": lambda: pgettext("media detail", "Last updated"),
+        "latest_chapter_translated": lambda: pgettext(
+            "media detail", "Latest chapter translated"
+        ),
+        "min_age": lambda: pgettext("media detail", "Minimum age"),
+        "number_of_chapters": lambda: pgettext("media detail", "Chapters"),
+        "number_of_pages": lambda: pgettext("media detail", "Pages"),
+        "people": lambda: pgettext("media detail", "People"),
+        "physical_format": lambda: pgettext("media detail", "Physical format"),
+        "platforms": lambda: pgettext("media detail", "Platforms"),
+        "players": lambda: pgettext("media detail", "Players"),
+        "playtime": lambda: pgettext("media detail", "Playtime"),
+        "publish_date": lambda: pgettext("media detail", "Publish date"),
+        "publisher": lambda: pgettext("media detail", "Publisher"),
+        "publishers": lambda: pgettext("media detail", "Publishers"),
+        "release_date": lambda: pgettext("media detail", "Release date"),
+        "runtime": lambda: pgettext("media detail", "Runtime"),
+        # Translators: the anime's season of the year, e.g. "Spring 2024"
+        "season": lambda: pgettext("media detail", "Season"),
+        "seasons": lambda: pgettext("media detail", "Seasons"),
+        # Translators: the original material an anime is adapted from
+        "source": lambda: pgettext("media detail", "Source"),
+        "start_date": lambda: pgettext("media detail", "Start date"),
+        "status": lambda: pgettext("media detail", "Status"),
+        "status_in_country_of_origin": lambda: pgettext(
+            "media detail", "Status in country of origin"
+        ),
+        "studios": lambda: pgettext("media detail", "Studios"),
+        "themes": lambda: pgettext("media detail", "Themes"),
+        "total_runtime": lambda: pgettext("media detail", "Total runtime"),
+        "year": lambda: pgettext("media detail", "Year"),
+    }
+    if name in labels:
+        return labels[name]()
+    # Fall back to the key itself for details a provider adds later
+    return no_underscore(name)
+
+
+@register.filter
 def slug(arg1):
     """Return the slug of the string.
 

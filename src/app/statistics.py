@@ -1,4 +1,3 @@
-import calendar
 import datetime
 import logging
 from collections import defaultdict
@@ -10,8 +9,9 @@ from django.db.models import (
     Prefetch,
     Q,
 )
-from django.utils import timezone
+from django.utils import formats, timezone
 from django.utils.dateparse import parse_date
+from django.utils.dates import WEEKDAYS, WEEKDAYS_ABBR
 from django.utils.translation import npgettext
 
 from app import config
@@ -467,12 +467,13 @@ def _build_month_labels(date_range, week_start_weekday):
     """Build month labels and their corresponding week counts for the activity grid."""
     months = []
     weeks_per_month = []
-    current_month = date_range[0].strftime("%b")
+    # "M" is the translated abbreviated month name, e.g. "Jan" or "Gen"
+    current_month = formats.date_format(date_range[0], "M")
     week_count = 0
 
     for current_date in date_range:
         if current_date.weekday() == week_start_weekday:
-            month = current_date.strftime("%b")
+            month = formats.date_format(current_date, "M")
 
             if current_month != month:
                 if current_month is not None:
@@ -559,7 +560,7 @@ def get_activity_data(user, start_date, end_date):
     months, weeks_per_month = _build_month_labels(date_range, week_start_weekday)
 
     # Weekday labels depend on week start day
-    days = list(calendar.day_abbr)
+    days = [str(WEEKDAYS_ABBR[weekday]) for weekday in range(7)]
     weekday_labels = [days[6], *days[0:6]] if week_start_sunday else days
 
     return {
@@ -642,8 +643,7 @@ def calculate_day_of_week_stats(date_counts, start_date):
         if date < start_date:
             continue
         if date_counts[date] > 0:
-            day_name = date.strftime("%A")  # Get full day name
-            day_counts[day_name] += 1
+            day_counts[date.weekday()] += 1
             total_active_days += 1
 
     if not total_active_days:
@@ -653,7 +653,7 @@ def calculate_day_of_week_stats(date_counts, start_date):
     most_active_day = max(day_counts.items(), key=lambda x: x[1])
     percentage = (most_active_day[1] / total_active_days) * 100
 
-    return most_active_day[0], round(percentage)
+    return str(WEEKDAYS[most_active_day[0]]), round(percentage)
 
 
 def calculate_streaks(date_counts, end_date):

@@ -1097,9 +1097,9 @@ class TraktArchiveManager:
             self._files.setdefault(name[: -len(".json")], info.filename)
 
         if not self._recognized_export():
-            msg = (
+            msg = _(
                 "The uploaded archive does not contain any Trakt export data. "
-                "Upload the ZIP file downloaded from the Trakt website."
+                "Upload the ZIP file downloaded from the Trakt website.",
             )
             raise MediaImportError(msg)
 

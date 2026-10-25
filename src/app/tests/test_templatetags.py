@@ -285,6 +285,21 @@ class AppTagsTests(TestCase):
             "New Section",
         )
 
+    def test_media_detail_label(self):
+        """Known media detail keys get a translated label."""
+        with translation.override("it"):
+            label = app_tags.media_detail_label("start_date")
+            expected = pgettext("media detail", "Start date")
+        self.assertEqual(label, expected)
+        self.assertNotEqual(expected, "Start date")
+
+    def test_media_detail_label_unknown_key(self):
+        """Unknown detail keys fall back to the key without underscores."""
+        self.assertEqual(
+            app_tags.media_detail_label("new_detail"),
+            "new detail",
+        )
+
     def test_sample_search(self):
         """Test the sample_search filter."""
         # Test all media types
