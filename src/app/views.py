@@ -98,6 +98,7 @@ def home(request):
     context = {
         "home_sections": home_sections,
         "current_sort": sort_by,
+        "current_sort_label": dict(HomeSortChoices.choices).get(sort_by, sort_by),
         "sort_choices": HomeSortChoices.choices,
         "hide_unreleased": hide_unreleased,
         "items_limit": items_limit,

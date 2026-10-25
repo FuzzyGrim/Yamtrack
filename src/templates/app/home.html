@@ -21,7 +21,7 @@
                   @click.outside="open = false"
                   class="flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer">
             {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
-            <span>{{ current_sort|no_underscore|title }}</span>
+            <span>{{ current_sort_label }}</span>
             {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
           </button>
           <div x-show="open"
