@@ -316,7 +316,7 @@
           <div class="relative">
             <select class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                     name="status">
-              {% for status in Status.values %}<option value="{{ status }}">{{ status }}</option>{% endfor %}
+              {% for value, label in Status.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
             </select>
             <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}

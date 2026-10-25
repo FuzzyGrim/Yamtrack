@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from app.models import (
     TV,
@@ -34,6 +34,22 @@ class CreateEntryViewTests(TestCase):
         self.assertIn("media_types", response.context)
 
         self.assertEqual(response.context["media_types"], MediaTypes.values)
+
+    def test_create_entry_status_options_are_translated(self):
+        """Status options show the translated label and submit the stored value."""
+        self.user.language = "it"
+        self.user.save()
+
+        response = self.client.get(reverse("create_entry"))
+
+        with translation.override("it"):
+            for value, label in Status.choices:
+                with self.subTest(status=value):
+                    self.assertContains(
+                        response,
+                        f'<option value="{value}">{label}</option>',
+                        html=True,
+                    )
 
     def test_create_entry_post_movie(self):
         """Test creating a movie entry."""
