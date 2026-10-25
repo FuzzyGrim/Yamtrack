@@ -391,7 +391,7 @@ def update_jellyfin_webhook_events(request):
             "jellyfin_mark_unplayed_enabled",
         ],
     )
-    messages.success(request, "Jellyfin webhook settings updated successfully")
+    messages.success(request, _("Jellyfin webhook settings updated successfully"))
 
     return redirect("integrations")
 

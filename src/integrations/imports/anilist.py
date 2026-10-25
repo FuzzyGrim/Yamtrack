@@ -238,10 +238,10 @@ class AniListImporter:
         except requests.exceptions.HTTPError as error:
             error_message = error.response.json()["errors"][0].get("message")
             if error_message == "User not found":
-                msg = f"User {self.username} not found."
+                msg = _("User %(username)s not found.") % {"username": self.username}
                 raise MediaImportError(msg) from error
             if error_message == "Private User":
-                msg = f"User {self.username} is private."
+                msg = _("User %(username)s is private.") % {"username": self.username}
                 raise MediaImportError(msg) from error
             raise
 

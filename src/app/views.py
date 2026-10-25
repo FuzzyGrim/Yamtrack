@@ -658,12 +658,7 @@ def media_save(request):
         logger.info("%s saved successfully.", form.instance)
     else:
         logger.error(form.errors.as_json())
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(
-                    request,
-                    f"{field.replace('_', ' ').title()}: {error}",
-                )
+        helpers.form_error_messages(form, request)
 
     return helpers.redirect_back(request)
 

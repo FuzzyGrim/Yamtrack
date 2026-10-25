@@ -67,7 +67,7 @@ class GoodReadsImporter:
         try:
             decoded_file = self.file.read().decode("utf-8")
         except UnicodeDecodeError as e:
-            msg = "Invalid file format. Please upload a CSV file."
+            msg = _("Invalid file format. Please upload a CSV file.")
             raise MediaImportError(msg) from e
 
         reader = DictReader(StringIO(decoded_file, newline=""))

@@ -48,7 +48,7 @@ def get_token(request):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid SIMKL secret key."
+            msg = _("Invalid SIMKL secret key.")
             raise MediaImportError(msg) from error
         raise
 

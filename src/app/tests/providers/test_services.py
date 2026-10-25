@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import requests
 from django.test import TestCase
+from django.utils import translation
 
 from app.models import MediaTypes, Sources
 from app.providers import (
@@ -159,6 +160,22 @@ class ServicesTests(TestCase):
         self.assertEqual(exception.provider, Sources.OPENLIBRARY.value)
         self.assertIsNone(exception.status_code)
         self.assertIn("Open Library API (network error)", str(exception))
+
+    def test_provider_api_error_message_is_translated(self):
+        """Test ProviderAPIError builds its message in the active language."""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        error = requests.exceptions.HTTPError(response=mock_response)
+
+        with translation.override("it"):
+            exception = services.ProviderAPIError(Sources.TMDB.value, error)
+            expected = translation.gettext(
+                "There was an error contacting the %(provider)s API "
+                "(HTTP %(status_code)s). Check the logs for more details.",
+            ) % {"provider": Sources.TMDB.label, "status_code": 500}
+
+        self.assertEqual(str(exception), expected)
+        self.assertNotIn("There was an error", expected)
 
     @patch("app.providers.mal.anime")
     def test_get_media_metadata_anime(self, mock_anime):

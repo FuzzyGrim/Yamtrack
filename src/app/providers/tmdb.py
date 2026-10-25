@@ -330,14 +330,22 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
         for season_number in season_subset:
             season_key = f"season/{season_number}"
             if season_key not in response:
-                msg = (
-                    f"Season {season_number} not found in {Sources.TMDB.label} "
-                    f"with ID {media_id}"
-                )
+                msg = _(
+                    "Season %(season_number)s not found for %(provider)s "
+                    "with ID %(media_id)s",
+                ) % {
+                    "season_number": season_number,
+                    "provider": Sources.TMDB.label,
+                    "media_id": media_id,
+                }
                 not_found_response = requests.Response()
                 not_found_response.status_code = 404
                 not_found_error = type("Error", (), {"response": not_found_response})
-                raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
+                raise services.ProviderAPIError(
+                    Sources.TMDB.value,
+                    error=not_found_error,
+                    details=msg,
+                )
 
             season_data = process_season(
                 response[season_key], response[f"{season_key}/watch/providers"]
@@ -776,10 +784,15 @@ def episode(media_id, season_number, episode_number):
             }
 
     # Episode not found - throw ProviderAPIError
-    msg = (
-        f"Episode {episode_number} not found in season {season_number} "
-        f"for {Sources.TMDB.label} with ID {media_id}"
-    )
+    msg = _(
+        "Episode %(episode_number)s not found in season %(season_number)s "
+        "for %(provider)s with ID %(media_id)s",
+    ) % {
+        "episode_number": episode_number,
+        "season_number": season_number,
+        "provider": Sources.TMDB.label,
+        "media_id": media_id,
+    }
     # Create a new response object with 404 status
     not_found_response = requests.Response()
     not_found_response.status_code = 404

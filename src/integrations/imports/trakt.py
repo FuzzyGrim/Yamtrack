@@ -76,7 +76,7 @@ def handle_oauth_callback(request, redirect_uri=None):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid Trakt secret key."
+            msg = _("Invalid Trakt secret key.")
             raise MediaImportError(msg) from error
         raise
 
@@ -106,7 +106,7 @@ def get_username_from_oauth(access_token):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid Trakt secret key."
+            msg = _("Invalid Trakt secret key.")
             raise MediaImportError(msg) from error
         raise
 
@@ -1068,7 +1068,7 @@ class TraktArchiveManager:
         try:
             self.zipfile = zipfile.ZipFile(file)
         except zipfile.BadZipFile as e:
-            msg = "The uploaded file is not a valid Trakt export archive."
+            msg = _("The uploaded file is not a valid Trakt export archive.")
             raise MediaImportError(msg) from e
 
         self.warnings = warnings if warnings is not None else []
@@ -1087,7 +1087,7 @@ class TraktArchiveManager:
                 continue
             uncompressed_size += info.file_size
             if uncompressed_size > MAX_EXPORT_UNCOMPRESSED_BYTES:
-                msg = "The uncompressed Trakt export archive is too large to import."
+                msg = _("The uncompressed Trakt export archive is too large to import.")
                 raise MediaImportError(msg)
 
             name = info.filename.rsplit("/", 1)[-1]

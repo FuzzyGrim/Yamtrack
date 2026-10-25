@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 15:04+0000\n"
+"POT-Creation-Date: 2026-10-25 21:28+0000\n"
 "PO-Revision-Date: 2026-10-25 16:04+0100\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
@@ -451,6 +451,16 @@ msgctxt "history"
 msgid "Played up to %(unit)s %(number)s"
 msgstr "Giocato fino alla %(unit)s %(number)s"
 
+#: app/history_processor.py:173 app/tests/test_history_processor.py:213
+#: templates/events/calendar.html:33
+#: templates/events/components/calendar_list.html:11
+msgid "Today"
+msgstr "Oggi"
+
+#: app/history_processor.py:175 app/tests/test_history_processor.py:213
+msgid "Yesterday"
+msgstr "Ieri"
+
 #: app/history_processor.py:525 app/history_processor.py:593
 #: app/history_processor.py:652
 #, python-format
@@ -579,87 +589,196 @@ msgctxt "history"
 msgid "Updated %(field)s from %(old)s to %(new)s"
 msgstr "%(field)s aggiornato da %(old)s a %(new)s"
 
-#: app/models.py:50
+#: app/models.py:51
 msgid "Manual"
 msgstr "Manuale"
 
-#: app/models.py:56
+#: app/models.py:57
 msgid "TV Show"
 msgstr "Serie TV"
 
-#: app/models.py:57
+#: app/models.py:58
 msgid "TV Season"
 msgstr "Stagione"
 
-#: app/models.py:58 templates/app/media_details.html:577
+#: app/models.py:59 templates/app/media_details.html:577
 msgid "Episode"
 msgstr "Episodio"
 
-#: app/models.py:59
+#: app/models.py:60
 msgid "Movie"
 msgstr "Film"
 
-#: app/models.py:60
+#: app/models.py:61
 msgid "Anime"
 msgstr "Anime"
 
-#: app/models.py:61
+#: app/models.py:62
 msgid "Manga"
 msgstr "Manga"
 
-#: app/models.py:62
+#: app/models.py:63
 msgid "Game"
 msgstr "Videogioco"
 
-#: app/models.py:63
+#: app/models.py:64
 msgid "Book"
 msgstr "Libro"
 
-#: app/models.py:64
+#: app/models.py:65
 msgid "Comic"
 msgstr "Fumetto"
 
-#: app/models.py:65
+#: app/models.py:66
 msgid "Boardgame"
 msgstr "Gioco da tavolo"
 
-#: app/models.py:775
+#: app/models.py:776
 msgid "Completed"
 msgstr "Completato"
 
-#: app/models.py:776 templates/app/statistics.html:116
+#: app/models.py:777 templates/app/statistics.html:116
 msgid "In Progress"
 msgstr "In corso"
 
-#: app/models.py:777
+#: app/models.py:778
 msgid "Planning"
 msgstr "In programma"
 
-#: app/models.py:778
+#: app/models.py:779
 msgid "Paused"
 msgstr "In pausa"
 
-#: app/models.py:779
+#: app/models.py:780
 msgid "Dropped"
 msgstr "Abbandonato"
 
-#: app/models.py:785 templates/users/import_data.html:502
+#: app/models.py:786 templates/users/import_data.html:502
 msgid "Success"
 msgstr "Successo"
 
-#: app/models.py:786
+#: app/models.py:787
 msgid "Warning"
 msgstr "Avviso"
 
-#: app/models.py:787
+#: app/models.py:788
 msgid "Error"
 msgstr "Errore"
 
-#: app/models.py:788
+#: app/models.py:789
 msgid "Info"
 msgstr "Informazione"
 
-#: app/providers/tmdb.py:826
+#: app/models.py:1164 app/models.py:1412
+#, python-format
+msgid ""
+"%(title)s had %(count)d released episode marked as watched automatically."
+msgid_plural ""
+"%(title)s had %(count)d released episodes marked as watched automatically."
+msgstr[0] ""
+"%(title)s: %(count)d episodio uscito è stato impostato automaticamente come "
+"visto."
+msgstr[1] ""
+"%(title)s: %(count)d episodi usciti sono stati impostati automaticamente "
+"come visti."
+
+#: app/models.py:1183
+#, python-format
+msgid ""
+"%(title)s was left in progress because unreleased episodes or seasons remain."
+msgstr ""
+"%(title)s: rimane in corso perché ci sono ancora episodi o stagioni non "
+"usciti."
+
+#: app/models.py:1293
+#, python-format
+msgid ""
+"%(title)s Season %(season_number)s was marked as in progress automatically."
+msgstr ""
+"%(title)s: la stagione %(season_number)s è stata impostata automaticamente "
+"come in corso."
+
+#: app/models.py:1331
+#, python-format
+msgid ""
+"%(title)s remains in progress because another season is still pending or has "
+"not aired yet."
+msgstr ""
+"%(title)s: rimane in corso perché un'altra stagione è ancora in sospeso o "
+"non è ancora andata in onda."
+
+#: app/models.py:1345 app/models.py:1833 app/tests/models/test_episode.py:257
+#, python-format
+msgid "%(title)s was marked as completed automatically."
+msgstr "%(title)s: impostato automaticamente come completato."
+
+#: app/models.py:1435
+#, python-format
+msgid "%(title)s was left in progress because unreleased episodes remain."
+msgstr "%(title)s: rimane in corso perché ci sono ancora episodi non usciti."
+
+#: app/providers/bgg.py:31
+msgid "BGG API requires authorization"
+msgstr "L'API di BGG richiede l'autorizzazione"
+
+#: app/providers/services.py:107
+#, python-format
+msgid ""
+"There was an error contacting the %(provider)s API (network error): "
+"%(details)s. Check the logs for more details."
+msgstr ""
+"Si è verificato un errore durante la comunicazione con l'API di %(provider)s "
+"(errore di rete): %(details)s. Controlla i log per maggiori dettagli."
+
+#: app/providers/services.py:112
+#, python-format
+msgid ""
+"There was an error contacting the %(provider)s API (network error). Check "
+"the logs for more details."
+msgstr ""
+"Si è verificato un errore durante la comunicazione con l'API di %(provider)s "
+"(errore di rete). Controlla i log per maggiori dettagli."
+
+#: app/providers/services.py:117
+#, python-format
+msgid ""
+"There was an error contacting the %(provider)s API (HTTP %(status_code)s): "
+"%(details)s. Check the logs for more details."
+msgstr ""
+"Si è verificato un errore durante la comunicazione con l'API di %(provider)s "
+"(HTTP %(status_code)s): %(details)s. Controlla i log per maggiori dettagli."
+
+#: app/providers/services.py:123 app/tests/providers/test_services.py:173
+#, python-format
+msgid ""
+"There was an error contacting the %(provider)s API (HTTP %(status_code)s). "
+"Check the logs for more details."
+msgstr ""
+"Si è verificato un errore durante la comunicazione con l'API di %(provider)s "
+"(HTTP %(status_code)s). Controlla i log per maggiori dettagli."
+
+#: app/providers/services.py:152
+#, python-format
+msgid "No result found with ID %(media_id)s"
+msgstr "Nessun risultato trovato con ID %(media_id)s"
+
+#: app/providers/tmdb.py:334
+#, python-format
+msgid ""
+"Season %(season_number)s not found for %(provider)s with ID %(media_id)s"
+msgstr ""
+"Stagione %(season_number)s non trovata su %(provider)s con ID %(media_id)s"
+
+#: app/providers/tmdb.py:788
+#, python-format
+msgid ""
+"Episode %(episode_number)s not found in season %(season_number)s for "
+"%(provider)s with ID %(media_id)s"
+msgstr ""
+"Episodio %(episode_number)s non trovato nella stagione %(season_number)s su "
+"%(provider)s con ID %(media_id)s"
+
+#: app/providers/tmdb.py:839
 msgid "Disabled"
 msgstr "Disabilitato"
 
@@ -865,31 +984,31 @@ msgstr ""
 msgid "%(title)s was synced to %(source)s successfully."
 msgstr "%(title)s è stato sincronizzato con %(source)s con successo."
 
-#: app/views.py:713
+#: app/views.py:708
 msgid "Invalid form data"
 msgstr "Dati del form non validi"
 
-#: app/views.py:783
+#: app/views.py:778
 #, python-format
 msgid "Season %(season_number)s"
 msgstr "Stagione %(season_number)s"
 
-#: app/views.py:787 templates/app/components/fill_track_episode.html:27
+#: app/views.py:782 templates/app/components/fill_track_episode.html:27
 #, python-format
 msgid "Episode %(episode_number)s"
 msgstr "Episodio %(episode_number)s"
 
-#: app/views.py:794
+#: app/views.py:789
 #, python-format
 msgid "%(media_name)s already exists in the database."
 msgstr "%(media_name)s esiste già nel database."
 
-#: app/views.py:827
+#: app/views.py:822
 #, python-format
 msgid "%(item)s added successfully."
 msgstr "%(item)s aggiunto con successo."
 
-#: app/views.py:962
+#: app/views.py:957
 msgid "Record not found"
 msgstr "Pagina non trovata"
 
@@ -929,6 +1048,22 @@ msgstr "Chiave segreta Anilist non valida."
 msgid "Invalid AniList access token."
 msgstr "Token di accesso AniList non valido."
 
+#: integrations/imports/anilist.py:241 integrations/imports/kitsu.py:115
+#: integrations/imports/mal.py:108
+#, python-format
+msgid "User %(username)s not found."
+msgstr "Utente %(username)s non trovato."
+
+#: integrations/imports/anilist.py:244
+#, python-format
+msgid "User %(username)s is private."
+msgstr "Il profilo dell'utente %(username)s è privato."
+
+#: integrations/imports/goodreads.py:70 integrations/imports/hltb.py:65
+#: integrations/imports/imdb.py:87 integrations/imports/yamtrack.py:96
+msgid "Invalid file format. Please upload a CSV file."
+msgstr "Formato file non valido. Carica un file CSV."
+
 #: integrations/imports/goodreads.py:85
 #, python-format
 msgid "Error processing entry: %(description)s - %(error)s"
@@ -960,11 +1095,6 @@ msgstr "Lo stesso task di importazione è già programmato."
 #, python-format
 msgid "%(source)s import task scheduled."
 msgstr "%(source)s task di importazione programmato."
-
-#: integrations/imports/hltb.py:65 integrations/imports/imdb.py:87
-#: integrations/imports/yamtrack.py:96
-msgid "Invalid file format. Please upload a CSV file."
-msgstr "Formato file non valido. Per favore, carica un file CSV."
 
 #: integrations/imports/hltb.py:115
 #, python-format
@@ -1012,11 +1142,6 @@ msgstr ""
 "%(title_list)s: Sono stati abbinati allo stesso ID TMDB %(media_id)s - "
 "nessuno importato"
 
-#: integrations/imports/kitsu.py:115 integrations/imports/mal.py:108
-#, python-format
-msgid "User %(username)s not found."
-msgstr "Utente %(username)s non trovato."
-
 #: integrations/imports/kitsu.py:119
 #, python-format
 msgid ""
@@ -1053,7 +1178,7 @@ msgstr "%(media_title)s: Nessun ID esterno valido trovato."
 msgid "Error processing entry: %(content)s"
 msgstr "Errore durante l'elaborazione della voce: %(content)s"
 
-#: integrations/imports/simkl.py:76
+#: integrations/imports/simkl.py:51 integrations/imports/simkl.py:76
 msgid "Invalid SIMKL secret key."
 msgstr "Chiave segreta SIMKL non valida."
 
@@ -1145,6 +1270,7 @@ msgid "Failed to process Steam game %(name)s (%(appid)s): %(error)s"
 msgstr ""
 "%(name)s (%(appid)s): Fallito l'elaborazione del gioco Steam: %(error)s"
 
+#: integrations/imports/trakt.py:79 integrations/imports/trakt.py:109
 #: integrations/imports/trakt.py:144
 msgid "Invalid Trakt secret key."
 msgstr "Chiave segreta Trakt non valida."
@@ -1193,6 +1319,16 @@ msgstr "Errore durante l'elaborazione della valutazione: %(entry)s"
 msgid "Error processing comment entry: %(entry)s"
 msgstr "Errore durante l'elaborazione del commento: %(entry)s"
 
+#: integrations/imports/trakt.py:1071
+msgid "The uploaded file is not a valid Trakt export archive."
+msgstr "Il file caricato non è un archivio esportato da Trakt valido."
+
+#: integrations/imports/trakt.py:1090
+msgid "The uncompressed Trakt export archive is too large to import."
+msgstr ""
+"L'archivio esportato da Trakt decompresso è troppo grande per essere "
+"importato."
+
 #: integrations/imports/yamtrack.py:106
 #, python-format
 msgid "Error processing entry with ID %(media_id)s (%(media_type)s): %(error)s"
@@ -1219,6 +1355,14 @@ msgstr "Nessun media è stato importato."
 msgid "Imported %(media_list)s."
 msgstr "%(media_list)s importato."
 
+#: integrations/views.py:65
+msgid "Invalid or expired Trakt authorization request."
+msgstr "Richiesta di autorizzazione Trakt non valida o scaduta."
+
+#: integrations/views.py:69
+msgid "Trakt authorization failed."
+msgstr "Autorizzazione Trakt non riuscita."
+
 #: integrations/views.py:92 integrations/views.py:127
 msgid "The task to import media from Trakt has been queued."
 msgstr "Il task per importare i media da Trakt è stato messo in coda."
@@ -1226,6 +1370,16 @@ msgstr "Il task per importare i media da Trakt è stato messo in coda."
 #: integrations/views.py:113
 msgid "Trakt username is required."
 msgstr "È richiesto il nome utente Trakt."
+
+#: integrations/views.py:147
+msgid "Trakt export zip file is required."
+msgstr "È richiesto il file zip dell'esportazione Trakt."
+
+#: integrations/views.py:158
+msgid "The task to import media from Trakt export file has been queued."
+msgstr ""
+"Il task per importare i media dal file di esportazione Trakt è stato messo "
+"in coda."
 
 #: integrations/views.py:208
 msgid "The task to import media from Simkl has been queued."
@@ -1425,7 +1579,7 @@ msgstr "Accedi"
 msgid "Sign in to your account"
 msgstr "Accedi al tuo account"
 
-#: templates/account/login.html:28
+#: templates/account/login.html:28 templates/app/media_list.html:229
 msgid "Sign In"
 msgstr "Accedi"
 
@@ -1594,6 +1748,44 @@ msgstr "Aggiungi agli elenchi personalizzati"
 msgid "View your activity history"
 msgstr "Visualizza la cronologia delle attività"
 
+#: templates/app/components/home_section.html:25
+#: templates/lists/components/list_grid.html:38
+#: templates/lists/list_detail.html:39
+#, python-format
+msgid "%(item_count)s item"
+msgid_plural "%(item_count)s items"
+msgstr[0] "%(item_count)s elemento"
+msgstr[1] "%(item_count)s elementi"
+
+#: templates/app/components/home_section.html:63
+#, python-format
+msgid "Load all (%(total)s)"
+msgstr "Carica tutti (%(total)s)"
+
+#: templates/app/components/home_section.html:87
+msgid "Nothing is actively moving right now"
+msgstr "Al momento non c'è niente in corso"
+
+#: templates/app/components/home_section.html:89
+msgid "Your planning shelf is still empty"
+msgstr "Non hai ancora niente in programma"
+
+#: templates/app/components/home_section.html:94
+msgid ""
+"Start a title and mark it as in progress to see quick updates and release "
+"reminders here."
+msgstr ""
+"Inizia un titolo e impostalo come in corso per vedere qui aggiornamenti rapidi "
+"e promemoria sulle uscite."
+
+#: templates/app/components/home_section.html:96
+msgid "Add a few titles to planning to see them here."
+msgstr "Aggiungi qualche titolo in programma per vederlo qui."
+
+#: templates/app/components/home_section.html:103
+msgid "Browse media"
+msgstr "Sfoglia media"
+
 #: templates/app/components/journal_items.html:30
 msgid "Delete activity"
 msgstr "Elimina attività"
@@ -1644,11 +1836,21 @@ msgstr "Streaming"
 msgid "Time to Beat"
 msgstr "Time to Beat"
 
-#: templates/app/components/search_parent_season.html:15
+#: templates/app/components/search_parent_season.html:7
+#, python-format
+msgid "Season %(season_number)s of %(title)s"
+msgstr "Stagione %(season_number)s di %(title)s"
+
+#: templates/app/components/search_parent_season.html:13
+#, python-format
+msgid "%(title)s - Season %(season_number)s"
+msgstr "%(title)s - Stagione %(season_number)s"
+
+#: templates/app/components/search_parent_season.html:21
 msgid "No seasons found matching"
 msgstr "Nessuna stagione corrispondente trovata"
 
-#: templates/app/components/search_parent_season.html:15
+#: templates/app/components/search_parent_season.html:21
 #: templates/app/components/search_parent_tv.html:15
 msgid "Please try a different search term."
 msgstr "Per favore, prova un termine di ricerca diverso."
@@ -2035,15 +2237,22 @@ msgstr "Sorgente"
 msgid "List View"
 msgstr "Visualizza Lista"
 
-#: templates/app/search.html:100
+#: templates/app/search.html:92
+#, python-format
+msgid "Page %(page)s of %(total_pages)s (%(counter)s result)"
+msgid_plural "Page %(page)s of %(total_pages)s (%(counter)s results)"
+msgstr[0] "Pagina %(page)s di %(total_pages)s (%(counter)s risultato)"
+msgstr[1] "Pagina %(page)s di %(total_pages)s (%(counter)s risultati)"
+
+#: templates/app/search.html:104
 msgid "No results found"
 msgstr "Nessun risultato trovato"
 
-#: templates/app/search.html:102
+#: templates/app/search.html:106
 msgid "We couldn't find any matches for"
 msgstr "Non abbiamo trovato corrispondenze per"
 
-#: templates/app/search.html:102
+#: templates/app/search.html:106
 msgid "Try checking your spelling or using different keywords."
 msgstr "Prova a controllare l'ortografia o a usare parole chiave diverse."
 
@@ -2157,11 +2366,6 @@ msgstr "Esci"
 msgid "Track upcoming releases from your list."
 msgstr "Tieni traccia dei prossimi rilasci dalla tua lista."
 
-#: templates/events/calendar.html:33
-#: templates/events/components/calendar_list.html:11
-msgid "Today"
-msgstr "Oggi"
-
 #: templates/events/calendar.html:39
 msgid "Fetch New Releases"
 msgstr "Recupera nuovi rilasci"
@@ -2189,7 +2393,7 @@ msgstr "Non hai ancora creato nessuna lista."
 
 #: templates/lists/components/list_form.html:12
 #: templates/lists/components/list_grid.html:18
-#: templates/lists/list_detail.html:43
+#: templates/lists/list_detail.html:51
 msgid "Edit List"
 msgstr "Modifica lista"
 
@@ -2204,13 +2408,6 @@ msgstr "Salva"
 #: templates/lists/components/list_form.html:53
 msgid "Create List"
 msgstr "Crea lista"
-
-#: templates/lists/components/list_grid.html:38
-#, python-format
-msgid "%(item_count)s item"
-msgid_plural "%(item_count)s items"
-msgstr[0] "%(item_count)s elemento"
-msgstr[1] "%(item_count)s elementi"
 
 #: templates/lists/components/list_item_button.html:9
 msgid "Remove"
@@ -2263,28 +2460,35 @@ msgstr "Crea la tua prima lista"
 msgid "Date Added"
 msgstr "Data di aggiunta"
 
-#: templates/lists/list_detail.html:48
+#: templates/lists/list_detail.html:33
+#, python-format
+msgid "%(counter)s collaborator"
+msgid_plural "%(counter)s collaborators"
+msgstr[0] "%(counter)s collaboratore"
+msgstr[1] "%(counter)s collaboratori"
+
+#: templates/lists/list_detail.html:56
 msgid "All Types"
 msgstr "Tutti i tipi"
 
-#: templates/lists/list_detail.html:63
+#: templates/lists/list_detail.html:71
 msgid "Search in collection..."
 msgstr "Cerca nella collezione..."
 
-#: templates/lists/list_detail.html:163 users/models.py:51
+#: templates/lists/list_detail.html:171 users/models.py:51
 msgid "All"
 msgstr "Tutti"
 
-#: templates/lists/list_detail.html:220
+#: templates/lists/list_detail.html:228
 msgid "No items in this list yet"
 msgstr "Ancora nessun elemento in questa lista"
 
-#: templates/lists/list_detail.html:221
+#: templates/lists/list_detail.html:229
 msgid "Start adding your favorite media to build your collection"
 msgstr ""
 "Inizia ad aggiungere i tuoi media preferiti per costruire la tua collezione"
 
-#: templates/lists/list_detail.html:224
+#: templates/lists/list_detail.html:232
 msgid "Browse Media"
 msgstr "Sfoglia media"
 
@@ -3560,6 +3764,10 @@ msgstr "Token rigenerato con successo."
 #: users/views.py:374
 msgid "Plex usernames updated successfully"
 msgstr "Nomi utente Plex aggiornati con successo"
+
+#: users/views.py:394
+msgid "Jellyfin webhook settings updated successfully"
+msgstr "Impostazioni webhook di Jellyfin aggiornate con successo"
 
 #: users/views.py:407
 #, python-format

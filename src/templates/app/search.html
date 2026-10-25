@@ -38,12 +38,12 @@
       {% for result in data.results %}
         {% include "app/components/media_card.html" with item=result.item title=result.item.title media=result.media %}
       {% endfor %}
-    {% else %}
-      class="grid grid-cols-1 gap-4">
-      {% for result in data.results %}
-        {% include "app/components/media_card_list.html" with item=result.item title=result.item.title media=result.media %}
-      {% endfor %}
-    {% endif %}
+  {% else %}
+    class="grid grid-cols-1 gap-4">
+    {% for result in data.results %}
+      {% include "app/components/media_card_list.html" with item=result.item title=result.item.title media=result.media %}
+    {% endfor %}
+  {% endif %}
   </div>
 
   {% if data.total_pages > 1 %}
@@ -89,7 +89,11 @@
 
     {# Page info text #}
     <div class="text-center text-sm text-gray-400 mt-3">
-      Page {{ data.page }} of {{ data.total_pages }} ({{ data.total_results }} results)
+      {% blocktrans trimmed count counter=data.total_results with page=data.page total_pages=data.total_pages %}
+        Page {{ page }} of {{ total_pages }} ({{ counter }} result)
+      {% plural %}
+        Page {{ page }} of {{ total_pages }} ({{ counter }} results)
+      {% endblocktrans %}
     </div>
   {% endif %}
 {% else %}

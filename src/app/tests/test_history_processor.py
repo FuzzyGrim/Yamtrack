@@ -1,4 +1,8 @@
+from datetime import timedelta
+from types import SimpleNamespace
+
 from django.test import TestCase
+from django.utils import timezone, translation
 
 from app import config, history_processor
 from app.history_processor import format_description
@@ -197,3 +201,16 @@ class HistoryProcessorTests(TestCase):
             format_description("custom_field", "old", "new"),
             "Updated custom field from old to new",
         )
+
+    def test_build_journal_days_labels_are_translated(self):
+        """Test the Today and Yesterday separators follow the active language."""
+        now = timezone.now()
+        entries = [{"date": now}, {"date": now - timedelta(days=1)}]
+        user = SimpleNamespace(date_format="Y-m-d")
+
+        with translation.override("it"):
+            days = history_processor.build_journal_days(entries, user)
+            expected = [translation.gettext("Today"), translation.gettext("Yesterday")]
+
+        self.assertEqual([day["label"] for day in days], expected)
+        self.assertNotEqual(expected, ["Today", "Yesterday"])
