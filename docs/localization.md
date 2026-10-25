@@ -19,7 +19,7 @@ uv run manage.py makemessages -d django -l lang_code
 uv run manage.py makemessages -d djangojs -l lang_code
 ```
 
-This generates the `.po` and `.mo` files for the language specified by `lang_code`, that is the [locale name](https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name) of the language you want to add. For example, for French, use `fr`.
+This generates the `.po` files for the language specified by `lang_code`, that is the [locale name](https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name) of the language you want to add. For example, for French, use `fr`.
 
 To translate the newly created language, edit the `locale/lang_code/LC_MESSAGES/django.po` and `locale/lang_code/LC_MESSAGES/djangojs.po` files. No specific app is needed since they are plain-text files, but there are some tools that can help.
 
@@ -29,7 +29,7 @@ After editing the `.po` message file, compile the message catalogs with:
 uv run manage.py compilemessages
 ```
 
-After compiling, add the language to the `LANGUAGES` setting in `src/config/settings.py`.
+This generates the `.mo` files that Django uses for displaying text. After compiling, add the language to the `LANGUAGES` setting in `src/config/settings.py`.
 
 !!! warning IMPORTANT
     If you add a new language, you need test it by running the development server and switching to the new language from the app language selector. More infos at [General setup](development.md#general-setup).
