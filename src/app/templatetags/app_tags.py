@@ -408,9 +408,11 @@ def natural_day(datetime, user):
     days = (datetime_date - today).days
 
     if days == 0:
-        return f"Today {formatted_time}"
+        return pgettext("natural day", "Today %(time)s") % {"time": formatted_time}
     if days == 1:
-        return f"Tomorrow {formatted_time}"
+        return pgettext("natural day", "Tomorrow %(time)s") % {
+            "time": formatted_time,
+        }
 
     return f"{formatted_date} {formatted_time}"
 
