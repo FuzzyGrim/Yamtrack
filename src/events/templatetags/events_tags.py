@@ -1,6 +1,8 @@
 import datetime
 
 from django import template
+from django.utils import formats
+from django.utils.text import capfirst
 
 register = template.Library()
 
@@ -11,16 +13,25 @@ def get_item(dictionary, key):
     return dictionary.get(key, [])
 
 
+def _month_before_day(date_format):
+    """Return whether a date format string puts the month before the day."""
+
+    def first_index(chars):
+        return next(
+            (index for index, char in enumerate(date_format) if char in chars),
+            len(date_format),
+        )
+
+    return first_index("mMnbEFN") < first_index("dj")
+
+
 @register.simple_tag
-def day_of_week(day, month, year):
-    """Return the day of week given day, month, and year."""
-    # Convert to integers
-    day = int(day)
-    month = int(month)
-    year = int(year)
+def calendar_day_label(day, month, year, user):
+    """Return a translated day heading such as "Monday, November 2".
 
-    # Create date object
-    date_obj = datetime.date(year, month, day)
-
-    # Get day of week
-    return date_obj.strftime("%A")  # Full name (Monday, Tuesday, etc.)
+    The weekday and month names follow the active language, and the order of
+    day and month follows the user's preferred date format.
+    """
+    date_obj = datetime.date(int(year), int(month), int(day))
+    label_format = "l, F j" if _month_before_day(user.date_format) else "l j F"
+    return capfirst(formats.date_format(date_obj, label_format))

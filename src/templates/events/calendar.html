@@ -20,7 +20,7 @@
              href="{% url 'calendar' %}?month={{ prev_month }}&year={{ prev_year }}&view={{ view_type }}">
             {% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}
           </a>
-          <h2 class="px-4 text-lg font-semibold min-w-40 text-center">{{ month_name }} {{ year }}</h2>
+          <h2 class="px-4 text-lg font-semibold min-w-40 text-center">{{ month_name|capfirst }} {{ year }}</h2>
           <a class="p-2 hover:bg-[#454d5a] rounded-md transition-colors"
              href="{% url 'calendar' %}?month={{ next_month }}&year={{ next_year }}&view={{ view_type }}">
             {% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}
