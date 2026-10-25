@@ -115,8 +115,8 @@ class TimeFormatChoices(models.TextChoices):
 class WeekStartDayChoices(models.TextChoices):
     """Choices for week start day."""
 
-    MONDAY = "monday", "Monday"
-    SUNDAY = "sunday", "Sunday"
+    MONDAY = "monday", _("Monday")
+    SUNDAY = "sunday", _("Sunday")
 
 
 class User(AbstractUser):

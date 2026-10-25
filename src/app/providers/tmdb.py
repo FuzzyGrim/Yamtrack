@@ -5,6 +5,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -793,7 +794,7 @@ def episode(media_id, season_number, episode_number):
 
 def watch_provider_regions():
     """Return the available watch provider regions from The Movie Database."""
-    cache_key = f"{Sources.TMDB.value}_watch_provider_regions"
+    cache_key = f"{Sources.TMDB.value}_watch_provider_region_list"
     data = cache.get(cache_key)
 
     if data is None:
@@ -810,7 +811,7 @@ def watch_provider_regions():
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        data = [("", "Disabled")]
+        data = []
         regions = response.get("results", [])
         for region in sorted(regions, key=lambda r: r.get("english_name", "")):
             key = region.get("iso_3166_1")
@@ -822,7 +823,7 @@ def watch_provider_regions():
 
         cache.set(cache_key, data)
 
-    return data
+    return [("", _("Disabled")), *data]
 
 
 def get_changed_ids(media_type):

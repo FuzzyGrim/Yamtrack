@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-22 23:37+0000\n"
-"PO-Revision-Date: 2026-10-25 15:04+0100\n"
+"POT-Creation-Date: 2026-10-25 14:37+0000\n"
+"PO-Revision-Date: 2026-10-25 15:38+0100\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -659,6 +659,10 @@ msgstr "Errore"
 msgid "Info"
 msgstr "Informazione"
 
+#: app/providers/tmdb.py:826
+msgid "Disabled"
+msgstr "Disabilitato"
+
 #: app/statistics.py:404
 msgctxt "consumption statistic"
 msgid "TV episode watched"
@@ -853,7 +857,7 @@ msgstr "📆 YamTrack: uscite di oggi 📆"
 msgid "Enjoy your media!"
 msgstr "Buona visione!"
 
-#: events/views.py:114
+#: events/views.py:115
 msgid "The task to refresh upcoming releases has been queued."
 msgstr "Il task per aggiornare le uscite imminenti è stato messo in coda."
 
@@ -2106,7 +2110,7 @@ msgstr ""
 "Questo link può essere utilizzato per integrare il tuo calendario in "
 "qualsiasi applicazione di calendario."
 
-#: templates/events/components/calendar_list.html:27
+#: templates/events/components/calendar_list.html:28
 #, python-format
 msgid "%(number)s at %(time)s"
 msgstr "%(number)s alle %(time)s"
@@ -3183,6 +3187,16 @@ msgstr "Formato orario"
 msgid "Choose between 12-hour or 24-hour clock display."
 msgstr "Scegli tra visualizzazione a 12 ore o 24 ore."
 
+#: templates/users/preferences.html:202
+msgid "Week Start Day"
+msgstr "Giorno di inizio settimana"
+
+#: templates/users/preferences.html:204
+msgid "Choose which day the week starts on for calendars and statistics."
+msgstr ""
+"Scegli quale considerare il primo giorno della settimana per calendario e "
+"statistiche."
+
 #: templates/users/preferences.html:222
 msgid "Watch Provider Region"
 msgstr "Regione dei provider di contenuti"
@@ -3350,6 +3364,14 @@ msgstr "14:30 (24 ore)"
 #: users/models.py:112
 msgid "2:30 PM (12-hour)"
 msgstr "2:30 PM (12 ore)"
+
+#: users/models.py:118
+msgid "Monday"
+msgstr "Lunedì"
+
+#: users/models.py:119
+msgid "Sunday"
+msgstr "Domenica"
 
 #: users/models.py:128
 msgid "Toggle profile visibility to anonymous users"
