@@ -983,23 +983,23 @@ must instead listen on a port that is free inside that namespace. Set
 <tbody>
 <tr>
 <td><code>DB_HOST</code></td>
-<td>The hostname or IP address of the PostgreSQL server. If not set, SQLite is used as the default database.</td>
+<td>The hostname or IP address of the PostgreSQL server, or the directory of its Unix socket. If omitted, SQLite is used as the default database.</td>
 </tr>
 <tr>
 <td><code>DB_PORT</code></td>
-<td>The port number on which the PostgreSQL server is listening.</td>
+<td>The port number on which the PostgreSQL server is listening. Optional; if omitted, the PostgreSQL client's default is used.</td>
 </tr>
 <tr>
 <td><code>DB_NAME</code></td>
-<td>The name of the database to connect to.</td>
+<td>The name of the database to connect to. Required when using PostgreSQL.</td>
 </tr>
 <tr>
 <td><code>DB_USER</code></td>
-<td>The username used to authenticate with the PostgreSQL server.</td>
+<td>The username used to authenticate with the PostgreSQL server. Optional; if omitted, the OS user running the process is used.</td>
 </tr>
 <tr>
 <td><code>DB_PASSWORD</code></td>
-<td>The password for the specified user.</td>
+<td>The password for the specified user. Optional; not needed for local Unix socket connections using peer/ident authentication.</td>
 </tr>
 <tr>
 <td><code>DB_POOL_MIN_SIZE</code></td>
@@ -1012,6 +1012,10 @@ must instead listen on a port that is free inside that namespace. Set
 </tbody>
 </table>
 <p><strong>Note:</strong> Check the example <code>docker-compose.postgres.yml</code> in the root directory of the repo for a PostgreSQL configuration example.</p>
+<p><strong>Connecting via a local Unix socket:</strong> set <code>DB_HOST</code> to the directory containing the PostgreSQL socket (e.g. <code>DB_HOST=/run/postgresql</code>). <code>DB_PORT</code>, <code>DB_USER</code>, and <code>DB_PASSWORD</code> can be omitted in this setup, in which case the PostgreSQL client defaults are used (port 5432 and the OS user running Yamtrack), so only <code>DB_NAME</code> must be set:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">DB_HOST</span><span class="o">=</span>/run/postgresql
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">DB_NAME</span><span class="o">=</span>yamtrack
+</span></code></pre></div>
 <h3 id="external-postgresql-database-with-ssl-yamtrack-container">External PostgreSQL database with SSL (YamTrack Container)<a class="headerlink" href="#external-postgresql-database-with-ssl-yamtrack-container" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
