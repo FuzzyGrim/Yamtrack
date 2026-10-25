@@ -42,6 +42,32 @@ def no_underscore(arg1):
 
 
 @register.filter
+def related_section_label(name):
+    """Return the translated heading for a related media section."""
+    # Keep literal strings inside pgettext so makemessages can extract them.
+    labels = {
+        "dlcs": lambda: pgettext("related section", "DLCs"),
+        "expanded_games": lambda: pgettext("related section", "Expanded Games"),
+        "expansions": lambda: pgettext("related section", "Expansions"),
+        "other_editions": lambda: pgettext("related section", "Other Editions"),
+        "parent_game": lambda: pgettext("related section", "Parent Game"),
+        "recommendations": lambda: pgettext("related section", "Recommendations"),
+        "related_anime": lambda: pgettext("related section", "Related Anime"),
+        "related_manga": lambda: pgettext("related section", "Related Manga"),
+        "remakes": lambda: pgettext("related section", "Remakes"),
+        "remasters": lambda: pgettext("related section", "Remasters"),
+        "seasons": lambda: pgettext("related section", "Seasons"),
+        "standalone_expansions": lambda: pgettext(
+            "related section", "Standalone Expansions"
+        ),
+    }
+    if name in labels:
+        return labels[name]()
+    # Fall back to the key itself for sections a provider adds later
+    return no_underscore(name).title()
+
+
+@register.filter
 def slug(arg1):
     """Return the slug of the string.
 

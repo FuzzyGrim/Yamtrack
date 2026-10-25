@@ -448,13 +448,7 @@
             {% if related_items %}
               <section class="mb-8"
                        x-show="tab === 'overview' || tab === 'related-{{ forloop.counter }}'">
-                <h2 class="text-xl font-bold mb-4">
-                  {% if name == "dlcs" %}
-                    {% trans "DLCs" %}
-                  {% else %}
-                    {{ name|no_underscore|title }}
-                  {% endif %}
-                </h2>
+                <h2 class="text-xl font-bold mb-4">{{ name|related_section_label }}</h2>
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
                   {% for result in related_items %}
                     {# Set active to highlight the current movie in a collection. Avoid TV media, since seasons have same ID as the parent show #}

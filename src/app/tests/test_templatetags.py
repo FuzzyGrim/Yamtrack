@@ -265,6 +265,26 @@ class AppTagsTests(TestCase):
                             expected_short,
                         )
 
+    def test_related_section_label(self):
+        """Known related sections get a translated heading in every language."""
+        for language, _name in settings.LANGUAGES:
+            with self.subTest(language=language), translation.override(language):
+                self.assertEqual(
+                    app_tags.related_section_label("related_anime"),
+                    pgettext("related section", "Related Anime"),
+                )
+                self.assertEqual(
+                    app_tags.related_section_label("dlcs"),
+                    pgettext("related section", "DLCs"),
+                )
+
+    def test_related_section_label_unknown_key(self):
+        """Unknown sections fall back to a title-cased version of the key."""
+        self.assertEqual(
+            app_tags.related_section_label("new_section"),
+            "New Section",
+        )
+
     def test_sample_search(self):
         """Test the sample_search filter."""
         # Test all media types

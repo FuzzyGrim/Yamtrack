@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 14:37+0000\n"
-"PO-Revision-Date: 2026-10-25 15:38+0100\n"
+"POT-Creation-Date: 2026-10-25 14:53+0000\n"
+"PO-Revision-Date: 2026-10-25 15:53+0100\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -591,7 +591,7 @@ msgstr "Serie TV"
 msgid "TV Season"
 msgstr "Stagione"
 
-#: app/models.py:58 templates/app/media_details.html:583
+#: app/models.py:58 templates/app/media_details.html:579
 msgid "Episode"
 msgstr "Episodio"
 
@@ -726,52 +726,112 @@ msgid_plural "Boardgame plays"
 msgstr[0] "Partita a gioco da tavolo"
 msgstr[1] "Partite a giochi da tavolo"
 
-#: app/templatetags/app_tags.py:169
+#: app/templatetags/app_tags.py:49 app/tests/test_templatetags.py:278
+msgctxt "related section"
+msgid "DLCs"
+msgstr "DLC"
+
+#: app/templatetags/app_tags.py:50
+msgctxt "related section"
+msgid "Expanded Games"
+msgstr "Edizioni ampliate"
+
+#: app/templatetags/app_tags.py:51
+msgctxt "related section"
+msgid "Expansions"
+msgstr "Espansioni"
+
+#: app/templatetags/app_tags.py:52
+msgctxt "related section"
+msgid "Other Editions"
+msgstr "Altre edizioni"
+
+#: app/templatetags/app_tags.py:53
+msgctxt "related section"
+msgid "Parent Game"
+msgstr "Gioco base"
+
+#: app/templatetags/app_tags.py:54
+msgctxt "related section"
+msgid "Recommendations"
+msgstr "Suggerimenti"
+
+#: app/templatetags/app_tags.py:55 app/tests/test_templatetags.py:274
+msgctxt "related section"
+msgid "Related Anime"
+msgstr "Anime correlati"
+
+#: app/templatetags/app_tags.py:56
+msgctxt "related section"
+msgid "Related Manga"
+msgstr "Manga correlati"
+
+#: app/templatetags/app_tags.py:57
+msgctxt "related section"
+msgid "Remakes"
+msgstr "Remake"
+
+#: app/templatetags/app_tags.py:58
+msgctxt "related section"
+msgid "Remasters"
+msgstr "Remaster"
+
+#: app/templatetags/app_tags.py:59
+msgctxt "related section"
+msgid "Seasons"
+msgstr "Stagioni"
+
+#: app/templatetags/app_tags.py:61
+msgctxt "related section"
+msgid "Standalone Expansions"
+msgstr "Espansioni autonome"
+
+#: app/templatetags/app_tags.py:195
 msgctxt "media type plural label"
 msgid "TV Shows"
 msgstr "Serie TV"
 
-#: app/templatetags/app_tags.py:171
+#: app/templatetags/app_tags.py:197
 msgctxt "media type plural label"
 msgid "TV Seasons"
 msgstr "Stagioni"
 
-#: app/templatetags/app_tags.py:174
+#: app/templatetags/app_tags.py:200
 msgctxt "media type plural label"
 msgid "Episodes"
 msgstr "Episodi"
 
-#: app/templatetags/app_tags.py:176
+#: app/templatetags/app_tags.py:202
 msgctxt "media type plural label"
 msgid "Movies"
 msgstr "Film"
 
-#: app/templatetags/app_tags.py:177
+#: app/templatetags/app_tags.py:203
 msgctxt "media type plural label"
 msgid "Anime"
 msgstr "Anime"
 
-#: app/templatetags/app_tags.py:178
+#: app/templatetags/app_tags.py:204
 msgctxt "media type plural label"
 msgid "Manga"
 msgstr "Manga"
 
-#: app/templatetags/app_tags.py:179
+#: app/templatetags/app_tags.py:205
 msgctxt "media type plural label"
 msgid "Games"
 msgstr "Videogiochi"
 
-#: app/templatetags/app_tags.py:180
+#: app/templatetags/app_tags.py:206
 msgctxt "media type plural label"
 msgid "Books"
 msgstr "Libri"
 
-#: app/templatetags/app_tags.py:181
+#: app/templatetags/app_tags.py:207
 msgctxt "media type plural label"
 msgid "Comics"
 msgstr "Fumetti"
 
-#: app/templatetags/app_tags.py:183
+#: app/templatetags/app_tags.py:209
 msgctxt "media type plural label"
 msgid "Boardgames"
 msgstr "Giochi da tavolo"
@@ -790,46 +850,46 @@ msgstr ""
 "Inizia a tenere traccia di %(media_type_plural)s per conservare uno storico "
 "di ciò che hai %(past_verb)s."
 
-#: app/views.py:447
+#: app/views.py:448
 msgid "Manual items cannot be synced."
 msgstr "Gli elementi manuali non possono essere sincronizzati."
 
-#: app/views.py:463
+#: app/views.py:464
 msgid "The data was recently synced, please wait a few seconds."
 msgstr ""
 "I dati sono stati sincronizzati di recente, per favore attendi qualche "
 "secondo."
 
-#: app/views.py:539
+#: app/views.py:540
 #, python-format
 msgid "%(title)s was synced to %(source)s successfully."
 msgstr "%(title)s è stato sincronizzato con %(source)s con successo."
 
-#: app/views.py:712
+#: app/views.py:713
 msgid "Invalid form data"
 msgstr "Dati del form non validi"
 
-#: app/views.py:782
+#: app/views.py:783
 #, python-format
 msgid "Season %(season_number)s"
 msgstr "Stagione %(season_number)s"
 
-#: app/views.py:786 templates/app/components/fill_track_episode.html:27
+#: app/views.py:787 templates/app/components/fill_track_episode.html:27
 #, python-format
 msgid "Episode %(episode_number)s"
 msgstr "Episodio %(episode_number)s"
 
-#: app/views.py:793
+#: app/views.py:794
 #, python-format
 msgid "%(media_name)s already exists in the database."
 msgstr "%(media_name)s esiste già nel database."
 
-#: app/views.py:826
+#: app/views.py:827
 #, python-format
 msgid "%(item)s added successfully."
 msgstr "%(item)s aggiunto con successo."
 
-#: app/views.py:961
+#: app/views.py:962
 msgid "Record not found"
 msgstr "Pagina non trovata"
 
@@ -1435,7 +1495,7 @@ msgid "Delete"
 msgstr "Elimina"
 
 #: templates/app/components/fill_track_episode.html:14
-#: templates/app/media_details.html:591
+#: templates/app/media_details.html:587
 msgid "Track Episode"
 msgstr "Traccia episodio"
 
@@ -1444,7 +1504,7 @@ msgid "Watched once"
 msgstr "Guardato una volta"
 
 #: templates/app/components/fill_track_episode.html:32
-#: templates/app/media_details.html:662
+#: templates/app/media_details.html:658
 #, python-format
 msgid "Watched %(watch_count)s times"
 msgstr "Guardato %(watch_count)s volte"
@@ -1458,7 +1518,7 @@ msgid "Previous Watches"
 msgstr "Visioni precedenti"
 
 #: templates/app/components/fill_track_episode.html:53
-#: templates/app/media_details.html:660
+#: templates/app/media_details.html:656
 msgid "No date provided"
 msgstr "Nessuna data fornita"
 
@@ -1523,14 +1583,14 @@ msgstr "Aggiungi al tracker"
 #: templates/app/components/home_grid.html:48
 #: templates/app/components/media_card.html:82
 #: templates/app/components/media_card_list.html:56
-#: templates/app/media_details.html:310 templates/app/media_details.html:607
+#: templates/app/media_details.html:310 templates/app/media_details.html:603
 msgid "Add to custom lists"
 msgstr "Aggiungi agli elenchi personalizzati"
 
 #: templates/app/components/home_grid.html:56
 #: templates/app/components/media_card.html:91
 #: templates/app/components/media_card_list.html:65
-#: templates/app/media_details.html:335 templates/app/media_details.html:629
+#: templates/app/media_details.html:335 templates/app/media_details.html:625
 msgid "View your activity history"
 msgstr "Visualizza la cronologia delle attività"
 
@@ -1555,6 +1615,34 @@ msgstr "di %(item)s dalla cronologia. L'operazione non può essere annullata."
 #: templates/app/statistics.html:80
 msgid "Cancel"
 msgstr "Annulla"
+
+#: templates/app/components/media_section_tabs.html:9
+msgid "Overview"
+msgstr "Panoramica"
+
+#: templates/app/components/media_section_tabs.html:16
+#: templates/app/media_details.html:425
+msgid "Cast"
+msgstr "Cast"
+
+#: templates/app/components/media_section_tabs.html:36
+msgid "Repeats"
+msgstr "Ripetizioni"
+
+#: templates/app/components/media_section_tabs.html:44
+#: templates/app/media_details.html:559
+msgid "Episodes"
+msgstr "Episodi"
+
+#: templates/app/components/media_section_tabs.html:53
+#: templates/app/media_details.html:673
+msgid "Streaming"
+msgstr "Streaming"
+
+#: templates/app/components/media_section_tabs.html:62
+#: templates/app/media_details.html:703
+msgid "Time to Beat"
+msgstr "Time to Beat"
 
 #: templates/app/components/search_parent_season.html:15
 msgid "No seasons found matching"
@@ -1794,7 +1882,7 @@ msgstr "Clicca per modificare"
 msgid "Your History"
 msgstr "La tua cronologia"
 
-#: templates/app/media_details.html:259 templates/app/media_details.html:529
+#: templates/app/media_details.html:259 templates/app/media_details.html:525
 #: templates/users/import_data.html:506
 msgid "Started"
 msgstr "Iniziato"
@@ -1843,10 +1931,6 @@ msgstr "Link"
 msgid "No details available"
 msgstr "Nessun dettaglio disponibile"
 
-#: templates/app/media_details.html:425
-msgid "Cast"
-msgstr "Cast"
-
 #: templates/app/media_details.html:437
 msgid "View all"
 msgstr "Vedi tutti"
@@ -1856,45 +1940,33 @@ msgstr "Vedi tutti"
 msgid "%(count)s cast members"
 msgstr "%(count)s membri del cast"
 
-#: templates/app/media_details.html:453
-msgid "DLCs"
-msgstr "DLC"
-
-#: templates/app/media_details.html:476
+#: templates/app/media_details.html:472
 #, python-format
 msgid "Repeats (%(repeats)s)"
 msgstr "Ripetizioni (%(repeats)s)"
 
-#: templates/app/media_details.html:495
+#: templates/app/media_details.html:491
 msgid "Edit entry"
 msgstr "Modifica elemento"
 
-#: templates/app/media_details.html:531 templates/users/import_data.html:500
+#: templates/app/media_details.html:527 templates/users/import_data.html:500
 msgid "Finished"
 msgstr "Concluso"
 
-#: templates/app/media_details.html:561
+#: templates/app/media_details.html:557
 msgid "Unknown air date"
 msgstr "Data di trasmissione sconosciuta"
 
-#: templates/app/media_details.html:563
-msgid "Episodes"
-msgstr "Episodi"
-
-#: templates/app/media_details.html:656
+#: templates/app/media_details.html:652
 msgid "Last watched:"
 msgstr "Visto l'ultima volta:"
 
-#: templates/app/media_details.html:677
-msgid "Streaming"
-msgstr "Streaming"
-
 #. Translators: In "Watch provider region is not configured. Set a region or disable this feature in preferences.", this is the linked text.
-#: templates/app/media_details.html:681
+#: templates/app/media_details.html:677
 msgid "preferences"
 msgstr "preferenze"
 
-#: templates/app/media_details.html:684
+#: templates/app/media_details.html:680
 #, python-format
 msgid ""
 "Watch provider region is not configured. Set a region or disable this "
@@ -1903,19 +1975,15 @@ msgstr ""
 "La regione dei provider di contenuti non è configurata. Imposta una regione "
 "o disattiva questa funzione nelle %(preferences_link)s."
 
-#: templates/app/media_details.html:707
-msgid "Time to Beat"
-msgstr "Time to Beat"
-
-#: templates/app/media_details.html:716
+#: templates/app/media_details.html:712
 msgid "Main Story"
 msgstr "Storia principale"
 
-#: templates/app/media_details.html:727
+#: templates/app/media_details.html:723
 msgid "Main + Extra"
 msgstr "Principale + Extra"
 
-#: templates/app/media_details.html:738
+#: templates/app/media_details.html:734
 msgid "Completionist"
 msgstr "Completista"
 
