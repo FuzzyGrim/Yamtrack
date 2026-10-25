@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-22 23:37+0000\n"
-"PO-Revision-Date: 2026-10-23 17:53+0200\n"
+"PO-Revision-Date: 2026-10-25 15:04+0100\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -19,81 +19,71 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 3.10\n"
 
-#: app/config.py:85
+#: app/config.py:86
 msgctxt "tv tracking verb present"
 msgid "watch"
 msgstr "guardare"
 
-#: app/config.py:86
+#: app/config.py:87
 msgctxt "tv tracking verb past"
 msgid "watched"
 msgstr "guardato"
 
-#: app/config.py:99
+#: app/config.py:101
 msgctxt "season tracking verb present"
 msgid "watch"
 msgstr "guardare"
 
-#: app/config.py:100
+#: app/config.py:102
 msgctxt "season tracking verb past"
 msgid "watched"
 msgstr "guardato"
 
-#: app/config.py:112
-msgctxt "season progress unit singular"
-msgid "Episode"
-msgstr "Episodio"
-
-#: app/config.py:113
-msgctxt "season progress unit plural"
-msgid "Episodes"
-msgstr "Episodi"
-
 #. Translators: Short label for the episode progress unit.
-#: app/config.py:115
+#: app/config.py:114
 msgctxt "season progress unit short"
 msgid "E"
 msgstr "E"
 
-#: app/config.py:123
+#: app/config.py:115
+msgctxt "season progress unit singular"
+msgid "Episode"
+msgstr "Episodio"
+
+#: app/config.py:116
+msgctxt "season progress unit plural"
+msgid "Episodes"
+msgstr "Episodi"
+
+#: app/config.py:124
 msgctxt "episode tracking verb present"
 msgid "watch"
 msgstr "guardare"
 
-#: app/config.py:124
+#: app/config.py:125
 msgctxt "episode tracking verb past"
 msgid "watched"
 msgstr "guardato"
 
-#: app/config.py:136
+#: app/config.py:138
 msgctxt "movie tracking verb present"
 msgid "watch"
 msgstr "guardare"
 
-#: app/config.py:137
+#: app/config.py:139
 msgctxt "movie tracking verb past"
 msgid "watched"
 msgstr "guardato"
 
-#: app/config.py:158
+#: app/config.py:161
 msgctxt "anime tracking verb present"
 msgid "watch"
 msgstr "guardare"
 
-#: app/config.py:159
+#: app/config.py:162
 msgctxt "anime tracking verb past"
 msgid "watched"
 msgstr "guardato"
-
-#: app/config.py:169
-msgctxt "anime progress unit singular"
-msgid "Episode"
-msgstr "Episodio"
-
-#: app/config.py:170
-msgctxt "anime progress unit plural"
-msgid "Episodes"
-msgstr "Episodi"
 
 #. Translators: Short label for the episode progress unit.
 #: app/config.py:172
@@ -101,93 +91,103 @@ msgctxt "anime progress unit short"
 msgid "E"
 msgstr "E"
 
-#: app/config.py:182
+#: app/config.py:173
+msgctxt "anime progress unit singular"
+msgid "Episode"
+msgstr "Episodio"
+
+#: app/config.py:174
+msgctxt "anime progress unit plural"
+msgid "Episodes"
+msgstr "Episodi"
+
+#: app/config.py:184
 msgctxt "manga tracking verb present"
 msgid "read"
 msgstr "leggere"
 
-#: app/config.py:183
+#: app/config.py:185
 msgctxt "manga tracking verb past"
 msgid "read"
 msgstr "letto"
 
-#: app/config.py:198
-msgctxt "manga progress unit singular"
-msgid "Chapter"
-msgstr "Capitolo"
-
-#: app/config.py:199
-msgctxt "manga progress unit plural"
-msgid "Chapters"
-msgstr "Capitoli"
-
 #. Translators: Short label for the chapter progress unit.
-#: app/config.py:201
+#: app/config.py:200
 msgctxt "manga progress unit short"
 msgid "#"
 msgstr "#"
 
-#: app/config.py:210
+#: app/config.py:201
+msgctxt "manga progress unit singular"
+msgid "Chapter"
+msgstr "Capitolo"
+
+#: app/config.py:202
+msgctxt "manga progress unit plural"
+msgid "Chapters"
+msgstr "Capitoli"
+
+#: app/config.py:211
 msgctxt "game tracking verb present"
 msgid "play"
 msgstr "giocare"
 
-#: app/config.py:211
+#: app/config.py:212
 msgctxt "game tracking verb past"
 msgid "played"
 msgstr "giocato"
 
-#: app/config.py:235
+#: app/config.py:237
 msgctxt "book tracking verb present"
 msgid "read"
 msgstr "leggere"
 
-#: app/config.py:236
+#: app/config.py:238
 msgctxt "book tracking verb past"
 msgid "read"
 msgstr "letto"
 
-#: app/config.py:247
-msgctxt "book progress unit singular"
-msgid "Page"
-msgstr "Pagina"
-
-#: app/config.py:248
-msgctxt "book progress unit plural"
-msgid "Pages"
-msgstr "Pagine"
-
 #. Translators: Short label for the page progress unit.
-#: app/config.py:250
+#: app/config.py:249
 msgctxt "book progress unit short"
 msgid "P"
 msgstr "P"
 
-#: app/config.py:259
+#: app/config.py:250
+msgctxt "book progress unit singular"
+msgid "Page"
+msgstr "Pagina"
+
+#: app/config.py:251
+msgctxt "book progress unit plural"
+msgid "Pages"
+msgstr "Pagine"
+
+#: app/config.py:260
 msgctxt "comic tracking verb present"
 msgid "read"
 msgstr "leggere"
 
-#: app/config.py:260
+#: app/config.py:261
 msgctxt "comic tracking verb past"
 msgid "read"
 msgstr "letto"
 
-#: app/config.py:272
+#. Translators: Short label for the comic issue progress unit.
+#: app/config.py:273
+msgctxt "comic progress unit short"
+msgid "#"
+msgstr "#"
+
+#: app/config.py:274
 msgctxt "comic progress unit singular"
 msgid "Issue"
 msgstr "Numero"
 
-#: app/config.py:273
+#: app/config.py:275
 msgctxt "comic progress unit plural"
 msgid "Issues"
 msgstr "Numeri"
-
-#. Translators: Short label for the comic issue progress unit.
-#: app/config.py:275
-msgctxt "comic progress unit short"
-msgid "#"
-msgstr "#"
 
 #: app/config.py:284
 msgctxt "board game tracking verb present"
@@ -199,21 +199,21 @@ msgctxt "board game tracking verb past"
 msgid "played"
 msgstr "giocato"
 
+#. Translators: Short label for the board game play progress unit.
 #: app/config.py:298
+msgctxt "board game progress unit short"
+msgid "#"
+msgstr "#"
+
+#: app/config.py:299
 msgctxt "board game progress unit singular"
 msgid "Play"
 msgstr "Partita"
 
-#: app/config.py:299
+#: app/config.py:300
 msgctxt "board game progress unit plural"
 msgid "Plays"
 msgstr "Partite"
-
-#. Translators: Short label for the board game play progress unit.
-#: app/config.py:301
-msgctxt "board game progress unit short"
-msgid "#"
-msgstr "#"
 
 #: app/forms.py:72
 msgid "Invalid time format"
@@ -236,11 +236,11 @@ msgstr ""
 msgid "Select"
 msgstr "Seleziona"
 
-#: app/forms.py:111 templates/app/create_entry.html:137
+#: app/forms.py:111 templates/app/create_entry.html:144
 msgid "Parent TV Show"
 msgstr "Serie TV principale"
 
-#: app/forms.py:118 templates/app/create_entry.html:184
+#: app/forms.py:118 templates/app/create_entry.html:191
 msgid "Parent Season"
 msgstr "Stagione principale"
 
@@ -256,18 +256,18 @@ msgstr "La stagione degli episodi è obbligatoria"
 msgid "Title is required for this media type"
 msgstr "Il titolo è obbligatorio per questo tipo di media"
 
-#: app/forms.py:226 templates/app/create_entry.html:252
+#: app/forms.py:226 templates/app/create_entry.html:259
 #: templates/app/media_list.html:151
 msgid "Score"
 msgstr "Punteggio"
 
-#: app/forms.py:227 templates/app/create_entry.html:278
+#: app/forms.py:227 templates/app/create_entry.html:10
 #: templates/app/media_details.html:273 templates/app/media_list.html:153
 #: users/models.py:43
 msgid "Progress"
 msgstr "Progresso"
 
-#: app/forms.py:228 templates/app/create_entry.html:308
+#: app/forms.py:228 templates/app/create_entry.html:315
 #: templates/app/media_list.html:158
 msgid "Status"
 msgstr "Stato"
@@ -281,11 +281,12 @@ msgid "End date"
 msgstr "Data di fine"
 
 #: app/forms.py:231 templates/app/components/fill_track_episode.html:116
-#: templates/app/create_entry.html:340
+#: templates/app/create_entry.html:347
 msgid "Notes"
 msgstr "Note"
 
 #: app/forms.py:267 app/forms.py:322 app/forms.py:337 app/forms.py:352
+#: app/tests/test_forms.py:59
 #, python-brace-format
 msgid "Progress ({unit})"
 msgstr "Progresso ({unit})"
@@ -293,6 +294,290 @@ msgstr "Progresso ({unit})"
 #: app/forms.py:304
 msgid "Progress (Time Played)"
 msgstr "Progresso (Tempo di gioco)"
+
+#: app/history_processor.py:18
+msgctxt "history"
+msgid "Marked as currently watching"
+msgstr "Segnato come in visione"
+
+#: app/history_processor.py:19
+msgctxt "history"
+msgid "Marked as currently reading"
+msgstr "Segnato come in lettura"
+
+#: app/history_processor.py:20
+msgctxt "history"
+msgid "Marked as currently playing"
+msgstr "Segnato come in corso"
+
+#: app/history_processor.py:23
+msgctxt "history"
+msgid "Marked as finished watching"
+msgstr "Segnato come visto"
+
+#: app/history_processor.py:24
+msgctxt "history"
+msgid "Marked as finished reading"
+msgstr "Segnato come letto"
+
+#: app/history_processor.py:25
+msgctxt "history"
+msgid "Marked as finished playing"
+msgstr "Segnato come completato"
+
+#: app/history_processor.py:28
+msgctxt "history"
+msgid "Added to watching list"
+msgstr "Aggiunto alla lista di visione"
+
+#: app/history_processor.py:29
+msgctxt "history"
+msgid "Added to reading list"
+msgstr "Aggiunto alla lista di lettura"
+
+#: app/history_processor.py:30
+msgctxt "history"
+msgid "Added to playing list"
+msgstr "Aggiunto alla lista di gioco"
+
+#: app/history_processor.py:33
+msgctxt "history"
+msgid "Marked as paused watching"
+msgstr "Segnato come in pausa"
+
+#: app/history_processor.py:34
+msgctxt "history"
+msgid "Marked as paused reading"
+msgstr "Segnato come in pausa"
+
+#: app/history_processor.py:35
+msgctxt "history"
+msgid "Marked as paused playing"
+msgstr "Segnato come in pausa"
+
+#: app/history_processor.py:41
+msgctxt "history"
+msgid "Currently watching"
+msgstr "Visione iniziata"
+
+#: app/history_processor.py:42
+msgctxt "history"
+msgid "Currently reading"
+msgstr "Lettura iniziata"
+
+#: app/history_processor.py:43
+msgctxt "history"
+msgid "Currently playing"
+msgstr "Gioco iniziato"
+
+#: app/history_processor.py:46
+msgctxt "history"
+msgid "Finished watching"
+msgstr "Visione terminata"
+
+#: app/history_processor.py:47
+msgctxt "history"
+msgid "Finished reading"
+msgstr "Lettura terminata"
+
+#: app/history_processor.py:48
+msgctxt "history"
+msgid "Finished playing"
+msgstr "Gioco terminato"
+
+#: app/history_processor.py:51
+msgctxt "history"
+msgid "Paused watching"
+msgstr "Visione in pausa"
+
+#: app/history_processor.py:52
+msgctxt "history"
+msgid "Paused reading"
+msgstr "Lettura in pausa"
+
+#: app/history_processor.py:53
+msgctxt "history"
+msgid "Paused playing"
+msgstr "Gioco in pausa"
+
+#: app/history_processor.py:56
+msgctxt "history"
+msgid "Resumed watching"
+msgstr "Visione ripresa"
+
+#: app/history_processor.py:57
+msgctxt "history"
+msgid "Resumed reading"
+msgstr "Lettura ripresa"
+
+#: app/history_processor.py:58
+msgctxt "history"
+msgid "Resumed playing"
+msgstr "Gioco ripreso"
+
+#: app/history_processor.py:61
+msgctxt "history"
+msgid "Stopped watching"
+msgstr "Visione interrotta"
+
+#: app/history_processor.py:62
+msgctxt "history"
+msgid "Stopped reading"
+msgstr "Lettura interrotta"
+
+#: app/history_processor.py:63
+msgctxt "history"
+msgid "Stopped playing"
+msgstr "Gioco interrotto"
+
+#. Translators: %(unit)s is a progress unit such as "episode".
+#: app/history_processor.py:69
+#, python-format
+msgctxt "history"
+msgid "Watched up to %(unit)s %(number)s"
+msgstr "Guardato fino all'%(unit)s %(number)s"
+
+#. Translators: %(unit)s is a progress unit such as "chapter" or "page".
+#: app/history_processor.py:71
+#, python-format
+msgctxt "history"
+msgid "Read up to %(unit)s %(number)s"
+msgstr "Letto fino a %(unit)s %(number)s"
+
+#. Translators: %(unit)s is a progress unit such as "play".
+#: app/history_processor.py:73
+#, python-format
+msgctxt "history"
+msgid "Played up to %(unit)s %(number)s"
+msgstr "Giocato fino alla %(unit)s %(number)s"
+
+#: app/history_processor.py:525 app/history_processor.py:593
+#: app/history_processor.py:652
+#, python-format
+msgctxt "history"
+msgid "Started on %(date)s"
+msgstr "Iniziato il %(date)s"
+
+#: app/history_processor.py:537 app/history_processor.py:598
+#, python-format
+msgctxt "history"
+msgid "Finished on %(date)s"
+msgstr "Finito il %(date)s"
+
+#: app/history_processor.py:574
+msgctxt "history"
+msgid "Marked as dropped"
+msgstr "Segnato come abbandonato"
+
+#: app/history_processor.py:579 app/history_processor.py:622
+#, python-format
+msgctxt "history"
+msgid "Rated %(score)s/10"
+msgstr "Valutato %(score)s/10"
+
+#: app/history_processor.py:583
+#, python-format
+msgctxt "history"
+msgid "Played for %(time)s"
+msgstr "Giocato per %(time)s"
+
+#: app/history_processor.py:594
+msgctxt "history"
+msgid "Started without date"
+msgstr "Iniziato senza data"
+
+#: app/history_processor.py:599
+msgctxt "history"
+msgid "Finished without date"
+msgstr "Finito senza data"
+
+#: app/history_processor.py:602 app/history_processor.py:668
+msgctxt "history"
+msgid "Added notes"
+msgstr "Note aggiunte"
+
+#. Translators: %(field)s is the name of a tracked field, e.g. "repeats".
+#: app/history_processor.py:605
+#, python-format
+msgctxt "history"
+msgid "Set %(field)s to %(value)s"
+msgstr "%(field)s impostato a %(value)s"
+
+#: app/history_processor.py:615
+#, python-format
+msgctxt "history"
+msgid "Changed status from %(old)s to %(new)s"
+msgstr "Stato cambiato da %(old)s a %(new)s"
+
+#: app/history_processor.py:623
+#, python-format
+msgctxt "history"
+msgid "Changed rating from %(old)s to %(new)s"
+msgstr "Valutazione cambiata da %(old)s a %(new)s"
+
+#: app/history_processor.py:634
+#, python-format
+msgctxt "history"
+msgid "Added %(time)s of playtime"
+msgstr "Aggiunti %(time)s di tempo di gioco"
+
+#: app/history_processor.py:637
+#, python-format
+msgctxt "history"
+msgid "Removed %(time)s of playtime"
+msgstr "Rimossi %(time)s di tempo di gioco"
+
+#. Translators: %(unit)s is a progress unit such as "episodes" or "pages".
+#: app/history_processor.py:643
+#, python-format
+msgctxt "history"
+msgid "Progress set to %(number)s %(unit)s"
+msgstr "Progresso impostato a %(number)s %(unit)s"
+
+#: app/history_processor.py:650
+msgctxt "history"
+msgid "Removed start date"
+msgstr "Data d'inizio rimossa"
+
+#: app/history_processor.py:653
+#, python-format
+msgctxt "history"
+msgid "Start date changed to %(date)s"
+msgstr "Data d'inizio cambiata a %(date)s"
+
+#: app/history_processor.py:659
+msgctxt "history"
+msgid "Removed end date"
+msgstr "Data di fine rimossa"
+
+#: app/history_processor.py:661
+#, python-format
+msgctxt "history"
+msgid "Ended on %(date)s"
+msgstr "Finito il %(date)s"
+
+#: app/history_processor.py:662
+#, python-format
+msgctxt "history"
+msgid "End date changed to %(date)s"
+msgstr "Data di fine cambiata a %(date)s"
+
+#: app/history_processor.py:670
+msgctxt "history"
+msgid "Removed notes"
+msgstr "Note rimosse"
+
+#: app/history_processor.py:671
+msgctxt "history"
+msgid "Updated notes"
+msgstr "Note aggiornate"
+
+#. Translators: %(field)s is the name of a tracked field, e.g. "repeats".
+#: app/history_processor.py:674
+#, python-format
+msgctxt "history"
+msgid "Updated %(field)s from %(old)s to %(new)s"
+msgstr "%(field)s aggiornato da %(old)s a %(new)s"
 
 #: app/models.py:50
 msgid "Manual"
@@ -374,55 +659,132 @@ msgstr "Errore"
 msgid "Info"
 msgstr "Informazione"
 
-#: app/templatetags/app_tags.py:163
+#: app/statistics.py:404
+msgctxt "consumption statistic"
+msgid "TV episode watched"
+msgid_plural "TV episodes watched"
+msgstr[0] "Episodio TV guardato"
+msgstr[1] "Episodi TV guardati"
+
+#: app/statistics.py:407
+msgctxt "consumption statistic"
+msgid "Episode watched"
+msgid_plural "Episodes watched"
+msgstr[0] "Episodio guardato"
+msgstr[1] "Episodi guardati"
+
+#: app/statistics.py:410
+msgctxt "consumption statistic"
+msgid "Movie watched"
+msgid_plural "Movies watched"
+msgstr[0] "Film guardato"
+msgstr[1] "Film guardati"
+
+#: app/statistics.py:413
+msgctxt "consumption statistic"
+msgid "Anime episode watched"
+msgid_plural "Anime episodes watched"
+msgstr[0] "Episodio anime guardato"
+msgstr[1] "Episodi anime guardati"
+
+#: app/statistics.py:416
+msgctxt "consumption statistic"
+msgid "Manga chapter read"
+msgid_plural "Manga chapters read"
+msgstr[0] "Capitolo manga letto"
+msgstr[1] "Capitoli manga letti"
+
+#: app/statistics.py:419
+msgctxt "consumption statistic"
+msgid "Game hour played"
+msgid_plural "Game hours played"
+msgstr[0] "Ora di gioco"
+msgstr[1] "Ore di gioco"
+
+#: app/statistics.py:422
+msgctxt "consumption statistic"
+msgid "Book page read"
+msgid_plural "Book pages read"
+msgstr[0] "Pagina di libro letta"
+msgstr[1] "Pagine di libri lette"
+
+#: app/statistics.py:425
+msgctxt "consumption statistic"
+msgid "Comic issue read"
+msgid_plural "Comic issues read"
+msgstr[0] "Numero fumetto letto"
+msgstr[1] "Numeri fumetto letti"
+
+#: app/statistics.py:428
+msgctxt "consumption statistic"
+msgid "Boardgame play"
+msgid_plural "Boardgame plays"
+msgstr[0] "Partita a gioco da tavolo"
+msgstr[1] "Partite a giochi da tavolo"
+
+#: app/templatetags/app_tags.py:169
 msgctxt "media type plural label"
 msgid "TV Shows"
 msgstr "Serie TV"
 
-#: app/templatetags/app_tags.py:165
+#: app/templatetags/app_tags.py:171
 msgctxt "media type plural label"
 msgid "TV Seasons"
 msgstr "Stagioni"
 
-#: app/templatetags/app_tags.py:168
+#: app/templatetags/app_tags.py:174
 msgctxt "media type plural label"
 msgid "Episodes"
 msgstr "Episodi"
 
-#: app/templatetags/app_tags.py:170
+#: app/templatetags/app_tags.py:176
 msgctxt "media type plural label"
 msgid "Movies"
 msgstr "Film"
 
-#: app/templatetags/app_tags.py:171
+#: app/templatetags/app_tags.py:177
 msgctxt "media type plural label"
 msgid "Anime"
 msgstr "Anime"
 
-#: app/templatetags/app_tags.py:172
+#: app/templatetags/app_tags.py:178
 msgctxt "media type plural label"
 msgid "Manga"
 msgstr "Manga"
 
-#: app/templatetags/app_tags.py:173
+#: app/templatetags/app_tags.py:179
 msgctxt "media type plural label"
 msgid "Games"
 msgstr "Videogiochi"
 
-#: app/templatetags/app_tags.py:174
+#: app/templatetags/app_tags.py:180
 msgctxt "media type plural label"
 msgid "Books"
 msgstr "Libri"
 
-#: app/templatetags/app_tags.py:175
+#: app/templatetags/app_tags.py:181
 msgctxt "media type plural label"
 msgid "Comics"
 msgstr "Fumetti"
 
-#: app/templatetags/app_tags.py:177
+#: app/templatetags/app_tags.py:183
 msgctxt "media type plural label"
 msgid "Boardgames"
 msgstr "Giochi da tavolo"
+
+#: app/tests/views/test_media_list.py:94 templates/app/media_list.html:128
+#, python-format
+msgid "No %(media_type_label)s Tracked Yet"
+msgstr "Nessun elemento di tipo %(media_type_label)s tracciato"
+
+#: app/tests/views/test_media_list.py:101 templates/app/media_list.html:131
+#, python-format
+msgid ""
+"Start tracking your %(media_type_plural)s to keep a record of what you've "
+"%(past_verb)s."
+msgstr ""
+"Inizia a tenere traccia di %(media_type_plural)s per conservare uno storico "
+"di ciò che hai %(past_verb)s."
 
 #: app/views.py:447
 msgid "Manual items cannot be synced."
@@ -483,15 +845,11 @@ msgstr "Nessun utente con le notifiche di rilascio abilitate"
 msgid "🔔 YamTrack: New Releases Available! 🔔"
 msgstr "🔔 YamTrack: nuove uscite disponibili! 🔔"
 
-#: events/notifications.py:107 events/tests/test_notification.py:1172
+#: events/notifications.py:107 events/tests/test_notification.py:1186
 msgid "📆 YamTrack: Today's Releases 📆"
 msgstr "📆 YamTrack: uscite di oggi 📆"
 
-#: events/notifications.py:438
-msgid "TV Shows"
-msgstr "Serie TV"
-
-#: events/notifications.py:455
+#: events/notifications.py:457 events/tests/test_notification.py:1191
 msgid "Enjoy your media!"
 msgstr "Buona visione!"
 
@@ -788,7 +1146,7 @@ msgstr "%(title)s (%(media_type)s): %(errors)s"
 msgid "Missing metadata for: %(row)s"
 msgstr "Metadata mancanti per: %(row)s"
 
-#: integrations/tasks.py:48
+#: integrations/tasks.py:48 integrations/tests/test_tasks.py:31
 msgid "No media was imported."
 msgstr "Nessun media è stato importato."
 
@@ -908,17 +1266,17 @@ msgstr ""
 "valida o parametri mancanti."
 
 #. Translators: In "If you believe this was a bug, please report the issue.", this is the linked text.
-#: templates/400.html:21 templates/403.html:21 templates/403_csrf.html:33
+#: templates/400.html:21 templates/403.html:21 templates/403_csrf.html:34
 #: templates/404.html:18 templates/500.html:24
 msgid "report the issue."
 msgstr "segnalare il problema."
 
-#: templates/400.html:24 templates/403_csrf.html:36
+#: templates/400.html:24 templates/403_csrf.html:37
 #, python-format
 msgid "If you believe this was a bug, please %(issue_link)s"
 msgstr "Se pensi che sia un bug, si prega di %(issue_link)s"
 
-#: templates/400.html:34 templates/403.html:33 templates/403_csrf.html:51
+#: templates/400.html:34 templates/403.html:33 templates/403_csrf.html:52
 #: templates/404.html:25 templates/500.html:36
 #: templates/socialaccount/connections.html:95
 msgid "Back to Home"
@@ -944,7 +1302,7 @@ msgstr ""
 msgid "If you believe this was a bug, please"
 msgstr "Se pensi che sia un bug, si prega di"
 
-#: templates/403.html:28 templates/403_csrf.html:46
+#: templates/403.html:28 templates/403_csrf.html:47
 msgid "Log In"
 msgstr "Accedi"
 
@@ -952,7 +1310,7 @@ msgstr "Accedi"
 msgid "Using a Reverse Proxy?"
 msgstr "Stai utilizzando un reverse proxy?"
 
-#: templates/403_csrf.html:22
+#: templates/403_csrf.html:23
 #, python-format
 msgid ""
 "If you're accessing YamTrack through a reverse proxy, you need to set the "
@@ -961,7 +1319,7 @@ msgstr ""
 "Se stai accedendo a YamTrack tramite un reverse proxy, devi impostare la "
 "variabile d'ambiente %(urls_code)s con l'URL della tua applicazione."
 
-#: templates/403_csrf.html:28
+#: templates/403_csrf.html:29
 msgid "For example "
 msgstr "Per esempio "
 
@@ -1105,7 +1463,7 @@ msgid "Watch Date"
 msgstr "Visto il"
 
 #: templates/app/components/fill_track_episode.html:121
-#: templates/app/create_entry.html:344
+#: templates/app/create_entry.html:351
 msgid "Add any notes or comments..."
 msgstr "Aggiungi note o commenti..."
 
@@ -1211,11 +1569,35 @@ msgstr "Nessuna serie TV corrispondente trovata"
 msgid "Create"
 msgstr "Crea"
 
+#: templates/app/create_entry.html:11
+msgid "Progress (Episodes)"
+msgstr "Progresso (Episodi)"
+
 #: templates/app/create_entry.html:12
+msgid "Progress (Chapters)"
+msgstr "Progresso (Capitoli)"
+
+#: templates/app/create_entry.html:13
+msgid "Progress (Play Time)"
+msgstr "Progresso (Tempo di gioco)"
+
+#: templates/app/create_entry.html:14
+msgid "Progress (Pages)"
+msgstr "Progresso (Pagine)"
+
+#: templates/app/create_entry.html:15
+msgid "Please select a parent TV show from the dropdown"
+msgstr "Seleziona una serie TV principale dal menu a tendina"
+
+#: templates/app/create_entry.html:16
+msgid "Please select a parent Season from the dropdown"
+msgstr "Seleziona una stagione principale dal menu a tendina"
+
+#: templates/app/create_entry.html:19
 msgid "Create Custom Entry"
 msgstr "Crea elemento personalizzato"
 
-#: templates/app/create_entry.html:13
+#: templates/app/create_entry.html:20
 msgid ""
 "Add a custom media entry to your collection if it's not available in the "
 "database."
@@ -1223,58 +1605,58 @@ msgstr ""
 "Aggiungi un elemento multimediale personalizzato alla tua collezione se non "
 "è disponibile nel database."
 
-#: templates/app/create_entry.html:111 templates/lists/list_detail.html:17
+#: templates/app/create_entry.html:118 templates/lists/list_detail.html:17
 #: users/models.py:87
 msgid "Media Type"
 msgstr "Tipo media"
 
-#: templates/app/create_entry.html:127 templates/app/media_list.html:150
+#: templates/app/create_entry.html:134 templates/app/media_list.html:150
 #: templates/lists/list_detail.html:16 users/models.py:35 users/models.py:42
 #: users/models.py:86
 msgid "Title"
 msgstr "Titolo"
 
-#: templates/app/create_entry.html:129
+#: templates/app/create_entry.html:136
 msgid "Enter title"
 msgstr "Inserisci titolo"
 
-#: templates/app/create_entry.html:142
+#: templates/app/create_entry.html:149
 msgid "Search for a TV show..."
 msgstr "Cerca una serie TV..."
 
-#: templates/app/create_entry.html:159
+#: templates/app/create_entry.html:166
 msgid "Season Number"
 msgstr "Numero stagione"
 
-#: templates/app/create_entry.html:189
+#: templates/app/create_entry.html:196
 msgid "Search for a season..."
 msgstr "Cerca una stagione..."
 
-#: templates/app/create_entry.html:206
+#: templates/app/create_entry.html:213
 msgid "Episode Number"
 msgstr "Numero episodio"
 
-#: templates/app/create_entry.html:231
+#: templates/app/create_entry.html:238
 msgid "Image URL"
 msgstr "URL dell'immagine"
 
-#: templates/app/create_entry.html:236
+#: templates/app/create_entry.html:243
 msgid "Enter image URL"
 msgstr "Inserisci URL dell'immagine"
 
-#: templates/app/create_entry.html:322 templates/app/journal.html:63
+#: templates/app/create_entry.html:329 templates/app/journal.html:63
 #: templates/app/media_list.html:159 templates/app/statistics.html:62
 #: users/models.py:44
 msgid "Start Date"
 msgstr "Data di inizio"
 
-#: templates/app/create_entry.html:331 templates/app/journal.html:70
+#: templates/app/create_entry.html:338 templates/app/journal.html:70
 #: templates/app/media_list.html:160 templates/app/statistics.html:69
 #: users/models.py:45
 msgid "End Date"
 msgstr "Data di fine"
 
-#: templates/app/create_entry.html:351
+#: templates/app/create_entry.html:358
 msgid "Create Entry"
 msgstr "Crea elemento"
 
@@ -1551,20 +1933,6 @@ msgstr "Visualizza Griglia"
 msgid "Table View"
 msgstr "Visualizza Tabella"
 
-#: templates/app/media_list.html:128
-#, python-format
-msgid "No %(media_type_label)s Tracked Yet"
-msgstr "Nessun elemento di tipo %(media_type_label)s tracciato"
-
-#: templates/app/media_list.html:131
-#, python-format
-msgid ""
-"Start tracking your %(media_type_plural)s to keep a record of what you've "
-"%(past_verb)s."
-msgstr ""
-"Inizia a tenere traccia di %(media_type_plural)s per conservare uno storico "
-"di ciò che hai %(past_verb)s."
-
 #: templates/app/media_list.html:137
 #, python-format
 msgid "Browse %(media_type)s"
@@ -1737,6 +2105,11 @@ msgid ""
 msgstr ""
 "Questo link può essere utilizzato per integrare il tuo calendario in "
 "qualsiasi applicazione di calendario."
+
+#: templates/events/components/calendar_list.html:27
+#, python-format
+msgid "%(number)s at %(time)s"
+msgstr "%(number)s alle %(time)s"
 
 #: templates/lists/components/fill_lists.html:16
 msgid "You haven't created any lists yet."
@@ -2661,12 +3034,12 @@ msgstr "ntfy"
 msgid "And many more..."
 msgstr "E molti altri..."
 
-#: templates/users/notifications.html:59
+#: templates/users/notifications.html:60
 #, python-format
 msgid "Enter one URL per line. Example: %(webhook_example)s"
 msgstr "Inserisci un URL per riga. Esempio: %(webhook_example)s"
 
-#: templates/users/notifications.html:67
+#: templates/users/notifications.html:68
 msgid ""
 "Enter each Apprise URL on a separate line to send notifications to multiple "
 "services."
@@ -2674,15 +3047,15 @@ msgstr ""
 "Inserisci ogni URL Apprise su una riga separata per inviare notifiche a più "
 "servizi."
 
-#: templates/users/notifications.html:72
+#: templates/users/notifications.html:73
 msgid "Notification Settings"
 msgstr "Impostazioni notifiche"
 
-#: templates/users/notifications.html:81
+#: templates/users/notifications.html:82
 msgid "Enable Daily Digest"
 msgstr "Abilita digest quotidiano"
 
-#: templates/users/notifications.html:84
+#: templates/users/notifications.html:85
 msgid ""
 "Receive a single notification each day with all media scheduled to release "
 "that day"
@@ -2690,33 +3063,33 @@ msgstr ""
 "Ricevi una singola notifica ogni giorno con tutti i media programmati per "
 "essere rilasciati quel giorno"
 
-#: templates/users/notifications.html:103 users/models.py:416
+#: templates/users/notifications.html:104 users/models.py:416
 msgid "Receive notifications for recently released media"
 msgstr "Ricevi notifiche per contenuti pubblicati di recente"
 
-#: templates/users/notifications.html:106
+#: templates/users/notifications.html:107
 msgid "Get notified when new episodes, chapters, or other media are released"
 msgstr ""
 "Ricevi notifiche quando vengono rilasciati nuovi episodi, capitoli o altri "
 "media"
 
-#: templates/users/notifications.html:127
+#: templates/users/notifications.html:128
 msgid "Test Notifications"
 msgstr "Test notifiche"
 
-#: templates/users/notifications.html:132
+#: templates/users/notifications.html:133
 msgid "Save Settings"
 msgstr "Salva impostazioni"
 
-#: templates/users/notifications.html:142
+#: templates/users/notifications.html:143
 msgid "Excluded Media Items"
 msgstr "Media esclusi"
 
-#: templates/users/notifications.html:145
+#: templates/users/notifications.html:146
 msgid "Exclude specific media items from notifications:"
 msgstr "Escludi media specifici dalle notifiche:"
 
-#: templates/users/notifications.html:148
+#: templates/users/notifications.html:149
 msgid "Search for media to exclude..."
 msgstr "Cerca per media da escludere..."
 
@@ -3038,6 +3411,10 @@ msgstr "Token per integrazioni esterne"
 msgid "Comma-separated list of Plex usernames for webhook matching"
 msgstr "Elenco separato da virgole di utenti Plex per l'abbinamento al webhook"
 
+#: users/tests/views/test_sidebar.py:219 users/views.py:291
+msgid "Settings updated."
+msgstr "Impostazioni aggiornate."
+
 #: users/views.py:44
 msgid "Your profile has been updated!"
 msgstr "Il tuo profilo è stato aggiornato!"
@@ -3078,10 +3455,6 @@ msgstr "Impossibile inviare la notifica di prova."
 msgid "This section is view-only for demo accounts."
 msgstr "Per gli account demo questa sezione è solo di visualizzazione."
 
-#: users/views.py:291
-msgid "Settings updated."
-msgstr "Impostazioni aggiornate."
-
 #: users/views.py:337
 msgid "Import schedule deleted."
 msgstr "Programmazione importazione eliminata."
@@ -3104,80 +3477,3 @@ msgid "Successfully cleared %(count)d search entry"
 msgid_plural "Successfully cleared %(count)d search entries"
 msgstr[0] "%(count)d ricerca cancellata con successo"
 msgstr[1] "%(count)d ricerche cancellate con successo"
-
-#~ msgctxt "media tracking verb past"
-#~ msgid "read"
-#~ msgstr "letto"
-
-#~ msgctxt "media progress unit singular"
-#~ msgid "Episode"
-#~ msgstr "Episodio"
-
-#~ msgctxt "media progress unit plural"
-#~ msgid "Episodes"
-#~ msgstr "Episodi"
-
-#~ msgctxt "issue progress unit short"
-#~ msgid "#"
-#~ msgstr "#"
-
-#~ msgid "Find it on your Kitsu profile URL"
-#~ msgstr "Trovalo nell'URL del tuo profilo Kitsu"
-
-#~ msgid "The Movie Database"
-#~ msgstr "The Movie Database"
-
-#~ msgid "MyAnimeList"
-#~ msgstr "MyAnimeList"
-
-#~ msgid "MangaUpdates"
-#~ msgstr "MangaUpdates"
-
-#~ msgid "Internet Game Database"
-#~ msgstr "Internet Game Database"
-
-#~ msgid "Open Library"
-#~ msgstr "Open Library"
-
-#~ msgid "Hardcover"
-#~ msgstr "Hardcover"
-
-#~ msgid "Comic Vine"
-#~ msgstr "Comic Vine"
-
-#~ msgid "BoardGameGeek"
-#~ msgstr "BoardGameGeek"
-
-#~ msgid "Week Start Day"
-#~ msgstr "Giorno di inizio settimana"
-
-#~ msgid "Choose which day the week starts on for calendars and statistics."
-#~ msgstr ""
-#~ "Scegli il giorno di inizio della settimana per calendari e statistiche."
-
-#~ msgid "Kitsu"
-#~ msgstr "Kitsu"
-
-#~ msgid "Trakt"
-#~ msgstr "Trak"
-
-#~ msgid "AniList"
-#~ msgstr "AniList"
-
-#~ msgid "SIMKL"
-#~ msgstr "SIMKL"
-
-#~ msgid "YamTrack"
-#~ msgstr "YamTrack"
-
-#~ msgid "HowLongToBeat"
-#~ msgstr "HowLongToBeat"
-
-#~ msgid "IMDB"
-#~ msgstr "IMDB"
-
-#~ msgid "Steam"
-#~ msgstr "Steam"
-
-#~ msgid "GoodReads"
-#~ msgstr "GoodReads"

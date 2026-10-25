@@ -187,6 +187,7 @@ class AppTagsTests(TestCase):
             MediaTypes.COMIC.value: ("comic", "read", "read"),
             MediaTypes.BOARDGAME.value: ("board game", "play", "played"),
         }
+        self.assertEqual(set(verb_contexts), set(MediaTypes.values))
 
         for language, _name in settings.LANGUAGES:
             with translation.override(language):
@@ -215,6 +216,14 @@ class AppTagsTests(TestCase):
             MediaTypes.COMIC.value: ("comic", "Issue", "Issues", "#"),
             MediaTypes.BOARDGAME.value: ("board game", "Play", "Plays", "#"),
         }
+        self.assertEqual(
+            set(unit_contexts),
+            {
+                media_type
+                for media_type in MediaTypes.values
+                if "unit" in config.get_config(media_type)
+            },
+        )
 
         for language, _name in settings.LANGUAGES:
             with translation.override(language):

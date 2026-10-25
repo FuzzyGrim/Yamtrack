@@ -75,16 +75,18 @@ COLORS = {
 }
 
 # --- Central Configuration Dictionary ---
+# "activity" (watch, read or play) picks the history phrases for a media type.
 MEDIA_TYPE_CONFIG = {
     MediaTypes.TV.value: {
         "sources": [Sources.TMDB],
         "default_source": Sources.TMDB,
         "sample_query": "Breaking Bad",
         "unicode_icon": "📺",
-        "verb": (
-            ("watch", pgettext_lazy("tv tracking verb present", "watch")),
-            ("watched", pgettext_lazy("tv tracking verb past", "watched")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("tv tracking verb present", "watch"),
+            "past": pgettext_lazy("tv tracking verb past", "watched"),
+        },
+        "activity": "watch",
         "text_color": COLORS["emerald"]["text"],
         "stats_color": COLORS["emerald"]["hex"],
         "svg_icon": """
@@ -95,10 +97,11 @@ MEDIA_TYPE_CONFIG = {
         "sources": [Sources.TMDB],
         "default_source": Sources.TMDB,
         "unicode_icon": "📺",
-        "verb": (
-            ("watch", pgettext_lazy("season tracking verb present", "watch")),
-            ("watched", pgettext_lazy("season tracking verb past", "watched")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("season tracking verb present", "watch"),
+            "past": pgettext_lazy("season tracking verb past", "watched"),
+        },
+        "activity": "watch",
         "text_color": COLORS["purple"]["text"],
         "stats_color": COLORS["purple"]["hex"],
         "svg_icon": """
@@ -106,23 +109,22 @@ MEDIA_TYPE_CONFIG = {
             1.83l8.58 3.91 a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
             <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
             <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>""",
-        "unit": (
-            "E",
-            "Episode",
-            pgettext_lazy("season progress unit singular", "Episode"),
-            pgettext_lazy("season progress unit plural", "Episodes"),
+        "unit": {
             # Translators: Short label for the episode progress unit.
-            pgettext_lazy("season progress unit short", "E"),
-        ),
+            "short": pgettext_lazy("season progress unit short", "E"),
+            "singular": pgettext_lazy("season progress unit singular", "Episode"),
+            "plural": pgettext_lazy("season progress unit plural", "Episodes"),
+        },
     },
     MediaTypes.EPISODE.value: {
         "sources": [Sources.TMDB],
         "default_source": Sources.TMDB,
         "unicode_icon": "📺",
-        "verb": (
-            ("watch", pgettext_lazy("episode tracking verb present", "watch")),
-            ("watched", pgettext_lazy("episode tracking verb past", "watched")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("episode tracking verb present", "watch"),
+            "past": pgettext_lazy("episode tracking verb past", "watched"),
+        },
+        "activity": "watch",
         "text_color": COLORS["indigo"]["text"],
         "stats_color": COLORS["indigo"]["hex"],
         "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
@@ -132,10 +134,11 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.TMDB,
         "sample_query": "The Shawshank Redemption",
         "unicode_icon": "🎬",
-        "verb": (
-            ("watch", pgettext_lazy("movie tracking verb present", "watch")),
-            ("watched", pgettext_lazy("movie tracking verb past", "watched")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("movie tracking verb present", "watch"),
+            "past": pgettext_lazy("movie tracking verb past", "watched"),
+        },
+        "activity": "watch",
         "text_color": COLORS["orange"]["text"],
         "stats_color": COLORS["orange"]["hex"],
         "svg_icon": """
@@ -154,23 +157,22 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.MAL,
         "sample_query": "Perfect Blue",
         "unicode_icon": "🎭",
-        "verb": (
-            ("watch", pgettext_lazy("anime tracking verb present", "watch")),
-            ("watched", pgettext_lazy("anime tracking verb past", "watched")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("anime tracking verb present", "watch"),
+            "past": pgettext_lazy("anime tracking verb past", "watched"),
+        },
+        "activity": "watch",
         "text_color": COLORS["blue"]["text"],
         "stats_color": COLORS["blue"]["hex"],
         "svg_icon": """
             <circle cx="12" cy="12" r="10"/>
             <polygon points="10 8 16 12 10 16 10 8"/>""",
-        "unit": (
-            "E",
-            "Episode",
-            pgettext_lazy("anime progress unit singular", "Episode"),
-            pgettext_lazy("anime progress unit plural", "Episodes"),
+        "unit": {
             # Translators: Short label for the episode progress unit.
-            pgettext_lazy("anime progress unit short", "E"),
-        ),
+            "short": pgettext_lazy("anime progress unit short", "E"),
+            "singular": pgettext_lazy("anime progress unit singular", "Episode"),
+            "plural": pgettext_lazy("anime progress unit plural", "Episodes"),
+        },
         "date_key": "end_date",
     },
     MediaTypes.MANGA.value: {
@@ -178,10 +180,11 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.MAL,
         "sample_query": "Berserk",
         "unicode_icon": "📚",
-        "verb": (
-            ("read", pgettext_lazy("manga tracking verb present", "read")),
-            ("read", pgettext_lazy("manga tracking verb past", "read")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("manga tracking verb present", "read"),
+            "past": pgettext_lazy("manga tracking verb past", "read"),
+        },
+        "activity": "read",
         "text_color": COLORS["red"]["text"],
         "stats_color": COLORS["red"]["hex"],
         "svg_icon": """
@@ -192,24 +195,23 @@ MEDIA_TYPE_CONFIG = {
             <path d="M16 13H8"/>
             <path d="M16 17H8"/>""",
         "date_key": "end_date",
-        "unit": (
-            "#",
-            "Chapter",
-            pgettext_lazy("manga progress unit singular", "Chapter"),
-            pgettext_lazy("manga progress unit plural", "Chapters"),
+        "unit": {
             # Translators: Short label for the chapter progress unit.
-            pgettext_lazy("manga progress unit short", "#"),
-        ),
+            "short": pgettext_lazy("manga progress unit short", "#"),
+            "singular": pgettext_lazy("manga progress unit singular", "Chapter"),
+            "plural": pgettext_lazy("manga progress unit plural", "Chapters"),
+        },
     },
     MediaTypes.GAME.value: {
         "sources": [Sources.IGDB],
         "default_source": Sources.IGDB,
         "sample_query": "Half-Life",
         "unicode_icon": "🎮",
-        "verb": (
-            ("play", pgettext_lazy("game tracking verb present", "play")),
-            ("played", pgettext_lazy("game tracking verb past", "played")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("game tracking verb present", "play"),
+            "past": pgettext_lazy("game tracking verb past", "played"),
+        },
+        "activity": "play",
         "text_color": COLORS["yellow"]["text"],
         "stats_color": COLORS["yellow"]["hex"],
         "svg_icon": """
@@ -231,34 +233,34 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.HARDCOVER,
         "sample_query": "The Great Gatsby",
         "unicode_icon": "📖",
-        "verb": (
-            ("read", pgettext_lazy("book tracking verb present", "read")),
-            ("read", pgettext_lazy("book tracking verb past", "read")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("book tracking verb present", "read"),
+            "past": pgettext_lazy("book tracking verb past", "read"),
+        },
+        "activity": "read",
         "text_color": COLORS["fuchsia"]["text"],
         "stats_color": COLORS["fuchsia"]["hex"],
         "svg_icon": """
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5
             2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>""",
         "date_key": "publish_date",
-        "unit": (
-            "P",
-            "Page",
-            pgettext_lazy("book progress unit singular", "Page"),
-            pgettext_lazy("book progress unit plural", "Pages"),
+        "unit": {
             # Translators: Short label for the page progress unit.
-            pgettext_lazy("book progress unit short", "P"),
-        ),
+            "short": pgettext_lazy("book progress unit short", "P"),
+            "singular": pgettext_lazy("book progress unit singular", "Page"),
+            "plural": pgettext_lazy("book progress unit plural", "Pages"),
+        },
     },
     MediaTypes.COMIC.value: {
         "sources": [Sources.COMICVINE],
         "default_source": Sources.COMICVINE,
         "sample_query": "Batman",
         "unicode_icon": "📕",
-        "verb": (
-            ("read", pgettext_lazy("comic tracking verb present", "read")),
-            ("read", pgettext_lazy("comic tracking verb past", "read")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("comic tracking verb present", "read"),
+            "past": pgettext_lazy("comic tracking verb past", "read"),
+        },
+        "activity": "read",
         "text_color": COLORS["cyan"]["text"],
         "stats_color": COLORS["cyan"]["hex"],
         "svg_icon": """
@@ -266,24 +268,23 @@ MEDIA_TYPE_CONFIG = {
             <path d="M7 3v18"/>
             <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1
             5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
-        "unit": (
-            "#",
-            "Issue",
-            pgettext_lazy("comic progress unit singular", "Issue"),
-            pgettext_lazy("comic progress unit plural", "Issues"),
+        "unit": {
             # Translators: Short label for the comic issue progress unit.
-            pgettext_lazy("comic progress unit short", "#"),
-        ),
+            "short": pgettext_lazy("comic progress unit short", "#"),
+            "singular": pgettext_lazy("comic progress unit singular", "Issue"),
+            "plural": pgettext_lazy("comic progress unit plural", "Issues"),
+        },
     },
     MediaTypes.BOARDGAME.value: {
         "sources": [Sources.BGG],
         "default_source": Sources.BGG,
         "sample_query": "Catan",
         "unicode_icon": "🎲",
-        "verb": (
-            ("play", pgettext_lazy("board game tracking verb present", "play")),
-            ("played", pgettext_lazy("board game tracking verb past", "played")),
-        ),
+        "verb": {
+            "present": pgettext_lazy("board game tracking verb present", "play"),
+            "past": pgettext_lazy("board game tracking verb past", "played"),
+        },
+        "activity": "play",
         "text_color": COLORS["lime"]["text"],
         "stats_color": COLORS["lime"]["hex"],
         "svg_icon": """
@@ -292,14 +293,12 @@ MEDIA_TYPE_CONFIG = {
             <path d="M16 8h-2"/>
             <circle cx="16" cy="16" r="2"/>
             <path d="M8 16v-2"/>""",
-        "unit": (
-            "#",
-            "Play",
-            pgettext_lazy("board game progress unit singular", "Play"),
-            pgettext_lazy("board game progress unit plural", "Plays"),
+        "unit": {
             # Translators: Short label for the board game play progress unit.
-            pgettext_lazy("board game progress unit short", "#"),
-        ),
+            "short": pgettext_lazy("board game progress unit short", "#"),
+            "singular": pgettext_lazy("board game progress unit singular", "Play"),
+            "plural": pgettext_lazy("board game progress unit plural", "Plays"),
+        },
         "date_key": "year",
     },
 }
@@ -411,16 +410,15 @@ def get_unicode_icon(media_type):
     return get_property(media_type, "unicode_icon")
 
 
-def get_verb(media_type, past_tense):
-    """Get the verb (present or past tense)."""
-    verbs = get_property(media_type, "verb")
-    return verbs[1 if past_tense else 0][0]
+def get_activity(media_type):
+    """Get the activity (watch, read or play) used to pick history phrases."""
+    return get_property(media_type, "activity")
 
 
 def get_translated_verb(media_type, past_tense):
     """Get the translated verb (present or past tense)."""
     verbs = get_property(media_type, "verb")
-    return verbs[1 if past_tense else 0][1]
+    return verbs["past" if past_tense else "present"]
 
 
 def get_text_color(media_type):
@@ -443,21 +441,15 @@ def get_date_key(media_type):
     return get_property(media_type, "date_key")
 
 
-def get_unit(media_type, short):
-    """Get the unit of measurement (e.g., episode, chapter)."""
-    unit = get_property(media_type, "unit")
-    return unit[0] if short else unit[1] if unit else None
-
-
 def get_translated_unit(media_type, *, plural=False):
     """Get the translated singular or plural unit of measurement."""
     unit = get_property(media_type, "unit")
-    return unit[3 if plural else 2]
+    return unit["plural" if plural else "singular"]
 
 
 def get_translated_short_unit(media_type):
     """Get the translated short unit of measurement."""
-    return get_property(media_type, "unit")[4]
+    return get_property(media_type, "unit")["short"]
 
 
 def get_status_config(status):

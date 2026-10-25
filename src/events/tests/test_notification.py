@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.test import TestCase, override_settings
@@ -8,6 +9,7 @@ from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy
 
 from app.models import TV, Anime, Item, Manga, MediaTypes, Season, Sources, Status
+from app.templatetags import app_tags
 from events.models import Event
 from events.notifications import (
     format_notification,
@@ -713,9 +715,9 @@ class NotificationTests(TestCase):
         notification_text = format_notification(releases)
 
         # Verify text contains expected content
-        self.assertIn("ANIME", notification_text)
-        self.assertIn("MANGA", notification_text)
-        self.assertIn("TV Shows", notification_text)
+        self.assertIn("🎭  Anime", notification_text)
+        self.assertIn("📚  Manga", notification_text)
+        self.assertIn("📺  TV Shows", notification_text)
         self.assertIn("Test Anime", notification_text)
         self.assertIn("Test Manga", notification_text)
         self.assertIn("Test TV Show", notification_text)
@@ -727,11 +729,26 @@ class NotificationTests(TestCase):
         notification_text = format_notification(releases)
 
         # Verify text contains expected content
-        self.assertIn("ANIME", notification_text)
+        self.assertIn("🎭  Anime", notification_text)
         self.assertIn("Test Anime", notification_text)
         self.assertIn("E5", notification_text)
-        self.assertNotIn("MANGA", notification_text)
+        self.assertNotIn("📚  Manga", notification_text)
         self.assertNotIn("Test Manga", notification_text)
+
+    def test_format_notification_headers_follow_language(self):
+        """Media type headers use the translated plural labels."""
+        releases = [self.anime_event, self.manga_event, self.season1_event]
+
+        for language, _name in settings.LANGUAGES:
+            with self.subTest(language=language), translation.override(language):
+                notification_text = format_notification(releases)
+                for media_type in (
+                    MediaTypes.ANIME.value,
+                    MediaTypes.MANGA.value,
+                    MediaTypes.TV.value,
+                ):
+                    header = app_tags.media_type_readable_plural(media_type)
+                    self.assertIn(f"  {header}\n", notification_text)
 
     @patch("events.notifications.send_notifications")
     def test_no_recent_events(self, mock_send_notifications):

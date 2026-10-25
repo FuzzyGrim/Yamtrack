@@ -433,11 +433,13 @@ def format_notification(releases):
     for media_type, media_events in releases_by_type.items():
         icon = app_tags.unicode_icon(media_type)
 
-        # Add a header for each media type with icon
-        if media_type == MediaTypes.SEASON.value:
-            notification_body.append(f"{icon}  {_('TV Shows')}")
-        else:
-            notification_body.append(f"{icon}  {media_type.upper()}")
+        # Add a header for each media type with icon; season releases are
+        # listed under "TV Shows"
+        header_type = (
+            MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
+        )
+        header = app_tags.media_type_readable_plural(header_type)
+        notification_body.append(f"{icon}  {header}")
 
         for event in media_events:
             if event.is_sentinel_time:

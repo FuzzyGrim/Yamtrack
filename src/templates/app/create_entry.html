@@ -7,6 +7,13 @@
 {% endblock title %}
 
 {% block content %}
+  {% trans "Progress" as progress_label %}
+  {% trans "Progress (Episodes)" as progress_episodes_label %}
+  {% trans "Progress (Chapters)" as progress_chapters_label %}
+  {% trans "Progress (Play Time)" as progress_play_time_label %}
+  {% trans "Progress (Pages)" as progress_pages_label %}
+  {% trans "Please select a parent TV show from the dropdown" as select_parent_tv_message %}
+  {% trans "Please select a parent Season from the dropdown" as select_parent_season_message %}
   <div class="mx-auto max-w-4xl">
     <div class="mb-8">
       <h1 class="text-3xl font-bold mb-2">{% trans "Create Custom Entry" %}</h1>
@@ -72,11 +79,11 @@
       },
     
       getProgressLabel() {
-        if (this.mediaType === 'anime') return 'Progress (Episodes)';
-        if (this.mediaType === 'manga') return 'Progress (Chapters)';
-        if (this.mediaType === 'game') return 'Progress (Play Time)';
-        if (this.mediaType === 'book') return 'Progress (Pages)';
-        return 'Progress';
+        if (this.mediaType === 'anime') return '{{ progress_episodes_label|escapejs }}';
+        if (this.mediaType === 'manga') return '{{ progress_chapters_label|escapejs }}';
+        if (this.mediaType === 'game') return '{{ progress_play_time_label|escapejs }}';
+        if (this.mediaType === 'book') return '{{ progress_pages_label|escapejs }}';
+        return '{{ progress_label|escapejs }}';
       },
     
       validateForm() {
@@ -84,7 +91,7 @@
         if (this.mediaType === 'season') {
           const parentTvId = document.getElementById('parent-tv-id').value;
           if (!parentTvId) {
-            alert('Please select a parent TV show from the dropdown');
+            alert('{{ select_parent_tv_message|escapejs }}');
             return false;
           }
         }
@@ -93,7 +100,7 @@
         if (this.mediaType === 'episode') {
           const parentSeasonId = document.getElementById('parent-season-id').value;
           if (!parentSeasonId) {
-            alert('Please select a parent Season from the dropdown');
+            alert('{{ select_parent_season_message|escapejs }}');
             return false;
           }
         }
@@ -275,7 +282,7 @@
         <!-- Progress field (Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('progress')">
           <label class="block text-sm font-medium mb-2 text-gray-300"
-                 x-text="getProgressLabel()">{% trans "Progress" %}</label>
+                 x-text="getProgressLabel()">{{ progress_label }}</label>
 
           <div class="relative">
             <input class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
@@ -352,5 +359,5 @@
       </button>
     </div>
   </form>
-</div>
+  </div>
 {% endblock content %}

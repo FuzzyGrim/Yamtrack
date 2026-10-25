@@ -24,7 +24,11 @@
                 <div class="flex items-center">
                   <span class="text-xs text-gray-400 me-2">{{ release.item.media_type|media_type_readable }}</span>
                   {% if release.readable_content_number %}
-                    <span class="text-xs text-indigo-400">{{ release.readable_content_number }} at {{ release.datetime|time_format:user }}</span>
+                    <span class="text-xs text-indigo-400">
+                      {% blocktrans trimmed with number=release.readable_content_number time=release.datetime|time_format:user %}
+                        {{ number }} at {{ time }}
+                      {% endblocktrans %}
+                    </span>
                   {% endif %}
                 </div>
               </div>
