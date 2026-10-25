@@ -5,7 +5,7 @@ from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
-from app.models import Item, MediaTypes, Status
+from app.models import Item, MediaTypes, ProgressUnit, Status
 from users import helpers
 
 EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
@@ -267,6 +267,11 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    book_progress_unit = models.CharField(
+        max_length=20,
+        default=ProgressUnit.PAGES,
+        choices=ProgressUnit,
+    )
 
     # Media type preferences: Comics
     comic_enabled = models.BooleanField(default=True)
@@ -500,6 +505,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="book_sort_valid",
                 condition=models.Q(book_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="book_progress_unit_valid",
+                condition=models.Q(book_progress_unit__in=ProgressUnit.values),
             ),
             models.CheckConstraint(
                 name="calendar_layout_valid",
