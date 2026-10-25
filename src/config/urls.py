@@ -21,7 +21,6 @@ from redis.asyncio import Redis as RedisClient
 last_modified_date = timezone.now()
 
 urlpatterns = [
-    path("i18n/", include("django.conf.urls.i18n")),
     path(
         "jsi18n/",
         login_not_required(

@@ -68,8 +68,8 @@ class PageRenderingPerLanguageTests(TestCase):
         ]
         return pages
 
-    def _assert_renders(self, url, language):
-        response = self.client.get(url)
+    def _assert_renders(self, url, language, **headers):
+        response = self.client.get(url, **headers)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Language"], language)
         catalog_url = f"{reverse('javascript-catalog')}?language={language}"
@@ -92,6 +92,9 @@ class PageRenderingPerLanguageTests(TestCase):
     def test_login_page_renders_for_each_language(self):
         """Render the login page in each language."""
         for language, _name in settings.LANGUAGES:
-            self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = language
             with self.subTest(language=language):
-                self._assert_renders(reverse("account_login"), language)
+                self._assert_renders(
+                    reverse("account_login"),
+                    language,
+                    HTTP_ACCEPT_LANGUAGE=language,
+                )

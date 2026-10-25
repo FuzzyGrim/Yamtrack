@@ -326,8 +326,6 @@ LOCALE_PATHS = [
     BASE_DIR / "locale",
 ]
 
-LANGUAGE_COOKIE_NAME = "yamtrack_language"
-
 TIME_ZONE = config("TZ", default="UTC")
 
 USE_I18N = True
