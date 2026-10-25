@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
@@ -183,66 +184,22 @@ class AppTagsTests(TestCase):
 
     @override_settings(TRACK_TIME=False)
     def test_natural_day(self):
-        """Test the natural_day filter."""
-        # Create mock user with date_format preference
-        mock_user = MagicMock()
-        mock_user.date_format = "Y-m-d"
-        mock_user.time_format = "H:i"
+        """Test the natural_day filter emits the instant for the browser.
 
-        # Mock current date to March 29, 2025
-        with patch("django.utils.timezone.now") as mock_now:
-            # Use timezone.datetime to create timezone-aware datetimes
-            mock_now.return_value = timezone.datetime(
-                2025,
-                3,
-                29,
-                12,
-                0,
-                0,
-                tzinfo=timezone.get_current_timezone(),
-            )
+        Which day counts as "today" depends on the viewer, so the Today /
+        Tomorrow decision is made in localTime.js against the browser's clock;
+        the server only tags the element with the instant and the format.
+        """
+        instant = timezone.datetime(2025, 3, 29, 15, 0, 0, tzinfo=datetime.UTC)
 
-            # Test today
-            today = timezone.datetime(
-                2025,
-                3,
-                29,
-                15,
-                0,
-                0,
-                tzinfo=timezone.get_current_timezone(),
-            )
-            self.assertEqual(app_tags.natural_day(today, mock_user), "Today 15:00")
+        rendered = app_tags.natural_day(instant)
 
-            # Test tomorrow
-            tomorrow = timezone.datetime(
-                2025,
-                3,
-                30,
-                15,
-                0,
-                0,
-                tzinfo=timezone.get_current_timezone(),
-            )
-            self.assertEqual(
-                app_tags.natural_day(tomorrow, mock_user),
-                "Tomorrow 15:00",
-            )
+        self.assertIn('datetime="2025-03-29T15:00:00+00:00"', rendered)
+        self.assertIn('data-yt="natural-day"', rendered)
 
-            # Test further away
-            further = timezone.datetime(
-                2025,
-                4,
-                10,
-                15,
-                0,
-                0,
-                tzinfo=timezone.get_current_timezone(),
-            )
-            self.assertEqual(
-                app_tags.natural_day(further, mock_user),
-                "2025-04-10 15:00",
-            )
+    def test_natural_day_without_a_value(self):
+        """A missing date renders nothing at all."""
+        self.assertEqual(app_tags.natural_day(None), "")
 
     def test_media_url(self):
         """Test the media_url filter."""

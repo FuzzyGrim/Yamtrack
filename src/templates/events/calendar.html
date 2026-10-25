@@ -28,8 +28,11 @@
       </div>
 
       <div class="flex items-center gap-2">
+        {# Which month is "today" is the viewer's question, so localTime.js
+           fills the target in. #}
         <a class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
-           href="{% url 'calendar' %}?month={{ today.month }}&year={{ today.year }}&view={{ view_type }}">Today</a>
+           data-calendar-today-link
+           href="{% url 'calendar' %}?view={{ view_type }}">Today</a>
 
         <form method="post" action="{% url 'reload_calendar' %}">
           {% csrf_token %}

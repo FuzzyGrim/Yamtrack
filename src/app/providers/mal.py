@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone as django_timezone
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -321,39 +322,64 @@ def get_season(response):
         return None
 
 
-def get_broadcast(response):
-    """Return the broadcast day and time for the media."""
-    start_date = response.get("start_date")
-    if not start_date:
-        return None
+# MAL's v2 broadcast object is only {day_of_the_week, start_time} -- it carries
+# no timezone, so one has to be assumed. It is the Japanese TV slot: Jikan,
+# reading the same source, labels it "Asia/Tokyo" on every currently-airing
+# title that has a slot at all (titles without one, such as films, simply omit
+# it and are skipped below). If MAL ever reports a zone, read it here.
+BROADCAST_TIMEZONE = ZoneInfo("Asia/Tokyo")
+WEEKDAYS = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
 
+
+def get_broadcast(response):
+    """Return the next broadcast slot as a UTC instant, or None.
+
+    An instant rather than a display string: this is shared cached metadata and
+    the weekday itself moves between timezones, so only the browser can render
+    it for its viewer.
+    """
     # when unknown broadcast, value is not present in the response
     # e.g anime: 38869
-    broadcast = response.get("broadcast")
-    if not broadcast:
-        return None
+    broadcast = response.get("broadcast") or {}
 
     # when unknown start time, value is not present in the broadcast dict
-    start_time = broadcast.get("start_time") if broadcast else None
-    if not start_time:
+    start_time = broadcast.get("start_time")
+    # MAL gives the airing weekday outright. It is not the weekday of
+    # start_date: One Piece premiered on a Wednesday but airs on Sundays.
+    weekday = WEEKDAYS.get((broadcast.get("day_of_the_week") or "").lower())
+    if not start_time or weekday is None:
         return None
 
-    japan_timezone = ZoneInfo("Asia/Tokyo")
-    # Try parsing with different date formats
     try:
-        date_obj = datetime.strptime(start_date, "%Y-%m-%d").replace(
-            tzinfo=japan_timezone,
-        )
+        slot = time.fromisoformat(start_time)
     except ValueError:
-        date_obj = datetime.strptime(start_date, "%Y-%m").replace(tzinfo=japan_timezone)
+        logger.warning("Unparseable MAL broadcast time %r", start_time)
+        return None
 
-    broadcast_time_japan = datetime.strptime(
-        f"{date_obj.strftime('%Y-%m-%d')} {start_time}",
-        "%Y-%m-%d %H:%M",
-    ).replace(tzinfo=japan_timezone)
+    # The slot is a Japanese weekday and wall clock, so it can only be resolved
+    # to an instant in Japan's frame -- UTC's current weekday is not always
+    # Japan's. Everything downstream of this function is UTC again.
+    now = django_timezone.now().astimezone(BROADCAST_TIMEZONE)
+    ahead = (weekday - now.weekday()) % 7
+    # Anchored on the next occurrence rather than a fixed week, so the viewer's
+    # own DST state is right when the browser renders it.
+    occurrence = datetime.combine(
+        now.date() + timedelta(days=ahead),
+        slot,
+        tzinfo=BROADCAST_TIMEZONE,
+    )
+    if occurrence < now:
+        occurrence += timedelta(days=7)
 
-    broadcast_time_local = broadcast_time_japan.astimezone(settings.TZ)
-    return broadcast_time_local.strftime("%A %H:%M")
+    return occurrence.astimezone(UTC)
 
 
 def get_source(response):
