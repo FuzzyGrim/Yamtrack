@@ -10,6 +10,8 @@ from api.helpers import (
 )
 from app.models import Sources, Status
 
+from .schema_validation import get_schema_errors, iter_response_examples
+
 
 class SchemaTests(SimpleTestCase):
     """Validate the OpenAPI schema and the API enums."""
@@ -43,3 +45,11 @@ class SchemaTests(SimpleTestCase):
 
         json.dumps(schema, default=str)
         self.assertEqual(list(find_one_of(schema, "")), [])
+
+    def test_response_examples_match_schema(self):
+        """Every documented response example should match its response schema."""
+        examples = list(iter_response_examples())
+        self.assertTrue(examples)
+        for label, content_schema, value in examples:
+            with self.subTest(example=label):
+                self.assertEqual(get_schema_errors(content_schema, value), [])

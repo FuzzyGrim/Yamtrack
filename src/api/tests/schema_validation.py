@@ -72,6 +72,31 @@ def _find_operation(path, method):
     return None, None
 
 
+def get_schema_errors(content_schema, value):
+    """Return the messages of the errors of a value against an OpenAPI schema."""
+    registry, _ = _get_schema()
+    validator = Draft202012Validator(_to_json_schema(content_schema), registry=registry)
+    errors = sorted(validator.iter_errors(value), key=lambda e: e.path)
+    return [
+        f"- {'/'.join(map(str, error.absolute_path)) or '<root>'}: {error.message}"
+        for error in errors
+    ]
+
+
+def iter_response_examples():
+    """Yield the label, schema and value of every documented response example."""
+    _, matchers = _get_schema()
+    for _, _, schema_path, operations in matchers:
+        for method, operation in operations.items():
+            for status, response in operation.get("responses", {}).items():
+                content = response.get("content", {}).get("application/json", {})
+                content_schema = content.get("schema")
+                for name, example in content.get("examples", {}).items():
+                    if content_schema is not None and "value" in example:
+                        label = f"{method.upper()} {schema_path} {status} {name}"
+                        yield label, content_schema, example["value"]
+
+
 def assert_response_matches_schema(testcase, response):
     """Assert that the response is documented and matches its OpenAPI schema."""
     request = response.wsgi_request
@@ -101,14 +126,9 @@ def assert_response_matches_schema(testcase, response):
     if content_schema is None:
         return
 
-    registry, _ = _get_schema()
-    validator = Draft202012Validator(_to_json_schema(content_schema), registry=registry)
-    errors = sorted(validator.iter_errors(response.json()), key=lambda e: e.path)
+    errors = get_schema_errors(content_schema, response.json())
     if errors:
-        details = "\n".join(
-            f"- {'/'.join(map(str, error.absolute_path)) or '<root>'}: {error.message}"
-            for error in errors[:10]
-        )
+        details = "\n".join(errors[:10])
         testcase.fail(
             f"{method.upper()} {schema_path} {status} response doesn't match the "
             f"OpenAPI schema:\n{details}",

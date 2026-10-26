@@ -1580,6 +1580,34 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(payload[0]["media_id"], recommended_item.media_id)
         self.assertEqual(payload[0]["title"], recommended_item.title)
 
+    @patch("api.views.services.get_media_metadata")
+    def test_media_recommendations_returns_string_media_ids(self, mock_metadata):
+        """Recommendations should return string media ids like the other endpoints."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {
+            "related": {
+                "recommendations": [
+                    {
+                        "media_id": 167,
+                        "source": Sources.TMDB.value,
+                        "media_type": MediaTypes.MOVIE.value,
+                        "title": "La Femme Nikita",
+                        "image": None,
+                    },
+                ],
+            },
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_recommendations",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["media_id"], "167")
+
     def test_media_recommendations_invalid_type_returns_bad_request(self):
         """Recommendations endpoint should reject unsupported media types."""
         response = self.call_api(

@@ -1285,7 +1285,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Media'
+                $ref: '#/components/schemas/CompleteListItem'
               examples:
                 RetrievedListItemExample:
                   value:
@@ -3088,71 +3088,41 @@ paths:
               examples:
                 RetrievedMediaDetailsExample:
                   value:
-                    id: 3599
+                    id: 3612
                     media_id: '12345'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/12345/season/1/episode/1
+                    media_type: episode
+                    title: Destination Unknown
+                    max_progress: 1
+                    image: https://image.tmdb.org/t/p/original/9xX4Ycm7vN0Qb4JtCjGfC2iC2nH.jpg
+                    synopsis: Van der Valk investigates a disappearance...
                     genres:
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    score: 7.0
+                    score_count: 3
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
-                    related:
-                      seasons:
-                      - id: null
-                        consumption_id: null
-                        item:
-                          media_id: '12345'
-                          source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
-                          season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
-                        tracked: false
-                        created_at: null
-                        score: null
-                        status: null
-                        progress: null
-                        progressed_at: null
-                        start_date: null
-                        end_date: null
-                        notes: null
-                        lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                      air_date: '1972-09-13'
+                      episode_number: 1
+                      season_number: 1
+                      runtime: 50
+                      episode_type: standard
+                      crew: []
+                      guest_stars: []
+                    related: {}
+                    item_id: tv/tmdb/12345/1/1
+                    parent_id: tv/tmdb/12345/1
                     tracked: true
                     consumptions_number: 1
                     consumptions:
                     - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                      created: null
                       score: null
-                      progress: 0
+                      progress: 1
                       progressed_at: null
-                      status: 0
+                      status: 3
                       start_date: null
-                      end_date: null
+                      end_date: '2026-05-11T17:20:38Z'
                       notes: ''
                     lists: []
                   summary: Retrieved media details example
@@ -3284,71 +3254,41 @@ paths:
               examples:
                 RetrievedMediaDetailsExample:
                   value:
-                    id: 3599
+                    id: 3612
                     media_id: '12345'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/12345/season/1/episode/1
+                    media_type: episode
+                    title: Destination Unknown
+                    max_progress: 1
+                    image: https://image.tmdb.org/t/p/original/9xX4Ycm7vN0Qb4JtCjGfC2iC2nH.jpg
+                    synopsis: Van der Valk investigates a disappearance...
                     genres:
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    score: 7.0
+                    score_count: 3
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
-                    related:
-                      seasons:
-                      - id: null
-                        consumption_id: null
-                        item:
-                          media_id: '12345'
-                          source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
-                          season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
-                        tracked: false
-                        created_at: null
-                        score: null
-                        status: null
-                        progress: null
-                        progressed_at: null
-                        start_date: null
-                        end_date: null
-                        notes: null
-                        lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                      air_date: '1972-09-13'
+                      episode_number: 1
+                      season_number: 1
+                      runtime: 50
+                      episode_type: standard
+                      crew: []
+                      guest_stars: []
+                    related: {}
+                    item_id: tv/tmdb/12345/1/1
+                    parent_id: tv/tmdb/12345/1
                     tracked: true
                     consumptions_number: 1
                     consumptions:
                     - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                      created: null
                       score: null
-                      progress: 0
+                      progress: 1
                       progressed_at: null
-                      status: 0
+                      status: 3
                       start_date: null
-                      end_date: null
+                      end_date: '2026-05-11T17:20:38Z'
                       notes: ''
                     lists: []
                   summary: Retrieved media details example
@@ -7083,9 +7023,9 @@ paths:
               examples:
                 MediaAddedToListExample:
                   value:
-                  - - list_id: 2
-                      list_item_id: 28
-                  summary: Media addedd to list example
+                  - list_id: 2
+                    list_item_id: 28
+                  summary: Media added to list example
                   description: Media added to list example
           description: Successful response
         '400':
@@ -7333,16 +7273,11 @@ paths:
               examples:
                 RetrieveRecommendationsExample:
                   value:
-                  - - source: tmdb
-                      media_type: tv
-                      image: https://image.tmdb.org/t/p/w500/pFao5i4giBsGl7QQBXi7oMUPzCn.jpg
-                      media_id: 167
-                      title: La Femme Nikita
-                    - source: tmdb
-                      media_type: tv
-                      image: https://image.tmdb.org/t/p/w500/f7xmk6fNp0hXcGI9k0vXeX69Afq.jpg
-                      media_id: 45576
-                      title: Hunted
+                  - source: tmdb
+                    media_type: tv
+                    image: https://image.tmdb.org/t/p/w500/pFao5i4giBsGl7QQBXi7oMUPzCn.jpg
+                    media_id: '167'
+                    title: La Femme Nikita
                   summary: Retrieve recommendations example
                   description: Retrieve recommendations example
           description: Successful response
@@ -8238,6 +8173,10 @@ components:
       - synopsis
       - title
       - tracked
+    CompleteListItem:
+      anyOf:
+      - $ref: '#/components/schemas/CompleteMedia'
+      - $ref: '#/components/schemas/CompleteEpisode'
     CompleteMedia:
       type: object
       description: Serializer that builds a CompleteMedia response.
