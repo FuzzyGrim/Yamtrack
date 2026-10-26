@@ -1,3 +1,6 @@
+from datetime import date
+from unittest.mock import patch
+
 from .base import YamtrackApiTestCase
 from .helpers import check_statistics_structure
 
@@ -55,6 +58,20 @@ class StatisticsTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         check_statistics_structure(self, payload)
+
+    @patch("api.views.localdate", return_value=date(2028, 2, 29))
+    def test_statistics_default_range_on_leap_day(self, _mock_localdate):
+        """Statistics default range shouldn't fail on February 29th."""
+        response = self.call_api(
+            "get",
+            "api_statistics",
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_statistics_structure(self, payload)
+        self.assertTrue(payload["start_date"].startswith("2027-02-28"))
 
     def test_statistics_all_time_range_returns_payload(self):
         """Statistics endpoint should support all-time range with null dates."""

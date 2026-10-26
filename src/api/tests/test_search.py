@@ -2,6 +2,8 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from api.helpers import MAX_SEARCH_PROVIDER_PAGES
+
 from .base import YamtrackApiTestCase
 from .helpers import check_pagination_structure
 
@@ -45,7 +47,15 @@ class SearchTests(YamtrackApiTestCase):
     def test_search_returns_paginated_payload(self, mock_search):
         """Search endpoint should return paginated response with provider data."""
         mock_search.return_value = {
-            "results": [{"id": 1, "title": "Example"}],
+            "results": [
+                {
+                    "media_id": "1",
+                    "source": "tmdb",
+                    "media_type": "movie",
+                    "title": "Example",
+                    "image": "https://example.com/example.jpg",
+                },
+            ],
             "total_results": 1,
             "total_pages": 1,
         }
@@ -140,6 +150,53 @@ class SearchTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("limit must be >0", response.json().get("detail", "").lower())
+
+    @patch("api.views.services.search")
+    def test_search_manual_source_uses_provider_page(self, mock_search):
+        """Manual search already applies the offset, it must not be applied twice."""
+        mock_search.return_value = {
+            "results": [{"id": 3, "title": "C"}, {"id": 4, "title": "D"}],
+            "total_results": 4,
+            "total_pages": 2,
+        }
+
+        response = self.client.get(
+            reverse("api_search_provider", args=("movie",))
+            + "?source=manual&limit=2&offset=2",
+            **self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_search.call_count, 1)
+        payload = response.json()
+        self.assertEqual([item["id"] for item in payload["results"]], [3, 4])
+        self.assertEqual(payload["pagination"]["total"], 4)
+
+    @patch("api.views.services.search")
+    def test_search_stops_after_max_provider_pages(self, mock_search):
+        """Search endpoint should not fetch an unbounded number of pages."""
+        mock_search.return_value = {
+            "results": [{"id": 1, "title": "A"}],
+            "total_results": 1000,
+            "total_pages": 1000,
+        }
+
+        response = self.client.get(
+            reverse("api_search_provider", args=("movie",)) + "?limit=10&offset=150",
+            **self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_search.call_count, MAX_SEARCH_PROVIDER_PAGES)
+
+    def test_search_rejects_invalid_source_for_media_type(self):
+        """Search endpoint should reject a source invalid for the media type."""
+        response = self.client.get(
+            reverse("api_search_provider", args=("movie",)) + "?source=mal",
+            **self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
 
     @patch("api.views.services.search")
     def test_search_accumulates_pages_before_paginating(self, mock_search):

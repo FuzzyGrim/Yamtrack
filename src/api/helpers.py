@@ -32,6 +32,7 @@ from app.models import (
     Season,
     Sources,
 )
+from app.providers import services
 from lists.models import CustomListItem
 from users.models import MediaSortChoices, MediaStatusChoices
 
@@ -82,6 +83,7 @@ MEDIA_TYPE_VALID_LIST = list(MEDIA_TYPE_MODEL_MAP.keys())
 
 MAX_RESULT_LIMIT = 200
 
+MAX_SEARCH_PROVIDER_PAGES = 10
 
 SORT_DIRECTIONS = ("asc", "desc")
 
@@ -537,16 +539,17 @@ def make_page_url(request, limit, new_offset):
     return request.build_absolute_uri(request.path + "?" + urlencode(params))
 
 
-def paginate_data(request, results, limit, offset, *, total=None):
+def paginate_data(request, results, limit, offset, *, total=None, sliced=False):
     """Paginate the results based on the limit and offset.
 
+    If `sliced` is True, `results` is already the requested page.
     Returns raw paginated data without serialization.
     Serialization should be handled by the view.
     """
     total_count = len(results) if total is None else total
     start = offset
     end = offset + limit
-    paginated = results[start:end]
+    paginated = results if sliced else results[start:end]
 
     next_url = None
     prev_url = None
@@ -635,6 +638,56 @@ def parse_status_param(status):
         return get_media_status(int(status), reverse=True)
     except (TypeError, ValueError):
         return None
+
+
+def fetch_search_results(
+    media_type,
+    query,
+    source,
+    limit,
+    offset,
+    user,
+    *,
+    presliced=False,
+):
+    """Search a provider and return the (results, total) tuple.
+
+    Paginated providers are queried page by page until the requested offset and
+    limit are covered, up to MAX_SEARCH_PROVIDER_PAGES pages. If `presliced` is
+    True, the provider already applies limit and offset and only one request is
+    made.
+    """
+    results = []
+    last_response = None
+
+    for page in range(1, MAX_SEARCH_PROVIDER_PAGES + 1):
+        last_response = services.search(
+            media_type,
+            query,
+            page,
+            source,
+            limit=limit,
+            offset=offset,
+            user=user,
+        )
+        if not isinstance(last_response, dict) or "results" not in last_response:
+            break
+        page_results = last_response.get("results", []) or []
+        results.extend(page_results)
+
+        total_pages = last_response.get("total_pages")
+        if (
+            presliced
+            or not page_results
+            or len(results) >= offset + limit
+            or (total_pages and page >= total_pages)
+        ):
+            break
+
+    total = (
+        last_response.get("total_results") if isinstance(last_response, dict) else None
+    )
+    return results, total or len(results)
 
 
 def get_month_range(year, month):

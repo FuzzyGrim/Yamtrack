@@ -1,6 +1,7 @@
 import asyncio
 from http import HTTPStatus as HTTP  # noqa: N814
 
+from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
@@ -54,6 +55,7 @@ from .helpers import (
     error_response,
     fetch_results_all_types,
     fetch_results_for_type,
+    fetch_search_results,
     get_item_lists,
     get_latest_medias_by_item_id,
     get_lists_by_number,
@@ -499,13 +501,15 @@ class HealthView(drf_views.APIView):
                     )
                 ],
             ),
-            500: InternalServerErrorResponse,
+            500: OpenApiResponse(
+                HealthResponseSerializer,
+                description="One or more health checks failed",
+            ),
         },
     )
     def get(self, request):  # noqa: ARG002
         """Check API health status."""
-        # TODO: speed up data collection, right now request takes ~2s
-        results = asyncio.run(self._collect_health_results())
+        results = async_to_sync(self._collect_health_results)()
         errors = [result.error for result in results if result.error]
         plugins = {}
         for result in results:
@@ -6820,57 +6824,39 @@ class SearchProviderView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        results_accum = []
-        page = 1
-        last_response = None
+        if source and not check_source_type(media_type, source):
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        presliced = source == Sources.MANUAL.value
 
         try:
-            while True:
-                last_response = services.search(
-                    media_type,
-                    search,
-                    page,
-                    source,
-                    limit=limit,
-                    offset=offset,
-                    user=request.user,
-                )
-                if (
-                    not isinstance(last_response, dict)
-                    or "results" not in last_response
-                ):
-                    break
-                page_results = last_response.get("results", []) or []
-                results_accum.extend(page_results)
-                if len(results_accum) >= offset + limit:
-                    break
-                total_pages = last_response.get("total_pages")
-                if total_pages and page >= total_pages:
-                    break
-                if not page_results:
-                    break
-
-                page += 1
-
+            results, total = fetch_search_results(
+                media_type,
+                search,
+                source,
+                limit,
+                offset,
+                request.user,
+                presliced=presliced,
+            )
         except Exception:  # noqa: BLE001
             return Response(
                 {"detail": HTTP.INTERNAL_SERVER_ERROR.phrase},
                 status=HTTP.INTERNAL_SERVER_ERROR,
             )
 
-        total = (
-            last_response.get("total_results")
-            if isinstance(last_response, dict)
-            else len(results_accum)
-        )
-
-        resolved_total = total or len(results_accum)
         paginated_data = paginate_data(
             request,
-            results_accum,
+            results,
             limit,
             offset,
-            total=resolved_total,
+            total=total,
+            sliced=presliced,
         )
         return Response(paginated_data, status=HTTP.OK)
 
@@ -6915,7 +6901,11 @@ class StatisticsView(drf_views.APIView):
         # TODO: Possibly don't use WebUI needed statistics but compute them for API
         timeformat = "%Y-%m-%d"
         today = localdate()
-        one_year_ago = today.replace(year=today.year - 1).strftime(timeformat)
+        try:
+            one_year_ago = today.replace(year=today.year - 1)
+        except ValueError:
+            one_year_ago = today.replace(year=today.year - 1, day=28)
+        one_year_ago = one_year_ago.strftime(timeformat)
         today = today.strftime(timeformat)
 
         user = request.user
