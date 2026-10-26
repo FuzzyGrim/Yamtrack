@@ -47,6 +47,10 @@ You can check the available endpoints with examples using the integrated Swagger
 
 ## Data formats
 
+### Dates and times
+
+Dates and times are returned in UTC, in the ISO 8601 format (e.g. `2026-10-26T16:18:18Z`).
+
 ### Media status
 
 The media status is represented as an integer, both in requests and responses, and in the `status` query parameter:

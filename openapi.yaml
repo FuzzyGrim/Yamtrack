@@ -8048,6 +8048,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChangesHistoryChange'
+          readOnly: true
       required:
       - changes
     ComicDetails:
@@ -8285,7 +8286,8 @@ components:
       - $ref: '#/components/schemas/TVRelated'
     Episode:
       type: object
-      description: Serializer used for Episode items.
+      description: Serializer used for tracked episodes and episodes from the provider
+        metadata.
       properties:
         id:
           type: integer
@@ -8297,11 +8299,14 @@ components:
           $ref: '#/components/schemas/Item'
         item_id:
           type: string
+          nullable: true
         parent_id:
           type: string
           nullable: true
         tracked:
           type: boolean
+          description: Return whether the user tracks the media.
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -8336,13 +8341,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ListMinimized'
+          readOnly: true
       required:
       - end_date
       - item
-      - item_id
       - lists
       - notes
-      - parent_id
       - progress
       - progressed_at
       - score
@@ -8386,14 +8390,18 @@ components:
           type: integer
           readOnly: true
         item:
-          $ref: '#/components/schemas/Item'
+          allOf:
+          - $ref: '#/components/schemas/Item'
+          readOnly: true
         item_id:
           type: string
+          description: Return the item_id of the released item.
           readOnly: true
         parent_id:
           type: string
-          readOnly: true
           nullable: true
+          description: Return the parent_id of the released item.
+          readOnly: true
         content_number:
           type: integer
           maximum: 9223372036854775807
@@ -8612,6 +8620,7 @@ components:
         frontend_url:
           type: string
           format: uri
+          readOnly: true
         language:
           type: string
         timezone:
@@ -8731,14 +8740,15 @@ components:
             $ref: '#/components/schemas/User'
         items_count:
           type: integer
+          description: Return the number of items, annotated or counted.
+          readOnly: true
         latest_update:
           type: string
           format: date-time
           nullable: true
+          readOnly: true
         items:
-          allOf:
-          - $ref: '#/components/schemas/PaginatedMediaResponse'
-          nullable: true
+          $ref: '#/components/schemas/PaginatedMediaResponse'
       required:
       - collaborators
       - description
@@ -8796,6 +8806,8 @@ components:
           nullable: true
         tracked:
           type: boolean
+          description: Return whether the user tracks the media.
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -8830,6 +8842,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ListMinimized'
+          readOnly: true
       required:
       - end_date
       - item
@@ -9495,8 +9508,7 @@ components:
           additionalProperties:
             type: array
             items:
-              type: object
-              additionalProperties: {}
+              $ref: '#/components/schemas/TimelineItem'
       required:
       - activity_data
       - media_count
@@ -9562,6 +9574,93 @@ components:
           items:
             type: object
             additionalProperties: {}
+    TimelineItem:
+      type: object
+      description: Compact serializer used for timeline entries to reduce payload
+        size.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        item_id:
+          type: string
+          readOnly: true
+        parent_id:
+          type: string
+          readOnly: true
+          nullable: true
+        title:
+          type: string
+          readOnly: true
+          nullable: true
+        image:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        media_type:
+          type: string
+          readOnly: true
+          nullable: true
+        source:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          nullable: true
+        progress:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        progressed_at:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/TimelineItemStatusEnum'
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+        item:
+          type: integer
+      required:
+      - created_at
+      - id
+      - image
+      - item
+      - item_id
+      - media_type
+      - parent_id
+      - source
+      - title
+    TimelineItemStatusEnum:
+      enum:
+      - Completed
+      - In progress
+      - Planning
+      - Paused
+      - Dropped
+      type: string
+      description: |-
+        * `Completed` - Completed
+        * `In progress` - In Progress
+        * `Planning` - Planning
+        * `Paused` - Paused
+        * `Dropped` - Dropped
     TrackMediaRequest:
       type: object
       description: |-

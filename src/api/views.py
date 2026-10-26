@@ -117,7 +117,6 @@ from .serializers import (
     RelatedResponseSerializer,
     SearchResponseSerializer,
     StatisticsResponseSerializer,
-    TimelineItemSerializer,
     TrackMediaSerializer,
     UpdateAnimeSerializer,
     UpdateBoardGameSerializer,
@@ -561,7 +560,7 @@ class InfoView(drf_views.APIView):
     )
     def get(self, request):  # noqa: ARG002
         """Get application information."""
-        response_data = InfoSerializer({}).data
+        response_data = InfoSerializer(settings).data
         return Response(response_data, status=HTTP.OK)
 
 
@@ -6880,23 +6879,19 @@ class StatisticsView(drf_views.APIView):
         timeline = get_timeline(user_media)
         activity_data = get_activity_data(request.user, start_date, end_date)
 
-        statistics = {
-            "start_date": start_date,
-            "end_date": end_date,
-            "media_count": media_count,
-            "activity_data": activity_data,
-            "media_type_distribution": media_type_distribution,
-            "score_distribution": score_distribution,
-            "top_rated": MixedMediaSerializer(top_rated, many=True).data,
-            "status_distribution": status_distribution,
-            "status_pie_chart_data": status_pie_chart_data,
-            "timeline": {
-                month: TimelineItemSerializer(
-                    items,
-                    many=True,
-                ).data
-                for month, items in (timeline or {}).items()
+        statistics = StatisticsResponseSerializer(
+            {
+                "start_date": start_date,
+                "end_date": end_date,
+                "media_count": media_count,
+                "activity_data": activity_data,
+                "media_type_distribution": media_type_distribution,
+                "score_distribution": score_distribution,
+                "top_rated": top_rated,
+                "status_distribution": status_distribution,
+                "status_pie_chart_data": status_pie_chart_data,
+                "timeline": timeline or {},
             },
-        }
+        ).data
 
         return Response(statistics, status=HTTP.OK)

@@ -1,6 +1,9 @@
 from datetime import date
 from unittest.mock import patch
 
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
 from .base import YamtrackApiTestCase
 from .helpers import check_statistics_structure
 
@@ -71,7 +74,8 @@ class StatisticsTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         check_statistics_structure(self, payload)
-        self.assertTrue(payload["start_date"].startswith("2027-02-28"))
+        start_date = timezone.localtime(parse_datetime(payload["start_date"]))
+        self.assertEqual(start_date.date(), date(2027, 2, 28))
 
     def test_statistics_all_time_range_returns_payload(self):
         """Statistics endpoint should support all-time range with null dates."""
