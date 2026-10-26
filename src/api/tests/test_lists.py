@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -6,7 +8,11 @@ from app.models import MediaTypes
 from lists.models import CustomList, CustomListItem
 
 from .base import YamtrackApiTestCase
-from .helpers import check_complete_lists_structure, check_pagination_structure
+from .helpers import (
+    check_complete_lists_structure,
+    check_complete_media_structure,
+    check_pagination_structure,
+)
 
 
 class ListsTests(YamtrackApiTestCase):
@@ -526,6 +532,47 @@ class ListsTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_list_item_get_returns_media_details(self, mock_metadata):
+        """Getting a list item should return the details of its media."""
+        custom_list = self.lists_by_name["favorites"]
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {
+            "media_id": movie_item.media_id,
+            "source": movie_item.source,
+            "source_url": f"https://www.themoviedb.org/movie/{movie_item.media_id}",
+            "media_type": MediaTypes.MOVIE.value,
+            "title": movie_item.title,
+            "max_progress": 1,
+            "image": movie_item.image,
+            "synopsis": "A movie.",
+            "genres": ["Drama"],
+            "score": 7.5,
+            "score_count": 100,
+            "details": {
+                "format": "Movie",
+                "release_date": "2020-01-01",
+                "status": "Released",
+                "runtime": "2h 0m",
+                "studios": ["Studio"],
+                "country": "United States",
+                "languages": ["English"],
+            },
+            "related": {"recommendations": []},
+        }
+
+        response = self.call_api(
+            "get",
+            "api_list_remove_item",
+            args=(custom_list.id, movie_item.id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_complete_media_structure(self, payload)
+        self.assertEqual(payload["media_id"], movie_item.media_id)
 
     def test_list_item_delete_removes_item(self):
         """Deleting a list item should return 204 and remove relation."""

@@ -6,11 +6,9 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
 )
-from rest_framework import permissions
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
-from api.authentication import APIKeyAuthentication, BearerAuthentication
 from api.helpers import (
     SOURCES_VALID_LIST,
     check_source_type,
@@ -21,11 +19,9 @@ from api.helpers import (
 )
 from api.schemas import (
     BadRequestResponse,
-    InternalServerErrorResponse,
     MediaTypeParam,
     PaginationLimitParam,
     PaginationOffsetParam,
-    UnauthorizedResponse,
 )
 from api.serializers import (
     MediaSerializer,
@@ -38,8 +34,6 @@ from app.models import Sources
 class SearchProviderView(drf_views.APIView):
     """Search view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = MediaSerializer
 
     @extend_schema(
@@ -68,8 +62,6 @@ class SearchProviderView(drf_views.APIView):
                 SearchResponseSerializer,
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type):

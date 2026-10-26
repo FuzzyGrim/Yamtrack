@@ -144,7 +144,7 @@ REST_FRAMEWORK = {
         "api.authentication.BearerAuthentication",
         "api.authentication.APIKeyAuthentication",
     ],
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "api.schemas.ApiAutoSchema",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "EXCEPTION_HANDLER": "api.exceptions.api_exception_handler",
 }
@@ -382,6 +382,11 @@ SPECTACULAR_ENABLE_SERVE = config(
     cast=bool,
 )
 
+SPECTACULAR_LOCAL_SERVER = {
+    "url": "http://localhost:8000/",
+    "description": "Local development server",
+}
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Yamtrack API",
     "DESCRIPTION": "OpenAPI schema for Yamtrack's API",
@@ -390,15 +395,9 @@ SPECTACULAR_SETTINGS = {
         "name": "GNU AFFERO GENERAL PUBLIC LICENSE v3.0",
         "url": "https://github.com/FuzzyGrim/Yamtrack/blob/dev/LICENSE",
     },
-    "SERVERS": [{"url": BASE_URL}]
-    if BASE_URL
-    else [
-        {
-            "url": "http://localhost:8000/",
-            "description": "Local development server",
-        }
-    ],
+    "SERVERS": [{"url": BASE_URL}] if BASE_URL else [SPECTACULAR_LOCAL_SERVER],
     "SCHEMA_PATH_PREFIX": "/api/v1",
+    "SERVE_INCLUDE_SCHEMA": False,
     "SORT_OPERATIONS": True,
     "COMPONENT_SPLIT_REQUEST": True,
     "PARSER_WHITELIST": [

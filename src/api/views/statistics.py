@@ -7,19 +7,15 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
 )
-from rest_framework import permissions
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
-from api.authentication import APIKeyAuthentication, BearerAuthentication
 from api.helpers import (
     get_timeline,
     try_parse_date,
 )
 from api.schemas import (
     BadRequestResponse,
-    InternalServerErrorResponse,
-    UnauthorizedResponse,
 )
 from api.serializers import (
     StatisticsResponseSerializer,
@@ -38,8 +34,6 @@ from app.statistics import (
 class StatisticsView(drf_views.APIView):
     """Statistics view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = StatisticsResponseSerializer
 
     @extend_schema(
@@ -65,8 +59,6 @@ class StatisticsView(drf_views.APIView):
                 description="Successful response",
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):

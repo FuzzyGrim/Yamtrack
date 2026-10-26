@@ -65,10 +65,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedEvents'
               examples:
-                EventsResponseExample:
+                Events:
                   value:
                     pagination:
-                      total: 2
+                      total: 1
                       limit: 20
                       offset: 0
                       next: null
@@ -88,22 +88,7 @@ paths:
                       content_number: 13
                       datetime: '2026-04-01T00:00:00Z'
                       notification_sent: false
-                    - id: 14438
-                      item:
-                        media_id: '75219'
-                        source: tmdb
-                        media_type: episode
-                        title: 9-1-1
-                        image: https://image.tmdb.org/t/p/w500/2hFiCrn4XtvvTGlZQdLzGhnaOsg.jpg
-                        season_number: 9
-                        episode_number: 16
-                      item_id: tv/tmdb/75219/9/16
-                      parent_id: tv/tmdb/75219/9
-                      content_number: 16
-                      datetime: '2026-04-03T00:00:00Z'
-                      notification_sent: false
-                  summary: Events response example
-                  description: Events response example
+                  summary: Events
           description: Successful response
         '400':
           content:
@@ -163,11 +148,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                TaskQueuedExample:
+                TaskQueued:
                   value:
                     detail: Task queued
-                  summary: Task queued example
-                  description: Task queued example
+                  summary: Task queued
           description: Task queued successfully
         '401':
           content:
@@ -186,6 +170,18 @@ paths:
                   summary: Invalid token example
                   description: Invalid token example
           description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/changes_history/{media_type}/{history_id}/:
     get:
       operationId: changes_history_entry_get
@@ -227,7 +223,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChangesHistoryEntry'
               examples:
-                ChangesHistoryRecordExample:
+                ChangesHistoryRecord:
                   value:
                     id: 312
                     item_id: tv/tmdb/245703
@@ -236,8 +232,7 @@ paths:
                     - field: status
                       old_value: 3
                       new_value: 1
-                  summary: Changes history record example
-                  description: Changes history record example
+                  summary: Changes history record
           description: Successful response
         '400':
           content:
@@ -395,10 +390,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
               examples:
-                HealthyAPIExample:
+                HealthyAPI:
                   value:
                     status: ok
-                    timestamp: '2026-04-28T08:49:33.826808+00:00'
+                    timestamp: '2026-04-28T08:49:33.826808Z'
                     checks:
                       Cache(alias='default'):
                         status: ok
@@ -409,8 +404,7 @@ paths:
                       Storage(alias='default'):
                         status: ok
                         error: null
-                  summary: Healthy API example
-                  description: Healthy API example
+                  summary: Healthy API
           description: API is healthy
         '500':
           content:
@@ -432,7 +426,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Info'
               examples:
-                InfoResponseExample:
+                Info:
                   value:
                     version: dev
                     debug: true
@@ -441,9 +435,20 @@ paths:
                     timezone: UTC
                     admin_enabled: true
                     track_time: true
-                  summary: Info response example
-                  description: Info response example
+                  summary: Info
           description: Successful response
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/lists/:
     get:
       operationId: lists_get
@@ -495,37 +500,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsResponse'
               examples:
-                RetrieveListsExample:
+                Lists:
                   value:
                     pagination:
-                      total: 2
+                      total: 1
                       limit: 20
                       offset: 0
                       next: null
                       previous: null
                     results:
                     - id: 1
-                      name: Test1
-                      description: This is a test list
+                      name: Favorites
+                      description: My favorite media
                       image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                       owner:
                         id: 1
                         username: admin
                       collaborators: []
-                      items_count: 17
+                      items_count: 1
                       latest_update: '2026-03-23T21:17:32.705709Z'
-                    - id: 2
-                      name: Test2
-                      description: Ciaoo
-                      image: https://image.tmdb.org/t/p/w500/xunXvzFlkf1GGgMkCySA9CCFumB.jpg
-                      owner:
-                        id: 1
-                        username: admin
-                      collaborators: []
-                      items_count: 27
-                      latest_update: '2026-04-08T15:58:11.652660Z'
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Lists
           description: Successful response
         '400':
           content:
@@ -606,11 +600,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/List'
               examples:
-                CreatedListExample:
+                CreatedList:
                   value:
                     id: 1
-                    name: Test1
-                    description: This is a test list
+                    name: Favorites
+                    description: My favorite media
                     image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                     owner:
                       id: 1
@@ -650,8 +644,7 @@ paths:
                         lists:
                         - list_id: 1
                           list_item_id: 16
-                  summary: Created list example
-                  description: Created list example
+                  summary: Created list
           description: Successfully created
         '400':
           content:
@@ -787,11 +780,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/List'
               examples:
-                RetrievedListExample:
+                List:
                   value:
                     id: 1
-                    name: Test1
-                    description: This is a test list
+                    name: Favorites
+                    description: My favorite media
                     image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                     owner:
                       id: 1
@@ -807,8 +800,7 @@ paths:
                         next: null
                         previous: null
                       results: []
-                  summary: Retrieved list example
-                  description: Retrieved list example
+                  summary: List
           description: Successful response
         '400':
           content:
@@ -903,11 +895,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/List'
               examples:
-                RetrievedListExample:
+                List:
                   value:
                     id: 1
-                    name: Test1
-                    description: This is a test list
+                    name: Favorites
+                    description: My favorite media
                     image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                     owner:
                       id: 1
@@ -923,8 +915,7 @@ paths:
                         next: null
                         previous: null
                       results: []
-                  summary: Retrieved list example
-                  description: Retrieved list example
+                  summary: List
           description: Successful response
         '400':
           content:
@@ -1156,7 +1147,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrievedListItemsExample:
+                ListItems:
                   value:
                     pagination:
                       total: 1
@@ -1189,8 +1180,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 16
-                  summary: Retrieved list items example
-                  description: Retrieved list items example
+                  summary: List items
           description: Successful response
         '400':
           content:
@@ -1287,7 +1277,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteListItem'
               examples:
-                RetrievedListItemExample:
+                SeasonDetails:
                   value:
                     id: 313
                     media_id: '105248'
@@ -1298,8 +1288,7 @@ paths:
                     max_progress: 10
                     image: https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg
                     synopsis: In a dystopia riddled with corruption and cybernetic
-                      implants, a talented but reckless street kid strives to become
-                      a mercenary outlaw — an edgerunner.
+                      implants...
                     genres:
                     - Animation
                     - Action & Adventure
@@ -1355,8 +1344,7 @@ paths:
                     lists:
                     - list_id: 1
                       list_item_id: 1
-                  summary: Retrieved list item example
-                  description: Retrieved list item example
+                  summary: Season details
           description: Successful response
         '400':
           content:
@@ -1645,7 +1633,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrievedMediaListExample:
+                MediaList:
                   value:
                     pagination:
                       total: 1
@@ -1678,8 +1666,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 10
-                  summary: Retrieved media list example
-                  description: Retrieved media list example
+                  summary: Media list
           description: Successful response
         '400':
           content:
@@ -1838,7 +1825,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrievedMediaListExample:
+                MediaList:
                   value:
                     pagination:
                       total: 1
@@ -1871,8 +1858,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 10
-                  summary: Retrieved media list example
-                  description: Retrieved media list example
+                  summary: Media list
           description: Successful response
         '400':
           content:
@@ -1975,7 +1961,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Media'
               examples:
-                TrackedMediaItemExample:
+                TrackedMedia:
                   value:
                     id: 3599
                     consumption_id: 322
@@ -1999,8 +1985,7 @@ paths:
                     end_date: null
                     notes: ''
                     lists: []
-                  summary: Tracked media item example
-                  description: Tracked media item example
+                  summary: Tracked media
           description: Media item tracked successfully
         '400':
           content:
@@ -2122,7 +2107,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                MediaDetails:
                   value:
                     id: 3599
                     media_id: '12345'
@@ -2191,8 +2176,7 @@ paths:
                       end_date: null
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Media details
           description: Successful response
         '400':
           content:
@@ -2306,7 +2290,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                MediaDetails:
                   value:
                     id: 3599
                     media_id: '12345'
@@ -2375,8 +2359,7 @@ paths:
                       end_date: null
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Media details
           description: Successful response
         '400':
           content:
@@ -2595,50 +2578,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                SeasonDetails:
                   value:
-                    id: 3599
-                    media_id: '12345'
+                    id: 313
+                    media_id: '105248'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/105248/season/1
+                    media_type: season
+                    title: 'Cyberpunk: Edgerunners'
+                    max_progress: 10
+                    image: https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg
+                    synopsis: In a dystopia riddled with corruption and cybernetic
+                      implants...
                     genres:
+                    - Animation
+                    - Action & Adventure
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    - Sci-Fi & Fantasy
+                    score: 8.3
+                    score_count: 688
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
+                      first_air_date: '2022-09-12'
+                      last_air_date: '2022-09-13'
+                      episodes: 10
+                      runtime: 26m
+                      total_runtime: 4h 25m
+                      tvdb_id: 384541
                     related:
-                      seasons:
+                      episodes:
                       - id: null
                         consumption_id: null
                         item:
-                          media_id: '12345'
+                          media_id: '105248'
                           source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
+                          media_type: episode
+                          title: Let You Down
+                          image: https://image.tmdb.org/t/p/original/egBHU73t79tMg2qrqj3aJof1ibS.jpg
                           season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
+                          episode_number: 1
+                        item_id: tv/tmdb/105248/1/1
+                        parent_id: tv/tmdb/105248/1
                         tracked: false
                         created_at: null
                         score: null
@@ -2649,23 +2628,24 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                    item_id: tv/tmdb/105248/1
+                    parent_id: tv/tmdb/105248
                     tracked: true
                     consumptions_number: 1
                     consumptions:
-                    - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                    - consumption_id: 3
+                      created: '2026-01-15T15:33:03.302349Z'
                       score: null
-                      progress: 0
-                      progressed_at: null
-                      status: 0
-                      start_date: null
-                      end_date: null
+                      progress: 1
+                      progressed_at: '2026-01-15T20:13:00Z'
+                      status: 1
+                      start_date: '2025-09-17T09:40:00Z'
+                      end_date: '2026-01-15T20:13:00Z'
                       notes: ''
-                    lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                    lists:
+                    - list_id: 1
+                      list_item_id: 1
+                  summary: Season details
           description: Successful response
         '400':
           content:
@@ -2785,50 +2765,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                SeasonDetails:
                   value:
-                    id: 3599
-                    media_id: '12345'
+                    id: 313
+                    media_id: '105248'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/105248/season/1
+                    media_type: season
+                    title: 'Cyberpunk: Edgerunners'
+                    max_progress: 10
+                    image: https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg
+                    synopsis: In a dystopia riddled with corruption and cybernetic
+                      implants...
                     genres:
+                    - Animation
+                    - Action & Adventure
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    - Sci-Fi & Fantasy
+                    score: 8.3
+                    score_count: 688
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
+                      first_air_date: '2022-09-12'
+                      last_air_date: '2022-09-13'
+                      episodes: 10
+                      runtime: 26m
+                      total_runtime: 4h 25m
+                      tvdb_id: 384541
                     related:
-                      seasons:
+                      episodes:
                       - id: null
                         consumption_id: null
                         item:
-                          media_id: '12345'
+                          media_id: '105248'
                           source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
+                          media_type: episode
+                          title: Let You Down
+                          image: https://image.tmdb.org/t/p/original/egBHU73t79tMg2qrqj3aJof1ibS.jpg
                           season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
+                          episode_number: 1
+                        item_id: tv/tmdb/105248/1/1
+                        parent_id: tv/tmdb/105248/1
                         tracked: false
                         created_at: null
                         score: null
@@ -2839,23 +2815,24 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                    item_id: tv/tmdb/105248/1
+                    parent_id: tv/tmdb/105248
                     tracked: true
                     consumptions_number: 1
                     consumptions:
-                    - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                    - consumption_id: 3
+                      created: '2026-01-15T15:33:03.302349Z'
                       score: null
-                      progress: 0
-                      progressed_at: null
-                      status: 0
-                      start_date: null
-                      end_date: null
+                      progress: 1
+                      progressed_at: '2026-01-15T20:13:00Z'
+                      status: 1
+                      start_date: '2025-09-17T09:40:00Z'
+                      end_date: '2026-01-15T20:13:00Z'
                       notes: ''
-                    lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                    lists:
+                    - list_id: 1
+                      list_item_id: 1
+                  summary: Season details
           description: Successful response
         '400':
           content:
@@ -3086,7 +3063,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteEpisode'
               examples:
-                RetrievedMediaDetailsExample:
+                EpisodeDetails:
                   value:
                     id: 3612
                     media_id: '12345'
@@ -3125,8 +3102,7 @@ paths:
                       end_date: '2026-05-11T17:20:38Z'
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Episode details
           description: Successful response
         '400':
           content:
@@ -3252,7 +3228,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteEpisode'
               examples:
-                RetrievedMediaDetailsExample:
+                EpisodeDetails:
                   value:
                     id: 3612
                     media_id: '12345'
@@ -3291,8 +3267,7 @@ paths:
                       end_date: '2026-05-11T17:20:38Z'
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Episode details
           description: Successful response
         '400':
           content:
@@ -3543,10 +3518,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedChangesHistoryResponse'
               examples:
-                ExampleResponse:
+                EpisodeChangesHistory:
                   value:
                     pagination:
-                      total: 2
+                      total: 1
                       limit: 20
                       offset: 0
                       next: null
@@ -3559,14 +3534,7 @@ paths:
                       - field: end_date
                         old_value: null
                         new_value: '2026-01-18T15:15:00Z'
-                    - id: 112
-                      item_id: tv/tmdb/245703/1/1
-                      timestamp: '2026-01-15T15:33:03.502096Z'
-                      changes:
-                      - field: end_date
-                        old_value: null
-                        new_value: '2025-09-17T09:41:00Z'
-                  summary: Example response
+                  summary: Episode changes history
           description: Successful response
         '400':
           content:
@@ -3702,7 +3670,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedHistoryResponse'
               examples:
-                ExampleResponse:
+                ConsumptionHistory:
                   value:
                     pagination:
                       total: 1
@@ -3711,16 +3679,16 @@ paths:
                       next: null
                       previous: null
                     results:
-                    - consumption_id: 138
-                      created: '2026-03-19T10:31:55.759835Z'
-                      score: null
-                      progress: 23
-                      progressed_at: '2026-03-19T10:31:00Z'
-                      status: 3
+                    - consumption_id: 312
+                      created: '2026-03-19T10:31:55.747255Z'
+                      score: 10.0
+                      progress: 26
+                      progressed_at: '2026-03-19T10:41:00Z'
+                      status: 1
                       start_date: '2026-03-19T10:31:00Z'
-                      end_date: '2026-03-19T10:31:00Z'
-                      notes: ''
-                  summary: Example response
+                      end_date: '2026-03-19T10:41:00Z'
+                      notes: Watched with friends
+                  summary: Consumption history
           description: Successful response
         '400':
           content:
@@ -3848,7 +3816,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -3858,9 +3826,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -3992,7 +3959,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -4002,9 +3969,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -4261,7 +4227,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsMinimizedResponse'
               examples:
-                RetrieveListsExample:
+                MediaLists:
                   value:
                     pagination:
                       total: 1
@@ -4272,8 +4238,7 @@ paths:
                     results:
                     - list_id: 2
                       list_item_id: 28
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Media lists
           description: Successful response
         '400':
           content:
@@ -4403,12 +4368,11 @@ paths:
                 items:
                   $ref: '#/components/schemas/ListMinimized'
               examples:
-                SeasonAddedToListExample:
+                AddedToTheList:
                   value:
                   - list_id: 2
                     list_item_id: 28
-                  summary: Season added to list example
-                  description: Season added to list example
+                  summary: Added to the list
           description: Season added to list successfully
         '400':
           content:
@@ -4675,11 +4639,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                MetadataSyncAcceptedExample:
+                MetadataSynced:
                   value:
                     detail: Metadata synced successfully.
-                  summary: Metadata sync accepted example
-                  description: Metadata sync accepted example
+                  summary: Metadata synced
           description: Accepted
         '400':
           content:
@@ -4821,39 +4784,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedChangesHistoryResponse'
               examples:
-                ExampleResponse:
+                SeasonChangesHistory:
                   value:
                     pagination:
-                      total: 4
+                      total: 2
                       limit: 20
                       offset: 0
                       next: null
                       previous: null
                     results:
-                    - id: 144
-                      item_id: tv/tmdb/245703/1
-                      timestamp: '2026-01-18T15:21:02.888039Z'
-                      changes:
-                      - field: status
-                        old_value: 3
-                        new_value: 1
                     - id: 143
                       item_id: tv/tmdb/245703/1
                       timestamp: '2026-01-18T15:15:10.443874Z'
                       changes:
                       - field: notes
                         old_value: ''
-                        new_value: Ciccio bomba
+                        new_value: Great season
                       - field: score
                         old_value: 9.0
-                        new_value: 2.0
-                    - id: 142
-                      item_id: tv/tmdb/245703/1
-                      timestamp: '2026-01-18T15:10:47.709781Z'
-                      changes:
-                      - field: score
-                        old_value: null
-                        new_value: 9.0
+                        new_value: 8.0
                     - id: 9
                       item_id: tv/tmdb/245703/1
                       timestamp: '2025-09-17T09:41:00Z'
@@ -4864,7 +4813,7 @@ paths:
                       - field: notes
                         old_value: null
                         new_value: ''
-                  summary: Example response
+                  summary: Season changes history
           description: Successful response
         '400':
           content:
@@ -4994,7 +4943,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedEpisodes'
               examples:
-                ExampleResponse:
+                SeasonEpisodes:
                   value:
                     pagination:
                       total: 1
@@ -5025,7 +4974,7 @@ paths:
                       end_date: null
                       notes: null
                       lists: []
-                  summary: Example response
+                  summary: Season episodes
           description: Successful response
         '400':
           content:
@@ -5155,7 +5104,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedHistoryResponse'
               examples:
-                ExampleResponse:
+                ConsumptionHistory:
                   value:
                     pagination:
                       total: 1
@@ -5164,16 +5113,16 @@ paths:
                       next: null
                       previous: null
                     results:
-                    - consumption_id: 138
-                      created: '2026-03-19T10:31:55.759835Z'
-                      score: null
-                      progress: 23
-                      progressed_at: '2026-03-19T10:31:00Z'
-                      status: 3
+                    - consumption_id: 312
+                      created: '2026-03-19T10:31:55.747255Z'
+                      score: 10.0
+                      progress: 26
+                      progressed_at: '2026-03-19T10:41:00Z'
+                      status: 1
                       start_date: '2026-03-19T10:31:00Z'
-                      end_date: '2026-03-19T10:31:00Z'
-                      notes: ''
-                  summary: Example response
+                      end_date: '2026-03-19T10:41:00Z'
+                      notes: Watched with friends
+                  summary: Consumption history
           description: Successful response
         '400':
           content:
@@ -5295,7 +5244,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -5305,9 +5254,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -5433,7 +5381,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -5443,9 +5391,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -5690,7 +5637,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsMinimizedResponse'
               examples:
-                RetrieveListsExample:
+                MediaLists:
                   value:
                     pagination:
                       total: 1
@@ -5701,8 +5648,7 @@ paths:
                     results:
                     - list_id: 2
                       list_item_id: 28
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Media lists
           description: Successful response
         '400':
           content:
@@ -5826,12 +5772,11 @@ paths:
                 items:
                   $ref: '#/components/schemas/ListMinimized'
               examples:
-                SeasonAddedToListExample:
+                AddedToTheList:
                   value:
                   - list_id: 2
                     list_item_id: 28
-                  summary: Season added to list example
-                  description: Season added to list example
+                  summary: Added to the list
           description: Season added to list successfully
         '400':
           content:
@@ -6086,11 +6031,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                MetadataSyncAcceptedExample:
+                MetadataSynced:
                   value:
                     detail: Metadata synced successfully.
-                  summary: Metadata sync accepted example
-                  description: Metadata sync accepted example
+                  summary: Metadata synced
           description: Accepted
         '400':
           content:
@@ -6226,7 +6170,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedChangesHistoryResponse'
               examples:
-                ExampleResponse:
+                MediaChangesHistory:
                   value:
                     pagination:
                       total: 2
@@ -6255,7 +6199,7 @@ paths:
                       - field: notes
                         old_value: null
                         new_value: ''
-                  summary: Example response
+                  summary: Media changes history
           description: Successful response
         '400':
           content:
@@ -6379,7 +6323,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedHistoryResponse'
               examples:
-                ExampleResponse:
+                ConsumptionHistory:
                   value:
                     pagination:
                       total: 1
@@ -6396,9 +6340,8 @@ paths:
                       status: 1
                       start_date: '2026-03-19T10:31:00Z'
                       end_date: '2026-03-19T10:41:00Z'
-                      notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                      notes: Watched with friends
+                  summary: Consumption history
           description: Successful response
         '400':
           content:
@@ -6514,7 +6457,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -6524,9 +6467,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -6646,7 +6588,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -6656,9 +6598,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -6891,7 +6832,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsMinimizedResponse'
               examples:
-                RetrieveListsExample:
+                MediaLists:
                   value:
                     pagination:
                       total: 1
@@ -6902,8 +6843,7 @@ paths:
                     results:
                     - list_id: 2
                       list_item_id: 28
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Media lists
           description: Successful response
         '400':
           content:
@@ -7021,12 +6961,11 @@ paths:
                 items:
                   $ref: '#/components/schemas/ListMinimized'
               examples:
-                MediaAddedToListExample:
+                AddedToTheList:
                   value:
                   - list_id: 2
                     list_item_id: 28
-                  summary: Media added to list example
-                  description: Media added to list example
+                  summary: Added to the list
           description: Successful response
         '400':
           content:
@@ -7271,15 +7210,14 @@ paths:
                 items:
                   $ref: '#/components/schemas/RelatedResponse'
               examples:
-                RetrieveRecommendationsExample:
+                Recommendations:
                   value:
                   - source: tmdb
                     media_type: tv
                     image: https://image.tmdb.org/t/p/w500/pFao5i4giBsGl7QQBXi7oMUPzCn.jpg
                     media_id: '167'
                     title: La Femme Nikita
-                  summary: Retrieve recommendations example
-                  description: Retrieve recommendations example
+                  summary: Recommendations
           description: Successful response
         '400':
           content:
@@ -7403,7 +7341,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrieveSeasonsExample:
+                Seasons:
                   value:
                     pagination:
                       total: 1
@@ -7436,8 +7374,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 14
-                  summary: Retrieve seasons example
-                  description: Retrieve seasons example
+                  summary: Seasons
           description: Successful response
         '400':
           content:
@@ -7547,11 +7484,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                MetadataSyncAcceptedExample:
+                MetadataSynced:
                   value:
                     detail: Metadata synced successfully.
-                  summary: Metadata sync accepted example
-                  description: Metadata sync accepted example
+                  summary: Metadata synced
           description: Accepted
         '400':
           content:
@@ -7618,152 +7554,6 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
-  /api/v1/schema/:
-    get:
-      operationId: schema_retrieve
-      description: |-
-        OpenApi3 schema for this API. Format can be selected via content negotiation.
-
-        - YAML: application/vnd.oai.openapi
-        - JSON: application/vnd.oai.openapi+json
-      parameters:
-      - in: query
-        name: format
-        schema:
-          type: string
-          enum:
-          - json
-          - yaml
-      - in: query
-        name: lang
-        schema:
-          type: string
-          enum:
-          - af
-          - ar
-          - ar-dz
-          - ast
-          - az
-          - be
-          - bg
-          - bn
-          - br
-          - bs
-          - ca
-          - ckb
-          - cs
-          - cy
-          - da
-          - de
-          - dsb
-          - el
-          - en
-          - en-au
-          - en-gb
-          - eo
-          - es
-          - es-ar
-          - es-co
-          - es-mx
-          - es-ni
-          - es-ve
-          - et
-          - eu
-          - fa
-          - fi
-          - fr
-          - fy
-          - ga
-          - gd
-          - gl
-          - he
-          - hi
-          - hr
-          - hsb
-          - hu
-          - hy
-          - ia
-          - id
-          - ig
-          - io
-          - is
-          - it
-          - ja
-          - ka
-          - kab
-          - kk
-          - km
-          - kn
-          - ko
-          - ky
-          - lb
-          - lt
-          - lv
-          - mk
-          - ml
-          - mn
-          - mr
-          - ms
-          - my
-          - nb
-          - ne
-          - nl
-          - nn
-          - os
-          - pa
-          - pl
-          - pt
-          - pt-br
-          - ro
-          - ru
-          - sk
-          - sl
-          - sq
-          - sr
-          - sr-latn
-          - sv
-          - sw
-          - ta
-          - te
-          - tg
-          - th
-          - tk
-          - tr
-          - tt
-          - udm
-          - ug
-          - uk
-          - ur
-          - uz
-          - vi
-          - zh-hans
-          - zh-hant
-      tags:
-      - schema
-      security:
-      - bearerAuth: []
-      - ApiKeyAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/vnd.oai.openapi:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/yaml:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/vnd.oai.openapi+json:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/json:
-              schema:
-                type: object
-                additionalProperties: {}
-          description: ''
   /api/v1/search/{media_type}/:
     get:
       operationId: search_get
@@ -8521,10 +8311,13 @@ components:
       description: Serializer for individual health checks.
       properties:
         status:
-          $ref: '#/components/schemas/HealthCheckStatusEnum'
+          allOf:
+          - $ref: '#/components/schemas/HealthCheckStatusEnum'
+          readOnly: true
         error:
           type: string
           nullable: true
+          readOnly: true
       required:
       - error
       - status
@@ -8541,7 +8334,9 @@ components:
       description: Serializer for health check response.
       properties:
         status:
-          $ref: '#/components/schemas/HealthResponseStatusEnum'
+          allOf:
+          - $ref: '#/components/schemas/HealthResponseStatusEnum'
+          readOnly: true
         timestamp:
           type: string
           format: date-time

@@ -3,8 +3,8 @@ from http import HTTPStatus as HTTP  # noqa: N814
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.utils.timezone import now
 from drf_spectacular.utils import (
-    OpenApiExample,
     OpenApiResponse,
     extend_schema,
 )
@@ -12,6 +12,10 @@ from health_check.views import HealthCheckView
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
+from api.examples import (
+    HEALTH_EXAMPLE,
+    INFO_EXAMPLE,
+)
 from api.serializers import (
     HealthResponseSerializer,
     InfoSerializer,
@@ -47,31 +51,7 @@ class HealthView(drf_views.APIView):
             200: OpenApiResponse(
                 HealthResponseSerializer,
                 description="API is healthy",
-                examples=[
-                    OpenApiExample(
-                        "Healthy API example",
-                        description="Healthy API example",
-                        summary="Healthy API example",
-                        value={
-                            "status": "ok",
-                            "timestamp": "2026-04-28T08:49:33.826808+00:00",
-                            "checks": {
-                                "Cache(alias='default')": {
-                                    "status": "ok",
-                                    "error": None,
-                                },
-                                "Database(alias='default')": {
-                                    "status": "ok",
-                                    "error": None,
-                                },
-                                "Storage(alias='default')": {
-                                    "status": "ok",
-                                    "error": None,
-                                },
-                            },
-                        },
-                    )
-                ],
+                examples=[HEALTH_EXAMPLE],
             ),
             500: OpenApiResponse(
                 HealthResponseSerializer,
@@ -82,18 +62,13 @@ class HealthView(drf_views.APIView):
     def get(self, request):  # noqa: ARG002
         """Check API health status."""
         results = async_to_sync(self._collect_health_results)()
-        errors = [result.error for result in results if result.error]
-        plugins = {}
-        for result in results:
-            plugin = result.check
-            plugin.errors = [result.error] if result.error else []
-            plugins[repr(plugin)] = plugin
         health_data = {
-            "plugins": plugins,
-            "errors": errors,
+            "timestamp": now(),
+            "checks": {repr(result.check): result for result in results},
         }
         response_data = HealthResponseSerializer(health_data).data
-        status_code = HTTP.INTERNAL_SERVER_ERROR if errors else HTTP.OK
+        has_errors = any(result.error for result in results)
+        status_code = HTTP.INTERNAL_SERVER_ERROR if has_errors else HTTP.OK
         return Response(response_data, status=status_code)
 
 
@@ -112,22 +87,7 @@ class InfoView(drf_views.APIView):
             200: OpenApiResponse(
                 InfoSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Info response example",
-                        description="Info response example",
-                        summary="Info response example",
-                        value={
-                            "version": "dev",
-                            "debug": True,
-                            "frontend_url": "http://localhost:8000",
-                            "language": "en-us",
-                            "timezone": "UTC",
-                            "admin_enabled": True,
-                            "track_time": True,
-                        },
-                    )
-                ],
+                examples=[INFO_EXAMPLE],
             )
         },
     )

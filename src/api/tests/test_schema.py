@@ -1,5 +1,10 @@
 import json
+import tempfile
+from io import StringIO
+from pathlib import Path
 
+from django.conf import settings
+from django.core.management import call_command
 from django.test import SimpleTestCase
 from drf_spectacular.generators import SchemaGenerator
 
@@ -53,3 +58,19 @@ class SchemaTests(SimpleTestCase):
         for label, content_schema, value in examples:
             with self.subTest(example=label):
                 self.assertEqual(get_schema_errors(content_schema, value), [])
+
+    def test_openapi_file_is_up_to_date(self):
+        """The committed openapi.yaml should match the generated schema."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            generated_path = Path(tmp_dir) / "openapi.yaml"
+            call_command(
+                "generate_openapi", file=str(generated_path), stdout=StringIO()
+            )
+            generated = generated_path.read_text()
+
+        committed = (settings.BASE_DIR.parent / "openapi.yaml").read_text()
+        self.assertEqual(
+            committed,
+            generated,
+            "openapi.yaml is outdated, run `python manage.py generate_openapi`",
+        )

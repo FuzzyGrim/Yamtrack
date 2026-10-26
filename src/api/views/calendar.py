@@ -2,16 +2,17 @@ from http import HTTPStatus as HTTP  # noqa: N814
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     extend_schema,
 )
-from rest_framework import permissions
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
-from api.authentication import APIKeyAuthentication, BearerAuthentication
+from api.examples import (
+    EVENTS_EXAMPLE,
+    TASK_QUEUED_EXAMPLE,
+)
 from api.helpers import (
     error_response,
     paginate_data,
@@ -20,10 +21,8 @@ from api.helpers import (
 )
 from api.schemas import (
     BadRequestResponse,
-    InternalServerErrorResponse,
     PaginationLimitParam,
     PaginationOffsetParam,
-    UnauthorizedResponse,
 )
 from api.serializers import (
     ApiMessageResponseSerializer,
@@ -38,8 +37,6 @@ from events.models import Event
 class CalendarView(drf_views.APIView):
     """Calendar view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaginatedEventsSerializer
 
     @extend_schema(
@@ -87,62 +84,9 @@ class CalendarView(drf_views.APIView):
             200: OpenApiResponse(
                 PaginatedEventsSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Events response example",
-                        description="Events response example",
-                        summary="Events response example",
-                        value={
-                            "pagination": {
-                                "total": 2,
-                                "limit": 20,
-                                "offset": 0,
-                                "next": None,
-                                "previous": None,
-                            },
-                            "results": [
-                                {
-                                    "id": 5086,
-                                    "item": {
-                                        "media_id": "208569",
-                                        "source": "tmdb",
-                                        "media_type": "episode",
-                                        "title": "Will Trent",
-                                        "image": "https://image.tmdb.org/t/p/w500/qG5O46gUxxYGImld03tl2zLhvrg.jpg",
-                                        "season_number": 4,
-                                        "episode_number": 13,
-                                    },
-                                    "item_id": "tv/tmdb/208569/4/13",
-                                    "parent_id": "tv/tmdb/208569/4",
-                                    "content_number": 13,
-                                    "datetime": "2026-04-01T00:00:00Z",
-                                    "notification_sent": False,
-                                },
-                                {
-                                    "id": 14438,
-                                    "item": {
-                                        "media_id": "75219",
-                                        "source": "tmdb",
-                                        "media_type": "episode",
-                                        "title": "9-1-1",
-                                        "image": "https://image.tmdb.org/t/p/w500/2hFiCrn4XtvvTGlZQdLzGhnaOsg.jpg",
-                                        "season_number": 9,
-                                        "episode_number": 16,
-                                    },
-                                    "item_id": "tv/tmdb/75219/9/16",
-                                    "parent_id": "tv/tmdb/75219/9",
-                                    "content_number": 16,
-                                    "datetime": "2026-04-03T00:00:00Z",
-                                    "notification_sent": False,
-                                },
-                            ],
-                        },
-                    )
-                ],
+                examples=[EVENTS_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):
@@ -189,8 +133,6 @@ class CalendarView(drf_views.APIView):
 class CalendarUpdateView(drf_views.APIView):
     """Update calendar view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = ApiMessageResponseSerializer
 
     @extend_schema(
@@ -201,16 +143,8 @@ class CalendarUpdateView(drf_views.APIView):
             202: OpenApiResponse(
                 ApiMessageResponseSerializer,
                 description="Task queued successfully",
-                examples=[
-                    OpenApiExample(
-                        "Task queued example",
-                        description="Task queued example",
-                        summary="Task queued example",
-                        value={"detail": "Task queued"},
-                    )
-                ],
+                examples=[TASK_QUEUED_EXAMPLE],
             ),
-            401: UnauthorizedResponse,
         },
     )
     def post(self, request):

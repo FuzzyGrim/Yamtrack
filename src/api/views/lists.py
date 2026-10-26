@@ -3,17 +3,21 @@ from http import HTTPStatus as HTTP  # noqa: N814
 from django.db import transaction
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     PolymorphicProxySerializer,
     extend_schema,
 )
-from rest_framework import permissions
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
-from api.authentication import APIKeyAuthentication, BearerAuthentication
+from api.examples import (
+    CREATED_LIST_EXAMPLE,
+    LIST_EXAMPLE,
+    LIST_ITEMS_EXAMPLE,
+    LISTS_EXAMPLE,
+    SEASON_DETAILS_EXAMPLE,
+)
 from api.helpers import (
     InvalidSortError,
     apply_aggregated_sort,
@@ -28,14 +32,12 @@ from api.helpers import (
 from api.schemas import (
     BadRequestResponse,
     ForbiddenResponse,
-    InternalServerErrorResponse,
     ListSearchParam,
     ListSortParam,
     MediaSortParam,
     NotFoundResponse,
     PaginationLimitParam,
     PaginationOffsetParam,
-    UnauthorizedResponse,
 )
 from api.serializers import (
     CompleteEpisodeSerializer,
@@ -59,8 +61,6 @@ from .seasons import MediaSeasonDetailView
 class ListsView(drf_views.APIView):
     """Lists view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaginatedListsResponseSerializer
 
     @extend_schema(
@@ -76,48 +76,9 @@ class ListsView(drf_views.APIView):
             200: OpenApiResponse(
                 PaginatedListsResponseSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieve lists example",
-                        description="Retrieve lists example",
-                        summary="Retrieve lists example",
-                        value={
-                            "pagination": {
-                                "total": 2,
-                                "limit": 20,
-                                "offset": 0,
-                                "next": None,
-                                "previous": None,
-                            },
-                            "results": [
-                                {
-                                    "id": 1,
-                                    "name": "Test1",
-                                    "description": "This is a test list",
-                                    "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
-                                    "owner": {"id": 1, "username": "admin"},
-                                    "collaborators": [],
-                                    "items_count": 17,
-                                    "latest_update": "2026-03-23T21:17:32.705709Z",
-                                },
-                                {
-                                    "id": 2,
-                                    "name": "Test2",
-                                    "description": "Ciaoo",
-                                    "image": "https://image.tmdb.org/t/p/w500/xunXvzFlkf1GGgMkCySA9CCFumB.jpg",
-                                    "owner": {"id": 1, "username": "admin"},
-                                    "collaborators": [],
-                                    "items_count": 27,
-                                    "latest_update": "2026-04-08T15:58:11.652660Z",
-                                },
-                            ],
-                        },
-                    )
-                ],
+                examples=[LISTS_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request):
@@ -159,63 +120,9 @@ class ListsView(drf_views.APIView):
             201: OpenApiResponse(
                 ListSerializer,
                 description="Successfully created",
-                examples=[
-                    OpenApiExample(
-                        "Created list example",
-                        description="Created list example",
-                        summary="Created list example",
-                        value={
-                            "id": 1,
-                            "name": "Test1",
-                            "description": "This is a test list",
-                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
-                            "owner": {"id": 1, "username": "admin"},
-                            "collaborators": [],
-                            "items_count": 1,
-                            "latest_update": "2026-03-23T21:17:32.705709Z",
-                            "items": {
-                                "pagination": {
-                                    "total": 1,
-                                    "limit": 20,
-                                    "offset": 0,
-                                    "next": None,
-                                    "previous": None,
-                                },
-                                "results": [
-                                    {
-                                        "id": 2902,
-                                        "consumption_id": 1,
-                                        "item": {
-                                            "media_id": "1",
-                                            "source": "manual",
-                                            "media_type": "comic",
-                                            "title": "Comic 1",
-                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
-                                            "season_number": None,
-                                            "episode_number": None,
-                                        },
-                                        "item_id": "comic/manual/1",
-                                        "parent_id": None,
-                                        "tracked": True,
-                                        "created_at": "2026-03-23T21:16:16.978287Z",
-                                        "score": None,
-                                        "status": 3,
-                                        "progress": 0,
-                                        "progressed_at": "2026-03-23T21:16:16.965721Z",
-                                        "start_date": None,
-                                        "end_date": None,
-                                        "notes": "",
-                                        "lists": [{"list_id": 1, "list_item_id": 16}],
-                                    },
-                                ],
-                            },
-                        },
-                    )
-                ],
+                examples=[CREATED_LIST_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def post(self, request):
@@ -245,8 +152,6 @@ class ListsView(drf_views.APIView):
 class ListDetailView(drf_views.APIView):
     """List detail view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = ListSerializer
 
     @extend_schema(
@@ -262,10 +167,8 @@ class ListDetailView(drf_views.APIView):
         ],
         responses={
             204: OpenApiResponse(description="List deleted successfully"),
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, list_id):
@@ -316,39 +219,11 @@ class ListDetailView(drf_views.APIView):
             200: OpenApiResponse(
                 ListSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieved list example",
-                        description="Retrieved list example",
-                        summary="Retrieved list example",
-                        value={
-                            "id": 1,
-                            "name": "Test1",
-                            "description": "This is a test list",
-                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
-                            "owner": {"id": 1, "username": "admin"},
-                            "collaborators": [],
-                            "items_count": 1,
-                            "latest_update": "2026-03-23T21:17:32.705709Z",
-                            "items": {
-                                "pagination": {
-                                    "total": 0,
-                                    "limit": 20,
-                                    "offset": 0,
-                                    "next": None,
-                                    "previous": None,
-                                },
-                                "results": [],
-                            },
-                        },
-                    )
-                ],
+                examples=[LIST_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, list_id):
@@ -431,39 +306,11 @@ class ListDetailView(drf_views.APIView):
             200: OpenApiResponse(
                 ListSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieved list example",
-                        description="Retrieved list example",
-                        summary="Retrieved list example",
-                        value={
-                            "id": 1,
-                            "name": "Test1",
-                            "description": "This is a test list",
-                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
-                            "owner": {"id": 1, "username": "admin"},
-                            "collaborators": [],
-                            "items_count": 1,
-                            "latest_update": "2026-03-23T21:17:32.705709Z",
-                            "items": {
-                                "pagination": {
-                                    "total": 0,
-                                    "limit": 20,
-                                    "offset": 0,
-                                    "next": None,
-                                    "previous": None,
-                                },
-                                "results": [],
-                            },
-                        },
-                    )
-                ],
+                examples=[LIST_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def patch(self, request, list_id):
@@ -524,8 +371,6 @@ class ListDetailView(drf_views.APIView):
 class ListItemsView(drf_views.APIView):
     """List items view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaginatedMediaSerializer
 
     @extend_schema(
@@ -553,55 +398,11 @@ class ListItemsView(drf_views.APIView):
             200: OpenApiResponse(
                 PaginatedMediaSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieved list items example",
-                        description="Retrieved list items example",
-                        summary="Retrieved list items example",
-                        value={
-                            "pagination": {
-                                "total": 1,
-                                "limit": 20,
-                                "offset": 0,
-                                "next": None,
-                                "previous": None,
-                            },
-                            "results": [
-                                {
-                                    "id": 2902,
-                                    "consumption_id": 1,
-                                    "item": {
-                                        "media_id": "1",
-                                        "source": "manual",
-                                        "media_type": "comic",
-                                        "title": "Comic 1",
-                                        "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
-                                        "season_number": None,
-                                        "episode_number": None,
-                                    },
-                                    "item_id": "comic/manual/1",
-                                    "parent_id": None,
-                                    "tracked": True,
-                                    "created_at": "2026-03-23T21:16:16.978287Z",
-                                    "score": None,
-                                    "status": 3,
-                                    "progress": 0,
-                                    "progressed_at": "2026-03-23T21:16:16.965721Z",
-                                    "start_date": None,
-                                    "end_date": None,
-                                    "notes": "",
-                                    "lists": [{"list_id": 1, "list_item_id": 16}],
-                                },
-                            ],
-                        },
-                    )
-                ],
+                examples=[LIST_ITEMS_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, list_id):
@@ -674,8 +475,6 @@ class ListItemsView(drf_views.APIView):
 class ListItemView(drf_views.APIView):
     """List item detail view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaginatedMediaSerializer
 
     @extend_schema(
@@ -700,10 +499,8 @@ class ListItemView(drf_views.APIView):
         responses={
             204: OpenApiResponse(description="Item deleted successfully"),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def delete(self, request, list_id, item_id):
@@ -769,93 +566,11 @@ class ListItemView(drf_views.APIView):
                     resource_type_field_name=None,
                 ),
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieved list item example",
-                        description="Retrieved list item example",
-                        summary="Retrieved list item example",
-                        value={
-                            "id": 313,
-                            "media_id": "105248",
-                            "source": "tmdb",
-                            "source_url": "https://www.themoviedb.org/tv/105248/season/1",
-                            "media_type": "season",
-                            "title": "Cyberpunk: Edgerunners",
-                            "max_progress": 10,
-                            "image": "https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg",
-                            "synopsis": "In a dystopia riddled with corruption and cybernetic implants, a talented but reckless street kid strives to become a mercenary outlaw — an edgerunner.",
-                            "genres": [
-                                "Animation",
-                                "Action & Adventure",
-                                "Drama",
-                                "Sci-Fi & Fantasy",
-                            ],
-                            "score": 8.3,
-                            "score_count": 688,
-                            "details": {
-                                "first_air_date": "2022-09-12",
-                                "last_air_date": "2022-09-13",
-                                "episodes": 10,
-                                "runtime": "26m",
-                                "total_runtime": "4h 25m",
-                                "tvdb_id": 384541,
-                            },
-                            "related": {
-                                "episodes": [
-                                    {
-                                        "id": None,
-                                        "consumption_id": None,
-                                        "item": {
-                                            "media_id": "105248",
-                                            "source": "tmdb",
-                                            "media_type": "episode",
-                                            "title": "Let You Down",
-                                            "image": "https://image.tmdb.org/t/p/original/egBHU73t79tMg2qrqj3aJof1ibS.jpg",
-                                            "season_number": 1,
-                                            "episode_number": 1,
-                                        },
-                                        "item_id": "tv/tmdb/105248/1/1",
-                                        "parent_id": "tv/tmdb/105248/1",
-                                        "tracked": False,
-                                        "created_at": None,
-                                        "score": None,
-                                        "status": None,
-                                        "progress": None,
-                                        "progressed_at": None,
-                                        "start_date": None,
-                                        "end_date": None,
-                                        "notes": None,
-                                        "lists": [],
-                                    }
-                                ]
-                            },
-                            "item_id": "tv/tmdb/105248/1",
-                            "parent_id": "tv/tmdb/105248",
-                            "tracked": True,
-                            "consumptions_number": 1,
-                            "consumptions": [
-                                {
-                                    "consumption_id": 3,
-                                    "created": "2026-01-15T15:33:03.302349Z",
-                                    "score": None,
-                                    "progress": 1,
-                                    "progressed_at": "2026-01-15T20:13:00Z",
-                                    "status": 1,
-                                    "start_date": "2025-09-17T09:40:00Z",
-                                    "end_date": "2026-01-15T20:13:00Z",
-                                    "notes": "",
-                                }
-                            ],
-                            "lists": [{"list_id": 1, "list_item_id": 1}],
-                        },
-                    )
-                ],
+                examples=[SEASON_DETAILS_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, list_id, item_id):

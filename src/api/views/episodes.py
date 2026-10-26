@@ -2,17 +2,23 @@ from http import HTTPStatus as HTTP  # noqa: N814
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     extend_schema,
 )
-from rest_framework import permissions
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
-from api.authentication import APIKeyAuthentication, BearerAuthentication
 from api.changes_history_processor import get_changes_history_entries
+from api.examples import (
+    ADDED_TO_LIST_EXAMPLE,
+    CONSUMPTION_EXAMPLE,
+    CONSUMPTION_HISTORY_EXAMPLE,
+    EPISODE_CHANGES_HISTORY_EXAMPLE,
+    EPISODE_DETAILS_EXAMPLE,
+    MEDIA_LISTS_EXAMPLE,
+    METADATA_SYNCED_EXAMPLE,
+)
 from api.helpers import (
     apply_validated_fields,
     check_source_type,
@@ -27,7 +33,6 @@ from api.schemas import (
     BadRequestResponse,
     EpisodeNumberParam,
     ForbiddenResponse,
-    InternalServerErrorResponse,
     MediaIdParam,
     MediaTypeParam,
     NotFoundResponse,
@@ -36,7 +41,6 @@ from api.schemas import (
     SeasonNumberParam,
     SourceCompleteParam,
     TooManyRequestsResponse,
-    UnauthorizedResponse,
 )
 from api.serializers import (
     ApiMessageResponseSerializer,
@@ -60,8 +64,6 @@ from .seasons import MediaSeasonSyncView
 class MediaEpisodeDetailView(drf_views.APIView):
     """Episode view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = CompleteEpisodeSerializer
 
     @extend_schema(
@@ -77,9 +79,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
         responses={
             204: OpenApiResponse(description="Media item deleted successfully"),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def delete(
@@ -159,60 +159,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
             200: OpenApiResponse(
                 CompleteEpisodeSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieved media details example",
-                        description="Retrieved media details example",
-                        summary="Retrieved media details example",
-                        value={
-                            "id": 3612,
-                            "media_id": "12345",
-                            "source": "tmdb",
-                            "source_url": "https://www.themoviedb.org/tv/12345/season/1/episode/1",
-                            "media_type": "episode",
-                            "title": "Destination Unknown",
-                            "max_progress": 1,
-                            "image": "https://image.tmdb.org/t/p/original/9xX4Ycm7vN0Qb4JtCjGfC2iC2nH.jpg",
-                            "synopsis": "Van der Valk investigates a disappearance...",
-                            "genres": ["Drama"],
-                            "score": 7.0,
-                            "score_count": 3,
-                            "details": {
-                                "air_date": "1972-09-13",
-                                "episode_number": 1,
-                                "season_number": 1,
-                                "runtime": 50,
-                                "episode_type": "standard",
-                                "crew": [],
-                                "guest_stars": [],
-                            },
-                            "related": {},
-                            "item_id": "tv/tmdb/12345/1/1",
-                            "parent_id": "tv/tmdb/12345/1",
-                            "tracked": True,
-                            "consumptions_number": 1,
-                            "consumptions": [
-                                {
-                                    "consumption_id": 322,
-                                    "created": None,
-                                    "score": None,
-                                    "progress": 1,
-                                    "progressed_at": None,
-                                    "status": 3,
-                                    "start_date": None,
-                                    "end_date": "2026-05-11T17:20:38Z",
-                                    "notes": "",
-                                }
-                            ],
-                            "lists": [],
-                        },
-                    )
-                ],
+                examples=[EPISODE_DETAILS_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -331,60 +281,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
             200: OpenApiResponse(
                 CompleteEpisodeSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieved media details example",
-                        description="Retrieved media details example",
-                        summary="Retrieved media details example",
-                        value={
-                            "id": 3612,
-                            "media_id": "12345",
-                            "source": "tmdb",
-                            "source_url": "https://www.themoviedb.org/tv/12345/season/1/episode/1",
-                            "media_type": "episode",
-                            "title": "Destination Unknown",
-                            "max_progress": 1,
-                            "image": "https://image.tmdb.org/t/p/original/9xX4Ycm7vN0Qb4JtCjGfC2iC2nH.jpg",
-                            "synopsis": "Van der Valk investigates a disappearance...",
-                            "genres": ["Drama"],
-                            "score": 7.0,
-                            "score_count": 3,
-                            "details": {
-                                "air_date": "1972-09-13",
-                                "episode_number": 1,
-                                "season_number": 1,
-                                "runtime": 50,
-                                "episode_type": "standard",
-                                "crew": [],
-                                "guest_stars": [],
-                            },
-                            "related": {},
-                            "item_id": "tv/tmdb/12345/1/1",
-                            "parent_id": "tv/tmdb/12345/1",
-                            "tracked": True,
-                            "consumptions_number": 1,
-                            "consumptions": [
-                                {
-                                    "consumption_id": 322,
-                                    "created": None,
-                                    "score": None,
-                                    "progress": 1,
-                                    "progressed_at": None,
-                                    "status": 3,
-                                    "start_date": None,
-                                    "end_date": "2026-05-11T17:20:38Z",
-                                    "notes": "",
-                                }
-                            ],
-                            "lists": [],
-                        },
-                    )
-                ],
+                examples=[EPISODE_DETAILS_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def patch(
@@ -518,8 +418,6 @@ class MediaEpisodeDetailView(drf_views.APIView):
 class MediaEpisodeChangesHistoryView(drf_views.APIView):
     """Changes history episode view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaginatedChangesHistoryResponseSerializer
 
     @extend_schema(
@@ -538,51 +436,10 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
             200: OpenApiResponse(
                 PaginatedChangesHistoryResponseSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Example response",
-                        value={
-                            "pagination": {
-                                "total": 2,
-                                "limit": 20,
-                                "offset": 0,
-                                "next": None,
-                                "previous": None,
-                            },
-                            "results": [
-                                {
-                                    "id": 1226,
-                                    "item_id": "tv/tmdb/245703/1/1",
-                                    "timestamp": "2026-01-18T15:21:02.851911Z",
-                                    "changes": [
-                                        {
-                                            "field": "end_date",
-                                            "old_value": None,
-                                            "new_value": "2026-01-18T15:15:00Z",
-                                        }
-                                    ],
-                                },
-                                {
-                                    "id": 112,
-                                    "item_id": "tv/tmdb/245703/1/1",
-                                    "timestamp": "2026-01-15T15:33:03.502096Z",
-                                    "changes": [
-                                        {
-                                            "field": "end_date",
-                                            "old_value": None,
-                                            "new_value": "2025-09-17T09:41:00Z",
-                                        }
-                                    ],
-                                },
-                            ],
-                        },
-                    )
-                ],
+                examples=[EPISODE_CHANGES_HISTORY_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -648,8 +505,6 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
 class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
     """Episode consumption history view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaginatedHistoryResponseSerializer
 
     @extend_schema(
@@ -668,38 +523,10 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
             200: OpenApiResponse(
                 PaginatedHistoryResponseSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Example response",
-                        value={
-                            "pagination": {
-                                "total": 1,
-                                "limit": 20,
-                                "offset": 0,
-                                "next": None,
-                                "previous": None,
-                            },
-                            "results": [
-                                {
-                                    "consumption_id": 138,
-                                    "created": "2026-03-19T10:31:55.759835Z",
-                                    "score": None,
-                                    "progress": 23,
-                                    "progressed_at": "2026-03-19T10:31:00Z",
-                                    "status": 3,
-                                    "start_date": "2026-03-19T10:31:00Z",
-                                    "end_date": "2026-03-19T10:31:00Z",
-                                    "notes": "",
-                                }
-                            ],
-                        },
-                    )
-                ],
+                examples=[CONSUMPTION_HISTORY_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -763,8 +590,6 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
 class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
     """Episode consumption history entry detail view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = HistorySerializer
 
     @extend_schema(
@@ -786,19 +611,9 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         responses={
             204: OpenApiResponse(
                 description="Consumption entry deleted successfully",
-                examples=[
-                    OpenApiExample(
-                        "Consumption entry deleted example",
-                        description="Consumption entry deleted example",
-                        summary="Consumption entry deleted example",
-                        value=None,
-                    )
-                ],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def delete(
@@ -880,29 +695,10 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
             200: OpenApiResponse(
                 HistorySerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Example response",
-                        description="Example response",
-                        summary="Example response",
-                        value={
-                            "consumption_id": 312,
-                            "created": "2026-03-19T10:31:55.747255Z",
-                            "score": 10.0,
-                            "progress": 26,
-                            "progressed_at": "2026-03-19T10:41:00Z",
-                            "status": 1,
-                            "start_date": "2026-03-19T10:31:00Z",
-                            "end_date": "2026-03-19T10:41:00Z",
-                            "notes": "aSDASDF",
-                        },
-                    )
-                ],
+                examples=[CONSUMPTION_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(
@@ -986,29 +782,10 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
             200: OpenApiResponse(
                 HistorySerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Example response",
-                        description="Example response",
-                        summary="Example response",
-                        value={
-                            "consumption_id": 312,
-                            "created": "2026-03-19T10:31:55.747255Z",
-                            "score": 10.0,
-                            "progress": 26,
-                            "progressed_at": "2026-03-19T10:41:00Z",
-                            "status": 1,
-                            "start_date": "2026-03-19T10:31:00Z",
-                            "end_date": "2026-03-19T10:41:00Z",
-                            "notes": "aSDASDF",
-                        },
-                    )
-                ],
+                examples=[CONSUMPTION_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def patch(
@@ -1090,8 +867,6 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
 class MediaEpisodeListsView(drf_views.APIView):
     """Episode lists view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaginatedListsMinimizedResponseSerializer
 
     @extend_schema(
@@ -1110,28 +885,10 @@ class MediaEpisodeListsView(drf_views.APIView):
             200: OpenApiResponse(
                 PaginatedListsMinimizedResponseSerializer,
                 description="Successful response",
-                examples=[
-                    OpenApiExample(
-                        "Retrieve lists example",
-                        description="Retrieve lists example",
-                        summary="Retrieve lists example",
-                        value={
-                            "pagination": {
-                                "total": 1,
-                                "limit": 20,
-                                "offset": 0,
-                                "next": None,
-                                "previous": None,
-                            },
-                            "results": [{"list_id": 2, "list_item_id": 28}],
-                        },
-                    )
-                ],
+                examples=[MEDIA_LISTS_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
@@ -1181,8 +938,6 @@ class MediaEpisodeListsView(drf_views.APIView):
 class MediaEpisodeListDetailView(drf_views.APIView):
     """Episode list detail view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = ListMinimizedSerializer
 
     @extend_schema(
@@ -1206,10 +961,8 @@ class MediaEpisodeListDetailView(drf_views.APIView):
                 description="Episode removed from the list successfully.",
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def delete(
@@ -1303,20 +1056,11 @@ class MediaEpisodeListDetailView(drf_views.APIView):
             200: OpenApiResponse(
                 ListMinimizedSerializer(many=True),
                 description="Season added to list successfully",
-                examples=[
-                    OpenApiExample(
-                        "Season added to list example",
-                        description="Season added to list example",
-                        summary="Season added to list example",
-                        value={"list_id": 2, "list_item_id": 28},
-                    )
-                ],
+                examples=[ADDED_TO_LIST_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             403: ForbiddenResponse,
             404: NotFoundResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def put(
@@ -1410,8 +1154,6 @@ class MediaEpisodeListDetailView(drf_views.APIView):
 class MediaEpisodeSyncView(drf_views.APIView):
     """Sync episode view."""
 
-    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = ApiMessageResponseSerializer
 
     @extend_schema(
@@ -1429,20 +1171,11 @@ class MediaEpisodeSyncView(drf_views.APIView):
             202: OpenApiResponse(
                 ApiMessageResponseSerializer,
                 description="Accepted",
-                examples=[
-                    OpenApiExample(
-                        "Metadata sync accepted example",
-                        description="Metadata sync accepted example",
-                        summary="Metadata sync accepted example",
-                        value={"detail": "Metadata synced successfully."},
-                    )
-                ],
+                examples=[METADATA_SYNCED_EXAMPLE],
             ),
             400: BadRequestResponse,
-            401: UnauthorizedResponse,
             404: NotFoundResponse,
             429: TooManyRequestsResponse,
-            500: InternalServerErrorResponse,
         },
     )
     def post(

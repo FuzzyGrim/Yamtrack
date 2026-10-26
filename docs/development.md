@@ -117,7 +117,9 @@ cd src
 uv run manage.py generate_openapi --validate
 ```
 
-The schema is generated at every commit by the pre-commit hook, so it should always be up to date.
+The schema is generated at every commit by the pre-commit hook, so it should always be up to date. The API tests fail if `openapi.yaml` doesn't match the generated schema.
+
+The generated file doesn't depend on the local settings: it always lists the local development server, and it doesn't include the `/api/v1/schema/` endpoint.
 
 When schema serving is enabled (default: `DEBUG=True`, or by setting `SPECTACULAR_ENABLE_SERVE=True`), docs are available at:
 

@@ -51,8 +51,10 @@ lint = [
 test = [
   "coverage~=7.15.3",
   "fakeredis[lua]>=2.35.1,<2.40.0",
+  "jsonschema~=4.26.0",
   "pytest-django~=4.12.0",
   "pytest-playwright~=0.8.0",
+  "referencing~=0.37.0",
   "tblib~=3.2.2",
 ]
 dev = [

@@ -1,4 +1,5 @@
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
+from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
@@ -272,3 +273,27 @@ EpisodeNumberParam = _path_param(
     "Episode number for the specified media item.",
     param_type=OpenApiTypes.INT,
 )
+
+
+class ApiAutoSchema(AutoSchema):
+    """Add the error responses shared by all the endpoints.
+
+    Every endpoint can fail with a 500, and the ones that require
+    authentication with a 401, so the views only declare the other responses.
+    """
+
+    def _get_response_bodies(self, direction="response"):
+        """Return the declared responses with the shared error responses."""
+        responses = super()._get_response_bodies(direction)
+
+        shared = {"500": InternalServerErrorResponse}
+        if self.view.permission_classes:
+            shared["401"] = UnauthorizedResponse
+        for code, response in shared.items():
+            if code not in responses:
+                responses[code] = self._get_response_for_code(
+                    response,
+                    code,
+                    direction=direction,
+                )
+        return dict(sorted(responses.items()))

@@ -2,7 +2,6 @@ from datetime import UTC
 
 from django.conf import settings
 from django.db import models
-from django.utils.timezone import now
 from drf_spectacular.utils import (
     OpenApiExample,
     PolymorphicProxySerializer,
@@ -364,41 +363,35 @@ class PaginatedEventsSerializer(serializers.Serializer):
 class HealthCheckSerializer(serializers.Serializer):
     """Serializer for individual health checks."""
 
-    status = serializers.ChoiceField(choices=["ok", "error"])
-    error = serializers.CharField(allow_null=True)
+    status = serializers.SerializerMethodField()
+    error = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.ChoiceField(choices=["ok", "error"]))
+    def get_status(self, result):
+        """Return the status of the health check result."""
+        return "error" if result.error else "ok"
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_error(self, result):
+        """Return the error of the health check, detailed only in debug mode."""
+        if not result.error:
+            return None
+        return str(result.error) if settings.DEBUG else "Check failed"
 
 
 class HealthResponseSerializer(serializers.Serializer):
     """Serializer for health check response."""
 
-    status = serializers.ChoiceField(choices=["ok", "unavailable"])
+    status = serializers.SerializerMethodField()
     timestamp = UTCDateTimeField()
     checks = serializers.DictField(child=HealthCheckSerializer())
 
-    def to_representation(self, instance):
-        """Transform reports from health-check library to json."""
-        plugins = instance.get("plugins", {})
-        errors = instance.get("errors", [])
-
-        checks = {}
-        for plugin_identifier, plugin in plugins.items():
-            plugin_has_errors = bool(plugin.errors)
-            error = None
-            if plugin_has_errors:
-                error = plugin.pretty_status() if settings.DEBUG else "Check failed"
-
-            checks[plugin_identifier] = {
-                "status": "error" if plugin_has_errors else "ok",
-                "error": error,
-            }
-
-        overall_status = "unavailable" if errors else "ok"
-
-        return {
-            "status": overall_status,
-            "timestamp": UTCDateTimeField().to_representation(now()),
-            "checks": checks,
-        }
+    @extend_schema_field(serializers.ChoiceField(choices=["ok", "unavailable"]))
+    def get_status(self, health):
+        """Return the overall status, unavailable if any check failed."""
+        if any(result.error for result in health["checks"].values()):
+            return "unavailable"
+        return "ok"
 
 
 class EpisodeHistory:

@@ -2602,9 +2602,11 @@ dev = [
     { name = "django-upgrade" },
     { name = "djlint" },
     { name = "fakeredis", extra = ["lua"] },
+    { name = "jsonschema" },
     { name = "pre-commit" },
     { name = "pytest-django" },
     { name = "pytest-playwright" },
+    { name = "referencing" },
     { name = "ruff" },
     { name = "tblib" },
 ]
@@ -2621,8 +2623,10 @@ lint = [
 test = [
     { name = "coverage" },
     { name = "fakeredis", extra = ["lua"] },
+    { name = "jsonschema" },
     { name = "pytest-django" },
     { name = "pytest-playwright" },
+    { name = "referencing" },
     { name = "tblib" },
 ]
 
@@ -2665,9 +2669,11 @@ dev = [
     { name = "django-upgrade", specifier = "~=1.31.1" },
     { name = "djlint", specifier = "~=1.44.0" },
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.35.1,<2.40.0" },
+    { name = "jsonschema", specifier = "~=4.26.0" },
     { name = "pre-commit", specifier = "~=4.6.1" },
     { name = "pytest-django", specifier = "~=4.12.0" },
     { name = "pytest-playwright", specifier = "~=0.8.0" },
+    { name = "referencing", specifier = "~=0.37.0" },
     { name = "ruff", specifier = "~=0.16.1" },
     { name = "tblib", specifier = "~=3.2.2" },
 ]
@@ -2684,8 +2690,10 @@ lint = [
 test = [
     { name = "coverage", specifier = "~=7.15.3" },
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.35.1,<2.40.0" },
+    { name = "jsonschema", specifier = "~=4.26.0" },
     { name = "pytest-django", specifier = "~=4.12.0" },
     { name = "pytest-playwright", specifier = "~=0.8.0" },
+    { name = "referencing", specifier = "~=0.37.0" },
     { name = "tblib", specifier = "~=3.2.2" },
 ]
 
