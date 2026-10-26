@@ -513,7 +513,8 @@ class ImportTraktNewMode(TestCase):
         """A watch already recorded a few minutes apart is not imported again."""
         self.run_import(history=[self.movie_watch("2023-01-01T10:00:00.000Z")])
         Movie.objects.filter(user=self.user).update(
-            end_date=datetime(2023, 1, 1, 10, 6, tzinfo=UTC),
+            end_date=datetime(2023, 1, 1, 10, 0, tzinfo=UTC)
+            + helpers.WATCH_MATCH_TOLERANCE,
         )
 
         imported_counts, _ = self.run_import(

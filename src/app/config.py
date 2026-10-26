@@ -9,6 +9,7 @@ COLORS = {
         "text": "text-emerald-400",
         "background": "bg-emerald-400",
         "background_strong": "bg-emerald-500",
+        "button": "bg-emerald-600 hover:bg-emerald-700",
         "hex": "#10b981",
     },
     "purple": {
@@ -20,12 +21,14 @@ COLORS = {
         "text": "text-indigo-400",
         "background": "bg-indigo-400",
         "background_strong": "bg-indigo-500",
+        "button": "bg-indigo-600 hover:bg-indigo-700",
         "hex": "#6366f1",
     },
     "orange": {
         "text": "text-orange-400",
         "background": "bg-orange-400",
         "background_strong": "bg-orange-500",
+        "button": "bg-orange-600/90 hover:bg-orange-700",
         "hex": "#f97316",
     },
     "blue": {
@@ -37,6 +40,7 @@ COLORS = {
         "text": "text-red-400",
         "background": "bg-red-400",
         "background_strong": "bg-red-500",
+        "button": "bg-red-600/90 hover:bg-red-700",
         "hex": "#ef4444",
     },
     "yellow": {
@@ -64,6 +68,7 @@ COLORS = {
         "text": "text-sky-400",
         "background": "bg-sky-400",
         "background_strong": "bg-sky-500",
+        "button": "bg-sky-600 hover:bg-sky-700",
         "hex": "#87ceeb",
     },
 }
@@ -233,6 +238,7 @@ STATUS_CONFIG = {
         "stats_color": COLORS["emerald"]["hex"],
         "background_color": COLORS["emerald"]["background"],
         "background_color_strong": COLORS["emerald"]["background_strong"],
+        "button_color": COLORS["emerald"]["button"],
         "icon": "app/icons/states/completed.svg",
     },
     Status.IN_PROGRESS.value: {
@@ -240,6 +246,7 @@ STATUS_CONFIG = {
         "stats_color": COLORS["indigo"]["hex"],
         "background_color": COLORS["indigo"]["background"],
         "background_color_strong": COLORS["indigo"]["background_strong"],
+        "button_color": COLORS["indigo"]["button"],
         "icon": "app/icons/states/in-progress.svg",
     },
     Status.PAUSED.value: {
@@ -247,6 +254,7 @@ STATUS_CONFIG = {
         "stats_color": COLORS["orange"]["hex"],
         "background_color": COLORS["orange"]["background"],
         "background_color_strong": COLORS["orange"]["background_strong"],
+        "button_color": COLORS["orange"]["button"],
         "icon": "app/icons/states/paused.svg",
     },
     Status.PLANNING.value: {
@@ -254,6 +262,7 @@ STATUS_CONFIG = {
         "stats_color": COLORS["sky"]["hex"],
         "background_color": COLORS["sky"]["background"],
         "background_color_strong": COLORS["sky"]["background_strong"],
+        "button_color": COLORS["sky"]["button"],
         "icon": "app/icons/states/planning.svg",
     },
     Status.DROPPED.value: {
@@ -261,6 +270,7 @@ STATUS_CONFIG = {
         "stats_color": COLORS["red"]["hex"],
         "background_color": COLORS["red"]["background"],
         "background_color_strong": COLORS["red"]["background_strong"],
+        "button_color": COLORS["red"]["button"],
         "icon": "app/icons/states/dropped.svg",
     },
 }
@@ -391,6 +401,11 @@ def get_status_stats_color(status):
 def get_status_background_color(status):
     """Get the background color for a status."""
     return get_status_property(status, "background_color")
+
+
+def get_status_button_color(status):
+    """Get the button background and hover classes for a status."""
+    return get_status_property(status, "button_color")
 
 
 def get_status_icon(status):

@@ -126,6 +126,26 @@ class CreateMedia(TestCase):
             True,
         )
 
+    def test_create_episode_with_notes(self):
+        """Test that episode notes are saved through views."""
+        self.client.post(
+            reverse("episode_save"),
+            {
+                "media_id": "1668",
+                "season_number": 1,
+                "episode_number": 1,
+                "source": Sources.TMDB.value,
+                "end_date": "2023-06-01",
+                "notes": "Great episode",
+            },
+        )
+        episode = Episode.objects.get(
+            item__media_id="1668",
+            related_season__user=self.user,
+            item__episode_number=1,
+        )
+        self.assertEqual(episode.notes, "Great episode")
+
 
 class EditMedia(TestCase):
     """Test the editing of media objects through views."""
