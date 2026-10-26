@@ -1,7 +1,8 @@
 from unittest.mock import patch
 from uuid import UUID
 
-from app.models import MediaTypes, Sources, Status
+from api.helpers import error_response
+from app.models import TV, MediaTypes, Movie, Sources, Status
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -274,6 +275,59 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(str(UUID(manual_media_id)), manual_media_id)
         self.assertEqual(payload["item"]["source"], "manual")
         self.assertEqual(payload["item"]["media_type"], MediaTypes.MOVIE.value)
+        self.assertEqual(payload["status"], 3)
+        self.assertEqual(
+            Movie.objects.get(item__media_id=manual_media_id).status,
+            Status.COMPLETED.value,
+        )
+
+    def test_media_type_list_post_provider_rejects_invalid_source(self):
+        """Tracking from a provider should reject sources invalid for the type."""
+        response = self.call_api(
+            "post",
+            "api_media_type_list",
+            args=(MediaTypes.MOVIE.value,),
+            payload={"source": Sources.MAL.value, "media_id": "501"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_media_type_list_post_provider_rejects_season_and_episode(self):
+        """Tracking seasons and episodes from a provider isn't supported yet."""
+        for media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
+            with self.subTest(media_type=media_type):
+                response = self.call_api(
+                    "post",
+                    "api_media_type_list",
+                    args=(media_type,),
+                    payload={
+                        "source": Sources.TMDB.value,
+                        "media_id": "1001",
+                        "season_number": 1,
+                        "episode_number": 1,
+                    },
+                    headers=self.auth_headers,
+                )
+
+                self.assertEqual(response.status_code, 400)
+
+    def test_media_type_list_post_provider_already_tracked_returns_conflict(self):
+        """Tracking again a media allowed only once per user should return 409."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        response = self.call_api(
+            "post",
+            "api_media_type_list",
+            args=(MediaTypes.TV.value,),
+            payload={"source": tv_item.source, "media_id": tv_item.media_id},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            TV.objects.filter(item=tv_item, user=self.user1).count(),
+            1,
+        )
 
     def test_media_type_list_post_invalid_type_returns_bad_request(self):
         """Media-type create endpoint should reject unsupported media types."""
@@ -854,6 +908,90 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("no valid fields", response.json().get("detail", "").lower())
 
+    @patch("api.views.services.get_media_metadata")
+    def test_media_detail_patch_null_clears_nullable_field(self, mock_metadata):
+        """Media PATCH with a null value should clear a nullable field."""
+        movie = self.movie_medias[0]
+        mock_metadata.return_value = {
+            "media_id": movie.item.media_id,
+            "source": movie.item.source,
+            "media_type": MediaTypes.MOVIE.value,
+            "title": movie.item.title,
+            "max_progress": 1,
+            "related": {},
+        }
+        movie.score = 7
+        movie.save()
+
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"score": None},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        movie.refresh_from_db()
+        self.assertIsNone(movie.score)
+
+    def test_media_detail_patch_null_on_non_nullable_field_returns_bad_request(self):
+        """Media PATCH should reject a null value for a non-nullable field."""
+        movie = self.movie_medias[0]
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"status": None},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("status", response.json()["errors"])
+
+    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    def test_media_detail_patch_provider_error_does_not_save(self, _mock_metadata):
+        """Media PATCH shouldn't save changes when the provider request fails."""
+        movie = self.movie_medias[0]
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"score": 4},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+        movie.refresh_from_db()
+        self.assertNotEqual(movie.score, 4)
+
+    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    def test_server_error_hides_exception_without_debug(self, _mock_metadata):
+        """Server errors shouldn't expose the exception message without DEBUG."""
+        movie = self.movie_medias[0]
+        args = (MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id)
+
+        with self.settings(DEBUG=False), self.assertLogs("api.helpers", "ERROR"):
+            response = self.call_api(
+                "get", "api_media_detail", args=args, headers=self.auth_headers
+            )
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("boom", response.content.decode())
+
+    def test_error_response_adds_exception_only_with_debug(self):
+        """The exception message should be returned only when DEBUG is enabled."""
+        # The helper is tested directly, since enabling DEBUG during a request
+        # activates the debug toolbar, whose urls are registered only at startup
+        exc = Exception("boom")
+
+        with self.settings(DEBUG=False):
+            response = error_response("Not found.", 404, exc)
+        self.assertEqual(response.data, {"detail": "Not found."})
+
+        with self.settings(DEBUG=True):
+            response = error_response("Not found.", 404, exc)
+        self.assertEqual(response.data, {"detail": "Not found.", "debug": "boom"})
+
     def test_media_changes_history_returns_paginated_payload(self):
         """Changes history endpoint should return change entries."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1180,7 +1318,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         list_id = self.lists_by_name["favorites"].id
         put_response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=("invalid", "tmdb", 501, list_id),
             payload={},
             headers=self.auth_headers,
@@ -1189,7 +1327,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         delete_response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=("invalid", "tmdb", 501, list_id),
             headers=self.auth_headers,
         )
@@ -1202,7 +1340,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,
@@ -1227,7 +1365,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         list_id = self.lists_by_name["favorites"].id
         response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(MediaTypes.MOVIE.value, "tmdb", 999999, list_id),
             headers=self.auth_headers,
         )
@@ -1239,7 +1377,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
         response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,
@@ -1258,7 +1396,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,
@@ -1288,7 +1426,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         list_id = self.lists_by_name["favorites"].id
         response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(MediaTypes.MOVIE.value, "tmdb", 999999, list_id),
             payload={},
             headers=self.auth_headers,
@@ -1301,7 +1439,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][1]
         response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,

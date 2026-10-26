@@ -2,9 +2,9 @@ import asyncio
 from http import HTTPStatus as HTTP  # noqa: N814
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.db import IntegrityError
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import IntegrityError, transaction
 from django.utils.timezone import datetime, localdate, make_aware
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -46,13 +46,14 @@ from .helpers import (
     SOURCES_VALID_LIST,
     apply_aggregated_sort,
     apply_list_sort,
+    apply_validated_fields,
     build_lists_by_item_id,
     check_source_type,
     check_valid_type,
+    error_response,
     fetch_results_all_types,
     fetch_results_for_type,
     get_item_lists,
-    get_media_status,
     get_sorts,
     get_timeline,
     paginate_data,
@@ -60,11 +61,14 @@ from .helpers import (
     parse_limit_offset,
     parse_sort_filter,
     parse_status_param,
+    require_update_fields,
     resolve_calendar_date_range,
+    resolve_collaborators,
     try_parse_date,
 )
 from .schemas import (
     BadRequestResponse,
+    ConflictResponse,
     EpisodeNumberParam,
     ForbiddenResponse,
     InternalServerErrorResponse,
@@ -279,12 +283,8 @@ class CalendarView(drf_views.APIView):
         try:
             releases = Event.objects.get_user_events(request.user, first_day, last_day)
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Error occurred while fetching events.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Error occurred while fetching events.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         paginated_data = paginate_data(request, releases, limit, offset)
@@ -389,19 +389,16 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
 
         try:
             record = get_changes_history_entry(media_type, history_id, request.user)
-
-            serialized_data = ChangesHistoryEntrySerializer(
-                record, context={"media_type": media_type}
-            ).data
-            return Response(serialized_data, status=HTTP.OK)
-        except Exception as e:  # noqa: BLE001
+        except (ObjectDoesNotExist, ValueError):
             return Response(
-                {
-                    "detail": "History record not found",
-                    "errors": str(e),
-                },
+                {"detail": "History record not found"},
                 status=HTTP.NOT_FOUND,
             )
+
+        serialized_data = ChangesHistoryEntrySerializer(
+            record, context={"media_type": media_type}
+        ).data
+        return Response(serialized_data, status=HTTP.OK)
 
     @extend_schema(
         operation_id="changes_history_entry_delete",
@@ -435,18 +432,13 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
 
         try:
             delete_changes_history_entry(media_type, history_id, request.user)
+        except (ObjectDoesNotExist, ValueError):
             return Response(
-                {"detail": "Record removed correctly"},
-                status=HTTP.NO_CONTENT,
-            )
-        except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "History record not found",
-                    "errors": str(e),
-                },
+                {"detail": "History record not found"},
                 status=HTTP.NOT_FOUND,
             )
+
+        return Response(status=HTTP.NO_CONTENT)
 
 
 # /api/v1/health/
@@ -737,53 +729,19 @@ class ListsView(drf_views.APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        name = data["name"]
-        description = data.get("description", "")
-        collaborator_ids = data.get("collaborators", [])
+        collaborators = resolve_collaborators(data.get("collaborators", []))
 
-        if collaborator_ids and not isinstance(collaborator_ids, list):
-            return Response(
-                {
-                    "detail": "Field 'collaborators' must be an array of user IDs.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        try:
-            # TODO: move to lists/models.py
+        # TODO: move to lists/models.py
+        with transaction.atomic():
             custom_list = CustomList.objects.create(
-                name=name,
-                description=description,
+                name=data["name"],
+                description=data.get("description", ""),
                 owner=user,
             )
+            custom_list.collaborators.set(collaborators)
 
-            if collaborator_ids:
-                collaborators = get_user_model().objects.filter(id__in=collaborator_ids)
-
-                if collaborators.count() != len(collaborator_ids):
-                    custom_list.delete()
-                    return Response(
-                        {
-                            "detail": "One or more collaborator IDs are invalid.",
-                        },
-                        status=HTTP.BAD_REQUEST,
-                    )
-
-                custom_list.collaborators.set(collaborators)
-
-            serialized_data = ListSerializer(
-                custom_list,
-            ).data
-            return Response(serialized_data, status=HTTP.CREATED)
-
-        except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "An error occurred while creating the list.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
-            )
+        serialized_data = ListSerializer(custom_list).data
+        return Response(serialized_data, status=HTTP.CREATED)
 
 
 # /api/v1/lists/[list_id]/
@@ -1063,29 +1021,27 @@ class ListDetailView(drf_views.APIView):
         description = data.get("description")
         collaborator_ids = data.get("collaborators")
 
+        collaborators = None
+        if collaborator_ids is not None:
+            if custom_list.owner != user:
+                return Response(
+                    {
+                        "detail": "Only the list owner can change the collaborators.",
+                    },
+                    status=HTTP.FORBIDDEN,
+                )
+            collaborators = resolve_collaborators(collaborator_ids)
+
         if name is not None:
             custom_list.name = name.strip()
         if description is not None:
             custom_list.description = description
-        if collaborator_ids is not None:
-            if not isinstance(collaborator_ids, list):
-                return Response(
-                    {
-                        "detail": "Field 'collaborators' must be an array of user IDs.",
-                    },
-                    status=HTTP.BAD_REQUEST,
-                )
-            collaborators = get_user_model().objects.filter(id__in=collaborator_ids)
-            if collaborators.count() != len(collaborator_ids):
-                return Response(
-                    {
-                        "detail": "One or more collaborator IDs are invalid.",
-                    },
-                    status=HTTP.BAD_REQUEST,
-                )
-            custom_list.collaborators.set(collaborators)
 
-        custom_list.save()
+        with transaction.atomic():
+            custom_list.save()
+            if collaborators is not None:
+                custom_list.collaborators.set(collaborators)
+
         serialized_data = ListSerializer(custom_list).data
         return Response(serialized_data, status=HTTP.OK)
 
@@ -1892,6 +1848,7 @@ class MediaTypeListView(drf_views.APIView):
             400: BadRequestResponse,
             401: UnauthorizedResponse,
             404: NotFoundResponse,
+            409: ConflictResponse,
             500: InternalServerErrorResponse,
         },
     )
@@ -1914,12 +1871,7 @@ class MediaTypeListView(drf_views.APIView):
         data = serializer.validated_data
 
         data["media_type"] = media_type
-        data["status"] = (
-            get_media_status(data["status"], reverse=True)
-            if "status" in data
-            # default status when tracking a new media will be "planning"
-            else MediaStatusChoices.PLANNING
-        )
+        data["status"] = data.get("status") or MediaStatusChoices.PLANNING
 
         source = data.get("source", Sources.MANUAL.value)
 
@@ -1983,6 +1935,25 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
+        if not check_source_type(media_type, source):
+            return Response(
+                {
+                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
+        # TODO: support tracking seasons and episodes from providers, they need
+        if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
+            return Response(
+                {
+                    "detail": (
+                        f"Tracking `{media_type}` from a provider is not supported yet."
+                    ),
+                },
+                status=HTTP.BAD_REQUEST,
+            )
+
         season_number = data.get("season_number")
 
         try:
@@ -1993,12 +1964,8 @@ class MediaTypeListView(drf_views.APIView):
                 [season_number],
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Internal Server Error.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         defaults = {"title": metadata.get("title"), "image": metadata.get("image")}
@@ -2013,12 +1980,8 @@ class MediaTypeListView(drf_views.APIView):
         try:
             item.save()
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Internal Server Error.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         model = MEDIA_TYPE_COMPLETE_MODEL_MAP.get(media_type)
@@ -2042,7 +2005,14 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        media_form.save()
+        try:
+            with transaction.atomic():
+                media_form.save()
+        except IntegrityError:
+            return Response(
+                {"detail": f"Conflict. {item.title} is already tracked."},
+                status=HTTP.CONFLICT,
+            )
         serialized_data = MixedMediaSerializer(media_form.instance).data
         return Response(serialized_data, status=HTTP.CREATED)
 
@@ -2097,12 +2067,8 @@ class MediaDetailView(drf_views.APIView):
                 source,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Internal Server Error.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not user_medias:
@@ -2241,12 +2207,8 @@ class MediaDetailView(drf_views.APIView):
         try:
             media_metadata = services.get_media_metadata(media_type, media_id, source)
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         try:
@@ -2257,12 +2219,8 @@ class MediaDetailView(drf_views.APIView):
                 source,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if (
@@ -2455,12 +2413,8 @@ class MediaDetailView(drf_views.APIView):
                 source,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not user_medias:
@@ -2498,34 +2452,23 @@ class MediaDetailView(drf_views.APIView):
 
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-
-        for field, value in data.items():
-            if hasattr(media, field) and value is not None:
-                setattr(media, field, value)
-
-        try:
-            media.save()
-        except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Failed to update media.",
-                    "errors": str(e),
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        media.refresh_from_db()
+        require_update_fields(data)
 
         try:
             media_metadata = services.get_media_metadata(media_type, media_id, source)
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Internal Server Error.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
+
+        apply_validated_fields(media, data)
+
+        try:
+            media.save()
+        except Exception as e:  # noqa: BLE001
+            return error_response("Failed to update media.", HTTP.BAD_REQUEST, e)
+
+        media.refresh_from_db()
 
         if (
             "related" in media_metadata
@@ -2762,12 +2705,8 @@ class MediaConsumptionHistoryView(drf_views.APIView):
                 source,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Internal Server Error.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not user_medias:
@@ -2855,12 +2794,8 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                 source,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Internal Server Error.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -2941,12 +2876,8 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                 source,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -3042,12 +2973,8 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                 source,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -3084,18 +3011,14 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
 
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        require_update_fields(data)
 
-        for field, value in data.items():
-            if hasattr(consumption, field):
-                setattr(consumption, field, value)
+        apply_validated_fields(consumption, data)
 
         try:
             consumption.save()
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {"detail": HTTP.BAD_REQUEST.phrase, "errors": str(e)},
-                status=HTTP.BAD_REQUEST,
-            )
+            return error_response(HTTP.BAD_REQUEST.phrase, HTTP.BAD_REQUEST, e)
 
         consumption.refresh_from_db()
 
@@ -3436,12 +3359,8 @@ class MediaRecommendationsView(drf_views.APIView):
         try:
             media_metadata = services.get_media_metadata(media_type, media_id, source)
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         recommendations = []
@@ -3559,12 +3478,8 @@ class MediaSeasonsView(drf_views.APIView):
         try:
             media_metadata = services.get_media_metadata(media_type, media_id, source)
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         seasons = []
@@ -3776,12 +3691,8 @@ class MediaSyncView(drf_views.APIView):
             )
 
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
 
@@ -3845,12 +3756,8 @@ class MediaSeasonDetailView(drf_views.APIView):
                 season_number=season_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not user_medias:
@@ -4003,12 +3910,8 @@ class MediaSeasonDetailView(drf_views.APIView):
                 [season_number],
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not media_metadata:
@@ -4026,12 +3929,8 @@ class MediaSeasonDetailView(drf_views.APIView):
                 season_number=season_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         season_episodes = list(
@@ -4217,12 +4116,8 @@ class MediaSeasonDetailView(drf_views.APIView):
                 season_number=season_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not user_medias:
@@ -4236,10 +4131,21 @@ class MediaSeasonDetailView(drf_views.APIView):
         serializer = UpdateSeasonSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        require_update_fields(data)
 
-        for field, value in data.items():
-            if hasattr(media, field):
-                setattr(media, field, value)
+        try:
+            media_metadata = services.get_media_metadata(
+                "season",
+                media_id,
+                source,
+                [season_number],
+            )
+        except Exception as e:  # noqa: BLE001
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
+            )
+
+        apply_validated_fields(media, data)
 
         try:
             media.save()
@@ -4250,22 +4156,6 @@ class MediaSeasonDetailView(drf_views.APIView):
             )
 
         media.refresh_from_db()
-
-        try:
-            media_metadata = services.get_media_metadata(
-                "season",
-                media_id,
-                source,
-                [season_number],
-            )
-        except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
-            )
 
         lists = get_item_lists(
             user,
@@ -4557,12 +4447,8 @@ class MediaSeasonEpisodesView(drf_views.APIView):
                 [season_number],
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Failed to retrieve season episodes.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to retrieve season episodes.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         episodes = []
@@ -4718,12 +4604,8 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
                 season_number=season_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         # TODO: missing sorting
@@ -4823,12 +4705,8 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                 season_number=season_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "Failed to retrieve consumption entry.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to retrieve consumption entry.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -4919,12 +4797,8 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                 season_number=season_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -5025,12 +4899,8 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                 season_number=season_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -5043,18 +4913,14 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
         serializer = UpdateSeasonSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        require_update_fields(data)
 
-        for field, value in data.items():
-            if hasattr(consumption, field):
-                setattr(consumption, field, value)
+        apply_validated_fields(consumption, data)
 
         try:
             consumption.save()
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {"detail": HTTP.BAD_REQUEST.phrase, "errors": str(e)},
-                status=HTTP.BAD_REQUEST,
-            )
+            return error_response(HTTP.BAD_REQUEST.phrase, HTTP.BAD_REQUEST, e)
 
         consumption.refresh_from_db()
 
@@ -5501,12 +5367,10 @@ class MediaSeasonSyncView(drf_views.APIView):
             )
 
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "An error occurred while syncing metadata.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while syncing metadata.",
+                HTTP.INTERNAL_SERVER_ERROR,
+                e,
             )
 
 
@@ -5580,12 +5444,8 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 episode_number=episode_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "An error occurred while fetching media.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while fetching media.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not user_medias:
@@ -5742,12 +5602,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 [season_number],
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "An error occurred while fetching media metadata.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while fetching media metadata.",
+                HTTP.INTERNAL_SERVER_ERROR,
+                e,
             )
 
         if not media_metadata:
@@ -5781,12 +5639,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 episode_number=episode_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "An error occurred while fetching user media.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while fetching user media.",
+                HTTP.INTERNAL_SERVER_ERROR,
+                e,
             )
 
         media_metadata.pop("episodes")
@@ -5962,12 +5818,10 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 episode_number=episode_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": "An error occurred while fetching user media.",
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while fetching user media.",
+                HTTP.INTERNAL_SERVER_ERROR,
+                e,
             )
 
         if not user_medias:
@@ -5983,20 +5837,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
         serializer = UpdateEpisodeSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-
-        for field, value in data.items():
-            if hasattr(media, field):
-                setattr(media, field, value)
-
-        try:
-            media.save()
-        except Exception as e:  # noqa: BLE001
-            return Response(
-                {"detail": HTTP.BAD_REQUEST.phrase, "errors": str(e)},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        media.refresh_from_db()
+        require_update_fields(data)
 
         try:
             media_metadata = services.get_media_metadata(
@@ -6006,12 +5847,8 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 [season_number],
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         if not media_metadata:
@@ -6020,21 +5857,28 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        if "episodes" in media_metadata and media_metadata["episodes"] is not None:
-            episode = next(
-                (
-                    obj
-                    for obj in media_metadata["episodes"]
-                    if obj["episode_number"] == int(episode_number)
-                ),
-                None,
+        episode = next(
+            (
+                obj
+                for obj in media_metadata.get("episodes") or []
+                if obj["episode_number"] == int(episode_number)
+            ),
+            None,
+        )
+        if not episode:
+            return Response(
+                {"detail": "Episode not found."},
+                status=HTTP.NOT_FOUND,
             )
 
-            if not episode:
-                return Response(
-                    {"detail": "Episode not found."},
-                    status=HTTP.NOT_FOUND,
-                )
+        apply_validated_fields(media, data)
+
+        try:
+            media.save()
+        except Exception as e:  # noqa: BLE001
+            return error_response(HTTP.BAD_REQUEST.phrase, HTTP.BAD_REQUEST, e)
+
+        media.refresh_from_db()
 
         lists = get_item_lists(
             user,
@@ -6282,12 +6126,8 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
                 episode_number=episode_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {
-                    "detail": HTTP.INTERNAL_SERVER_ERROR.phrase,
-                    "errors": str(e),
-                },
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         # TODO: missing sorting
@@ -6615,18 +6455,14 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         serializer = UpdateEpisodeSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        require_update_fields(data)
 
-        for field, value in data.items():
-            if hasattr(consumption, field):
-                setattr(consumption, field, value)
+        apply_validated_fields(consumption, data)
 
         try:
             consumption.save()
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {"detail": HTTP.BAD_REQUEST.phrase, "errors": str(e)},
-                status=HTTP.BAD_REQUEST,
-            )
+            return error_response(HTTP.BAD_REQUEST.phrase, HTTP.BAD_REQUEST, e)
 
         consumption.refresh_from_db()
 

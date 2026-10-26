@@ -7,9 +7,13 @@ from http import HTTPStatus as HTTP  # noqa: N814
 from urllib.parse import urlencode
 
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.timezone import is_naive, localdate, make_aware
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.response import Response
 
 from app.models import (
@@ -33,60 +37,6 @@ from users.models import MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
-MEDIA_MODIFIABLE_FIELDS = {
-    MediaTypes.MOVIE.value: {"score", "status", "start_date", "end_date", "notes"},
-    MediaTypes.TV.value: {"score", "status", "notes"},
-    MediaTypes.SEASON.value: {"score", "status", "notes"},
-    MediaTypes.EPISODE.value: {"end_date"},
-    MediaTypes.ANIME.value: {
-        "score",
-        "status",
-        "progress",
-        "start_date",
-        "end_date",
-        "notes",
-    },
-    MediaTypes.MANGA.value: {
-        "score",
-        "status",
-        "progress",
-        "start_date",
-        "end_date",
-        "notes",
-    },
-    MediaTypes.GAME.value: {
-        "score",
-        "status",
-        "progress",
-        "start_date",
-        "end_date",
-        "notes",
-    },
-    MediaTypes.BOOK.value: {
-        "score",
-        "status",
-        "progress",
-        "start_date",
-        "end_date",
-        "notes",
-    },
-    MediaTypes.COMIC.value: {
-        "score",
-        "status",
-        "progress",
-        "start_date",
-        "end_date",
-        "notes",
-    },
-    MediaTypes.BOARDGAME.value: {
-        "score",
-        "status",
-        "progress",
-        "start_date",
-        "end_date",
-        "notes",
-    },
-}
 
 MEDIA_STATUS_MAP = {
     "Planning": 0,
@@ -180,6 +130,69 @@ SOURCES_VALID_LIST = [
 ]
 
 SOURCES_COMPLETE_VALID_LIST = [*SOURCES_VALID_LIST, "manual"]
+
+
+def resolve_collaborators(collaborator_ids):
+    """Return the users for the given collaborator ids.
+
+    Duplicated ids are ignored. Raise a ValidationError if any id doesn't match
+    an existing user.
+    """
+    unique_ids = set(collaborator_ids)
+    collaborators = get_user_model().objects.filter(id__in=unique_ids)
+    if collaborators.count() != len(unique_ids):
+        raise ValidationError(
+            {"collaborators": ["One or more collaborator IDs are invalid."]},
+        )
+    return collaborators
+
+
+def error_response(detail, status, exc=None):
+    """Build an API error response for a handled exception.
+
+    The exception message is returned under `debug` only when DEBUG is enabled,
+    server errors are always logged.
+    """
+    if exc is not None and status >= HTTP.INTERNAL_SERVER_ERROR:
+        logger.error("%s", detail, exc_info=exc)
+
+    data = {"detail": detail}
+    if exc is not None and settings.DEBUG:
+        data["debug"] = str(exc)
+    return Response(data, status=status)
+
+
+def require_update_fields(validated_data):
+    """Raise a ParseError if the request has no updatable fields.
+
+    Unknown fields are dropped by the serializers, so an empty validated_data
+    means that the request has nothing to update.
+    """
+    if not validated_data:
+        msg = "No valid fields to update."
+        raise ParseError(msg)
+
+
+def apply_validated_fields(instance, validated_data):
+    """Set the validated request fields on a model instance.
+
+    A null value clears a nullable field. Raise a ValidationError for fields that
+    are not editable on the instance or that can't be null.
+    """
+    errors = {}
+    for field, value in validated_data.items():
+        try:
+            model_field = instance._meta.get_field(field)
+        except FieldDoesNotExist:
+            errors[field] = ["This field can't be updated for this media type."]
+            continue
+        if value is None and not model_field.null:
+            errors[field] = ["This field may not be null."]
+            continue
+        setattr(instance, field, value)
+
+    if errors:
+        raise ValidationError(errors)
 
 
 def build_item_id(item):

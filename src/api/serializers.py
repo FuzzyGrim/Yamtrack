@@ -203,12 +203,19 @@ class ApiMessageResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
 
 
-# TODO: errors field can be str or list, depending on the error
 class ApiErrorResponseSerializer(serializers.Serializer):
     """Standard API error response serializer."""
 
     detail = serializers.CharField()
-    errors = serializers.CharField(required=False, allow_blank=True)
+    errors = serializers.DictField(
+        child=serializers.ListField(child=serializers.CharField()),
+        required=False,
+        help_text="Validation errors, keyed by field name.",
+    )
+    debug = serializers.CharField(
+        required=False,
+        help_text="Exception message, only returned when DEBUG is enabled.",
+    )
 
 
 @extend_schema_serializer(
@@ -480,10 +487,13 @@ class HealthResponseSerializer(serializers.Serializer):
         checks = {}
         for plugin_identifier, plugin in plugins.items():
             plugin_has_errors = bool(plugin.errors)
+            error = None
+            if plugin_has_errors:
+                error = plugin.pretty_status() if settings.DEBUG else "Check failed"
 
             checks[plugin_identifier] = {
                 "status": "error" if plugin_has_errors else "ok",
-                "error": plugin.pretty_status() if plugin_has_errors else None,
+                "error": error,
             }
 
         overall_status = "unavailable" if errors else "ok"

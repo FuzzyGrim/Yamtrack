@@ -318,6 +318,69 @@ class ListsTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_list_detail_patch_collaborators_only_by_owner(self):
+        """Only the list owner should be able to change the collaborators."""
+        shared_list = self.lists_by_name["shared"]
+
+        response = self.call_api(
+            "patch",
+            "api_list_detail",
+            args=(shared_list.id,),
+            payload={"collaborators": []},
+            headers=self.auth_headers2,
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(shared_list.collaborators.filter(id=self.user2.id).exists())
+
+        # Collaborators can still edit the other list fields
+        response = self.call_api(
+            "patch",
+            "api_list_detail",
+            args=(shared_list.id,),
+            payload={"name": "Renamed by collaborator"},
+            headers=self.auth_headers2,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.call_api(
+            "patch",
+            "api_list_detail",
+            args=(shared_list.id,),
+            payload={"collaborators": []},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(shared_list.collaborators.exists())
+
+    def test_lists_post_with_duplicated_collaborators_creates_list(self):
+        """Duplicated collaborator ids shouldn't be reported as invalid."""
+        response = self.call_api(
+            "post",
+            "api_lists",
+            payload={
+                "name": "New List",
+                "collaborators": [self.user2.id, self.user2.id],
+            },
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        custom_list = CustomList.objects.get(name="New List", owner=self.user1)
+        self.assertEqual(list(custom_list.collaborators.all()), [self.user2])
+
+    def test_lists_post_with_invalid_collaborators_does_not_create_list(self):
+        """A list shouldn't be created if the collaborators are invalid."""
+        response = self.call_api(
+            "post",
+            "api_lists",
+            payload={"name": "New List", "collaborators": [99999]},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("collaborators", response.json()["errors"])
+        self.assertFalse(CustomList.objects.filter(name="New List").exists())
+
     def test_list_detail_patch_invalid_collaborators_returns_400(self):
         """List PATCH with invalid collaborators type should return 400."""
         custom_list = self.lists_by_name["favorites"]
