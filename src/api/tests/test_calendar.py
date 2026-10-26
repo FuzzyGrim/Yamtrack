@@ -131,7 +131,7 @@ class CalendarTests(YamtrackApiTestCase):
             payload = response.json()
             self.assertIn("detail", payload)
 
-    @patch("api.views.tasks.reload_calendar.delay")
+    @patch("events.tasks.reload_calendar.delay")
     def test_calendar_update_post(self, mock_delay):
         """Calendar update should queue async task and return 202."""
         response = self.call_api(

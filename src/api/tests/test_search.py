@@ -43,7 +43,7 @@ class SearchTests(YamtrackApiTestCase):
         )
         self.assertEqual(episode_response.status_code, 400)
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_returns_paginated_payload(self, mock_search):
         """Search endpoint should return paginated response with provider data."""
         mock_search.return_value = {
@@ -73,7 +73,7 @@ class SearchTests(YamtrackApiTestCase):
         self.assertIn("results", payload)
         check_pagination_structure(self, payload["pagination"])
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_passes_query_params_to_provider(self, mock_search):
         """Search endpoint should forward search/source/limit/offset and user."""
         mock_search.return_value = {
@@ -103,7 +103,7 @@ class SearchTests(YamtrackApiTestCase):
         self.assertEqual(payload["pagination"]["limit"], 5)
         self.assertEqual(payload["pagination"]["offset"], 2)
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_enforces_max_limit(self, mock_search):
         """Search endpoint should clamp limit to the API maximum."""
         mock_search.return_value = {
@@ -151,7 +151,7 @@ class SearchTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("limit must be >0", response.json().get("detail", "").lower())
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_manual_source_uses_provider_page(self, mock_search):
         """Manual search already applies the offset, it must not be applied twice."""
         mock_search.return_value = {
@@ -172,7 +172,7 @@ class SearchTests(YamtrackApiTestCase):
         self.assertEqual([item["id"] for item in payload["results"]], [3, 4])
         self.assertEqual(payload["pagination"]["total"], 4)
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_stops_after_max_provider_pages(self, mock_search):
         """Search endpoint should not fetch an unbounded number of pages."""
         mock_search.return_value = {
@@ -198,7 +198,7 @@ class SearchTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_accumulates_pages_before_paginating(self, mock_search):
         """Search endpoint should keep fetching pages until offset+limit is covered."""
         mock_search.side_effect = [
@@ -236,7 +236,7 @@ class SearchTests(YamtrackApiTestCase):
         self.assertIsNone(payload["pagination"]["next"])
         self.assertIsNotNone(payload["pagination"]["previous"])
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_handles_malformed_provider_payload(self, mock_search):
         """Search endpoint should return empty paginated payload on bad response."""
         mock_search.return_value = {"unexpected": "payload"}
@@ -253,7 +253,7 @@ class SearchTests(YamtrackApiTestCase):
         self.assertEqual(payload["results"], [])
         self.assertEqual(payload["pagination"]["total"], 0)
 
-    @patch("api.views.services.search")
+    @patch("app.providers.services.search")
     def test_search_provider_exception_returns_internal_error(self, mock_search):
         """Search endpoint should map provider failures to HTTP 500."""
         mock_search.side_effect = RuntimeError("provider failure")

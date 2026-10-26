@@ -103,7 +103,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
             )
             self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_episode_detail_get_returns_expected_shape(self, mock_metadata):
         """Episode detail GET should return complete serialized payload."""
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
@@ -138,7 +138,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         self.assertIn("consumptions", payload)
         self.assertIn("lists", payload)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_episode_detail_patch_with_invalid_field_returns_400(self, mock_metadata):
         """Episode PATCH with unknown field should return 400."""
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
@@ -169,7 +169,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_episode_detail_delete_not_tracked_returns_404(self, mock_metadata):
         """Episode delete of untracked episode should return 404."""
         tv_item = self.items_by_type[MediaTypes.TV.value][1]
@@ -247,7 +247,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_episode_detail_get_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -262,7 +262,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_episode_detail_get_invalid_season_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -286,7 +286,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_episode_detail_get_invalid_episode_id_returns_not_found(
         self, mock_metadata
     ):
@@ -365,7 +365,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         self.assertIn("details", payload)
         self.assertIsNone(payload["consumptions"][0]["end_date"])
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_episode_detail_delete_tracked_episode_returns_204(self, mock_metadata):
         """Episode detail DELETE should remove tracked episode."""
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
@@ -732,8 +732,8 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         for entry in payload["results"]:
             check_changes_history_entry_structure(self, entry)
 
-    @patch("api.views.tmdb.process_episodes", return_value=[])
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.tmdb.process_episodes", return_value=[])
+    @patch("app.providers.services.get_media_metadata")
     def test_episode_sync_returns_accepted(
         self,
         mock_metadata,
@@ -769,7 +769,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 202)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_episode_sync_invalid_ids_return_internal_server_error(
         self,
         _mock_metadata,

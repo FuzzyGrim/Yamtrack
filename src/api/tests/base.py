@@ -52,7 +52,7 @@ class YamtrackApiTestCase(APITestCase):
         self.addCleanup(self._fetch_releases_patcher.stop)
 
         self._metadata_patcher = patch(
-            "api.views.services.get_media_metadata",
+            "app.providers.services.get_media_metadata",
             return_value={
                 "max_progress": None,
                 "related": {"seasons": [], "recommendations": []},

@@ -460,7 +460,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_detail_get_returns_expected_shape(self, mock_metadata):
         """Media detail GET should return a complete serialized payload."""
         # TODO: Use real mock data fixtures instead of hardcoding values
@@ -720,7 +720,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_detail_patch_updates_media_fields(self, mock_metadata):
         """Media detail PATCH should update mutable media fields."""
         # TODO: Use real mock data fixtures instead of hardcoding values
@@ -1004,7 +1004,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("no valid fields", response.json().get("detail", "").lower())
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_detail_patch_null_clears_nullable_field(self, mock_metadata):
         """Media PATCH with a null value should clear a nullable field."""
         movie = self.movie_medias[0]
@@ -1045,7 +1045,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("status", response.json()["errors"])
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_detail_patch_provider_error_does_not_save(self, _mock_metadata):
         """Media PATCH shouldn't save changes when the provider request fails."""
         movie = self.movie_medias[0]
@@ -1061,7 +1061,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         movie.refresh_from_db()
         self.assertNotEqual(movie.score, 4)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_server_error_hides_exception_without_debug(self, _mock_metadata):
         """Server errors shouldn't expose the exception message without DEBUG."""
         movie = self.movie_medias[0]
@@ -1548,7 +1548,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_recommendations_returns_related_items(self, mock_metadata):
         """Recommendations endpoint should return provider recommendations."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1580,7 +1580,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(payload[0]["media_id"], recommended_item.media_id)
         self.assertEqual(payload[0]["title"], recommended_item.title)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_recommendations_returns_string_media_ids(self, mock_metadata):
         """Recommendations should return string media ids like the other endpoints."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1619,7 +1619,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_recommendations_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1634,7 +1634,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_seasons_get_returns_expected_structure(self, mock_metadata):
         """Media seasons endpoint should return paginated media payload."""
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
@@ -1689,7 +1689,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_seasons_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1704,7 +1704,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_sync_returns_accepted_and_updates_item(self, mock_metadata):
         """Sync endpoint should refresh metadata and return accepted."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1728,7 +1728,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(movie_item.title, "Movie 1 Synced")
         self.assertEqual(movie_item.image, "https://example.com/movie-1-synced.jpg")
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_sync_invalid_media_id_returns_internal_server_error(
         self, _mock_metadata
     ):

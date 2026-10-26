@@ -62,7 +62,7 @@ class StatisticsTests(YamtrackApiTestCase):
         payload = response.json()
         check_statistics_structure(self, payload)
 
-    @patch("api.views.localdate", return_value=date(2028, 2, 29))
+    @patch("api.views.statistics.localdate", return_value=date(2028, 2, 29))
     def test_statistics_default_range_on_leap_day(self, _mock_localdate):
         """Statistics default range shouldn't fail on February 29th."""
         response = self.call_api(
