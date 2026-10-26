@@ -33,9 +33,13 @@ from app.models import (
     Sources,
 )
 from lists.models import CustomListItem
-from users.models import MediaStatusChoices
+from users.models import MediaSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
+
+
+class InvalidSortError(ValueError):
+    """Raised when a requested sort is not supported."""
 
 
 MEDIA_STATUS_MAP = {
@@ -79,23 +83,37 @@ MEDIA_TYPE_VALID_LIST = list(MEDIA_TYPE_MODEL_MAP.keys())
 MAX_RESULT_LIMIT = 200
 
 
+SORT_DIRECTIONS = ("asc", "desc")
+
 MEDIA_EXISTING_SORTS = [
-    "start_date",
-    "end_date",
-] + [f.name for f in Item._meta.fields]
-
-MEDIA_SEASONS_ADDITIONAL_SORTS = [
-    "progress",
+    *MediaSortChoices.values,
+    "id",
+    "media_id",
+    "media_type",
+    "source",
+    "season_number",
+    "episode_number",
 ]
 
-MEDIA_EPISODES_ADDITIONAL_SORTS = [
-    "progress",
-]
+MEDIA_ASCENDING_SORTS = {
+    MediaSortChoices.TITLE.value,
+    MediaSortChoices.START_DATE.value,
+}
 
 MEDIA_MANUAL_SORTS = [
     "added",
     "updated",
     "itemid",
+]
+
+EPISODE_SORTS = [
+    "added",
+    "end_date",
+    "episode_number",
+    "id",
+    "itemid",
+    "season_number",
+    "title",
 ]
 
 LIST_SORTS = [
@@ -212,29 +230,92 @@ def build_item_id(item):
     return f"{media_type}/{item.source}/{item.media_id}{children}"
 
 
-# TODO: move to lists/models.py
 def build_lists_by_item_id(user, objects):
-    """Build a map of item id to list membership payload for serializer context."""
-    lists_by_item_id = {}
+    """Build a map of item id to list membership payload for serializer context.
 
+    Items that aren't in any list are missing from the map. The memberships of
+    all the objects are fetched with a single query.
+    """
+    item_ids = set()
     for obj in objects:
         item = obj if isinstance(obj, Item) else getattr(obj, "item", None)
-        if item is None:
-            continue
+        if item is not None:
+            item_ids.add(item.id)
 
-        if item.id in lists_by_item_id:
-            continue
+    return CustomListItem.objects.get_user_item_lists_map(user, item_ids)
 
-        lists_by_item_id[item.id] = get_item_lists(
-            user,
-            item.media_id,
-            item.source,
-            item.media_type,
-            season_number=item.season_number,
-            episode_number=item.episode_number,
+
+def get_lists_by_number(user, media_id, source, numbers, *, season_number=None):
+    """Return a map of season or episode number to its list memberships.
+
+    Without `season_number` the numbers are season numbers of the show, otherwise
+    they are episode numbers of that season. Numbers without lists are missing.
+    """
+    numbers = [number for number in numbers if number is not None]
+    if not numbers:
+        return {}
+
+    if season_number is None:
+        items = Item.objects.filter(
+            media_type=MediaTypes.SEASON.value,
+            season_number__in=numbers,
+            episode_number__isnull=True,
         )
+        number_field = "season_number"
+    else:
+        items = Item.objects.filter(
+            media_type=MediaTypes.EPISODE.value,
+            season_number=season_number,
+            episode_number__in=numbers,
+        )
+        number_field = "episode_number"
 
-    return lists_by_item_id
+    number_by_item_id = dict(
+        items.filter(media_id=media_id, source=source).values_list("id", number_field),
+    )
+    lists_by_item_id = CustomListItem.objects.get_user_item_lists_map(
+        user,
+        list(number_by_item_id),
+    )
+    return {
+        number_by_item_id[item_id]: lists for item_id, lists in lists_by_item_id.items()
+    }
+
+
+def get_latest_medias_by_item_id(user, items):
+    """Return a map of item id to the user media shown for that item.
+
+    It's equivalent to calling `BasicMedia.objects.filter_media_prefetch(...)
+    .first()` for each item, but runs one query (plus prefetches) per media type
+    instead of several queries per item. Untracked items are missing from the map.
+    """
+    items_by_type = {}
+    for item in items:
+        items_by_type.setdefault(item.media_type, []).append(item)
+
+    medias_by_item_id = {}
+    for media_type, type_items in items_by_type.items():
+        model = MEDIA_TYPE_COMPLETE_MODEL_MAP.get(media_type)
+        if model is None:
+            continue
+
+        user_filter = (
+            {"related_season__user": user}
+            if media_type == MediaTypes.EPISODE.value
+            else {"user": user}
+        )
+        queryset = (
+            model.objects.filter(item__in=type_items, **user_filter)
+            .select_related("item")
+            # Same order used by `.first()`
+            .order_by(*(model._meta.ordering or ["pk"]))
+        )
+        queryset = BasicMedia.objects._apply_prefetch_related(queryset, media_type)
+
+        for media in queryset:
+            medias_by_item_id.setdefault(media.item_id, media)
+
+    return medias_by_item_id
 
 
 def build_parent_id(item):
@@ -265,15 +346,12 @@ def check_source_type(media_type, source):
 def fetch_media_list(user, media_type, status, sort_filter, search):
     """Return a plain list of the requested media."""
     if media_type == MediaTypes.EPISODE.value:
-        qs = Episode.objects.filter(related_season__user=user)
+        qs = Episode.objects.filter(related_season__user=user).select_related("item")
         if status and status != MediaStatusChoices.ALL:
-            try:
-                qs = qs.filter(related_season__status=status)
-            except Exception:  # noqa: BLE001
-                return []
+            qs = qs.filter(related_season__status=status)
         if search:
             qs = qs.filter(item__title__icontains=search)
-        return qs
+        return list(qs)
 
     return list(
         BasicMedia.objects.get_media_list(
@@ -286,25 +364,40 @@ def fetch_media_list(user, media_type, status, sort_filter, search):
     )
 
 
-def fetch_results_for_type(user, media_type, status, sort, search):
-    """Fetch and sort results for a specific media type."""
-    sort_list = get_sorts(media_type, sort_type="existing")
-    media_sort = sort if sort in sort_list else ""
-    already_sorted = bool(media_sort)
+def fetch_results_for_type(user, media_type, status, sort, direction, search):
+    """Fetch and sort results for a specific media type.
 
-    results = fetch_media_list(user, media_type, status, media_sort, search)
+    Raise InvalidSortError if the sort is not supported for the media type.
+    """
+    if sort and sort not in get_sorts(media_type):
+        raise InvalidSortError
 
-    if not already_sorted and sort:
-        if sort in get_sorts(media_type, sort_type="manual"):
-            results = apply_manual_sort_for_type(results, sort)
-        else:
-            return None, True
+    db_sort = (
+        sort
+        if sort in MEDIA_EXISTING_SORTS and media_type != MediaTypes.EPISODE.value
+        else ""
+    )
+    results = fetch_media_list(user, media_type, status, db_sort, search)
 
-    return results, False
+    if db_sort:
+        db_descending = db_sort not in MEDIA_ASCENDING_SORTS
+        if db_descending != (direction == "desc"):
+            results.reverse()
+        return results
+
+    if sort:
+        return apply_aggregated_sort(results, sort, direction)
+    return results
 
 
-def fetch_results_all_types(user, status, sort, search, exclude):
-    """Fetch and sort results across all media types."""
+def fetch_results_all_types(user, status, sort, direction, search, exclude):
+    """Fetch and sort results across all media types.
+
+    Raise InvalidSortError if the sort is not supported.
+    """
+    if sort and sort not in get_sorts(None):
+        raise InvalidSortError
+
     excluded_set = {e.strip().lower() for e in exclude if e and e.strip()}
     allowed_types = [t for t in MEDIA_TYPE_VALID_LIST if t not in excluded_set]
 
@@ -313,13 +406,8 @@ def fetch_results_all_types(user, status, sort, search, exclude):
         results.extend(fetch_media_list(user, t, status, "", search))
 
     if sort:
-        sort_list = get_sorts(None, sort_type="all")
-        if sort in sort_list:
-            results = apply_aggregated_sort(results, sort)
-        else:
-            return None, True
-
-    return results, False
+        return apply_aggregated_sort(results, sort, direction)
+    return results
 
 
 # TODO: move to lists/models.py
@@ -347,26 +435,13 @@ def get_item_lists(
     return CustomListItem.objects.get_user_item_lists(user, item)
 
 
-def get_sorts(media_type, *, sort_type="all"):
-    """Return the list of valid sorts for complete media types."""
-    if sort_type == "all":
-        sort_list = MEDIA_EXISTING_SORTS.copy()
-        if media_type == MediaTypes.SEASON.value:
-            sort_list += MEDIA_SEASONS_ADDITIONAL_SORTS
-        if media_type == MediaTypes.EPISODE.value:
-            sort_list += MEDIA_EPISODES_ADDITIONAL_SORTS
-        sort_list += MEDIA_MANUAL_SORTS
-        return sort_list
-    if sort_type == "manual":
-        return MEDIA_MANUAL_SORTS
-    if sort_type == "existing":
-        sort_list = MEDIA_EXISTING_SORTS.copy()
-        if media_type == MediaTypes.SEASON.value:
-            sort_list += MEDIA_SEASONS_ADDITIONAL_SORTS
-        if media_type == MediaTypes.EPISODE.value:
-            sort_list += MEDIA_EPISODES_ADDITIONAL_SORTS
-        return sort_list
-    return []
+def get_sorts(media_type=None):
+    """Return the valid sorts for a media type, or for mixed media if None."""
+    if media_type is None:
+        return list(_AGGREGATED_SORT_KEYS)
+    if media_type == MediaTypes.EPISODE.value:
+        return EPISODE_SORTS.copy()
+    return MEDIA_EXISTING_SORTS + MEDIA_MANUAL_SORTS
 
 
 def get_media_status(status, *, reverse=False):
@@ -634,18 +709,21 @@ def try_parse_datetime_input(value):
 
 
 def parse_sort_filter(sort_filter):
-    """Parse a sort_filter string into (field, direction) tuple."""
-    if sort_filter and sort_filter != "":
-        parts = sort_filter.split("_", 1)
-        if len(parts) == 2:  # noqa: PLR2004
-            return parts[0], parts[1]
-        return parts[0], ""
-    return "", ""
+    """Parse a `<field>[_asc|_desc]` sort string into a (field, direction) tuple.
+
+    The direction suffix is optional and defaults to ascending.
+    """
+    if not sort_filter:
+        return "", ""
+    field, _, direction = sort_filter.rpartition("_")
+    if field and direction in SORT_DIRECTIONS:
+        return field, direction
+    return sort_filter, "asc"
 
 
 def itemid_key_compare(media):
     """Key function for sorting by item_id."""
-    item = getattr(media, "item", media)
+    item = _item_from_result(media)
     media_type = getattr(item, "media_type", "")
     source = getattr(item, "source", "")
     media_id_raw = getattr(item, "media_id", "")
@@ -658,78 +736,60 @@ def _item_from_result(media):
     return getattr(media, "item", media)
 
 
-def _sort_nullable(value):
-    """Build sortable tuple handling null values consistently."""
-    return (value is None, value)
+def _item_attr_key(attr):
+    """Return a key function reading an attribute of the result's Item."""
+    return lambda media: getattr(_item_from_result(media), attr, None)
 
 
-def _sort_source(media):
-    """Return source key from both media and item objects."""
-    item = _item_from_result(media)
-    return getattr(item, "source", "")
+def _media_attr_key(attr):
+    """Return a key function reading an attribute of the media result."""
+    return lambda media: getattr(media, attr, None)
 
 
-def _sort_mediaid(media):
-    """Return item database id from both media and item objects."""
-    item = _item_from_result(media)
-    return getattr(item, "id", 0)
+def _sort_media_id(media):
+    """Return lowercased media_id key from both media and item objects."""
+    media_id = getattr(_item_from_result(media), "media_id", None)
+    return str(media_id).lower() if media_id is not None else None
 
 
 def _sort_title(media):
     """Return lowercased title key from both media and item objects."""
-    item = _item_from_result(media)
-    title = getattr(item, "title", "")
-    return title.lower() if isinstance(title, str) else ""
-
-
-def _sort_type(media):
-    """Return media type key from both media and item objects."""
-    item = _item_from_result(media)
-    return getattr(item, "media_type", "")
-
-
-_AGGREGATED_MANUAL_SORT_KEYS = {
-    "added": lambda media: media.created_at,
-    "itemid": itemid_key_compare,
-    "updated": lambda media: media.progressed_at,
-}
-
-
-def apply_manual_sort_for_type(results, sort):
-    """Apply manual sorts used when a single media type is requested."""
-    if sort not in _AGGREGATED_MANUAL_SORT_KEYS:
-        return Response(
-            {"detail": "Invalid sorting"},
-            status=HTTP.BAD_REQUEST,
-        )
-    results.sort(key=_AGGREGATED_MANUAL_SORT_KEYS[sort])
-    return results
+    title = getattr(_item_from_result(media), "title", None)
+    return title.lower() if isinstance(title, str) else None
 
 
 _AGGREGATED_SORT_KEYS = {
-    "added": lambda media: _sort_nullable(getattr(media, "created_at", None)),
-    "ended": lambda media: _sort_nullable(getattr(media, "end_date", None)),
-    "id": lambda media: int(media.id),
+    "added": _media_attr_key("created_at"),
+    "end_date": _media_attr_key("end_date"),
+    "episode_number": _item_attr_key("episode_number"),
+    "id": _item_attr_key("id"),
     "itemid": itemid_key_compare,
-    "mediaid": _sort_mediaid,
-    "progress": lambda media: int(getattr(media, "progress", 0) or 0),
-    "source": _sort_source,
-    "started": lambda media: _sort_nullable(getattr(media, "start_date", None)),
+    "media_id": _sort_media_id,
+    "media_type": _item_attr_key("media_type"),
+    "progress": _media_attr_key("progress"),
+    "score": _media_attr_key("score"),
+    "season_number": _item_attr_key("season_number"),
+    "source": _item_attr_key("source"),
+    "start_date": _media_attr_key("start_date"),
     "title": _sort_title,
-    "type": _sort_type,
-    "updated": lambda media: _sort_nullable(getattr(media, "progressed_at", None)),
+    "updated": _media_attr_key("progressed_at"),
 }
 
 
-def apply_aggregated_sort(results, sort):
-    """Apply sorting for the aggregated (multi-type) results."""
+def apply_aggregated_sort(results, sort, direction):
+    """Sort media and item results in python, keeping null values last.
+
+    Raise InvalidSortError if the sort is not supported.
+    """
     if sort not in _AGGREGATED_SORT_KEYS:
-        return Response(
-            {"detail": "Invalid sorting"},
-            status=HTTP.BAD_REQUEST,
-        )
-    results.sort(key=_AGGREGATED_SORT_KEYS[sort])
-    return results
+        raise InvalidSortError
+    key = _AGGREGATED_SORT_KEYS[sort]
+
+    keyed = [(key(result), result) for result in results]
+    present = [pair for pair in keyed if pair[0] is not None]
+    missing = [result for value, result in keyed if value is None]
+    present.sort(key=lambda pair: pair[0], reverse=direction == "desc")
+    return [result for _, result in present] + missing
 
 
 def apply_list_sort(queryset, sort, sort_order):

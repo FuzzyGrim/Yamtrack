@@ -44,6 +44,7 @@ from .changes_history_processor import (
 from .helpers import (
     MEDIA_TYPE_COMPLETE_MODEL_MAP,
     SOURCES_VALID_LIST,
+    InvalidSortError,
     apply_aggregated_sort,
     apply_list_sort,
     apply_validated_fields,
@@ -54,7 +55,8 @@ from .helpers import (
     fetch_results_all_types,
     fetch_results_for_type,
     get_item_lists,
-    get_sorts,
+    get_latest_medias_by_item_id,
+    get_lists_by_number,
     get_timeline,
     paginate_data,
     parse_excluded_items,
@@ -75,6 +77,7 @@ from .schemas import (
     ListSearchParam,
     ListSortParam,
     MediaIdParam,
+    MediaSortParam,
     MediaTypeCompleteParam,
     MediaTypeCompleteQueryParam,
     MediaTypeParam,
@@ -643,7 +646,7 @@ class ListsView(drf_views.APIView):
         if sorted_lists is None:
             return Response(
                 {"detail": "Invalid sorting"},
-                status=HTTP.NOT_FOUND,
+                status=HTTP.BAD_REQUEST,
             )
 
         paginated_data = paginate_data(request, sorted_lists, limit, offset)
@@ -811,18 +814,7 @@ class ListDetailView(drf_views.APIView):
                 required=False,
                 description="Search query to filter list items by title.",
             ),
-            OpenApiParameter(
-                name="sort",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                required=False,
-                description="Sort field and order.",
-                enum=[
-                    suffix_sort
-                    for sort in get_sorts(None, sort_type="all")
-                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
-                ],
-            ),
+            MediaSortParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -902,32 +894,20 @@ class ListDetailView(drf_views.APIView):
         if err:
             return err
 
-        media_objects = []
-        for item in items:
-            # Shows info about the last consumption of the media if it's tracked
-            media = BasicMedia.objects.filter_media_prefetch(
-                user,
-                item.media_id,
-                item.media_type,
-                item.source,
-                season_number=item.season_number,
-                episode_number=item.episode_number,
-            ).first()
-
-            media_objects.append(media if media is not None else item)
+        # Shows info about the last consumption of the media if it's tracked
+        items = list(items)
+        medias_by_item_id = get_latest_medias_by_item_id(user, items)
+        media_objects = [medias_by_item_id.get(item.id, item) for item in items]
 
         if sort_filter:
             sort, sort_order = parse_sort_filter(sort_filter)
-            if sort not in get_sorts(None, sort_type="all"):
+            try:
+                media_objects = apply_aggregated_sort(media_objects, sort, sort_order)
+            except InvalidSortError:
                 return Response(
                     {"detail": "Invalid sorting"},
                     status=HTTP.BAD_REQUEST,
                 )
-            media_objects = apply_aggregated_sort(media_objects, sort)
-            if isinstance(media_objects, Response):
-                return media_objects
-            if sort_order == "desc":
-                media_objects.reverse()
 
         paginated_data = paginate_data(request, media_objects, limit, offset)
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
@@ -1071,18 +1051,7 @@ class ListItemsView(drf_views.APIView):
                 required=False,
                 description="Search query to filter list items by title.",
             ),
-            OpenApiParameter(
-                name="sort",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                required=False,
-                description="Sort field and order.",
-                enum=[
-                    suffix_sort
-                    for sort in get_sorts(None, sort_type="all")
-                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
-                ],
-            ),
+            MediaSortParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -1178,32 +1147,20 @@ class ListItemsView(drf_views.APIView):
         if err:
             return err
 
-        media_objects = []
-        for item in items:
-            # Shows info about the last consumption of the media if it's tracked
-            media = BasicMedia.objects.filter_media_prefetch(
-                user,
-                item.media_id,
-                item.media_type,
-                item.source,
-                season_number=item.season_number,
-                episode_number=item.episode_number,
-            ).first()
-
-            media_objects.append(media if media is not None else item)
+        # Shows info about the last consumption of the media if it's tracked
+        items = list(items)
+        medias_by_item_id = get_latest_medias_by_item_id(user, items)
+        media_objects = [medias_by_item_id.get(item.id, item) for item in items]
 
         if sort_filter:
             sort, sort_order = parse_sort_filter(sort_filter)
-            if sort not in get_sorts(None, sort_type="all"):
+            try:
+                media_objects = apply_aggregated_sort(media_objects, sort, sort_order)
+            except InvalidSortError:
                 return Response(
                     {"detail": "Invalid sorting"},
-                    status=HTTP.NOT_FOUND,
+                    status=HTTP.BAD_REQUEST,
                 )
-            media_objects = apply_aggregated_sort(media_objects, sort)
-            if isinstance(media_objects, Response):
-                return media_objects
-            if sort_order == "desc":
-                media_objects.reverse()
 
         paginated_data = paginate_data(request, media_objects, limit, offset)
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
@@ -1502,18 +1459,7 @@ class MediaListView(drf_views.APIView):
                 required=False,
                 description="Search query to filter media by title, case insensitive.",
             ),
-            OpenApiParameter(
-                name="sort",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                required=False,
-                description="Sort field and order.",
-                enum=[
-                    suffix_sort
-                    for sort in get_sorts(None, sort_type="all")
-                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
-                ],
-            ),
+            MediaSortParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -1588,47 +1534,44 @@ class MediaListView(drf_views.APIView):
         if status is None:
             return Response(
                 {"detail": "Invalid status"},
-                status=HTTP.NOT_FOUND,
+                status=HTTP.BAD_REQUEST,
             )
 
         sort, sort_order = parse_sort_filter(sort_filter)
 
-        if media_type:
-            if not check_valid_type(media_type, complete=True):
-                return Response(
-                    {"detail": "Unsupported media type."},
-                    status=HTTP.BAD_REQUEST,
-                )
-            results, has_error = fetch_results_for_type(
-                user,
-                media_type,
-                status,
-                sort,
-                search,
-            )
-        else:
-            # Exclude EPISODES and SEASONS from results by default
-            # to declutter the results
-            # TODO: Add an option to return those too? (seasons=true&episodes=false)
-            results, has_error = fetch_results_all_types(
-                user,
-                status,
-                sort,
-                search,
-                exclude,
+        if media_type and not check_valid_type(media_type, complete=True):
+            return Response(
+                {"detail": "Unsupported media type."},
+                status=HTTP.BAD_REQUEST,
             )
 
-        if has_error:
+        try:
+            if media_type:
+                results = fetch_results_for_type(
+                    user,
+                    media_type,
+                    status,
+                    sort,
+                    sort_order,
+                    search,
+                )
+            else:
+                # Exclude EPISODES and SEASONS from results by default
+                # to declutter the results
+                # TODO: Add an option to return those too? (seasons=true&episodes=false)  # noqa: E501, W505
+                results = fetch_results_all_types(
+                    user,
+                    status,
+                    sort,
+                    sort_order,
+                    search,
+                    exclude,
+                )
+        except InvalidSortError:
             return Response(
                 {"detail": "Invalid sorting"},
-                status=HTTP.NOT_FOUND,
+                status=HTTP.BAD_REQUEST,
             )
-
-        if isinstance(results, Response):
-            return results
-
-        if sort_order == "desc":
-            results.reverse()
 
         paginated_data = paginate_data(request, results, limit, offset)
         # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
@@ -1674,18 +1617,7 @@ class MediaTypeListView(drf_views.APIView):
                 required=False,
                 description="Search query to filter media by title, case insensitive.",
             ),
-            OpenApiParameter(
-                name="sort",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                required=False,
-                description="Sort field and order.",
-                enum=[
-                    suffix_sort
-                    for sort in get_sorts(None, sort_type="all")
-                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
-                ],
-            ),
+            MediaSortParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -1756,7 +1688,7 @@ class MediaTypeListView(drf_views.APIView):
         if status is None:
             return Response(
                 {"detail": "Invalid status"},
-                status=HTTP.NOT_FOUND,
+                status=HTTP.BAD_REQUEST,
             )
 
         sort, sort_order = parse_sort_filter(sort_filter)
@@ -1766,25 +1698,21 @@ class MediaTypeListView(drf_views.APIView):
                 {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
-        results, has_error = fetch_results_for_type(
-            user,
-            media_type,
-            status,
-            sort,
-            search,
-        )
 
-        if has_error:
+        try:
+            results = fetch_results_for_type(
+                user,
+                media_type,
+                status,
+                sort,
+                sort_order,
+                search,
+            )
+        except InvalidSortError:
             return Response(
                 {"detail": "Invalid sorting"},
-                status=HTTP.NOT_FOUND,
+                status=HTTP.BAD_REQUEST,
             )
-
-        if isinstance(results, Response):
-            return results
-
-        if sort_order == "desc":
-            results.reverse()
 
         paginated_data = paginate_data(request, results, limit, offset)
         # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
@@ -3491,25 +3419,12 @@ class MediaSeasonsView(drf_views.APIView):
             seasons = media_metadata["related"]["seasons"]
 
         paginated_data = paginate_data(request, seasons, limit, offset)
-        lists_by_number = {}
-        for season in paginated_data["results"]:
-            season_number = season.get("season_number")
-            if season_number is None:
-                continue
-
-            lists_by_number[season_number] = get_item_lists(
-                user,
-                media_id,
-                source,
-                MediaTypes.SEASON.value,
-                season_number=season_number,
-            )
-
         season_numbers = [
             season.get("season_number")
             for season in paginated_data["results"]
             if season.get("season_number") is not None
         ]
+        lists_by_number = get_lists_by_number(user, media_id, source, season_numbers)
 
         items_by_number = {
             item.season_number: item
@@ -4457,27 +4372,19 @@ class MediaSeasonEpisodesView(drf_views.APIView):
 
         paginated = paginate_data(request, episodes, limit, offset)
 
-        # TODO: see if this can be optimized with a single query for all episodes instead of one per episode  # noqa: E501, W505
         # TODO: see if lists infos can be saved in the `episodes` object to avoid using `context` to pass additional parameters  # noqa: E501, W505
-        lists_by_number = {}
-        for episode in paginated["results"]:
-            episode_number = episode.get("episode_number")
-            if episode_number is None:
-                continue
-            lists_by_number[episode_number] = get_item_lists(
-                user,
-                media_id,
-                source,
-                "episode",
-                season_number=season_number,
-                episode_number=episode_number,
-            )
-
         episode_numbers = [
             episode.get("episode_number")
             for episode in paginated["results"]
             if episode.get("episode_number") is not None
         ]
+        lists_by_number = get_lists_by_number(
+            user,
+            media_id,
+            source,
+            episode_numbers,
+            season_number=season_number,
+        )
 
         tracked_by_number = {}
         if episode_numbers:

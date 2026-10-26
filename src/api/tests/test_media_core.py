@@ -1,5 +1,8 @@
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import UUID
+
+from django.utils import timezone
 
 from api.helpers import error_response
 from app.models import TV, MediaTypes, Movie, Sources, Status
@@ -142,7 +145,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             check_media_structure(self, item)
             self.assertNotEqual(item["item"]["media_type"], MediaTypes.MOVIE.value)
 
-    def test_media_list_get_invalid_status_returns_not_found(self):
+    def test_media_list_get_invalid_status_returns_bad_request(self):
         """Media list endpoint should reject unsupported status values."""
         response = self.call_api(
             "get",
@@ -151,9 +154,9 @@ class MediaCoreTests(YamtrackApiTestCase):
             headers=self.auth_headers,
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
 
-    def test_media_list_get_invalid_sort_returns_not_found(self):
+    def test_media_list_get_invalid_sort_returns_bad_request(self):
         """Media list endpoint should reject unsupported sort values."""
         response = self.call_api(
             "get",
@@ -162,7 +165,100 @@ class MediaCoreTests(YamtrackApiTestCase):
             headers=self.auth_headers,
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
+
+    def _set_movie_fields(self, field, values):
+        """Set a field on the tracked movies, in fixture order."""
+        for media, value in zip(self.movie_medias, values, strict=True):
+            setattr(media, field, value)
+            media.save()
+
+    def _get_movie_titles(self, sort):
+        """Return the movie titles listed with the given sort."""
+        response = self.call_api(
+            "get",
+            "api_media_type_list",
+            args=(MediaTypes.MOVIE.value,),
+            params={"sort": sort},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        return [item["item"]["title"] for item in response.json()["results"]]
+
+    def test_media_type_list_sort_field_with_underscore(self):
+        """Sorts whose field contains an underscore should be parsed correctly."""
+        now = timezone.now()
+        self._set_movie_fields(
+            "start_date",
+            [now - timedelta(days=1), now - timedelta(days=3), now - timedelta(days=2)],
+        )
+
+        self.assertEqual(
+            self._get_movie_titles("start_date_asc"),
+            ["Movie 2", "Movie 3", "Movie 1"],
+        )
+        self.assertEqual(
+            self._get_movie_titles("start_date_desc"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+
+    def test_media_type_list_sort_respects_direction(self):
+        """Sorts applied in descending order by the db should honor `_asc`."""
+        self._set_movie_fields("score", [5, 9, 7])
+
+        self.assertEqual(
+            self._get_movie_titles("score_asc"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+        self.assertEqual(
+            self._get_movie_titles("score_desc"),
+            ["Movie 2", "Movie 3", "Movie 1"],
+        )
+        # Without a direction the sort is ascending
+        self.assertEqual(
+            self._get_movie_titles("score"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+
+    def test_media_list_all_types_sort_by_score_keeps_nulls_last(self):
+        """Mixed media sorts should be supported and keep null values last."""
+        self._set_movie_fields("score", [5, 9, 7])
+
+        response = self.call_api(
+            "get",
+            "api_media_list",
+            params={"sort": "score_desc", "limit": 200},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        scores = [item["score"] for item in response.json()["results"]]
+        self.assertEqual(scores[:3], [9, 7, 5])
+        self.assertTrue(all(score is None for score in scores[3:]))
+
+    def test_media_type_list_episode_sorts(self):
+        """Episode lists should support their own sorts and reject the others."""
+        response = self.call_api(
+            "get",
+            "api_media_type_list",
+            args=(MediaTypes.EPISODE.value,),
+            params={"sort": "episode_number_desc"},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        episode_numbers = [
+            item["item"]["episode_number"] for item in response.json()["results"]
+        ]
+        self.assertEqual(episode_numbers, sorted(episode_numbers, reverse=True))
+
+        response = self.call_api(
+            "get",
+            "api_media_type_list",
+            args=(MediaTypes.EPISODE.value,),
+            params={"sort": "score"},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 400)
 
     def test_media_type_list_invalid_type_returns_bad_request(self):
         """Media-type list endpoint should reject unsupported media types."""

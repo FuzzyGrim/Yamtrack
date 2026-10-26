@@ -1,5 +1,8 @@
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
+from app.models import MediaTypes
 from lists.models import CustomList, CustomListItem
 
 from .base import YamtrackApiTestCase
@@ -173,6 +176,40 @@ class ListsTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def _count_list_queries(self, url_name, custom_list):
+        """Return the number of queries made to serve a list endpoint."""
+        with CaptureQueriesContext(connection) as queries:
+            response = self.call_api(
+                "get",
+                url_name,
+                args=(custom_list.id,),
+                headers=self.auth_headers,
+            )
+        self.assertEqual(response.status_code, 200)
+        return len(queries)
+
+    def test_list_endpoints_queries_do_not_grow_with_items(self):
+        """List endpoints should not run queries for each item of the list."""
+        custom_list = CustomList.objects.create(name="Queries", owner=self.user1)
+        movies = self.items_by_type[MediaTypes.MOVIE.value]
+        animes = self.items_by_type[MediaTypes.ANIME.value]
+
+        for item in (movies[0], animes[0]):
+            CustomListItem.objects.create(custom_list=custom_list, item=item)
+        few_items_queries = {
+            url_name: self._count_list_queries(url_name, custom_list)
+            for url_name in ("api_list_detail", "api_list_add_item")
+        }
+
+        for item in (*movies[1:], *animes[1:]):
+            CustomListItem.objects.create(custom_list=custom_list, item=item)
+        for url_name, expected in few_items_queries.items():
+            with self.subTest(url_name=url_name):
+                self.assertEqual(
+                    self._count_list_queries(url_name, custom_list),
+                    expected,
+                )
 
     def test_list_detail_get_returns_list_with_paginated_items(self):
         """List detail GET should return list info and paginated items."""
@@ -480,15 +517,15 @@ class ListsTests(YamtrackApiTestCase):
         # Should find only Movie 1, not Movie 2
         self.assertEqual(len(payload["results"]), 1)
 
-    def test_list_items_invalid_sort_returns_404(self):
-        """List items endpoint with invalid sort should return 404."""
+    def test_list_items_invalid_sort_returns_bad_request(self):
+        """List items endpoint with invalid sort should return 400."""
         custom_list = self.lists_by_name["favorites"]
         response = self.client.get(
             reverse("api_list_add_item", args=(custom_list.id,)) + "?sort=invalid_sort",
             **self.auth_headers,
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
 
     def test_list_item_delete_removes_item(self):
         """Deleting a list item should return 204 and remove relation."""

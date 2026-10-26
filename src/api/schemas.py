@@ -7,11 +7,13 @@ from drf_spectacular.utils import (
 )
 
 from .helpers import (
+    EPISODE_SORTS,
     LIST_SORTS,
     MEDIA_TYPE_COMPLETE_VALID_LIST,
     MEDIA_TYPE_VALID_LIST,
     SOURCES_COMPLETE_VALID_LIST,
     SOURCES_VALID_LIST,
+    get_sorts,
 )
 from .serializers import ApiErrorResponseSerializer
 
@@ -185,6 +187,22 @@ ListSortParam = OpenApiParameter(
         suffix_sort
         for sort in LIST_SORTS
         for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
+    ],
+)
+
+MediaSortParam = OpenApiParameter(
+    name="sort",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Sort field, optionally followed by `_asc` or `_desc` "
+        "(default: ascending). Episodes only support a subset of the sorts: "
+        f"{', '.join(EPISODE_SORTS)}."
+    ),
+    enum=[
+        suffix_sort
+        for sort in get_sorts()
+        for suffix_sort in (sort, f"{sort}_asc", f"{sort}_desc")
     ],
 )
 
