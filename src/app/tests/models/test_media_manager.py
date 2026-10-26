@@ -517,6 +517,51 @@ class MediaManagerTests(TestCase):
 
         self.assertEqual(media_list[0], self.movie)
 
+    def test_get_media_list_sort_by_release_date(self):
+        """Test sorting by release date, newest first and undated last."""
+        manager = MediaManager()
+
+        inception = Movie.objects.create(
+            item=Item.objects.create(
+                media_id="27205",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title="Inception",
+                image="http://example.com/inception.jpg",
+            ),
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        undated = Movie.objects.create(
+            item=Item.objects.create(
+                media_id="13",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title="Another Movie",
+                image="http://example.com/another.jpg",
+            ),
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        Event.objects.create(
+            item=self.movie_item,
+            datetime=datetime(1999, 10, 15, tzinfo=UTC),
+        )
+        Event.objects.create(
+            item=inception.item,
+            datetime=datetime(2010, 7, 16, tzinfo=UTC),
+        )
+
+        media_list = manager.get_media_list(
+            user=self.user,
+            media_type=MediaTypes.MOVIE.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="release_date",
+        )
+
+        self.assertEqual(list(media_list), [inception, self.movie, undated])
+
     def test_get_media_list_sort_by_regular_field(self):
         """Test the get_media_list method with sorting by regular field."""
         manager = MediaManager()
