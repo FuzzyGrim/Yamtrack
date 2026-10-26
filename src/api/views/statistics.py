@@ -94,17 +94,19 @@ class StatisticsView(drf_views.APIView):
                     status=HTTP.BAD_REQUEST,
                 )
 
-            if start_date and end_date:
-                start_date = make_aware(
-                    datetime.combine(start_date, datetime.min.time()),
-                )
-                end_date = make_aware(
-                    datetime.combine(end_date, datetime.max.time()),
-                )
+        start_datetime = None
+        end_datetime = None
+        if start_date and end_date:
+            start_datetime = make_aware(
+                datetime.combine(start_date, datetime.min.time()),
+            )
+            end_datetime = make_aware(
+                datetime.combine(end_date, datetime.max.time()),
+            )
         user_media, media_count = get_user_media(
             user,
-            start_date,
-            end_date,
+            start_datetime,
+            end_datetime,
         )
         media_type_distribution = get_media_type_distribution(
             media_count,
@@ -115,7 +117,7 @@ class StatisticsView(drf_views.APIView):
             status_distribution,
         )
         timeline = get_timeline(user_media)
-        activity_data = get_activity_data(request.user, start_date, end_date)
+        activity_data = get_activity_data(request.user, start_datetime, end_datetime)
 
         statistics = StatisticsResponseSerializer(
             {

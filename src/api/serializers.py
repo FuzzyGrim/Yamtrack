@@ -891,7 +891,7 @@ class CompleteEpisodeSerializer(serializers.Serializer):
                 "media_id": media_metadata.get("media_id"),
                 "source": media_metadata.get("source"),
                 "source_url": source_url,
-                "media_type": media_metadata.get("media_type"),
+                "media_type": MediaTypes.EPISODE.value,
                 "title": episode.get("name"),
                 "max_progress": 1,
                 "image": image,
@@ -1235,35 +1235,32 @@ class RelatedResponseSerializer(serializers.Serializer):
     title = serializers.CharField()
 
 
-class TimelineItemSerializer(UTCModelSerializer):
+class TimelineItemSerializer(serializers.Serializer):
     """Compact serializer used for timeline entries to reduce payload size."""
 
-    item_id = ItemIdField(source="item", read_only=True)
-    parent_id = ParentIdField(source="item", read_only=True)
-    title = serializers.CharField(source="item.title", read_only=True, allow_null=True)
-    image = serializers.URLField(source="item.image", read_only=True, allow_null=True)
-    media_type = serializers.CharField(
-        source="item.media_type",
-        read_only=True,
-        allow_null=True,
-    )
-    source = serializers.CharField(
-        source="item.source",
-        read_only=True,
-        allow_null=True,
-    )
-
-    class Meta:  # noqa: D106
-        model = BasicMedia
-        exclude = ("user",)
+    id = serializers.IntegerField()
+    item_id = ItemIdField(source="item")
+    parent_id = ParentIdField(source="item")
+    title = serializers.CharField(source="item.title")
+    image = serializers.URLField(source="item.image", allow_null=True)
+    media_type = MediaTypeCompleteChoiceField(source="item.media_type")
+    source = MediaSourceCompleteChoiceField(source="item.source")
+    created_at = UTCDateTimeField()
+    score = serializers.FloatField(allow_null=True)
+    progress = serializers.IntegerField()
+    progressed_at = UTCDateTimeField(allow_null=True)
+    status = MediaStatusChoiceField()
+    start_date = UTCDateTimeField(allow_null=True)
+    end_date = UTCDateTimeField(allow_null=True)
+    notes = serializers.CharField(allow_blank=True)
 
 
 # TODO: Complete the mapping of statistics response fields
 class StatisticsResponseSerializer(serializers.Serializer):
     """Serializer for statistics endpoint payload."""
 
-    start_date = UTCDateTimeField(allow_null=True, required=False)
-    end_date = UTCDateTimeField(allow_null=True, required=False)
+    start_date = serializers.DateField(allow_null=True, required=False)
+    end_date = serializers.DateField(allow_null=True, required=False)
     media_count = StatisticsMediaCountSerializer()
     activity_data = serializers.JSONField()
     media_type_distribution = serializers.DictField()
@@ -1280,8 +1277,8 @@ class BaseUpdateMediaSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
+    start_date = UTCDateTimeField(required=False, allow_null=True)
+    end_date = UTCDateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     def validate_score(self, value):
@@ -1329,7 +1326,7 @@ class UpdateComicSerializer(BaseUpdateMediaSerializer):
 class UpdateEpisodeSerializer(serializers.Serializer):
     """Serializer for updating episode media items."""
 
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = UTCDateTimeField(required=False, allow_null=True)
 
 
 class UpdateGameSerializer(BaseUpdateMediaSerializer):
@@ -1410,8 +1407,8 @@ class TrackMediaSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField(required=False)
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
+    start_date = UTCDateTimeField(required=False, allow_null=True)
+    end_date = UTCDateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
     season_number = serializers.IntegerField(required=False, allow_null=True)
     episode_number = serializers.IntegerField(required=False, allow_null=True)

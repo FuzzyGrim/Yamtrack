@@ -9275,11 +9275,11 @@ components:
       properties:
         start_date:
           type: string
-          format: date-time
+          format: date
           nullable: true
         end_date:
           type: string
-          format: date-time
+          format: date
           nullable: true
         media_count:
           $ref: '#/components/schemas/StatisticsMediaCount'
@@ -9376,50 +9376,42 @@ components:
       properties:
         id:
           type: integer
-          readOnly: true
         item_id:
           type: string
-          readOnly: true
         parent_id:
           type: string
-          readOnly: true
           nullable: true
         title:
           type: string
-          readOnly: true
-          nullable: true
         image:
           type: string
           format: uri
-          readOnly: true
           nullable: true
         media_type:
-          type: string
-          readOnly: true
+          allOf:
+          - $ref: '#/components/schemas/MediaTypeCompleteEnum'
           nullable: true
         source:
-          type: string
-          readOnly: true
+          allOf:
+          - $ref: '#/components/schemas/SourceCompleteEnum'
           nullable: true
         created_at:
           type: string
           format: date-time
-          readOnly: true
         score:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          type: number
+          format: double
           nullable: true
         progress:
           type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
         progressed_at:
           type: string
           format: date-time
+          nullable: true
         status:
-          $ref: '#/components/schemas/TimelineItemStatusEnum'
+          allOf:
+          - $ref: '#/components/schemas/MediaStatusEnum'
+          nullable: true
         start_date:
           type: string
           format: date-time
@@ -9430,32 +9422,19 @@ components:
           nullable: true
         notes:
           type: string
-        item:
-          type: integer
       required:
       - created_at
+      - end_date
       - id
       - image
-      - item
       - item_id
-      - media_type
+      - notes
       - parent_id
-      - source
+      - progress
+      - progressed_at
+      - score
+      - start_date
       - title
-    TimelineItemStatusEnum:
-      enum:
-      - Completed
-      - In progress
-      - Planning
-      - Paused
-      - Dropped
-      type: string
-      description: |-
-        * `Completed` - Completed
-        * `In progress` - In Progress
-        * `Planning` - Planning
-        * `Paused` - Paused
-        * `Dropped` - Dropped
     TrackMediaRequest:
       type: object
       description: |-

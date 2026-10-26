@@ -51,6 +51,10 @@ You can check the available endpoints with examples using the integrated Swagger
 
 Dates and times are returned in UTC, in the ISO 8601 format (e.g. `2026-10-26T16:18:18Z`).
 
+In requests, dates and times without a timezone are read as UTC (e.g. `2026-10-26T16:18:18` is the same as `2026-10-26T16:18:18Z`). To use another timezone, include its offset (e.g. `2026-10-26T18:18:18+02:00`).
+
+The statistics `start_date` and `end_date` are dates (e.g. `2026-10-26`), and include the whole days in the timezone of the server.
+
 ### Media status
 
 The media status is represented as an integer, both in requests and responses, and in the `status` query parameter:

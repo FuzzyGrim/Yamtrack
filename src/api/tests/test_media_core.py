@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import UUID
 
@@ -1348,6 +1348,28 @@ class MediaCoreTests(YamtrackApiTestCase):
         check_consumption_structure(self, payload)
         self.assertTrue(payload["start_date"].startswith("2023-10-01T00:00:00"))
         self.assertTrue(payload["end_date"].startswith("2023-10-02T15:30:00"))
+
+    def test_media_consumption_entry_detail_patch_reads_naive_datetimes_as_utc(self):
+        """Entry-detail PATCH should read datetimes without a timezone as UTC."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        movie_media = self.movie_medias[0]
+        response = self.call_api(
+            "patch",
+            "api_media_consumption_entry_detail",
+            args=(
+                MediaTypes.MOVIE.value,
+                movie_item.source,
+                movie_item.media_id,
+                movie_media.id,
+            ),
+            payload={"start_date": "2026-03-10T10:00:00"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["start_date"], "2026-03-10T10:00:00Z")
+        movie_media.refresh_from_db()
+        self.assertEqual(movie_media.start_date, datetime(2026, 3, 10, 10, tzinfo=UTC))
 
     def test_media_consumption_entry_detail_patch_invalid_payload_returns_bad_request(
         self,
