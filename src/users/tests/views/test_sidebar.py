@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import MediaTypes
-from users.models import WeekStartDayChoices
+from users.models import DefaultEditEntryDateChoices, WeekStartDayChoices
 
 
 class SidebarViewTests(TestCase):
@@ -180,6 +180,23 @@ class SidebarViewTests(TestCase):
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.week_start_day, WeekStartDayChoices.SUNDAY)
+
+    def test_post_updates_default_edit_entry_date(self):
+        """Posting no_date persists the edit entry date preference."""
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+                "default_edit_entry_date": DefaultEditEntryDateChoices.NO_DATE,
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(
+            self.user.default_edit_entry_date,
+            DefaultEditEntryDateChoices.NO_DATE,
+        )
 
     def test_post_ignores_invalid_week_start_day(self):
         """Posting an invalid week_start_day leaves the value unchanged."""
