@@ -339,6 +339,8 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         watch_providers = tmdb.filter_providers(
             media_metadata.get("providers"), request.user.watch_provider_region
         )
+        if watch_providers and not request.user.show_paid_providers:
+            watch_providers["paid"] = []
     else:
         watch_providers = None
 
@@ -374,6 +376,11 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 
     current_instance = user_medias[0] if user_medias else None
     episodes_in_db = current_instance.episodes.all() if current_instance else []
+    watch_providers = tmdb.filter_providers(
+        season_metadata.get("providers"), request.user.watch_provider_region
+    )
+    if watch_providers and not request.user.show_paid_providers:
+        watch_providers["paid"] = []
 
     if current_instance is not None:
         helpers.refresh_item_image_if_missing(
@@ -409,9 +416,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media_type": MediaTypes.SEASON.value,
         "user_medias": user_medias,
         "current_instance": current_instance,
-        "watch_providers": tmdb.filter_providers(
-            season_metadata.get("providers"), request.user.watch_provider_region
-        ),
+        "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
