@@ -13,6 +13,7 @@ from app.helpers import (
     get_configured_app_url,
     minutes_to_hhmm,
     redirect_back,
+    refresh_stream_availability,
 )
 from app.models import Item, MediaTypes, Movie, Sources, Status
 
@@ -318,3 +319,95 @@ class EnrichItemsWithUserDataTest(TestCase):
             self.request, raw_items, "recommendations"
         )
         self.assertEqual(len(enriched_items), 2)
+
+
+class RefreshStreamAvailabilityTest(TestCase):
+    """Test refresh_stream_availability."""
+
+    def setUp(self):
+        """Create a user with a configured region and a TMDB movie item."""
+        credentials = {"username": "regioned", "password": "12345"}
+        get_user_model().objects.create_user(
+            **credentials,
+            watch_provider_region="US",
+        )
+        self.item = Item.objects.create(
+            media_id="550",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Fight Club",
+            image="http://example.com/fightclub.jpg",
+        )
+
+    def test_populates_availability_for_eligible_item(self):
+        """Providers already in metadata are persisted without another API call."""
+        metadata = {"providers": {"US": {"flatrate": [{"provider_id": 8}]}}}
+
+        refresh_stream_availability(
+            self.item, Sources.TMDB.value, MediaTypes.MOVIE.value, metadata
+        )
+
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stream_availability, {"US": 1})
+        self.assertIsNotNone(self.item.stream_availability_updated_at)
+
+    def test_overwrites_on_every_call(self):
+        """Every view of the item refreshes availability, not just the first."""
+        refresh_stream_availability(
+            self.item,
+            Sources.TMDB.value,
+            MediaTypes.MOVIE.value,
+            {"providers": {"US": {"flatrate": [{"provider_id": 8}]}}},
+        )
+        first_updated_at = self.item.stream_availability_updated_at
+
+        refresh_stream_availability(
+            self.item, Sources.TMDB.value, MediaTypes.MOVIE.value, {"providers": {}}
+        )
+
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stream_availability, {"US": 0})
+        self.assertGreaterEqual(
+            self.item.stream_availability_updated_at, first_updated_at
+        )
+
+    def test_noop_for_non_tmdb_source(self):
+        """Non-TMDB items have no watch-provider data and are left untouched."""
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Cowboy Bebop",
+            image="http://example.com/bebop.jpg",
+        )
+
+        refresh_stream_availability(
+            item, Sources.MAL.value, MediaTypes.ANIME.value, {"providers": {}}
+        )
+
+        item.refresh_from_db()
+        self.assertEqual(item.stream_availability, {})
+        self.assertIsNone(item.stream_availability_updated_at)
+
+    def test_noop_for_ineligible_media_type(self):
+        """TMDB media types outside movie/tv/season are left untouched."""
+        episode_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test Episode",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+
+        refresh_stream_availability(
+            episode_item,
+            Sources.TMDB.value,
+            MediaTypes.EPISODE.value,
+            {"providers": {"US": {"flatrate": [{"provider_id": 8}]}}},
+        )
+
+        episode_item.refresh_from_db()
+        self.assertEqual(episode_item.stream_availability, {})
+        self.assertIsNone(episode_item.stream_availability_updated_at)
