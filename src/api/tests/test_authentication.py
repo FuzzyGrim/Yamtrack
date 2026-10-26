@@ -22,7 +22,8 @@ class AuthenticationMatrixTests(YamtrackApiTestCase):
                     args=case.args,
                     payload=case.payload,
                 )
-                self.assertEqual(response.status_code, 403)
+                self.assertEqual(response.status_code, 401)
+                self.assertIn("WWW-Authenticate", response.headers)
 
     def test_protected_endpoints_reject_invalid_token(self):
         """Protected endpoints must reject requests with invalid API keys."""
@@ -42,4 +43,5 @@ class AuthenticationMatrixTests(YamtrackApiTestCase):
                     payload=case.payload,
                     headers=self.invalid_auth_headers,
                 )
-                self.assertEqual(response.status_code, 403)
+                self.assertEqual(response.status_code, 401)
+                self.assertIn("WWW-Authenticate", response.headers)

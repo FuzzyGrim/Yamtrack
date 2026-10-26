@@ -213,7 +213,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
             )
         )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_episode_lists_requires_authentication(self):
         """Episode lists endpoint should require authentication."""
@@ -234,7 +234,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
             )
         )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_episode_sync_requires_valid_season(self):
         """Episode sync should reject on non-existent parent season."""

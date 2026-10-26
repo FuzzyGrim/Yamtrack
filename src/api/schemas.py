@@ -81,6 +81,19 @@ ForbiddenResponse = OpenApiResponse(
     description="Forbidden",
     examples=[
         OpenApiExample(
+            "No permission example",
+            description="No permission example",
+            summary="No permission example",
+            value={"detail": "Forbidden"},
+        ),
+    ],
+)
+
+UnauthorizedResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Unauthorized",
+    examples=[
+        OpenApiExample(
             "No authentication example",
             description="No authentication example",
             summary="No authentication example",

@@ -5,14 +5,14 @@ from .helpers import check_statistics_structure
 class StatisticsTests(YamtrackApiTestCase):
     """Validate statistics endpoint contracts."""
 
-    def test_statistics_unauthenticated_returns_forbidden(self):
+    def test_statistics_unauthenticated_returns_unauthorized(self):
         """Statistics endpoint should require authentication."""
         response = self.call_api(
             "get",
             "api_statistics",
         )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_statistics_invalid_dates_return_bad_request(self):
         """Statistics endpoint should reject invalid date formats."""
