@@ -324,6 +324,9 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         helpers.refresh_item_image_if_missing(
             current_instance.item, media_metadata.get("image")
         )
+        helpers.refresh_tmdb_rating_if_missing(
+            current_instance.item, source, media_type, media_metadata
+        )
 
     # Enrich related items with user tracking data
     if media_metadata.get("related"):
@@ -378,6 +381,9 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     if current_instance is not None:
         helpers.refresh_item_image_if_missing(
             current_instance.item, season_metadata.get("image")
+        )
+        helpers.refresh_tmdb_rating_if_missing(
+            current_instance.item, source, MediaTypes.SEASON.value, season_metadata
         )
 
     if source == Sources.MANUAL.value:
@@ -477,10 +483,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             source=source,
             media_type=media_type,
             season_number=season_number,
-            defaults={
-                "title": metadata["title"],
-                "image": metadata["image"],
-            },
+            defaults=helpers.item_defaults_from_metadata(source, media_type, metadata),
         )
         title = metadata["title"]
         if season_number:
@@ -638,10 +641,7 @@ def media_save(request):
             source=source,
             media_type=media_type,
             season_number=season_number,
-            defaults={
-                "title": metadata["title"],
-                "image": metadata["image"],
-            },
+            defaults=helpers.item_defaults_from_metadata(source, media_type, metadata),
         )
         model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(item=item, user=request.user)

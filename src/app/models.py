@@ -64,6 +64,13 @@ class MediaTypes(models.TextChoices):
     BOARDGAME = "boardgame", "Boardgame"
 
 
+TMDB_RATING_MEDIA_TYPES = (
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.SEASON.value,
+)
+
+
 class Item(CalendarTriggerMixin, models.Model):
     """Model to store basic information about media items."""
 
@@ -82,6 +89,18 @@ class Item(CalendarTriggerMixin, models.Model):
     image = models.URLField()  # if add default, custom media entry will show the value
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
+    tmdb_rating = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=3,
+        decimal_places=1,
+        validators=[
+            DecimalValidator(3, 1),
+            MinValueValidator(0),
+            MaxValueValidator(10),
+        ],
+    )
+    tmdb_rating_updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         """Meta options for the model."""
@@ -296,10 +315,30 @@ class MediaManager(models.Manager):
         if media_type == MediaTypes.SEASON.value:
             return self._sort_season_media_list(queryset, sort_filter)
 
-        return self._sort_generic_media_list(queryset, sort_filter)
+        return self._sort_generic_media_list(queryset, sort_filter, media_type)
 
     def _sort_tv_media_list(self, queryset, sort_filter):
         """Sort TV media list based on the sort criteria."""
+        if sort_filter == "release_date":
+            # Annotate with the earliest known air date across all seasons,
+            # ignoring the far-future sentinel used for unaired episodes.
+            queryset = queryset.annotate(
+                calculated_release_date=models.Min(
+                    "seasons__item__event__datetime",
+                    filter=models.Q(seasons__item__season_number__gt=0)
+                    & models.Q(seasons__item__event__content_number__isnull=False)
+                    & ~models.Q(
+                        seasons__item__event__datetime=(
+                            events.models.SentinelDatetime.max_datetime()
+                        ),
+                    ),
+                ),
+            )
+            return queryset.order_by(
+                models.F("calculated_release_date").desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
         if sort_filter == "start_date":
             # Annotate with the minimum start_date from related seasons/episodes
             queryset = queryset.annotate(
@@ -341,10 +380,29 @@ class MediaManager(models.Manager):
             )
 
         # Default to generic sorting
-        return self._sort_generic_media_list(queryset, sort_filter)
+        return self._sort_generic_media_list(queryset, sort_filter, MediaTypes.TV.value)
 
     def _sort_season_media_list(self, queryset, sort_filter):
         """Sort Season media list based on the sort criteria."""
+        if sort_filter == "release_date":
+            # Annotate with the earliest known air date for this season's own
+            # episodes, ignoring the far-future sentinel for unaired episodes.
+            queryset = queryset.annotate(
+                calculated_release_date=models.Min(
+                    "item__event__datetime",
+                    filter=models.Q(item__event__content_number__isnull=False)
+                    & ~models.Q(
+                        item__event__datetime=(
+                            events.models.SentinelDatetime.max_datetime()
+                        ),
+                    ),
+                ),
+            )
+            return queryset.order_by(
+                models.F("calculated_release_date").desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
         if sort_filter == "start_date":
             # Annotate with the minimum end_date from related episodes
             queryset = queryset.annotate(
@@ -376,21 +434,25 @@ class MediaManager(models.Manager):
             )
 
         # Default to generic sorting
-        return self._sort_generic_media_list(queryset, sort_filter)
+        return self._sort_generic_media_list(
+            queryset, sort_filter, MediaTypes.SEASON.value
+        )
 
-    def _sort_generic_media_list(self, queryset, sort_filter):
+    def _sort_generic_media_list(self, queryset, sort_filter, media_type=None):
         """Apply generic sorting logic for all media types."""
         # Handle sorting by date fields with special null handling
         if sort_filter in ("start_date", "end_date"):
-            # For start_date, sort ascending (earliest first)
-            if sort_filter == "start_date":
-                return queryset.order_by(
-                    models.F(sort_filter).asc(nulls_last=True),
-                    models.functions.Lower("item__title"),
-                )
-            # For other date fields, sort descending (latest first)
+            return self._sort_generic_date_field(queryset, sort_filter)
+
+        if sort_filter == "release_date":
+            return self._sort_generic_release_date(queryset, media_type)
+
+        # TMDB rating lives on Item but needs explicit nulls_last handling,
+        # since the generic Item-field path below relies on DB default null
+        # ordering (NULLS FIRST on DESC in Postgres).
+        if sort_filter == "tmdb_rating":
             return queryset.order_by(
-                models.F(sort_filter).desc(nulls_last=True),
+                models.F("item__tmdb_rating").desc(nulls_last=True),
                 models.functions.Lower("item__title"),
             )
 
@@ -409,6 +471,33 @@ class MediaManager(models.Manager):
         # Default sorting by media field
         return queryset.order_by(
             models.F(sort_filter).desc(nulls_last=True),
+            models.functions.Lower("item__title"),
+        )
+
+    def _sort_generic_date_field(self, queryset, sort_filter):
+        """Sort by start_date (earliest first) or end_date (latest first)."""
+        if sort_filter == "start_date":
+            return queryset.order_by(
+                models.F(sort_filter).asc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+        return queryset.order_by(
+            models.F(sort_filter).desc(nulls_last=True),
+            models.functions.Lower("item__title"),
+        )
+
+    def _sort_generic_release_date(self, queryset, media_type):
+        """Sort by release date where available; fall back to title otherwise."""
+        if media_type != MediaTypes.MOVIE.value:
+            # No comparable release date for other media types.
+            return queryset.order_by(models.functions.Lower("item__title"))
+
+        # A movie's own item carries a single release-date event.
+        queryset = queryset.annotate(
+            calculated_release_date=models.Min("item__event__datetime"),
+        )
+        return queryset.order_by(
+            models.F("calculated_release_date").desc(nulls_last=True),
             models.functions.Lower("item__title"),
         )
 
@@ -514,9 +603,28 @@ class MediaManager(models.Manager):
                 (x.max_progress - x.progress if x.max_progress else 0),
             ),
             users.models.HomeSortChoices.TITLE: lambda x: x.item.title.lower(),
+            users.models.HomeSortChoices.SCORE: lambda x: (
+                x.score is None,
+                -x.score if x.score is not None else 0,
+            ),
+            users.models.HomeSortChoices.TMDB_RATING: lambda x: (
+                x.item.tmdb_rating is None,
+                -x.item.tmdb_rating if x.item.tmdb_rating is not None else 0,
+            ),
         }
 
         primary_sort_function = primary_sort_functions[sort_by]
+
+        # Rating sorts fall back straight to title, not the usual recency tie-break.
+        title_fallback_sorts = (
+            users.models.HomeSortChoices.SCORE,
+            users.models.HomeSortChoices.TMDB_RATING,
+        )
+        if sort_by in title_fallback_sorts:
+            return sorted(
+                media_list,
+                key=lambda x: (primary_sort_function(x), x.item.title.lower()),
+            )
 
         return sorted(
             media_list,

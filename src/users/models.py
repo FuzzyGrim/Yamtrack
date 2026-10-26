@@ -31,16 +31,20 @@ class HomeSortChoices(models.TextChoices):
     COMPLETION = "completion", "Completion"
     EPISODES_LEFT = "episodes_left", "Episodes Left"
     TITLE = "title", "Title"
+    SCORE = "score", "Rating"
+    TMDB_RATING = "tmdb_rating", "TMDB Rating"
 
 
 class MediaSortChoices(models.TextChoices):
     """Choices for media list sort options."""
 
     SCORE = "score", "Rating"
+    TMDB_RATING = "tmdb_rating", "TMDB Rating"
     TITLE = "title", "Title"
     PROGRESS = "progress", "Progress"
     START_DATE = "start_date", "Start Date"
     END_DATE = "end_date", "End Date"
+    RELEASE_DATE = "release_date", "Release Date"
 
 
 class MediaStatusChoices(models.TextChoices):

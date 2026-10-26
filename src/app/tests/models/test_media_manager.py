@@ -22,7 +22,7 @@ from app.models import (
     Sources,
     Status,
 )
-from events.models import Event
+from events.models import Event, SentinelDatetime
 from users.models import HomeSortChoices, MediaStatusChoices
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
@@ -504,6 +504,286 @@ class MediaManagerTests(TestCase):
 
         self.assertEqual(movies[0].item.title, "Fight Club")
 
+    def test_sort_media_list_release_date_movie(self):
+        """Test sorting movies by release_date, using the synced calendar event."""
+        manager = MediaManager()
+
+        Event.objects.create(
+            item=self.movie_item,
+            content_number=None,
+            datetime=datetime(2000, 1, 1, tzinfo=UTC),
+        )
+
+        recent_item = Item.objects.create(
+            media_id="551",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Se7en",
+            image="http://example.com/se7en.jpg",
+        )
+        Movie.objects.create(
+            item=recent_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+        )
+        Event.objects.create(
+            item=recent_item,
+            content_number=None,
+            datetime=datetime(2020, 1, 1, tzinfo=UTC),
+        )
+
+        undated_item = Item.objects.create(
+            media_id="552",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Aardvark",
+            image="http://example.com/aardvark.jpg",
+        )
+        Movie.objects.create(
+            item=undated_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+        )
+
+        movie_queryset = Movie.objects.filter(user=self.user).select_related("item")
+        sorted_movies = manager._sort_media_list(
+            movie_queryset,
+            "release_date",
+            MediaTypes.MOVIE.value,
+        )
+        movies = list(sorted_movies)
+
+        self.assertEqual(
+            [movie.item.title for movie in movies],
+            ["Se7en", "Fight Club", "Aardvark"],
+        )
+
+    def test_sort_media_list_release_date_tv(self):
+        """Test sorting TV shows by their first aired date across all seasons."""
+        manager = MediaManager()
+
+        Event.objects.create(
+            item=self.season1_item,
+            content_number=1,
+            datetime=datetime(2010, 1, 1, tzinfo=UTC),
+        )
+
+        other_tv_item = Item.objects.create(
+            media_id="1399",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Breaking Bad",
+            image="http://example.com/bb.jpg",
+        )
+        other_tv = TV.objects.create(
+            item=other_tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        other_season_item = Item.objects.create(
+            media_id="1399",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Breaking Bad Season 1",
+            image="http://example.com/bb.jpg",
+            season_number=1,
+        )
+        Season.objects.create(
+            item=other_season_item,
+            related_tv=other_tv,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        Event.objects.create(
+            item=other_season_item,
+            content_number=1,
+            datetime=datetime(2008, 1, 20, tzinfo=UTC),
+        )
+        # An unaired episode should not be mistaken for the first air date.
+        Event.objects.create(
+            item=other_season_item,
+            content_number=2,
+            datetime=SentinelDatetime.max_datetime(),
+        )
+
+        tv_queryset = TV.objects.filter(user=self.user).select_related("item")
+        sorted_tv = manager._sort_media_list(
+            tv_queryset,
+            "release_date",
+            MediaTypes.TV.value,
+        )
+        tv_shows = list(sorted_tv)
+
+        self.assertEqual(
+            [tv.item.title for tv in tv_shows],
+            ["Friends", "Breaking Bad"],
+        )
+
+    def test_sort_media_list_release_date_season(self):
+        """Test sorting seasons by their own first aired episode date."""
+        manager = MediaManager()
+
+        Event.objects.create(
+            item=self.season1_item,
+            content_number=1,
+            datetime=datetime(2010, 1, 1, tzinfo=UTC),
+        )
+
+        season2_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends Season 2",
+            image="http://example.com/image.jpg",
+            season_number=2,
+        )
+        Season.objects.create(
+            item=season2_item,
+            related_tv=self.tv,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        Event.objects.create(
+            item=season2_item,
+            content_number=1,
+            datetime=datetime(2011, 1, 1, tzinfo=UTC),
+        )
+
+        season3_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends Season 3",
+            image="http://example.com/image.jpg",
+            season_number=3,
+        )
+        Season.objects.create(
+            item=season3_item,
+            related_tv=self.tv,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        queryset = Season.objects.filter(user=self.user).select_related("item")
+        sorted_queryset = manager._sort_media_list(
+            queryset,
+            "release_date",
+            MediaTypes.SEASON.value,
+        )
+        seasons = list(sorted_queryset)
+
+        self.assertEqual(
+            [season.item.title for season in seasons],
+            ["Friends Season 2", "Friends", "Friends Season 3"],
+        )
+
+    def test_sort_media_list_release_date_unsupported_falls_back_to_title(self):
+        """Test that release_date falls back to title for unsupported media types."""
+        manager = MediaManager()
+
+        anime_item2 = Item.objects.create(
+            media_id="5",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Naruto",
+            image="http://example.com/naruto.jpg",
+        )
+        Anime.objects.create(
+            item=anime_item2,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        anime_queryset = Anime.objects.filter(user=self.user).select_related("item")
+        sorted_anime = manager._sort_media_list(
+            anime_queryset,
+            "release_date",
+            MediaTypes.ANIME.value,
+        )
+        anime = list(sorted_anime)
+
+        self.assertEqual(
+            [a.item.title for a in anime],
+            sorted([a.item.title for a in anime], key=str.lower),
+        )
+
+    def test_sort_media_list_tmdb_rating(self):
+        """Test sorting movies by tmdb_rating, with nulls (unrated) sorted last."""
+        manager = MediaManager()
+
+        self.movie_item.tmdb_rating = 7.5
+        self.movie_item.save(update_fields=["tmdb_rating"])
+
+        rated_item = Item.objects.create(
+            media_id="551",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Se7en",
+            image="http://example.com/se7en.jpg",
+            tmdb_rating=9.0,
+        )
+        Movie.objects.create(
+            item=rated_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+        )
+
+        unrated_item = Item.objects.create(
+            media_id="552",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Aardvark",
+            image="http://example.com/aardvark.jpg",
+        )
+        Movie.objects.create(
+            item=unrated_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+        )
+
+        movie_queryset = Movie.objects.filter(user=self.user).select_related("item")
+        sorted_movies = manager._sort_media_list(
+            movie_queryset,
+            "tmdb_rating",
+            MediaTypes.MOVIE.value,
+        )
+        movies = list(sorted_movies)
+
+        self.assertEqual(
+            [movie.item.title for movie in movies],
+            ["Se7en", "Fight Club", "Aardvark"],
+        )
+
+    def test_sort_media_list_tmdb_rating_all_null_falls_back_to_title(self):
+        """Test sorting anime by tmdb_rating: unsupported media falls back to title."""
+        manager = MediaManager()
+
+        anime_item2 = Item.objects.create(
+            media_id="5",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Naruto",
+            image="http://example.com/naruto.jpg",
+        )
+        Anime.objects.create(
+            item=anime_item2,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        anime_queryset = Anime.objects.filter(user=self.user).select_related("item")
+        sorted_anime = manager._sort_media_list(
+            anime_queryset,
+            "tmdb_rating",
+            MediaTypes.ANIME.value,
+        )
+        anime = list(sorted_anime)
+
+        self.assertEqual(
+            [a.item.title for a in anime],
+            sorted([a.item.title for a in anime], key=str.lower),
+        )
+
     def test_get_media_list_sort_by_item_field(self):
         """Test the get_media_list method with sorting by item field."""
         manager = MediaManager()
@@ -823,6 +1103,86 @@ class MediaManagerTests(TestCase):
             anime_list, sort_by=HomeSortChoices.RECENT
         )
         self.assertEqual(sorted_list, [anime3, anime2, anime1])
+
+    def test_sort_home_media_score(self):
+        """Test the _sort_home_media method sorting by user score, title fallback."""
+        manager = MediaManager()
+
+        anime1 = self.anime  # score=10, title="Cowboy Bebop"
+
+        anime_item2 = Item.objects.create(
+            media_id="5",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Naruto",
+            image="http://example.com/naruto.jpg",
+        )
+        anime2 = Anime.objects.create(
+            item=anime_item2,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            score=None,
+        )
+
+        anime_item3 = Item.objects.create(
+            media_id="6",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Attack on Titan",
+            image="http://example.com/aot.jpg",
+        )
+        anime3 = Anime.objects.create(
+            item=anime_item3,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            score=6,
+        )
+
+        anime_list = [anime1, anime2, anime3]
+
+        sorted_list = manager._sort_home_media(anime_list, HomeSortChoices.SCORE)
+        # Highest score first, missing scores last, title as fallback
+        self.assertEqual(sorted_list, [anime1, anime3, anime2])
+
+    def test_sort_home_media_tmdb_rating(self):
+        """Test the _sort_home_media method sorting by TMDB rating, title fallback."""
+        manager = MediaManager()
+
+        movie1 = self.movie
+        self.movie_item.tmdb_rating = 8.0
+        self.movie_item.save(update_fields=["tmdb_rating"])
+
+        rated_item = Item.objects.create(
+            media_id="551",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Se7en",
+            image="http://example.com/se7en.jpg",
+            tmdb_rating=9.0,
+        )
+        movie2 = Movie.objects.create(
+            item=rated_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+        )
+
+        unrated_item = Item.objects.create(
+            media_id="552",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Aardvark",
+            image="http://example.com/aardvark.jpg",
+        )
+        movie3 = Movie.objects.create(
+            item=unrated_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+        )
+
+        movie_list = [movie1, movie2, movie3]
+
+        sorted_list = manager._sort_home_media(movie_list, HomeSortChoices.TMDB_RATING)
+        self.assertEqual(sorted_list, [movie2, movie1, movie3])
 
     def test_annotate_max_progress(self):
         """Test the annotate_max_progress method."""
