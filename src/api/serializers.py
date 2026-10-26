@@ -54,6 +54,11 @@ class ItemIdField(serializers.CharField):
 class ParentIdField(serializers.CharField):
     """Custom field to generate parent_id string for seasons and episodes."""
 
+    def __init__(self, **kwargs):
+        """Initialize the field, it's null for medias without a parent."""
+        kwargs.setdefault("allow_null", True)
+        super().__init__(**kwargs)
+
     def to_representation(self, item):  # noqa: D102
         return build_parent_id(item)
 
@@ -69,12 +74,14 @@ class MediaStatusChoiceField(serializers.ChoiceField):
         kwargs["choices"] = status_choices
         super().__init__(**kwargs)
 
-    def to_internal_value(self, data):  # noqa: D102
+    def to_internal_value(self, data):
+        """Convert the API integer status to the model status."""
         value = super().to_internal_value(data)
         return get_media_status(value, reverse=True)
 
-    def to_representation(self, obj):  # noqa: D102
-        return get_media_status(getattr(obj, "status", None))
+    def to_representation(self, value):
+        """Convert the model status to the API integer status."""
+        return get_media_status(value)
 
 
 class MediaSourceChoiceField(serializers.ChoiceField):
@@ -145,8 +152,8 @@ class ChangesHistoryChangeSerializer(serializers.Serializer):
     field = serializers.ChoiceField(
         choices=["end_date", "notes", "progress", "score", "start_date", "status"]
     )
-    old_value = serializers.CharField(allow_null=True, required=False)
-    new_value = serializers.CharField(allow_null=True, required=False)
+    old_value = serializers.JSONField(allow_null=True, required=False)
+    new_value = serializers.JSONField(allow_null=True, required=False)
 
 
 class ChangesHistoryEntrySerializer(serializers.Serializer):
@@ -169,22 +176,15 @@ class ChangesHistoryEntrySerializer(serializers.Serializer):
         else:
             changes = get_changes_from_new_record(instance, media_type)
 
+        status_field = MediaStatusChoiceField()
         for change in changes:
             if change.get("field") == "status":
-
-                class TempObj:
-                    def __init__(self, status_value):
-                        self.status = status_value
-
-                status_field = MediaStatusChoiceField()
-                if change.get("old_value") is not None:
-                    change["old_value"] = status_field.to_representation(
-                        TempObj(change["old_value"]),
-                    )
-                if change.get("new_value") is not None:
-                    change["new_value"] = status_field.to_representation(
-                        TempObj(change["new_value"]),
-                    )
+                change["old_value"] = status_field.to_representation(
+                    change.get("old_value"),
+                )
+                change["new_value"] = status_field.to_representation(
+                    change.get("new_value"),
+                )
 
         item_obj = getattr(instance, "item_obj", None)
         item_id = build_item_id(item_obj) if item_obj is not None else None
@@ -291,14 +291,14 @@ class StatisticsMediaCountSerializer(serializers.Serializer):
     game = serializers.IntegerField()
     book = serializers.IntegerField()
     comic = serializers.IntegerField()
-    board_game = serializers.IntegerField()
+    boardgame = serializers.IntegerField()
 
 
 class ListMinimizedSerializer(serializers.Serializer):
     """Serializer for minimized list information."""
 
     list_id = serializers.IntegerField()
-    list_item_id = serializers.IntegerField()
+    list_item_id = serializers.IntegerField(allow_null=True)
 
 
 class EpisodeSerializer(serializers.Serializer):
@@ -547,7 +547,9 @@ class HistorySerializer(serializers.Serializer):
                 else None,
                 "notes": "",
             }
-        status = MediaStatusChoiceField().to_representation(instance)
+        status = MediaStatusChoiceField().to_representation(
+            getattr(instance, "status", None),
+        )
 
         return {
             "consumption_id": instance.id,
@@ -671,7 +673,9 @@ class MediaSerializer(serializers.ModelSerializer):
             "score": float(instance.score)
             if hasattr(instance, "score") and instance.score is not None
             else None,
-            "status": MediaStatusChoiceField().to_representation(instance),
+            "status": MediaStatusChoiceField().to_representation(
+                getattr(instance, "status", None),
+            ),
             "progress": instance.progress if hasattr(instance, "progress") else None,
             "progressed_at": instance.progressed_at
             if hasattr(instance, "progressed_at")
@@ -913,10 +917,11 @@ class CompleteEpisodeSerializer(serializers.Serializer):
     """Serializer that builds a CompleteEpisode response."""
 
     id = serializers.IntegerField(
+        allow_null=True,
         help_text=(
-            "The id of the item in the database (not to be confused with the item_id,"
-            "which is media provider specific)"
-        )
+            "The id of the item in the database (not to be confused with the item_id, "
+            "which is media provider specific), null if the item is not saved"
+        ),
     )
     media_id = serializers.CharField()
     source = MediaSourceCompleteChoiceField()
@@ -926,7 +931,11 @@ class CompleteEpisodeSerializer(serializers.Serializer):
     max_progress = serializers.IntegerField()
     image = serializers.URLField(allow_null=True)
     synopsis = serializers.CharField(allow_null=True)
-    genres = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    genres = serializers.ListField(
+        child=serializers.CharField(),
+        allow_empty=True,
+        allow_null=True,
+    )
     score = serializers.FloatField(allow_null=True)
     score_count = serializers.IntegerField(allow_null=True)
     details = EpisodeDetailsSerializer()
@@ -1008,10 +1017,11 @@ class CompleteMediaSerializer(serializers.Serializer):
     """Serializer that builds a CompleteMedia response."""
 
     id = serializers.IntegerField(
+        allow_null=True,
         help_text=(
-            "The id of the item in the database (not to be confused with the item_id,"
-            "which is media provider specific)"
-        )
+            "The id of the item in the database (not to be confused with the item_id, "
+            "which is media provider specific), null if the item is not saved"
+        ),
     )
     media_id = serializers.CharField()
     source = MediaSourceCompleteChoiceField()
@@ -1021,7 +1031,11 @@ class CompleteMediaSerializer(serializers.Serializer):
     max_progress = serializers.IntegerField()
     image = serializers.URLField(allow_null=True)
     synopsis = serializers.CharField(allow_null=True)
-    genres = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    genres = serializers.ListField(
+        child=serializers.CharField(),
+        allow_empty=True,
+        allow_null=True,
+    )
     score = serializers.FloatField(allow_null=True)
     score_count = serializers.IntegerField(allow_null=True)
     details = serializers.SerializerMethodField()
@@ -1250,7 +1264,7 @@ class ListSerializer(serializers.Serializer):
     owner = UserSerializer()
     collaborators = UserSerializer(many=True)
     items_count = serializers.IntegerField()
-    latest_update = serializers.DateTimeField()
+    latest_update = serializers.DateTimeField(allow_null=True)
     items = PaginatedMediaResponseSerializer(required=False, allow_null=True)
 
     def to_representation(self, instance):
@@ -1267,7 +1281,7 @@ class ListSerializer(serializers.Serializer):
         if self.context and "include_items" in self.context:
             include_items = self.context["include_items"]
 
-        items = []
+        items = None
 
         if self.context and self.context.get("paginated_items") is not None:
             items_context = self.context["paginated_items"]
@@ -1305,7 +1319,7 @@ class ListSerializer(serializers.Serializer):
             "latest_update": latest_update,
         }
 
-        if include_items:
+        if include_items and items is not None:
             response["items"] = items
 
         return response

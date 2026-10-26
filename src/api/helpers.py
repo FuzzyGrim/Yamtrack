@@ -16,6 +16,7 @@ from django.utils.timezone import is_naive, localdate, make_aware
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.response import Response
 
+from app.config import get_sources as get_media_type_sources
 from app.models import (
     TV,
     Anime,
@@ -31,6 +32,7 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    Status,
 )
 from app.providers import services
 from lists.models import CustomListItem
@@ -44,14 +46,16 @@ class InvalidSortError(ValueError):
 
 
 MEDIA_STATUS_MAP = {
-    "Planning": 0,
-    "In progress": 1,
-    "Paused": 2,
-    "Completed": 3,
-    "Dropped": 4,
+    Status.PLANNING.value: 0,
+    Status.IN_PROGRESS.value: 1,
+    Status.PAUSED.value: 2,
+    Status.COMPLETED.value: 3,
+    Status.DROPPED.value: 4,
 }
 
-MEDIA_STATUS_CHOICES = [(value, label) for label, value in MEDIA_STATUS_MAP.items()]
+MEDIA_STATUS_CHOICES = [
+    (value, Status(status).label) for status, value in MEDIA_STATUS_MAP.items()
+]
 
 MEDIA_TYPE_COMPLETE_MODEL_MAP = {
     MediaTypes.TV.value: TV,
@@ -126,30 +130,16 @@ LIST_SORTS = [
 ]
 
 VALID_SOURCES = {
-    MediaTypes.TV.value: ["tmdb", "manual"],
-    MediaTypes.SEASON.value: ["tmdb", "manual"],
-    MediaTypes.EPISODE.value: ["tmdb", "manual"],
-    MediaTypes.MOVIE.value: ["tmdb", "manual"],
-    MediaTypes.ANIME.value: ["mal", "manual"],
-    MediaTypes.MANGA.value: ["mal", "mangaupdates", "manual"],
-    MediaTypes.GAME.value: ["igdb", "manual"],
-    MediaTypes.BOOK.value: ["openlibrary", "hardcover", "manual"],
-    MediaTypes.COMIC.value: ["comicvine", "manual"],
-    MediaTypes.BOARDGAME.value: ["bgg", "manual"],
+    media_type: [
+        *(source.value for source in get_media_type_sources(media_type)),
+        Sources.MANUAL.value,
+    ]
+    for media_type in MEDIA_TYPE_COMPLETE_VALID_LIST
 }
 
-SOURCES_VALID_LIST = [
-    Sources.TMDB.value,
-    Sources.MAL.value,
-    Sources.MANGAUPDATES.value,
-    Sources.IGDB.value,
-    Sources.OPENLIBRARY.value,
-    Sources.HARDCOVER.value,
-    Sources.COMICVINE.value,
-    Sources.BGG.value,
-]
+SOURCES_VALID_LIST = [source.value for source in Sources if source != Sources.MANUAL]
 
-SOURCES_COMPLETE_VALID_LIST = [*SOURCES_VALID_LIST, "manual"]
+SOURCES_COMPLETE_VALID_LIST = [*SOURCES_VALID_LIST, Sources.MANUAL.value]
 
 
 def resolve_collaborators(collaborator_ids):

@@ -3143,7 +3143,7 @@ class MediaListDetailView(drf_views.APIView):
         request=None,
         responses={
             200: OpenApiResponse(
-                ListMinimizedSerializer,
+                ListMinimizedSerializer(many=True),
                 description="Successful response",
                 examples=[
                     OpenApiExample(
@@ -5040,7 +5040,7 @@ class MediaSeasonListDetailView(drf_views.APIView):
         request=None,
         responses={
             200: OpenApiResponse(
-                ListMinimizedSerializer,
+                ListMinimizedSerializer(many=True),
                 description="Season added to list successfully",
                 examples=[
                     OpenApiExample(
@@ -6598,7 +6598,7 @@ class MediaEpisodeListDetailView(drf_views.APIView):
         request=None,
         responses={
             200: OpenApiResponse(
-                ListMinimizedSerializer,
+                ListMinimizedSerializer(many=True),
                 description="Season added to list successfully",
                 examples=[
                     OpenApiExample(
