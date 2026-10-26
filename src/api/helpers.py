@@ -1223,9 +1223,9 @@ def _sort_type(media):
 
 
 _AGGREGATED_MANUAL_SORT_KEYS = {
-    "added": lambda media: media.created_at,
+    "added": lambda media: _sort_nullable(media.created_at),
     "itemid": itemid_key_compare,
-    "updated": lambda media: media.progressed_at,
+    "updated": lambda media: _sort_nullable(media.progressed_at),
 }
 
 
@@ -1264,6 +1264,37 @@ def apply_aggregated_sort(results, sort):
         )
     results.sort(key=_AGGREGATED_SORT_KEYS[sort])
     return results
+
+
+# Sorts on values that can be empty, e.g. a tv show without watched episodes
+_NULLABLE_SORT_FIELDS = {
+    "added": "created_at",
+    "ended": "end_date",
+    "end_date": "end_date",
+    "started": "start_date",
+    "start_date": "start_date",
+    "updated": "progressed_at",
+}
+
+
+def apply_sort_order(results, sort, sort_order):
+    """Return the sorted results in the requested order, empty values last.
+
+    Results are sorted ascending, so reversing them for a descending order
+    would also move the media without a value (e.g. never progressed) first.
+    """
+    results = list(results)
+    field = _NULLABLE_SORT_FIELDS.get(sort)
+    if field is None:
+        if sort_order == "desc":
+            results.reverse()
+        return results
+
+    with_value = [media for media in results if getattr(media, field, None) is not None]
+    without_value = [media for media in results if getattr(media, field, None) is None]
+    if sort_order == "desc":
+        with_value.reverse()
+    return with_value + without_value
 
 
 def apply_list_sort(queryset, sort, sort_order):

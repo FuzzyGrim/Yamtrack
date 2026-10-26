@@ -52,6 +52,7 @@ from .helpers import (
     VOICE_ACTOR_LANGUAGES,
     apply_aggregated_sort,
     apply_list_sort,
+    apply_sort_order,
     build_lists_by_item_id,
     check_source_type,
     check_supported_source,
@@ -1004,8 +1005,7 @@ class ListDetailView(drf_views.APIView):
             media_objects = apply_aggregated_sort(media_objects, sort)
             if isinstance(media_objects, Response):
                 return media_objects
-            if sort_order == "desc":
-                media_objects.reverse()
+            media_objects = apply_sort_order(media_objects, sort, sort_order)
 
         paginated_data = paginate_data(request, media_objects, limit, offset)
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
@@ -1280,8 +1280,7 @@ class ListItemsView(drf_views.APIView):
             media_objects = apply_aggregated_sort(media_objects, sort)
             if isinstance(media_objects, Response):
                 return media_objects
-            if sort_order == "desc":
-                media_objects.reverse()
+            media_objects = apply_sort_order(media_objects, sort, sort_order)
 
         paginated_data = paginate_data(request, media_objects, limit, offset)
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
@@ -1703,8 +1702,7 @@ class MediaListView(drf_views.APIView):
         if isinstance(results, Response):
             return results
 
-        if sort_order == "desc":
-            results.reverse()
+        results = apply_sort_order(results, sort, sort_order)
 
         paginated_data = paginate_data(request, results, limit, offset)
         # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
@@ -1859,8 +1857,7 @@ class MediaTypeListView(drf_views.APIView):
         if isinstance(results, Response):
             return results
 
-        if sort_order == "desc":
-            results.reverse()
+        results = apply_sort_order(results, sort, sort_order)
 
         paginated_data = paginate_data(request, results, limit, offset)
         # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505

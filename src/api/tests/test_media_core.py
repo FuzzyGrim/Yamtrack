@@ -1,7 +1,9 @@
 from unittest.mock import patch
 from uuid import UUID
 
-from app.models import MediaTypes, Movie, Sources, Status
+from django.utils import timezone
+
+from app.models import TV, Episode, Item, MediaTypes, Movie, Sources, Status
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -252,6 +254,58 @@ class MediaCoreTests(YamtrackApiTestCase):
         for item in payload["results"]:
             check_media_structure(self, item)
             self.assertEqual(item["status"], 3)
+
+    def create_unwatched_tv(self):
+        """Track a new tv show without any watched episode."""
+        item = Item.objects.create(
+            media_id="9999",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Unwatched Show",
+            image="https://example.com/unwatched.jpg",
+        )
+        TV.objects.create(item=item, user=self.user1, status=Status.PLANNING.value)
+        return item
+
+    def test_updated_desc_keeps_unwatched_media_last(self):
+        """Media never progressed should come last when sorting by updated."""
+        unwatched = self.create_unwatched_tv()
+        # Watch the episodes of one tracked show, the others have none watched
+        Episode.objects.filter(related_season__user=self.user1).update(
+            end_date=timezone.now(),
+        )
+
+        for url_name, args in (
+            ("api_media_list", ()),
+            ("api_media_type_list", (MediaTypes.TV.value,)),
+        ):
+            for sort in ("updated_desc", "updated_asc"):
+                response = self.call_api(
+                    "get",
+                    url_name,
+                    args=args,
+                    params={"sort": sort, "limit": 200},
+                    headers=self.auth_headers,
+                )
+
+                self.assertEqual(response.status_code, 200, (url_name, sort))
+                results = response.json()["results"]
+                dates = [media["progressed_at"] for media in results]
+                # Media with a date come first, in the requested order
+                dated = [date for date in dates if date is not None]
+                self.assertTrue(dated, (url_name, sort))
+                self.assertEqual(dates[: len(dated)], dated, (url_name, sort))
+                self.assertEqual(
+                    dated,
+                    sorted(dated, reverse=sort.endswith("desc")),
+                    (url_name, sort),
+                )
+                media_ids = [media["item"]["media_id"] for media in results]
+                self.assertGreaterEqual(
+                    media_ids.index(unwatched.media_id),
+                    len(dated),
+                    (url_name, sort),
+                )
 
     def test_media_type_list_post_creates_media(self):
         """Media-type create endpoint should create new media items."""
