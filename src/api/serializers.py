@@ -380,12 +380,16 @@ class EpisodeSerializer(serializers.Serializer):
                 lists_by_item_id = context.get("lists_by_item_id", {})
                 lists = lists_by_item_id.get(item.id, [])
 
+        item_data = ItemSerializer().to_representation(item) if item else None
+        # Tracked episodes are saved with the show title, use the episode name
+        # like untracked episodes and the episode detail endpoint
+        if item_data is not None and instance.get("name"):
+            item_data["title"] = instance["name"]
+
         return {
             "id": item.id if item is not None else None,
             "consumption_id": episode.id if episode is not None else None,
-            "item": ItemSerializer().to_representation(item)
-            if item is not None
-            else None,
+            "item": item_data,
             "item_id": ItemIdField().to_representation(item)
             if item is not None
             else None,

@@ -984,6 +984,41 @@ class MediaSeasonTests(YamtrackApiTestCase):
         for episode in payload["results"]:
             check_media_structure(self, episode)
 
+    @patch("api.views.services.get_media_metadata")
+    def test_season_episodes_get_uses_episode_names(self, mock_metadata):
+        """Episode titles should be the episode names, tracked or not."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        mock_metadata.return_value = {
+            "episodes": [
+                {
+                    "show_id": tv_item.media_id,
+                    "season_number": 1,
+                    "episode_number": number,
+                    "name": name,
+                    "still_path": None,
+                }
+                for number, name in ((1, "Pilot"), (2, "Theseus"), (4, "Untracked"))
+            ],
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_season_episodes",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual(
+            [(episode["tracked"], episode["item"]["title"]) for episode in results],
+            [(True, "Pilot"), (True, "Theseus"), (False, "Untracked")],
+        )
+        # The saved episode records keep the show title used by the web app
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+        episode_item.refresh_from_db()
+        self.assertEqual(episode_item.title, "TV Show 1")
+
     @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_episodes_get_invalid_media_id_returns_internal_server_error(
         self,
