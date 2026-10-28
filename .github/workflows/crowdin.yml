@@ -59,6 +59,8 @@ jobs:
         with:
           upload_sources: true
           upload_translations: ${{ inputs.upload_translations == true }}
+          # Keep translations identical to the source, such as "Anime" or "ISBN"
+          import_eq_suggestions: true
           download_translations: false
 
       # The generated templates stay in place because Crowdin needs them to map
