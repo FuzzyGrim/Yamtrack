@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.shortcuts import render
+from django.utils import translation
 
 from app.providers import services
 
@@ -27,6 +28,26 @@ class AutoLoginMiddleware:
                     )
             except user_model.DoesNotExist:
                 pass
+
+        return self.get_response(request)
+
+
+class UserLanguageMiddleware:
+    """Middleware to activate the language saved on the user's account.
+
+    Runs after LocaleMiddleware, so authenticated users get their saved
+    language instead of the one from the cookie or the Accept-Language header.
+    """
+
+    def __init__(self, get_response):
+        """Initialize the middleware."""
+        self.get_response = get_response
+
+    def __call__(self, request):
+        """Activate the user's language for the request."""
+        if request.user.is_authenticated:
+            translation.activate(request.user.language)
+            request.LANGUAGE_CODE = translation.get_language()
 
         return self.get_response(request)
 

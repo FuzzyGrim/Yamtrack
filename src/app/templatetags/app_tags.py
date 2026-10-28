@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.dateparse import parse_date
 from django.utils.html import format_html
+from django.utils.translation import pgettext
 from unidecode import unidecode
 
 from app import config, helpers
@@ -41,6 +42,91 @@ def no_underscore(arg1):
 
 
 @register.filter
+def related_section_label(name):
+    """Return the translated heading for a related media section."""
+    # Keep literal strings inside pgettext so makemessages can extract them.
+    labels = {
+        "dlcs": lambda: pgettext("related section", "DLCs"),
+        "expanded_games": lambda: pgettext("related section", "Expanded Games"),
+        "expansions": lambda: pgettext("related section", "Expansions"),
+        "other_editions": lambda: pgettext("related section", "Other Editions"),
+        "parent_game": lambda: pgettext("related section", "Parent Game"),
+        "recommendations": lambda: pgettext("related section", "Recommendations"),
+        "related_anime": lambda: pgettext("related section", "Related Anime"),
+        "related_manga": lambda: pgettext("related section", "Related Manga"),
+        "remakes": lambda: pgettext("related section", "Remakes"),
+        "remasters": lambda: pgettext("related section", "Remasters"),
+        "seasons": lambda: pgettext("related section", "Seasons"),
+        "standalone_expansions": lambda: pgettext(
+            "related section", "Standalone Expansions"
+        ),
+    }
+    if name in labels:
+        return labels[name]()
+    # Fall back to the key itself for sections a provider adds later
+    return no_underscore(name).title()
+
+
+@register.filter
+def media_detail_label(name):
+    """Return the translated label for a key of a media's details."""
+    # Keep literal strings inside pgettext so makemessages can extract them.
+    labels = {
+        "author": lambda: pgettext("media detail", "Author"),
+        "authors": lambda: pgettext("media detail", "Authors"),
+        "broadcast": lambda: pgettext("media detail", "Broadcast"),
+        "companies": lambda: pgettext("media detail", "Companies"),
+        "country": lambda: pgettext("media detail", "Country"),
+        "designers": lambda: pgettext("media detail", "Designers"),
+        "end_date": lambda: pgettext("media detail", "End date"),
+        "episodes": lambda: pgettext("media detail", "Episodes"),
+        "first_air_date": lambda: pgettext("media detail", "First air date"),
+        "format": lambda: pgettext("media detail", "Format"),
+        "isbn": lambda: pgettext("media detail", "ISBN"),
+        "issues_count": lambda: pgettext("media detail", "Issues"),
+        "languages": lambda: pgettext("media detail", "Languages"),
+        "last_air_date": lambda: pgettext("media detail", "Last air date"),
+        "last_issue_name": lambda: pgettext("media detail", "Last issue name"),
+        "last_issue_number": lambda: pgettext("media detail", "Last issue number"),
+        "last_updated": lambda: pgettext("media detail", "Last updated"),
+        "latest_chapter_translated": lambda: pgettext(
+            "media detail", "Latest chapter translated"
+        ),
+        "min_age": lambda: pgettext("media detail", "Minimum age"),
+        "number_of_chapters": lambda: pgettext("media detail", "Chapters"),
+        "number_of_pages": lambda: pgettext("media detail", "Pages"),
+        "people": lambda: pgettext("media detail", "People"),
+        "physical_format": lambda: pgettext("media detail", "Physical format"),
+        "platforms": lambda: pgettext("media detail", "Platforms"),
+        "players": lambda: pgettext("media detail", "Players"),
+        "playtime": lambda: pgettext("media detail", "Playtime"),
+        "publish_date": lambda: pgettext("media detail", "Publish date"),
+        "publisher": lambda: pgettext("media detail", "Publisher"),
+        "publishers": lambda: pgettext("media detail", "Publishers"),
+        "release_date": lambda: pgettext("media detail", "Release date"),
+        "runtime": lambda: pgettext("media detail", "Runtime"),
+        # Translators: the anime's season of the year, e.g. "Spring 2024"
+        "season": lambda: pgettext("media detail", "Season"),
+        "seasons": lambda: pgettext("media detail", "Seasons"),
+        # Translators: the original material an anime is adapted from
+        "source": lambda: pgettext("media detail", "Source"),
+        "start_date": lambda: pgettext("media detail", "Start date"),
+        "status": lambda: pgettext("media detail", "Status"),
+        "status_in_country_of_origin": lambda: pgettext(
+            "media detail", "Status in country of origin"
+        ),
+        "studios": lambda: pgettext("media detail", "Studios"),
+        "themes": lambda: pgettext("media detail", "Themes"),
+        "total_runtime": lambda: pgettext("media detail", "Total runtime"),
+        "year": lambda: pgettext("media detail", "Year"),
+    }
+    if name in labels:
+        return labels[name]()
+    # Fall back to the key itself for details a provider adds later
+    return no_underscore(name)
+
+
+@register.filter
 def slug(arg1):
     """Return the slug of the string.
 
@@ -60,6 +146,28 @@ def slug(arg1):
                 cleaned = template.defaultfilters.urlencode(arg1)
 
     return cleaned
+
+
+@register.simple_tag
+def inline_link(url, html_class, label, *, new_tab=False):
+    """Build a safely escaped link fragment for translated template text.
+
+    With new_tab=True the link opens in a new tab, for external pages.
+    """
+    if new_tab:
+        return format_html(
+            '<a href="{}" class="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            url,
+            html_class,
+            label,
+        )
+    return format_html('<a href="{}" class="{}">{}</a>', url, html_class, label)
+
+
+@register.simple_tag
+def inline_code(text, html_class):
+    """Build a safely escaped code fragment for translated template text."""
+    return format_html('<code class="{}">{}</code>', html_class, text)
 
 
 @register.filter
@@ -141,13 +249,27 @@ def media_type_readable(media_type):
 @register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
-    singular = MediaTypes(media_type).label
+    # Keep literal strings inside pgettext so makemessages can extract them.
+    plural_translators = {
+        MediaTypes.TV.value: lambda: pgettext("media type plural label", "TV Shows"),
+        MediaTypes.SEASON.value: lambda: pgettext(
+            "media type plural label", "TV Seasons"
+        ),
+        MediaTypes.EPISODE.value: lambda: pgettext(
+            "media type plural label", "Episodes"
+        ),
+        MediaTypes.MOVIE.value: lambda: pgettext("media type plural label", "Movies"),
+        MediaTypes.ANIME.value: lambda: pgettext("media type plural label", "Anime"),
+        MediaTypes.MANGA.value: lambda: pgettext("media type plural label", "Manga"),
+        MediaTypes.GAME.value: lambda: pgettext("media type plural label", "Games"),
+        MediaTypes.BOOK.value: lambda: pgettext("media type plural label", "Books"),
+        MediaTypes.COMIC.value: lambda: pgettext("media type plural label", "Comics"),
+        MediaTypes.BOARDGAME.value: lambda: pgettext(
+            "media type plural label", "Boardgames"
+        ),
+    }
 
-    # Special cases that don't change in plural form
-    if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
-        return singular
-
-    return f"{singular}s"
+    return plural_translators[media_type]()
 
 
 @register.filter
@@ -165,7 +287,7 @@ def default_source(media_type):
 @register.filter
 def media_past_verb(media_type):
     """Return the past tense verb for the given media type."""
-    return config.get_verb(media_type, past_tense=True)
+    return config.get_translated_verb(media_type, past_tense=True)
 
 
 @register.filter
@@ -177,13 +299,19 @@ def sample_search(media_type):
 @register.filter
 def short_unit(media_type):
     """Return the short unit for the media type."""
-    return config.get_unit(media_type, short=True)
+    return config.get_translated_short_unit(media_type)
 
 
 @register.filter
 def long_unit(media_type):
     """Return the long unit for the media type."""
-    return config.get_unit(media_type, short=False)
+    return config.get_translated_unit(media_type)
+
+
+@register.filter
+def unit_for_count(media_type, count):
+    """Return the translated unit in singular or plural form for a count."""
+    return config.get_translated_unit(media_type, plural=count != 1)
 
 
 @register.filter
@@ -280,9 +408,11 @@ def natural_day(datetime, user):
     days = (datetime_date - today).days
 
     if days == 0:
-        return f"Today {formatted_time}"
+        return pgettext("natural day", "Today %(time)s") % {"time": formatted_time}
     if days == 1:
-        return f"Tomorrow {formatted_time}"
+        return pgettext("natural day", "Tomorrow %(time)s") % {
+            "time": formatted_time,
+        }
 
     return f"{formatted_date} {formatted_time}"
 

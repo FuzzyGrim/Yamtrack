@@ -6,6 +6,7 @@ from io import StringIO
 from django.apps import apps
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext as _
 
 import app
 from app import config
@@ -92,7 +93,7 @@ class YamtrackImporter:
         try:
             decoded_file = self.file.read().decode("utf-8")
         except UnicodeDecodeError as e:
-            msg = "Invalid file format. Please upload a CSV file."
+            msg = _("Invalid file format. Please upload a CSV file.")
             raise MediaImportError(msg) from e
 
         reader = DictReader(StringIO(decoded_file, newline=""))
@@ -101,14 +102,18 @@ class YamtrackImporter:
             try:
                 self._process_row(row)
             except services.ProviderAPIError as error:
-                error_msg = (
-                    f"Error processing entry with ID {row['media_id']} "
-                    f"({app_tags.media_type_readable(row['media_type'])}): {error}"
-                )
+                error_msg = _(
+                    "Error processing entry with ID %(media_id)s "
+                    "(%(media_type)s): %(error)s"
+                ) % {
+                    "media_id": row["media_id"],
+                    "media_type": app_tags.media_type_readable(row["media_type"]),
+                    "error": error,
+                }
                 self.warnings.append(error_msg)
                 continue
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         self._reopen_existing_shows()
@@ -176,7 +181,7 @@ class YamtrackImporter:
             if self.mode == "new"
             else app.models.Item.objects.update_or_create
         )
-        item, _ = get_item(
+        item, _created = get_item(
             media_id=row["media_id"],
             source=row["source"],
             media_type=media_type,
@@ -213,7 +218,11 @@ class YamtrackImporter:
             ):
                 self.bulk_media[media_type].append(form.instance)
         else:
-            error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
+            error_msg = _("%(title)s (%(media_type)s): %(errors)s") % {
+                "title": row["title"],
+                "media_type": app_tags.media_type_readable(row["media_type"]),
+                "errors": form.errors.as_json(),
+            }
             self.warnings.append(error_msg)
             logger.error(error_msg)
 
@@ -381,5 +390,5 @@ class YamtrackImporter:
             logger.info("Obtained media id: %s", row["media_id"])
             return
 
-        msg = f"Missing metadata for: {row}"
+        msg = _("Missing metadata for: %(row)s") % {"row": row}
         raise MediaImportError(msg)

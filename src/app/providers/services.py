@@ -4,6 +4,7 @@ import time
 import requests
 from defusedxml import ElementTree
 from django.conf import settings
+from django.utils.translation import gettext as _
 from pyrate_limiter import RedisBucket
 from redis import Redis
 from requests.adapters import HTTPAdapter
@@ -96,15 +97,33 @@ class ProviderAPIError(Exception):
         error_text = getattr(response, "text", str(error))
         logger.error("%s error: %s", provider_label, error_text)
 
-        message = f"There was an error contacting the {provider_label} API"
-        if self.status_code is None:
-            message += " (network error)"
+        message_params = {
+            "provider": provider_label,
+            "status_code": self.status_code,
+            "details": details,
+        }
+        if self.status_code is None and details:
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(network error): %(details)s. Check the logs for more details.",
+            )
+        elif self.status_code is None:
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(network error). Check the logs for more details.",
+            )
+        elif details:
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(HTTP %(status_code)s): %(details)s. "
+                "Check the logs for more details.",
+            )
         else:
-            message += f" (HTTP {self.status_code})"
-        if details:
-            message += f": {details}"
-        message += ". Check the logs for more details."
-        super().__init__(message)
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(HTTP %(status_code)s). Check the logs for more details.",
+            )
+        super().__init__(message % message_params)
 
 
 def raise_not_found_error(provider, media_id, media_type="item"):
@@ -130,7 +149,8 @@ def raise_not_found_error(provider, media_id, media_type="item"):
     )()
     mock_error = requests.exceptions.HTTPError(response=mock_response)
 
-    raise ProviderAPIError(provider, mock_error, error_msg)
+    details = _("No result found with ID %(media_id)s") % {"media_id": media_id}
+    raise ProviderAPIError(provider, mock_error, details)
 
 
 def api_request(

@@ -246,7 +246,7 @@ class Event(models.Model):
         if self.content_number:
             return (
                 f"{self.item.__str__()} "
-                f"{config.get_unit(self.item.media_type, short=True)}"
+                f"{config.get_translated_short_unit(self.item.media_type)}"
                 f"{self.content_number}"
             )
 
@@ -258,9 +258,8 @@ class Event(models.Model):
         if self.content_number is None:
             return ""
 
-        return (
-            f"{config.get_unit(self.item.media_type, short=True)}{self.content_number}"
-        )
+        short_unit = config.get_translated_short_unit(self.item.media_type)
+        return f"{short_unit}{self.content_number}"
 
     @property
     def is_sentinel_time(self):

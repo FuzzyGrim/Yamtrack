@@ -123,13 +123,12 @@ def redirect_back(request):
 
 
 def form_error_messages(form, request):
-    """Display form errors as messages."""
+    """Display form errors as messages, prefixed by the translated field label."""
     for field, errors in form.errors.items():
+        form_field = form.fields.get(field)
+        label = form_field.label if form_field and form_field.label else None
         for error in errors:
-            messages.error(
-                request,
-                f"{field.replace('_', ' ').title()}: {error}",
-            )
+            messages.error(request, f"{label}: {error}" if label else error)
 
 
 def format_search_response(page, per_page, total_results, results):

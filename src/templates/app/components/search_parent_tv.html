@@ -1,3 +1,5 @@
+{% load i18n %}
+
 {% if results %}
   <div class="absolute z-10 w-full mt-1 bg-[#39404b] rounded-md shadow-lg border border-gray-600 max-h-60 overflow-auto">
     {% for tv in results %}
@@ -10,6 +12,6 @@
   </div>
 {% elif query %}
   <div class="absolute z-10 w-full mt-1 bg-[#39404b] rounded-md shadow-lg border border-gray-600 p-3">
-    <p class="text-sm text-gray-400">No TV shows found matching "{{ query }}". Please try a different search term.</p>
+    <p class="text-sm text-gray-400">{% trans "No TV shows found matching" %} "{{ query }}". {% trans "Please try a different search term." %}</p>
   </div>
 {% endif %}

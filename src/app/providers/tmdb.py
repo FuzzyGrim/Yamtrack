@@ -5,6 +5,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -329,14 +330,22 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
         for season_number in season_subset:
             season_key = f"season/{season_number}"
             if season_key not in response:
-                msg = (
-                    f"Season {season_number} not found in {Sources.TMDB.label} "
-                    f"with ID {media_id}"
-                )
+                msg = _(
+                    "Season %(season_number)s not found for %(provider)s "
+                    "with ID %(media_id)s",
+                ) % {
+                    "season_number": season_number,
+                    "provider": Sources.TMDB.label,
+                    "media_id": media_id,
+                }
                 not_found_response = requests.Response()
                 not_found_response.status_code = 404
                 not_found_error = type("Error", (), {"response": not_found_response})
-                raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
+                raise services.ProviderAPIError(
+                    Sources.TMDB.value,
+                    error=not_found_error,
+                    details=msg,
+                )
 
             season_data = process_season(
                 response[season_key], response[f"{season_key}/watch/providers"]
@@ -775,10 +784,15 @@ def episode(media_id, season_number, episode_number):
             }
 
     # Episode not found - throw ProviderAPIError
-    msg = (
-        f"Episode {episode_number} not found in season {season_number} "
-        f"for {Sources.TMDB.label} with ID {media_id}"
-    )
+    msg = _(
+        "Episode %(episode_number)s not found in season %(season_number)s "
+        "for %(provider)s with ID %(media_id)s",
+    ) % {
+        "episode_number": episode_number,
+        "season_number": season_number,
+        "provider": Sources.TMDB.label,
+        "media_id": media_id,
+    }
     # Create a new response object with 404 status
     not_found_response = requests.Response()
     not_found_response.status_code = 404
@@ -793,7 +807,7 @@ def episode(media_id, season_number, episode_number):
 
 def watch_provider_regions():
     """Return the available watch provider regions from The Movie Database."""
-    cache_key = f"{Sources.TMDB.value}_watch_provider_regions"
+    cache_key = f"{Sources.TMDB.value}_watch_provider_region_list"
     data = cache.get(cache_key)
 
     if data is None:
@@ -810,7 +824,7 @@ def watch_provider_regions():
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        data = [("", "Disabled")]
+        data = []
         regions = response.get("results", [])
         for region in sorted(regions, key=lambda r: r.get("english_name", "")):
             key = region.get("iso_3166_1")
@@ -822,7 +836,7 @@ def watch_provider_regions():
 
         cache.set(cache_key, data)
 
-    return data
+    return [("", _("Disabled")), *data]
 
 
 def get_changed_ids(media_type):

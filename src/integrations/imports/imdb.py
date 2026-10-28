@@ -6,6 +6,7 @@ from io import StringIO
 from django.apps import apps
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext as _
 
 import app
 import app.providers
@@ -83,7 +84,7 @@ class IMDBImporter:
         try:
             decoded_file = self.file.read().decode("utf-8")
         except UnicodeDecodeError as e:
-            msg = "Invalid file format. Please upload a CSV file."
+            msg = _("Invalid file format. Please upload a CSV file.")
             raise MediaImportError(msg) from e
 
         reader = DictReader(StringIO(decoded_file, newline=""))
@@ -98,7 +99,7 @@ class IMDBImporter:
             try:
                 self._process_first_pass(row, media_id_counts, media_id_titles)
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         # Second pass: add non-duplicates to bulk_media
@@ -106,7 +107,7 @@ class IMDBImporter:
             try:
                 self._process_second_pass(row, media_id_counts)
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         # Add consolidated warnings for duplicates
@@ -135,7 +136,9 @@ class IMDBImporter:
         title = row.get("Title", "").strip()
 
         if not imdb_id:
-            self.warnings.append(f"{title}: Invalid or missing IMDB ID")
+            self.warnings.append(
+                _("Invalid or missing IMDB ID for title: %(title)s") % {"title": title}
+            )
             return
 
         title_type = row.get("Title Type", "").strip()
@@ -143,11 +146,13 @@ class IMDBImporter:
         if not self._is_supported_type(title_type):
             if title_type in UNSUPPORTED_TYPES:
                 self.warnings.append(
-                    f"{title}: Unsupported title type '{title_type}' - skipped",
+                    _("%(title)s: Unsupported title type '%(title_type)s' - skipped")
+                    % {"title": title, "title_type": title_type}
                 )
             else:
                 self.warnings.append(
-                    f"{title}: Unknown title type '{title_type}' - skipped",
+                    _("%(title)s: Unknown title type '%(title_type)s' - skipped")
+                    % {"title": title, "title_type": title_type}
                 )
             return
 
@@ -155,7 +160,8 @@ class IMDBImporter:
 
         if not tmdb_data:
             self.warnings.append(
-                f"{title}: Couldn't find a match in {Sources.TMDB.label}",
+                _("Couldn't find a match in %(source)s for title: %(title)s")
+                % {"source": Sources.TMDB.label, "title": title}
             )
             return
 
@@ -202,7 +208,7 @@ class IMDBImporter:
         ):
             return
 
-        item, _ = self._create_or_update_item(tmdb_data, media_type)
+        item, _created = self._create_or_update_item(tmdb_data, media_type)
         instance = self._create_media_instance(item, row, media_type)
         self.bulk_media[media_type].append(instance)
 
@@ -234,8 +240,11 @@ class IMDBImporter:
                 titles = media_id_titles[media_id]
                 title_list = helpers.join_with_commas_and(titles)
                 self.warnings.append(
-                    f"{title_list}: They were matched to the same TMDB ID {media_id} "
-                    "- none imported",
+                    _(
+                        "%(title_list)s: They were matched to the same TMDB ID"
+                        " %(media_id)s - none imported"
+                    )
+                    % {"title_list": title_list, "media_id": media_id}
                 )
 
     def _extract_imdb_id(self, row):
