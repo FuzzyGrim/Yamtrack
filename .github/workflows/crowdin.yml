@@ -1,0 +1,82 @@
+name: Crowdin
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "src/**/*.py"
+      - "src/templates/**"
+      - "src/static/js/**"
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+    inputs:
+      upload_translations:
+        description: "Also upload the translations in the repository to Crowdin"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: crowdin
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'FuzzyGrim/Yamtrack'
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+      CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext
+          uv sync --locked --no-default-groups
+
+      - name: Generate translation templates
+        working-directory: src
+        run: |
+          uv run manage.py makemessages --all --keep-pot -d django
+          uv run manage.py makemessages --all --keep-pot -d djangojs
+
+      - name: Upload source strings
+        uses: crowdin/github-action@v3.5.0
+        with:
+          upload_sources: true
+          upload_translations: ${{ inputs.upload_translations == true }}
+          download_translations: false
+
+      # The download step commits everything with `git add .`, so drop the
+      # generated templates and catalogs before it runs.
+      - name: Reset generated files
+        run: |
+          rm src/locale/*.pot
+          git checkout -- src/locale
+
+      - name: Download translations
+        uses: crowdin/github-action@v3.5.0
+        with:
+          upload_sources: false
+          upload_translations: false
+          download_translations: true
+          localization_branch_name: l10n_dev
+          commit_message: "update translations from crowdin"
+          create_pull_request: true
+          pull_request_title: "update translations from crowdin"
+          pull_request_body: "Translations synced from Crowdin."
+          pull_request_base_branch_name: dev

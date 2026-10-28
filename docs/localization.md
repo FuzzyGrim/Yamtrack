@@ -7,62 +7,50 @@ Currently configured languages:
 - `en` (default)
 - `it`
 
+## Translating Yamtrack
+
+Translations are managed on [Crowdin](https://crowdin.com/project/yamtrack). Sign in, pick a language and translate the strings there; you don't need to edit any files in the repository.
+
+Changes made on Crowdin are synced back automatically: a GitHub Action opens a pull request with the updated `.po` files in `src/locale/<lang>/LC_MESSAGES/`. Please don't edit those files directly in a pull request, as they are overwritten by the next sync from Crowdin.
+
+Strings that haven't been translated yet are shown in English.
+
 ## Add a new language
 
-Yamtrack uses Django i18n with message catalogs stored in the `/src/locale` directory.
+To request a new language, open an issue on GitHub with the English name of the language and its [locale name](https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name), for example `fr` for French. Once the language is enabled on Crowdin, it can be translated there.
 
-From the repository root, run:
+After some translations have been made and synced, a maintainer adds the language to the `LANGUAGES` setting in `src/config/settings.py` so it appears in the app language selector.
+
+!!! warning IMPORTANT
+    When a new language is added, test it by running the development server and switching to the new language from the app language selector. More infos at [General setup](development.md#general-setup).
+
+## Adding translatable strings
+
+When you add or change text in the code, mark it for translation with `{% trans %}`, `{% blocktranslate %}`, or `gettext_lazy` / `gettext` (can be imported as `_`). In JavaScript, use `gettext()` from the JavaScript catalog.
+
+You don't need to run `makemessages` or update any `.po` files. After your change is merged into `dev`, the Crowdin GitHub Action extracts the strings with `makemessages` and uploads them to Crowdin for translation.
+
+### Testing translations locally
+
+Compiling translations requires the GNU gettext tools (for example `sudo apt install gettext`). To see the translated UI locally, compile the message catalogs with:
 
 ```bash
 cd src
-uv run manage.py makemessages -d django -l lang_code
-uv run manage.py makemessages -d djangojs -l lang_code
-```
-
-This generates the `.po` files for the language specified by `lang_code`, that is the [locale name](https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name) of the language you want to add. For example, for French, use `fr`.
-
-To translate the newly created language, edit the `locale/lang_code/LC_MESSAGES/django.po` and `locale/lang_code/LC_MESSAGES/djangojs.po` files. No specific app is needed since they are plain-text files, but there are some tools that can help.
-
-After editing the `.po` message file, compile the message catalogs with:
-
-```bash
 uv run manage.py compilemessages
 ```
 
-This generates the `.mo` files that Django uses for displaying text. After compiling, add the language to the `LANGUAGES` setting in `src/config/settings.py`.
+This generates the `.mo` files that Django uses for displaying text. They are not committed to the repository.
 
-!!! warning IMPORTANT
-    If you add a new language, you need test it by running the development server and switching to the new language from the app language selector. More infos at [General setup](development.md#general-setup).
-
-## Update existing languages
-
-From the repository root, run:
+To check how new strings are extracted, you can also run `makemessages` locally:
 
 ```bash
 cd src
-uv run manage.py makemessages -d django -l it
-uv run manage.py makemessages -d djangojs -l it
+uv run manage.py makemessages --all -d django
+uv run manage.py makemessages --all -d djangojs
 ```
 
-You need to add all the supported languages with the `-l` flag.
+Don't commit the resulting `.po` changes; Crowdin is the source of truth for translations.
 
-To translate the newly created language, edit the `locale/lang_code/LC_MESSAGES/django.po` and `locale/lang_code/LC_MESSAGES/djangojs.po` files. No specific app is needed since they are plain-text files, but there are some tools that can help.
-
-After editing the `.po` message file, compile the message catalogs with:
-
-```bash
-uv run manage.py compilemessages
-```
-
-Recommended contribution flow:
-
-1. Mark strings with `{% trans %}`, `{% blocktranslate %}`, or `gettext_lazy` / `gettext` (can be imported as `_`).
-2. Run `makemessages` for supported locales.
-3. Update translations in `locale/<lang>/LC_MESSAGES/django.po`.
-4. Run `compilemessages` and verify UI language switching from the app language selector.
-
-!!! warning IMPORTANT
-    If you modify an existing language, you need test it by running the development server and switching to the new language from the app language selector. More infos at [General setup](development.md#general-setup).
 
 ### Translating strings with links
 
