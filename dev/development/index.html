@@ -18,7 +18,7 @@
         <link rel="prev" href="../setup/">
       
       
-        <link rel="next" href="../env-variables/">
+        <link rel="next" href="../localization/">
       
       
         
@@ -256,6 +256,22 @@
         
   
   Development
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../localization/" class="md-tabs__link">
+        
+  
+  Localization
 
       </a>
     </li>
@@ -568,6 +584,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#compile-translations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Compile translations
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#run-the-app" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -580,6 +607,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#localization-i18n" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Localization (i18n)
+      </span>
+    </span>
+  </a>
   
 </li>
       
@@ -609,6 +647,32 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Localization
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -756,6 +820,7 @@
 <li><a href="https://tailwindcss.com/docs/installation/tailwind-cli">tailwindcss CLI</a> (install with <code>npm install -g tailwindcss @tailwindcss/cli</code>)</li>
 <li>Docker</li>
 <li>Redis</li>
+<li><a href="https://www.gnu.org/software/gettext/">GNU gettext</a> (<code>sudo apt install gettext</code> on Debian/Ubuntu, <code>brew install gettext</code> on macOS, <code>winget install mlocati.GetText</code> on Windows, which installs the <a href="https://mlocati.github.io/articles/gettext-iconv-windows.html">gettext-iconv-windows</a> binaries recommended by Django)</li>
 </ul>
 <h2 id="general-setup">General setup<a class="headerlink" href="#general-setup" title="Permanent link">&para;</a></h2>
 <h3 id="clone-the-repository">Clone the repository<a class="headerlink" href="#clone-the-repository" title="Permanent link">&para;</a></h3>
@@ -790,47 +855,57 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>src
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>migrate
 </span></code></pre></div>
+<h3 id="compile-translations">Compile translations<a class="headerlink" href="#compile-translations" title="Permanent link">&para;</a></h3>
+<p>The compiled translation catalogs (<code>.mo</code> files) are not committed, so build them from the <code>.po</code> files:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>src
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>compilemessages
+</span></code></pre></div>
+<p>Run it again after pulling changes to the translations or editing them yourself.
+See <a href="../localization/">Localization</a> for the translation workflow.</p>
 <h3 id="run-the-app">Run the app<a class="headerlink" href="#run-the-app" title="Permanent link">&para;</a></h3>
 <p>The repository ships a <code>Procfile</code> that defines the web server, the Celery
 worker, and the Tailwind watcher. Run all three at once with
 <a href="https://github.com/nickstenning/honcho">honcho</a>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uvx<span class="w"> </span>honcho<span class="w"> </span>-e<span class="w"> </span>/dev/null<span class="w"> </span>start
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uvx<span class="w"> </span>honcho<span class="w"> </span>-e<span class="w"> </span>/dev/null<span class="w"> </span>start
 </span></code></pre></div>
 <p>The <code>-e /dev/null</code> flag stops honcho from loading the <code>.env</code> file into the
 process environment; Yamtrack reads <code>.env</code> itself, so honcho should leave it
 alone.</p>
 <p>Alternatively, run each process in its own terminal.</p>
 <p>Run the Django development server:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>src
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>runserver
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>src
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>runserver
 </span></code></pre></div>
 <p>Run the Celery worker with the scheduler in another terminal:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>src
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>uv<span class="w"> </span>run<span class="w"> </span>celery<span class="w"> </span>-A<span class="w"> </span>config<span class="w"> </span>worker<span class="w"> </span>--beat<span class="w"> </span>--scheduler<span class="w"> </span>django<span class="w"> </span>--loglevel<span class="w"> </span>DEBUG
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>src
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>uv<span class="w"> </span>run<span class="w"> </span>celery<span class="w"> </span>-A<span class="w"> </span>config<span class="w"> </span>worker<span class="w"> </span>--beat<span class="w"> </span>--scheduler<span class="w"> </span>django<span class="w"> </span>--loglevel<span class="w"> </span>DEBUG
 </span></code></pre></div>
 <p>Run Tailwind in another terminal:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>src
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>tailwindcss<span class="w"> </span>-i<span class="w"> </span>./static/css/input.css<span class="w"> </span>-o<span class="w"> </span>./static/css/main.css<span class="w"> </span>--watch
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">cd</span><span class="w"> </span>src
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>tailwindcss<span class="w"> </span>-i<span class="w"> </span>./static/css/input.css<span class="w"> </span>-o<span class="w"> </span>./static/css/main.css<span class="w"> </span>--watch
 </span></code></pre></div>
 <p>Open the development server at:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>http://localhost:8000
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>http://localhost:8000
 </span></code></pre></div>
+<h2 id="localization-i18n">Localization (i18n)<a class="headerlink" href="#localization-i18n" title="Permanent link">&para;</a></h2>
+<p>See <a href="../localization/">Localization</a>.</p>
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <p>Install the docs dependency group, then serve the docs from the current checkout:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>docs
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>uv<span class="w"> </span>run<span class="w"> </span>zensical<span class="w"> </span>serve
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>docs
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>uv<span class="w"> </span>run<span class="w"> </span>zensical<span class="w"> </span>serve
 </span></code></pre></div>
 <h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
 <p>Install Playwright browsers before running integration tests:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>playwright<span class="w"> </span>install
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>uv<span class="w"> </span>run<span class="w"> </span>playwright<span class="w"> </span>install
 </span></code></pre></div>
+<p>Some tests check the translated text, so compile the translations first (see <a href="#compile-translations">Compile translations</a>). Without them, those tests fail because the "translated" text is still English, with messages such as <code>'No media was imported.' == 'No media was imported.'</code>.</p>
 <p>Run the Django test suite from the <code>src</code> directory:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nb">cd</span><span class="w"> </span>src
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--parallel
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">cd</span><span class="w"> </span>src
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--parallel
 </span></code></pre></div>
 <p>To run tests for a specific app or test module, pass the test label after <code>test</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">cd</span><span class="w"> </span>src
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span><span class="nb">test</span><span class="w"> </span>app.tests<span class="w"> </span>--parallel
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nb">cd</span><span class="w"> </span>src
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span><span class="nb">test</span><span class="w"> </span>app.tests<span class="w"> </span>--parallel
 </span></code></pre></div>
 
 
@@ -886,13 +961,13 @@ alone.</p>
         
         
           
-          <a href="../env-variables/" class="md-footer__link md-footer__link--next" aria-label="Next: Environment Variables">
+          <a href="../localization/" class="md-footer__link md-footer__link--next" aria-label="Next: Localization">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Environment Variables
+                Localization
               </div>
             </div>
             <div class="md-footer__button md-icon">
