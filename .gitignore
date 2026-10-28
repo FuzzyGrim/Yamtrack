@@ -18,3 +18,4 @@ TODO.txt
 .codex
 .cache
 *.mo
+src/locale/*.pot

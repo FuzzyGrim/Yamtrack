@@ -61,13 +61,8 @@ jobs:
           upload_translations: ${{ inputs.upload_translations == true }}
           download_translations: false
 
-      # The download step commits everything with `git add .`, so drop the
-      # generated templates and catalogs before it runs.
-      - name: Reset generated files
-        run: |
-          rm src/locale/*.pot
-          git checkout -- src/locale
-
+      # The generated templates stay in place because Crowdin needs them to map
+      # translations to files; they are gitignored so the download commit skips them.
       - name: Download translations
         uses: crowdin/github-action@v3.5.0
         with:
