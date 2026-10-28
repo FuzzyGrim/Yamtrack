@@ -78,6 +78,14 @@ session.mount(
     "https://boardgamegeek.com/xmlapi2",
     LimiterAdapter(per_second=2),
 )
+session.mount(
+    "https://www.omdbapi.com",
+    LimiterAdapter(per_second=2),
+)
+session.mount(
+    "https://www.rottentomatoes.com",
+    LimiterAdapter(per_second=1),
+)
 
 
 class ProviderAPIError(Exception):
@@ -152,10 +160,10 @@ def api_request(
         params: Query params for GET, JSON body for POST
         data: Raw data for POST
         headers: Request headers
-        response_format: "json" (default) or "xml" for XML parsing
+        response_format: "json" (default), "xml" for XML parsing or "text" for raw HTML
 
     Returns:
-        Parsed JSON dict or ElementTree for XML
+        Parsed JSON dict, ElementTree for XML or str for text
     """
     try:
         request_kwargs = {
@@ -177,6 +185,8 @@ def api_request(
 
         if response_format == "xml":
             return ElementTree.fromstring(response.text)
+        if response_format == "text":
+            return response.text
         return response.json()
 
     except requests.exceptions.HTTPError as error:
