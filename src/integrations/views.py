@@ -518,7 +518,12 @@ def jellyfin_webhook(request, token):
         logger.warning("Missing payload in Jellyfin webhook request")
         return HttpResponse("Missing payload", status=400)
 
-    payload = json.loads(data)
+    try:
+        payload = json.loads(data, strict=False)
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid JSON in Jellyfin webhook request: %s", exc)
+        return HttpResponse("Invalid JSON payload", status=400)
+
     processor = jellyfin.JellyfinWebhookProcessor()
     processor.process_payload(payload, user)
     return HttpResponse(status=200)
@@ -551,7 +556,12 @@ def plex_webhook(request, token):
         logger.warning("Missing payload in Plex webhook request")
         return HttpResponse("Missing payload", status=400)
 
-    payload = json.loads(data)
+    try:
+        payload = json.loads(data, strict=False)
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid JSON in Plex webhook request: %s", exc)
+        return HttpResponse("Invalid JSON payload", status=400)
+
     processor = plex.PlexWebhookProcessor()
     processor.process_payload(payload, user)
     return HttpResponse(status=200)
@@ -582,7 +592,12 @@ def emby_webhook(request, token):
         logger.warning("Missing payload in Emby webhook request")
         return HttpResponse("Missing payload", status=400)
 
-    payload = json.loads(data)
+    try:
+        payload = json.loads(data, strict=False)
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid JSON in Emby webhook request: %s", exc)
+        return HttpResponse("Invalid JSON payload", status=400)
+
     processor = emby.EmbyWebhookProcessor()
     processor.process_payload(payload, user)
     return HttpResponse(status=200)
