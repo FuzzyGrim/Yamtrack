@@ -543,6 +543,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#translating-yamtrack" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Translating Yamtrack
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#add-a-new-language" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -554,16 +565,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#update-existing-languages" class="md-nav__link">
+  <a href="#adding-translatable-strings" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Update existing languages
+        Adding translatable strings
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Update existing languages">
+    <nav class="md-nav" aria-label="Adding translatable strings">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#testing-translations-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Testing translations locally
+      </span>
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#translating-strings-with-links" class="md-nav__link">
@@ -753,82 +775,69 @@
 <li><code>en</code> (default)</li>
 <li><code>it</code></li>
 </ul>
+<h2 id="translating-yamtrack">Translating Yamtrack<a class="headerlink" href="#translating-yamtrack" title="Permanent link">&para;</a></h2>
+<p>Translations are managed on <a href="https://crowdin.com/project/yamtrack">Crowdin</a>. Sign in, pick a language and translate the strings there; you don't need to edit any files in the repository.</p>
+<p>Changes made on Crowdin are synced back automatically: a GitHub Action opens a pull request with the updated <code>.po</code> files in <code>src/locale/&lt;lang&gt;/LC_MESSAGES/</code>. Please don't edit those files directly in a pull request, as they are overwritten by the next sync from Crowdin.</p>
+<p>Strings that haven't been translated yet are shown in English.</p>
 <h2 id="add-a-new-language">Add a new language<a class="headerlink" href="#add-a-new-language" title="Permanent link">&para;</a></h2>
-<p>Yamtrack uses Django i18n with message catalogs stored in the <code>/src/locale</code> directory.</p>
-<p>From the repository root, run:</p>
+<p>To request a new language, open an issue on GitHub with the English name of the language and its <a href="https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name">locale name</a>, for example <code>fr</code> for French. Once the language is enabled on Crowdin, it can be translated there.</p>
+<p>After some translations have been made and synced, a maintainer adds the language to the <code>LANGUAGES</code> setting in <code>src/config/settings.py</code> so it appears in the app language selector.</p>
+<div class="admonition warning important">
+<p class="admonition-title">Warning</p>
+<p>When a new language is added, test it by running the development server and switching to the new language from the app language selector. More infos at <a href="../development/#general-setup">General setup</a>.</p>
+</div>
+<h2 id="adding-translatable-strings">Adding translatable strings<a class="headerlink" href="#adding-translatable-strings" title="Permanent link">&para;</a></h2>
+<p>When you add or change text in the code, mark it for translation with <code>{% trans %}</code>, <code>{% blocktranslate %}</code>, or <code>gettext_lazy</code> / <code>gettext</code> (can be imported as <code>_</code>). In JavaScript, use <code>gettext()</code> from the JavaScript catalog.</p>
+<p>You don't need to run <code>makemessages</code> or update any <code>.po</code> files. After your change is merged into <code>dev</code>, the Crowdin GitHub Action extracts the strings with <code>makemessages</code> and uploads them to Crowdin for translation.</p>
+<h3 id="testing-translations-locally">Testing translations locally<a class="headerlink" href="#testing-translations-locally" title="Permanent link">&para;</a></h3>
+<p>Compiling translations requires the GNU gettext tools (for example <code>sudo apt install gettext</code>). To see the translated UI locally, compile the message catalogs with:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>src
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>makemessages<span class="w"> </span>-d<span class="w"> </span>django<span class="w"> </span>-l<span class="w"> </span>lang_code
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>makemessages<span class="w"> </span>-d<span class="w"> </span>djangojs<span class="w"> </span>-l<span class="w"> </span>lang_code
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>compilemessages
 </span></code></pre></div>
-<p>This generates the <code>.po</code> files for the language specified by <code>lang_code</code>, that is the <a href="https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name">locale name</a> of the language you want to add. For example, for French, use <code>fr</code>.</p>
-<p>To translate the newly created language, edit the <code>locale/lang_code/LC_MESSAGES/django.po</code> and <code>locale/lang_code/LC_MESSAGES/djangojs.po</code> files. No specific app is needed since they are plain-text files, but there are some tools that can help.</p>
-<p>After editing the <code>.po</code> message file, compile the message catalogs with:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>compilemessages
+<p>This generates the <code>.mo</code> files that Django uses for displaying text. They are not committed to the repository.</p>
+<p>To check how new strings are extracted, you can also run <code>makemessages</code> locally:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>src
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>makemessages<span class="w"> </span>--all<span class="w"> </span>-d<span class="w"> </span>django
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>makemessages<span class="w"> </span>--all<span class="w"> </span>-d<span class="w"> </span>djangojs
 </span></code></pre></div>
-<p>This generates the <code>.mo</code> files that Django uses for displaying text. After compiling, add the language to the <code>LANGUAGES</code> setting in <code>src/config/settings.py</code>.</p>
-<div class="admonition warning important">
-<p class="admonition-title">Warning</p>
-<p>If you add a new language, you need test it by running the development server and switching to the new language from the app language selector. More infos at <a href="../development/#general-setup">General setup</a>.</p>
-</div>
-<h2 id="update-existing-languages">Update existing languages<a class="headerlink" href="#update-existing-languages" title="Permanent link">&para;</a></h2>
-<p>From the repository root, run:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span>src
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>makemessages<span class="w"> </span>-d<span class="w"> </span>django<span class="w"> </span>-l<span class="w"> </span>it
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>makemessages<span class="w"> </span>-d<span class="w"> </span>djangojs<span class="w"> </span>-l<span class="w"> </span>it
-</span></code></pre></div>
-<p>You need to add all the supported languages with the <code>-l</code> flag.</p>
-<p>To translate the newly created language, edit the <code>locale/lang_code/LC_MESSAGES/django.po</code> and <code>locale/lang_code/LC_MESSAGES/djangojs.po</code> files. No specific app is needed since they are plain-text files, but there are some tools that can help.</p>
-<p>After editing the <code>.po</code> message file, compile the message catalogs with:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>manage.py<span class="w"> </span>compilemessages
-</span></code></pre></div>
-<p>Recommended contribution flow:</p>
-<ol>
-<li>Mark strings with <code>{% trans %}</code>, <code>{% blocktranslate %}</code>, or <code>gettext_lazy</code> / <code>gettext</code> (can be imported as <code>_</code>).</li>
-<li>Run <code>makemessages</code> for supported locales.</li>
-<li>Update translations in <code>locale/&lt;lang&gt;/LC_MESSAGES/django.po</code>.</li>
-<li>Run <code>compilemessages</code> and verify UI language switching from the app language selector.</li>
-</ol>
-<div class="admonition warning important">
-<p class="admonition-title">Warning</p>
-<p>If you modify an existing language, you need test it by running the development server and switching to the new language from the app language selector. More infos at <a href="../development/#general-setup">General setup</a>.</p>
-</div>
+<p>Don't commit the resulting <code>.po</code> changes; Crowdin is the source of truth for translations.</p>
 <h3 id="translating-strings-with-links">Translating strings with links<a class="headerlink" href="#translating-strings-with-links" title="Permanent link">&para;</a></h3>
 <p>Use the <code>inline_link</code> template tag when a translated sentence contains a link. It builds an HTML anchor with <code>format_html</code>, so the URL, CSS class, and translated label are escaped safely. The HTML stays out of the <code>.po</code> message and translators can move the link placeholder to fit their language.</p>
 <p>Load <code>app_tags</code>, define the URL and translated label, then assign the tag output to a variable for use in <code>blocktrans</code>:</p>
-<div class="language-django highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="cp">{%</span> <span class="k">load</span> <span class="nv">app_tags</span> <span class="nv">i18n</span> <span class="cp">%}</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="cp">{%</span> <span class="k">url</span> <span class="s1">&#39;url-of-page&#39;</span> <span class="k">as</span> <span class="nv">test_url</span> <span class="cp">%}</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c">{# Translators: In &quot;Watch provider region is not configured. Set a region or disable this feature in clickable text of the link.&quot;, this is the linked text. #}</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="cp">{%</span> <span class="k">trans</span> <span class="s2">&quot;clickable text of the link&quot;</span> <span class="k">as</span> <span class="nv">link_label</span> <span class="cp">%}</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="cp">{%</span> <span class="k">with</span> <span class="nv">html_class</span><span class="o">=</span><span class="s2">&quot;text-indigo-400 hover:text-indigo-300 hover:underline&quot;</span> <span class="cp">%}</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="x">    </span><span class="cp">{%</span> <span class="k">inline_link</span> <span class="nv">test_url</span> <span class="nv">html_class</span> <span class="nv">link_label</span> <span class="k">as</span> <span class="nv">test_link</span> <span class="cp">%}</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="x">    </span><span class="cp">{%</span> <span class="k">blocktrans</span> <span class="nv">trimmed</span> <span class="cp">%}</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="x">        Watch provider region is not configured. Set a region or disable this feature in </span><span class="cp">{{</span> <span class="nv">test_link</span> <span class="cp">}}</span><span class="x">.</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="x">    </span><span class="cp">{%</span> <span class="k">endblocktrans</span> <span class="cp">%}</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="cp">{%</span> <span class="k">endwith</span> <span class="cp">%}</span>
+<div class="language-django highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="cp">{%</span> <span class="k">load</span> <span class="nv">app_tags</span> <span class="nv">i18n</span> <span class="cp">%}</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="cp">{%</span> <span class="k">url</span> <span class="s1">&#39;url-of-page&#39;</span> <span class="k">as</span> <span class="nv">test_url</span> <span class="cp">%}</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c">{# Translators: In &quot;Watch provider region is not configured. Set a region or disable this feature in clickable text of the link.&quot;, this is the linked text. #}</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="cp">{%</span> <span class="k">trans</span> <span class="s2">&quot;clickable text of the link&quot;</span> <span class="k">as</span> <span class="nv">link_label</span> <span class="cp">%}</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="cp">{%</span> <span class="k">with</span> <span class="nv">html_class</span><span class="o">=</span><span class="s2">&quot;text-indigo-400 hover:text-indigo-300 hover:underline&quot;</span> <span class="cp">%}</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="x">    </span><span class="cp">{%</span> <span class="k">inline_link</span> <span class="nv">test_url</span> <span class="nv">html_class</span> <span class="nv">link_label</span> <span class="k">as</span> <span class="nv">test_link</span> <span class="cp">%}</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="x">    </span><span class="cp">{%</span> <span class="k">blocktrans</span> <span class="nv">trimmed</span> <span class="cp">%}</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="x">        Watch provider region is not configured. Set a region or disable this feature in </span><span class="cp">{{</span> <span class="nv">test_link</span> <span class="cp">}}</span><span class="x">.</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="x">    </span><span class="cp">{%</span> <span class="k">endblocktrans</span> <span class="cp">%}</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="cp">{%</span> <span class="k">endwith</span> <span class="cp">%}</span>
 </span></code></pre></div>
 <p>The extracted message contains a placeholder such as <code>%(test_link)s</code>, not the anchor markup. Keep the link label in its own <code>{% trans %}</code> string so it can be translated independently. Add a <code>{# Translators: ... #}</code> comment immediately before that string, giving the complete sentence and explaining which words form the link; Django includes this comment in the <code>.po</code> file with the label. <code>inline_link</code> is a simple tag, not a filter: pass its three arguments separated by spaces, then use <code>as</code> to capture its output. Avoid marking arbitrary values safe; <code>inline_link</code> handles escaping through <code>format_html</code>.</p>
 <p>For external pages, add <code>new_tab=True</code> so the link opens in a new tab with <code>target="_blank" rel="noopener noreferrer"</code>:</p>
-<div class="language-django highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="cp">{%</span> <span class="k">trans</span> <span class="s2">&quot;link&quot;</span> <span class="k">as</span> <span class="nv">repository_link_label</span> <span class="cp">%}</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="cp">{%</span> <span class="k">inline_link</span> <span class="s2">&quot;https://example.com/manifest.json&quot;</span> <span class="nv">html_class</span> <span class="nv">repository_link_label</span> <span class="nv">new_tab</span><span class="o">=</span><span class="kp">True</span> <span class="k">as</span> <span class="nv">repository_link</span> <span class="cp">%}</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="cp">{%</span> <span class="k">blocktrans</span> <span class="nv">trimmed</span> <span class="cp">%}</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">    Add this repository </span><span class="cp">{{</span> <span class="nv">repository_link</span> <span class="cp">}}</span><span class="x"> to your &quot;Plugins Catalog&quot; in Jellyfin settings.</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="cp">{%</span> <span class="k">endblocktrans</span> <span class="cp">%}</span>
+<div class="language-django highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="cp">{%</span> <span class="k">trans</span> <span class="s2">&quot;link&quot;</span> <span class="k">as</span> <span class="nv">repository_link_label</span> <span class="cp">%}</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="cp">{%</span> <span class="k">inline_link</span> <span class="s2">&quot;https://example.com/manifest.json&quot;</span> <span class="nv">html_class</span> <span class="nv">repository_link_label</span> <span class="nv">new_tab</span><span class="o">=</span><span class="kp">True</span> <span class="k">as</span> <span class="nv">repository_link</span> <span class="cp">%}</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="cp">{%</span> <span class="k">blocktrans</span> <span class="nv">trimmed</span> <span class="cp">%}</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">    Add this repository </span><span class="cp">{{</span> <span class="nv">repository_link</span> <span class="cp">}}</span><span class="x"> to your &quot;Plugins Catalog&quot; in Jellyfin settings.</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="cp">{%</span> <span class="k">endblocktrans</span> <span class="cp">%}</span>
 </span></code></pre></div>
 <h3 id="translating-strings-with-inline-code">Translating strings with inline code<a class="headerlink" href="#translating-strings-with-inline-code" title="Permanent link">&para;</a></h3>
 <p>Use <code>inline_code</code> for inline code or configuration values inside a translated sentence. Like <code>inline_link</code>, it creates one escaped HTML fragment so translators can move the placeholder without handling HTML tags:</p>
-<div class="language-django highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="cp">{%</span> <span class="k">inline_code</span> <span class="s2">&quot;URLS&quot;</span> <span class="s2">&quot;bg-[#39404b] px-1 py-0.5 rounded&quot;</span> <span class="k">as</span> <span class="nv">urls_code</span> <span class="cp">%}</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="cp">{%</span> <span class="k">blocktrans</span> <span class="nv">trimmed</span> <span class="cp">%}</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">    Set the </span><span class="cp">{{</span> <span class="nv">urls_code</span> <span class="cp">}}</span><span class="x"> environment variable to your application URL.</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="cp">{%</span> <span class="k">endblocktrans</span> <span class="cp">%}</span>
+<div class="language-django highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="cp">{%</span> <span class="k">inline_code</span> <span class="s2">&quot;URLS&quot;</span> <span class="s2">&quot;bg-[#39404b] px-1 py-0.5 rounded&quot;</span> <span class="k">as</span> <span class="nv">urls_code</span> <span class="cp">%}</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="cp">{%</span> <span class="k">blocktrans</span> <span class="nv">trimmed</span> <span class="cp">%}</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">    Set the </span><span class="cp">{{</span> <span class="nv">urls_code</span> <span class="cp">}}</span><span class="x"> environment variable to your application URL.</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="cp">{%</span> <span class="k">endblocktrans</span> <span class="cp">%}</span>
 </span></code></pre></div>
 <h3 id="user-language-and-background-tasks">User language and background tasks<a class="headerlink" href="#user-language-and-background-tasks" title="Permanent link">&para;</a></h3>
 <p>The selected language is saved on the user account (<code>User.language</code>), not in a browser cookie. <code>app.middleware.UserLanguageMiddleware</code> activates it on every request of an authenticated user, so the browser's <code>Accept-Language</code> header is only used for anonymous pages such as the login page.</p>
 <p>Celery tasks run outside a request, so no language is active and every string falls back to <code>LANGUAGE_CODE</code>. When a task builds text that a user will read (import summaries and warnings, notifications), wrap that code in <code>translation.override(user.language)</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">translation</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">with</span> <span class="n">translation</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">language</span><span class="p">):</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported </span><span class="si">%(media_list)s</span><span class="s2">.&quot;</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;media_list&quot;</span><span class="p">:</span> <span class="n">media_list</span><span class="p">}</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">translation</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">with</span> <span class="n">translation</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">language</span><span class="p">):</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported </span><span class="si">%(media_list)s</span><span class="s2">.&quot;</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;media_list&quot;</span><span class="p">:</span> <span class="n">media_list</span><span class="p">}</span>
 </span></code></pre></div>
 <p>For strings defined once and used for several users, such as a notification title, use <code>gettext_lazy</code> and convert them with <code>str()</code> inside the <code>override</code> block.</p>
 
