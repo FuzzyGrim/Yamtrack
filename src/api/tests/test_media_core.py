@@ -525,7 +525,6 @@ class MediaCoreTests(YamtrackApiTestCase):
     @patch("app.providers.services.get_media_metadata")
     def test_media_detail_get_returns_expected_shape(self, mock_metadata):
         """Media detail GET should return a complete serialized payload."""
-        # TODO: Use real mock data fixtures instead of hardcoding values
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
         mock_metadata.return_value = {
             "media_id": 1,
@@ -785,7 +784,6 @@ class MediaCoreTests(YamtrackApiTestCase):
     @patch("app.providers.services.get_media_metadata")
     def test_media_detail_patch_updates_media_fields(self, mock_metadata):
         """Media detail PATCH should update mutable media fields."""
-        # TODO: Use real mock data fixtures instead of hardcoding values
         status = 2
         score = 8
         notes = "Great TV show!"

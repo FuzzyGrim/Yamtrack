@@ -571,7 +571,6 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
                 HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
-        # TODO: missing sorting
         paginated_data = paginate_data(
             request,
             user_medias,

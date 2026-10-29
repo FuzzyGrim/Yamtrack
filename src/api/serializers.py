@@ -46,8 +46,6 @@ from .helpers import (
     get_media_status,
 )
 
-# TODO: Sort serializers
-
 
 class ItemIdField(serializers.CharField):
     """Custom field to generate item_id string."""
@@ -880,7 +878,6 @@ class CompleteEpisodeSerializer(serializers.Serializer):
         if season_source_url:
             source_url = f"{season_source_url}/episode/{episode_number}"
 
-        # TODO: move still_path slug to global configs
         image = (
             "https://image.tmdb.org/t/p/original" + episode.get("still_path")
             if episode.get("still_path")
@@ -1089,8 +1086,6 @@ class CompleteMediaSerializer(serializers.Serializer):
             details["publishers"] = details["publishers"].split(", ")
         max_progress = media_metadata.get("max_progress")
 
-        # TODO: Check why some informations take a while to update after a change
-
         return super().to_representation(
             {
                 "id": user_medias[0].item_id if user_medias else None,
@@ -1257,7 +1252,6 @@ class TimelineItemSerializer(serializers.Serializer):
     notes = serializers.CharField(allow_blank=True)
 
 
-# TODO: Complete the mapping of statistics response fields
 class StatisticsResponseSerializer(serializers.Serializer):
     """Serializer for statistics endpoint payload."""
 

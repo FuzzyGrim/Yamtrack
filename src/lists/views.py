@@ -25,7 +25,6 @@ def lists(request):
     page = request.GET.get("page", 1)
     sort_by = request.user.update_preference("lists_sort", request.GET.get("sort"))
 
-    # TODO: use new integrated search in get_user_lists
     custom_lists = CustomList.objects.get_user_lists(request.user)
 
     if search_query:

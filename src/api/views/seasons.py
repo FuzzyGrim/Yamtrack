@@ -533,7 +533,6 @@ class MediaSeasonEpisodesView(drf_views.APIView):
 
         paginated = paginate_data(request, episodes, limit, offset)
 
-        # TODO: see if lists infos can be saved in the `episodes` object to avoid using `context` to pass additional parameters  # noqa: E501, W505
         episode_numbers = [
             episode.get("episode_number")
             for episode in paginated["results"]
@@ -646,7 +645,6 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
                 HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
-        # TODO: missing sorting
         paginated_data = paginate_data(
             request,
             user_medias,
@@ -1207,7 +1205,6 @@ class MediaSeasonSyncView(drf_views.APIView):
     )
     def post(self, _, media_type, source, media_id, season_number):
         """Trigger sync of metadata from provider (non-manual sources only)."""
-        # TODO: see if it can be simplified reducing the number of return statements
         if not check_valid_type(media_type):
             return Response(
                 {"detail": "Unsupported media type."},

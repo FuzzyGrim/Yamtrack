@@ -402,7 +402,6 @@ def fetch_results_all_types(user, status, sort, direction, search, exclude):
     return results
 
 
-# TODO: move to lists/models.py
 def get_item_lists(
     user,
     media_id,
@@ -604,7 +603,6 @@ def parse_limit_offset(request):
                 ),
             )
     if limit <= 0 or offset < 0:
-        # TODO: use raise instead of returning the error
         return (
             None,
             None,

@@ -135,7 +135,6 @@ class ListsView(drf_views.APIView):
 
         collaborators = resolve_collaborators(data.get("collaborators", []))
 
-        # TODO: move to lists/models.py
         with transaction.atomic():
             custom_list = CustomList.objects.create(
                 name=data["name"],
@@ -231,7 +230,6 @@ class ListDetailView(drf_views.APIView):
         user = request.user
 
         try:
-            # TODO: move to lists/models.py
             user_list = (
                 CustomList.objects.select_related("owner")
                 .prefetch_related("collaborators", "items")
@@ -255,7 +253,6 @@ class ListDetailView(drf_views.APIView):
 
         search_query = request.GET.get("search", "")
         sort_filter = request.GET.get("sort", "")
-        # TODO: move to lists/models.py
         if search_query:
             items = items.filter(title__icontains=search_query)
 
@@ -318,7 +315,6 @@ class ListDetailView(drf_views.APIView):
         user = request.user
 
         try:
-            # TODO: move to lists/models.py
             custom_list = CustomList.objects.get(id=list_id)
         except CustomList.DoesNotExist:
             return Response(
@@ -410,7 +406,6 @@ class ListItemsView(drf_views.APIView):
         user = request.user
 
         try:
-            # TODO: move to lists/models.py
             user_list = (
                 CustomList.objects.select_related("owner")
                 .prefetch_related("items")
@@ -434,7 +429,6 @@ class ListItemsView(drf_views.APIView):
 
         search_query = request.GET.get("search", "")
         sort_filter = request.GET.get("sort", "")
-        # TODO: move to lists/models.py
         if search_query:
             items = items.filter(title__icontains=search_query)
 
@@ -508,7 +502,6 @@ class ListItemView(drf_views.APIView):
         user = request.user
 
         try:
-            # TODO: move to lists/models.py
             user_list = (
                 CustomList.objects.select_related("owner")
                 .prefetch_related("items")
@@ -578,7 +571,6 @@ class ListItemView(drf_views.APIView):
         user = request.user
 
         try:
-            # TODO: move to lists/models.py
             user_list = (
                 CustomList.objects.select_related("owner")
                 .prefetch_related("items")

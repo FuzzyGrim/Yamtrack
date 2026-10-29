@@ -149,7 +149,6 @@ class MediaListView(drf_views.APIView):
     )
     def get(self, request):
         """Retrieve the list of media for the authenticated user."""
-        # TODO: check progress sort might not be working
         user = request.user
         media_type = request.GET.get("media_type")
         status = request.GET.get("status", "")
@@ -189,7 +188,6 @@ class MediaListView(drf_views.APIView):
             else:
                 # Exclude EPISODES and SEASONS from results by default
                 # to declutter the results
-                # TODO: Add an option to return those too? (seasons=true&episodes=false)  # noqa: E501, W505
                 results = fetch_results_all_types(
                     user,
                     status,
@@ -205,8 +203,6 @@ class MediaListView(drf_views.APIView):
             )
 
         paginated_data = paginate_data(request, results, limit, offset)
-        # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
-        # TODO: see if lists infos can be saved in the `results` object to avoid using `context` to pass additional parameters  # noqa: E501, W505
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
         serialized_data = MixedMediaSerializer(
             paginated_data["results"],
@@ -300,8 +296,6 @@ class MediaTypeListView(drf_views.APIView):
             )
 
         paginated_data = paginate_data(request, results, limit, offset)
-        # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
-        # TODO: see if lists infos can be saved in the `results` object to avoid using `context` to pass additional parameters  # noqa: E501, W505
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
         serialized_data = MixedMediaSerializer(
             paginated_data["results"],
@@ -358,7 +352,6 @@ class MediaTypeListView(drf_views.APIView):
 
         source = data.get("source", Sources.MANUAL.value)
 
-        # TODO: replace old forms with API implementations
         if source == Sources.MANUAL.value:
             form = ManualItemForm(data, user=request.user)
             if not form.is_valid():
@@ -426,7 +419,6 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        # TODO: support tracking seasons and episodes from providers, they need
         if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
             return Response(
                 {
@@ -1029,7 +1021,6 @@ class MediaConsumptionHistoryView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        # TODO: missing sorting
         paginated_data = paginate_data(
             request,
             user_medias,
@@ -1339,7 +1330,6 @@ class MediaListsView(drf_views.APIView):
                 },
                 status=HTTP.BAD_REQUEST,
             )
-        # TODO: if media doesn't exist in the provider it should return 404
         lists = get_item_lists(user, media_id, source, media_type)
         paginated_data = paginate_data(request, lists, limit, offset)
 

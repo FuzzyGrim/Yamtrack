@@ -63,7 +63,6 @@ class StatisticsView(drf_views.APIView):
     )
     def get(self, request):
         """Retrieve statistics for the authenticated user."""
-        # TODO: Possibly don't use WebUI needed statistics but compute them for API
         timeformat = "%Y-%m-%d"
         today = localdate()
         try:
