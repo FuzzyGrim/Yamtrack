@@ -7605,6 +7605,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of the media

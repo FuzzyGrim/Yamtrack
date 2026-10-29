@@ -10,7 +10,7 @@ from rest_framework import views as drf_views
 from rest_framework.response import Response
 
 from api.helpers import (
-    SOURCES_VALID_LIST,
+    SOURCES_COMPLETE_VALID_LIST,
     check_source_type,
     check_valid_type,
     fetch_search_results,
@@ -51,7 +51,7 @@ class SearchProviderView(drf_views.APIView):
             OpenApiParameter(
                 name="source",
                 type=OpenApiTypes.STR,
-                enum=SOURCES_VALID_LIST,
+                enum=SOURCES_COMPLETE_VALID_LIST,
                 location=OpenApiParameter.QUERY,
                 description="Source of the media",
             ),
