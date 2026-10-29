@@ -2,6 +2,7 @@ from datetime import UTC
 
 from django.conf import settings
 from django.db import models
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
     PolymorphicProxySerializer,
@@ -24,6 +25,7 @@ from app.models import (
     MediaTypes,
     Movie,
     Season,
+    Sources,
     Status,
 )
 from events.models import Event
@@ -1359,6 +1361,27 @@ class UpdateTVSerializer(BaseUpdateMediaSerializer):
     end_date = None
 
 
+@extend_schema_field(OpenApiTypes.INT)
+class UserManualParentField(serializers.PrimaryKeyRelatedField):
+    """Primary key of a manual media of the request user, used as parent."""
+
+    def __init__(self, model, media_type, **kwargs):  # noqa: D107
+        self.model = model
+        self.media_type = media_type
+        super().__init__(**kwargs)
+
+    def get_queryset(self):
+        """Return the manual media of the given type owned by the request user."""
+        request = self.context.get("request")
+        if request is None:
+            return self.model.objects.none()
+        return self.model.objects.filter(
+            user=request.user,
+            item__source=Sources.MANUAL.value,
+            item__media_type=self.media_type,
+        )
+
+
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
@@ -1412,6 +1435,26 @@ class TrackMediaSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_null=True)
     season_number = serializers.IntegerField(required=False, allow_null=True)
     episode_number = serializers.IntegerField(required=False, allow_null=True)
+    parent_tv = UserManualParentField(
+        TV,
+        MediaTypes.TV.value,
+        required=False,
+        allow_null=True,
+        help_text=(
+            "`consumption_id` of the manual TV show the season belongs to, "
+            "required for manual seasons."
+        ),
+    )
+    parent_season = UserManualParentField(
+        Season,
+        MediaTypes.SEASON.value,
+        required=False,
+        allow_null=True,
+        help_text=(
+            "`consumption_id` of the manual season the episode belongs to, "
+            "required for manual episodes."
+        ),
+    )
 
 
 serializer_map = {

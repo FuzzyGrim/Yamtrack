@@ -303,7 +303,7 @@ class MediaTypeListView(drf_views.APIView):
         # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
         # TODO: see if lists infos can be saved in the `results` object to avoid using `context` to pass additional parameters  # noqa: E501, W505
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
-        serialized_data = MediaSerializer(
+        serialized_data = MixedMediaSerializer(
             paginated_data["results"],
             context={
                 "request": request,
@@ -346,7 +346,10 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        serializer = TrackMediaSerializer(data=request.data)
+        serializer = TrackMediaSerializer(
+            data=request.data,
+            context={"request": request},
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 

@@ -4,8 +4,8 @@ from uuid import UUID
 
 from django.utils import timezone
 
-from api.helpers import error_response
-from app.models import TV, MediaTypes, Movie, Sources, Status
+from api.helpers import MEDIA_STATUS_MAP, error_response
+from app.models import TV, Episode, MediaTypes, Movie, Season, Sources, Status
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -250,6 +250,9 @@ class MediaCoreTests(YamtrackApiTestCase):
             item["item"]["episode_number"] for item in response.json()["results"]
         ]
         self.assertEqual(episode_numbers, sorted(episode_numbers, reverse=True))
+        for item in response.json()["results"]:
+            self.assertEqual(item["status"], MEDIA_STATUS_MAP["Completed"])
+            self.assertEqual(item["progress"], 1)
 
         response = self.call_api(
             "get",
@@ -376,6 +379,65 @@ class MediaCoreTests(YamtrackApiTestCase):
             Movie.objects.get(item__media_id=manual_media_id).status,
             Status.COMPLETED.value,
         )
+
+    def _post_manual(self, media_type, payload, headers=None):
+        return self.call_api(
+            "post",
+            "api_media_type_list",
+            args=(media_type,),
+            payload={"source": "manual", **payload},
+            headers=headers or self.auth_headers,
+        )
+
+    def test_media_type_list_post_manual_season_and_episode_with_parents(self):
+        """Manual seasons and episodes should be linked to their parent media."""
+        response = self._post_manual(MediaTypes.TV.value, {"title": "Manual Show"})
+        self.assertEqual(response.status_code, 201)
+        tv_id = response.json()["consumption_id"]
+
+        response = self._post_manual(
+            MediaTypes.SEASON.value,
+            {"title": "S1", "season_number": 1, "parent_tv": tv_id},
+        )
+        self.assertEqual(response.status_code, 201)
+        season_id = response.json()["consumption_id"]
+        self.assertEqual(Season.objects.get(id=season_id).related_tv_id, tv_id)
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            return_value={"season/1": {"episodes": []}},
+        ):
+            response = self._post_manual(
+                MediaTypes.EPISODE.value,
+                {"title": "E1", "episode_number": 1, "parent_season": season_id},
+            )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            Episode.objects.filter(
+                related_season_id=season_id,
+                item__episode_number=1,
+            ).exists(),
+        )
+
+    def test_media_type_list_post_manual_season_rejects_invalid_parent(self):
+        """Manual seasons should reject a missing parent or one of another user."""
+        response = self._post_manual(
+            MediaTypes.TV.value,
+            {"title": "Other Show"},
+            headers=self.auth_headers2,
+        )
+        self.assertEqual(response.status_code, 201)
+        other_tv_id = response.json()["consumption_id"]
+
+        invalid_payloads = [
+            {"title": "S1", "season_number": 1},
+            {"title": "S1", "season_number": 1, "parent_tv": other_tv_id},
+            {"title": "S1", "season_number": 1, "parent_tv": self.tv_medias[0].id},
+        ]
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                response = self._post_manual(MediaTypes.SEASON.value, payload)
+                self.assertEqual(response.status_code, 400)
 
     def test_media_type_list_post_provider_rejects_invalid_source(self):
         """Tracking from a provider should reject sources invalid for the type."""

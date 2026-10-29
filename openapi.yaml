@@ -9481,6 +9481,16 @@ components:
         episode_number:
           type: integer
           nullable: true
+        parent_tv:
+          type: integer
+          nullable: true
+          description: '`consumption_id` of the manual TV show the season belongs
+            to, required for manual seasons.'
+        parent_season:
+          type: integer
+          nullable: true
+          description: '`consumption_id` of the manual season the episode belongs
+            to, required for manual episodes.'
     User:
       type: object
       description: Serializer for user information.
