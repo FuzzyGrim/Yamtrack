@@ -9236,7 +9236,7 @@ components:
         * `bgg` - bgg
     StatisticsMediaCount:
       type: object
-      description: Serializer for media count by type in statistics response.
+      description: Serializer for media count by enabled types in statistics response.
       properties:
         total:
           type: integer
@@ -9259,16 +9259,7 @@ components:
         boardgame:
           type: integer
       required:
-      - anime
-      - boardgame
-      - book
-      - comic
-      - game
-      - manga
-      - movie
-      - season
       - total
-      - tv
     StatisticsResponse:
       type: object
       description: Serializer for statistics endpoint payload.

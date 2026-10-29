@@ -290,18 +290,18 @@ class PaginatedChangesHistoryResponseSerializer(serializers.Serializer):
 
 
 class StatisticsMediaCountSerializer(serializers.Serializer):
-    """Serializer for media count by type in statistics response."""
+    """Serializer for media count by enabled types in statistics response."""
 
     total = serializers.IntegerField()
-    tv = serializers.IntegerField()
-    season = serializers.IntegerField()
-    movie = serializers.IntegerField()
-    anime = serializers.IntegerField()
-    manga = serializers.IntegerField()
-    game = serializers.IntegerField()
-    book = serializers.IntegerField()
-    comic = serializers.IntegerField()
-    boardgame = serializers.IntegerField()
+    tv = serializers.IntegerField(required=False)
+    season = serializers.IntegerField(required=False)
+    movie = serializers.IntegerField(required=False)
+    anime = serializers.IntegerField(required=False)
+    manga = serializers.IntegerField(required=False)
+    game = serializers.IntegerField(required=False)
+    book = serializers.IntegerField(required=False)
+    comic = serializers.IntegerField(required=False)
+    boardgame = serializers.IntegerField(required=False)
 
 
 class ListMinimizedSerializer(serializers.Serializer):

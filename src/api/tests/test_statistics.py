@@ -133,3 +133,21 @@ class StatisticsTests(YamtrackApiTestCase):
         self.assertEqual(timeline_item["status"], MEDIA_STATUS_MAP["Completed"])
         self.assertEqual(timeline_item["media_type"], movie_media.item.media_type)
         self.assertNotIn("item", timeline_item)
+
+    def test_statistics_with_disabled_media_type(self):
+        """Media count should omit the media types disabled by the user."""
+        self.user1.boardgame_enabled = False
+        self.user1.save()
+
+        response = self.call_api(
+            "get",
+            "api_statistics",
+            headers=self.auth_headers,
+            params={"start_date": "all", "end_date": "all"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        check_statistics_structure(self, payload)
+        self.assertNotIn("boardgame", payload["media_count"])
+        self.assertIn("movie", payload["media_count"])
