@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import requests
 from django.test import TestCase
+from django.utils import translation
 
 from app.models import MediaTypes, Sources
 from app.providers import (
@@ -160,6 +161,22 @@ class ServicesTests(TestCase):
         self.assertIsNone(exception.status_code)
         self.assertIn("Open Library API (network error)", str(exception))
 
+    def test_provider_api_error_message_is_translated(self):
+        """Test ProviderAPIError builds its message in the active language."""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        error = requests.exceptions.HTTPError(response=mock_response)
+
+        with translation.override("it"):
+            exception = services.ProviderAPIError(Sources.TMDB.value, error)
+            expected = translation.gettext(
+                "There was an error contacting the %(provider)s API "
+                "(HTTP %(status_code)s). Check the logs for more details.",
+            ) % {"provider": Sources.TMDB.label, "status_code": 500}
+
+        self.assertEqual(str(exception), expected)
+        self.assertNotIn("There was an error", expected)
+
     @patch("app.providers.mal.anime")
     def test_get_media_metadata_anime(self, mock_anime):
         """Test the get_media_metadata function for anime."""
@@ -199,6 +216,36 @@ class ServicesTests(TestCase):
             MediaTypes.MANGA.value,
             "1",
             Sources.MAL.value,
+        )
+
+        self.assertEqual(result, {"title": "Test Manga"})
+
+        mock_manga.assert_called_once_with("1")
+
+    @patch("app.providers.anilist.anime")
+    def test_get_media_metadata_anime_anilist(self, mock_anime):
+        """Test the get_media_metadata function for anime from AniList."""
+        mock_anime.return_value = {"title": "Test Anime"}
+
+        result = services.get_media_metadata(
+            MediaTypes.ANIME.value,
+            "1",
+            Sources.ANILIST.value,
+        )
+
+        self.assertEqual(result, {"title": "Test Anime"})
+
+        mock_anime.assert_called_once_with("1")
+
+    @patch("app.providers.anilist.manga")
+    def test_get_media_metadata_manga_anilist(self, mock_manga):
+        """Test the get_media_metadata function for manga from AniList."""
+        mock_manga.return_value = {"title": "Test Manga"}
+
+        result = services.get_media_metadata(
+            MediaTypes.MANGA.value,
+            "1",
+            Sources.ANILIST.value,
         )
 
         self.assertEqual(result, {"title": "Test Manga"})
@@ -454,6 +501,38 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Manga"}]
 
         result = services.search(MediaTypes.MANGA.value, "test", 1)
+
+        self.assertEqual(result, [{"title": "Test Manga"}])
+
+        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test", 1)
+
+    @patch("app.providers.anilist.search")
+    def test_search_anime_anilist(self, mock_search):
+        """Test the search function for anime from AniList."""
+        mock_search.return_value = [{"title": "Test Anime"}]
+
+        result = services.search(
+            MediaTypes.ANIME.value,
+            "test",
+            1,
+            source=Sources.ANILIST.value,
+        )
+
+        self.assertEqual(result, [{"title": "Test Anime"}])
+
+        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test", 1)
+
+    @patch("app.providers.anilist.search")
+    def test_search_manga_anilist(self, mock_search):
+        """Test the search function for manga from AniList."""
+        mock_search.return_value = [{"title": "Test Manga"}]
+
+        result = services.search(
+            MediaTypes.MANGA.value,
+            "test",
+            1,
+            source=Sources.ANILIST.value,
+        )
 
         self.assertEqual(result, [{"title": "Test Manga"}])
 

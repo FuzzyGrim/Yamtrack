@@ -35,14 +35,13 @@ ENV PATH="/yamtrack/.venv/bin:$PATH"
 
 WORKDIR /yamtrack
 
-COPY ./entrypoint.sh /entrypoint.sh
+COPY --chmod=755 ./entrypoint.sh /entrypoint.sh
 COPY ./supervisord.conf /etc/supervisord.conf
 COPY ./nginx.conf /etc/nginx/nginx.conf
 # Generate a copy of the nginx config with IPv6 support.
 RUN sed 's/listen 8000;/listen 8000; listen [::]:8000;/' /etc/nginx/nginx.conf > /etc/nginx/nginx.ipv6.conf
 
-RUN apk add --no-cache nginx shadow \
-    && chmod +x /entrypoint.sh \
+RUN apk add --no-cache nginx shadow gettext \
     # create user abc for later PUID/PGID mapping
     && useradd -U -M -s /bin/sh abc \
     # Create required nginx directories and set permissions
@@ -54,7 +53,8 @@ COPY --from=builder /yamtrack/.venv /yamtrack/.venv
 
 # Django app
 COPY src ./
-RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput \
+  && python manage.py compilemessages
 
 # Default nginx listen port; overridden at runtime with YAMTRACK_INTERNAL_PORT
 EXPOSE 8000

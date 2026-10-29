@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from app.models import (
     TV,
@@ -233,6 +233,32 @@ class EpisodeStatusTests(TestCase):
                 level=UserMessageLevel.SUCCESS,
                 message=f"{self.tv} was marked as completed automatically.",
             ).exists(),
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_automatic_message_uses_user_language(self, mock_get_metadata):
+        """Test persistent messages are rendered in the user's language."""
+        mock_get_metadata.return_value = {
+            "season/1": {"episodes": [{"episode_number": 1}]},
+            "related": {"seasons": [{"season_number": 1}]},
+        }
+        self.user.language = "it"
+        self.user.save(update_fields=["language"])
+
+        # The active language stays English, like in a webhook request
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        with translation.override("it"):
+            expected = translation.gettext(
+                "%(title)s was marked as completed automatically.",
+            ) % {"title": self.tv}
+        self.assertNotIn("was marked as completed", expected)
+        self.assertTrue(
+            UserMessage.objects.filter(user=self.user, message=expected).exists(),
         )
 
     @patch("app.models.providers.services.get_media_metadata")

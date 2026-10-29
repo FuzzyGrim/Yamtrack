@@ -4,6 +4,7 @@ import time
 import requests
 from defusedxml import ElementTree
 from django.conf import settings
+from django.utils.translation import gettext as _
 from pyrate_limiter import RedisBucket
 from redis import Redis
 from requests.adapters import HTTPAdapter
@@ -11,6 +12,7 @@ from requests_ratelimiter import LimiterAdapter, LimiterSession
 
 from app.models import MediaTypes, Sources
 from app.providers import (
+    anilist,
     bgg,
     comicvine,
     hardcover,
@@ -52,7 +54,7 @@ session.mount(
 )
 session.mount(
     "https://graphql.anilist.co",
-    LimiterAdapter(per_minute=85),
+    LimiterAdapter(per_minute=28),
 )
 session.mount(
     "https://api.igdb.com/v4",
@@ -96,15 +98,33 @@ class ProviderAPIError(Exception):
         error_text = getattr(response, "text", str(error))
         logger.error("%s error: %s", provider_label, error_text)
 
-        message = f"There was an error contacting the {provider_label} API"
-        if self.status_code is None:
-            message += " (network error)"
+        message_params = {
+            "provider": provider_label,
+            "status_code": self.status_code,
+            "details": details,
+        }
+        if self.status_code is None and details:
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(network error): %(details)s. Check the logs for more details.",
+            )
+        elif self.status_code is None:
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(network error). Check the logs for more details.",
+            )
+        elif details:
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(HTTP %(status_code)s): %(details)s. "
+                "Check the logs for more details.",
+            )
         else:
-            message += f" (HTTP {self.status_code})"
-        if details:
-            message += f": {details}"
-        message += ". Check the logs for more details."
-        super().__init__(message)
+            message = _(
+                "There was an error contacting the %(provider)s API "
+                "(HTTP %(status_code)s). Check the logs for more details.",
+            )
+        super().__init__(message % message_params)
 
 
 def raise_not_found_error(provider, media_id, media_type="item"):
@@ -130,7 +150,8 @@ def raise_not_found_error(provider, media_id, media_type="item"):
     )()
     mock_error = requests.exceptions.HTTPError(response=mock_response)
 
-    raise ProviderAPIError(provider, mock_error, error_msg)
+    details = _("No result found with ID %(media_id)s") % {"media_id": media_id}
+    raise ProviderAPIError(provider, mock_error, details)
 
 
 def api_request(
@@ -220,12 +241,15 @@ def get_media_metadata(
         return manual.metadata(media_id, media_type)
 
     metadata_retrievers = {
-        MediaTypes.ANIME.value: lambda: mal.anime(media_id),
-        MediaTypes.MANGA.value: lambda: (
-            mangaupdates.manga(media_id)
-            if source == Sources.MANGAUPDATES.value
-            else mal.manga(media_id)
+        MediaTypes.ANIME.value: lambda: (
+            anilist.anime(media_id)
+            if source == Sources.ANILIST.value
+            else mal.anime(media_id)
         ),
+        MediaTypes.MANGA.value: lambda: {
+            Sources.MANGAUPDATES.value: mangaupdates.manga,
+            Sources.ANILIST.value: anilist.manga,
+        }.get(source, mal.manga)(media_id),
         MediaTypes.TV.value: lambda: tmdb.tv(media_id),
         "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers),
         MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
@@ -255,9 +279,15 @@ def search(media_type, query, page, source=None):
         MediaTypes.MANGA.value: lambda: (
             mangaupdates.search(query, page)
             if source == Sources.MANGAUPDATES.value
+            else anilist.search(media_type, query, page)
+            if source == Sources.ANILIST.value
             else mal.search(media_type, query, page)
         ),
-        MediaTypes.ANIME.value: lambda: mal.search(media_type, query, page),
+        MediaTypes.ANIME.value: lambda: (
+            anilist.search(media_type, query, page)
+            if source == Sources.ANILIST.value
+            else mal.search(media_type, query, page)
+        ),
         MediaTypes.TV.value: lambda: tmdb.search(media_type, query, page),
         MediaTypes.MOVIE.value: lambda: tmdb.search(media_type, query, page),
         MediaTypes.SEASON.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),

@@ -12,11 +12,16 @@ This page outlines the environment variables used in the YamTrack project.
 | `MAL_API`       | MyAnimeList API key for anime and manga. A default key is provided.                                                                                                                                                                                   |
 | `MAL_NSFW`      | Default to `False`. Set to `True` to include adult content in anime and manga searches from MyAnimeList.                                                                                                                                              |
 | `MU_NSFW`       | Default to `False`. Set to `True` to include adult content in manga searches from MangaUpdates.                                                                                                                                                       |
+| `ANILIST_NSFW`  | Default to `False`. Set to `True` to include adult content in anime and manga searches from AniList.                                                                                                                                                  |
 | `IGDB_ID`       | IGDB API key for games. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                                   |
 | `IGDB_SECRET`   | IGDB API secret for games. A default value is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                              |
 | `IGDB_NSFW`     | Default to `False`. Set to `True` to include adult content in game searches.                                                                                                                                                                          |
 | `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
+
+!!! warning "AniList"
+
+    AniList allows its data to be used in self-hosted instances, but not in instances open to the public. Don't offer AniList as a source on an instance anyone can sign up to.
 
 ## Media Import
 
@@ -86,17 +91,24 @@ services:
 
 ## PostgreSQL Environment Variables (YamTrack Container)
 
-| Name               | Notes                                                                                                    |
-| ------------------ | --------------------------------------------------------------------------------------------------------- |
-| `DB_HOST`          | The hostname or IP address of the PostgreSQL server. If not set, SQLite is used as the default database. |
-| `DB_PORT`          | The port number on which the PostgreSQL server is listening.                                             |
-| `DB_NAME`          | The name of the database to connect to.                                                                  |
-| `DB_USER`          | The username used to authenticate with the PostgreSQL server.                                            |
-| `DB_PASSWORD`      | The password for the specified user.                                                                     |
-| `DB_POOL_MIN_SIZE` | Default to `1`. Minimum number of connections each process keeps open in its connection pool.            |
-| `DB_POOL_MAX_SIZE` | Default to `4`. Maximum number of connections each process can open in its connection pool.              |
+| Name               | Notes                                                                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_HOST`          | The hostname or IP address of the PostgreSQL server, or the directory of its Unix socket. If omitted, SQLite is used as the default database. |
+| `DB_PORT`          | The port number on which the PostgreSQL server is listening. Optional; if omitted, the PostgreSQL client's default is used.                   |
+| `DB_NAME`          | The name of the database to connect to. Required when using PostgreSQL.                                                                       |
+| `DB_USER`          | The username used to authenticate with the PostgreSQL server. Optional; if omitted, the OS user running the process is used.                  |
+| `DB_PASSWORD`      | The password for the specified user. Optional; not needed for local Unix socket connections using peer/ident authentication.                  |
+| `DB_POOL_MIN_SIZE` | Default to `1`. Minimum number of connections each process keeps open in its connection pool.                                                 |
+| `DB_POOL_MAX_SIZE` | Default to `4`. Maximum number of connections each process can open in its connection pool.                                                   |
 
 **Note:** Check the example `docker-compose.postgres.yml` in the root directory of the repo for a PostgreSQL configuration example.
+
+**Connecting via a local Unix socket:** set `DB_HOST` to the directory containing the PostgreSQL socket (e.g. `DB_HOST=/run/postgresql`). `DB_PORT`, `DB_USER`, and `DB_PASSWORD` can be omitted in this setup, in which case the PostgreSQL client defaults are used (port 5432 and the OS user running Yamtrack), so only `DB_NAME` must be set:
+
+```bash
+DB_HOST=/run/postgresql
+DB_NAME=yamtrack
+```
 
 ### External PostgreSQL database with SSL (YamTrack Container)
 

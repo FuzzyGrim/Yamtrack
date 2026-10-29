@@ -5,7 +5,9 @@ import apprise
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from app.models import TV, MediaTypes, Season
 from app.templatetags import app_tags
@@ -30,7 +32,7 @@ def send_releases():
     )
 
     if not users.exists():
-        return "No users with release notifications enabled"
+        return _("No users with release notifications enabled")
 
     # Find events that were released recently and haven't been notified yet
     base_queryset = Event.objects.filter(
@@ -47,7 +49,7 @@ def send_releases():
     result = send_notifications(
         events=events,
         users=users,
-        title="🔔 YamTrack: New Releases Available! 🔔",
+        title=gettext_lazy("🔔 YamTrack: New Releases Available! 🔔"),
     )
 
     # Mark events as notified
@@ -102,7 +104,7 @@ def send_daily_digest():
     if not events.exists():
         return "No releases scheduled for today"
 
-    title = "📆 YamTrack: Today's Releases 📆"
+    title = gettext_lazy("📆 YamTrack: Today's Releases 📆")
 
     result = send_notifications(
         events=events,
@@ -397,10 +399,12 @@ def deliver_notifications(user_releases, users, title):
             continue
 
         # Format notification
-        notification_body = format_notification(releases=releases)
+        with translation.override(user.language):
+            notification_title = str(title)
+            notification_body = format_notification(releases=releases)
 
         # Send notification
-        send_user_notification(user, urls, title, notification_body)
+        send_user_notification(user, urls, notification_title, notification_body)
 
 
 def format_notification(releases):
@@ -429,11 +433,13 @@ def format_notification(releases):
     for media_type, media_events in releases_by_type.items():
         icon = app_tags.unicode_icon(media_type)
 
-        # Add a header for each media type with icon
-        if media_type == MediaTypes.SEASON.value:
-            notification_body.append(f"{icon}  TV Shows")
-        else:
-            notification_body.append(f"{icon}  {media_type.upper()}")
+        # Add a header for each media type with icon; season releases are
+        # listed under "TV Shows"
+        header_type = (
+            MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
+        )
+        header = app_tags.media_type_readable_plural(header_type)
+        notification_body.append(f"{icon}  {header}")
 
         for event in media_events:
             if event.is_sentinel_time:
@@ -448,7 +454,7 @@ def format_notification(releases):
         # Add a blank line between media types
         notification_body.append("")
 
-    notification_body.append("Enjoy your media!")
+    notification_body.append(_("Enjoy your media!"))
 
     return "\n".join(notification_body)
 

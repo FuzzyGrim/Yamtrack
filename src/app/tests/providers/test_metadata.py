@@ -1,7 +1,8 @@
+import asyncio
 import json
 from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import requests
 from django.conf import settings
@@ -9,6 +10,7 @@ from django.test import TestCase
 
 from app.models import Episode, Item, MediaTypes, Sources
 from app.providers import (
+    anilist,
     comicvine,
     hardcover,
     igdb,
@@ -64,6 +66,151 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Monster")
         self.assertEqual(response["details"]["year"], "1994")
         self.assertEqual(response["details"]["format"], "Manga")
+
+    def test_anilist_anime(self):
+        """Test the metadata method for anime from AniList."""
+        response = anilist.anime("1")
+        self.assertEqual(response["title"], "Cowboy Bebop")
+        self.assertEqual(response["source"], Sources.ANILIST.value)
+        self.assertEqual(response["details"]["start_date"], "1998-04-03")
+        self.assertEqual(response["details"]["status"], "Finished")
+        self.assertEqual(response["details"]["episodes"], 26)
+        self.assertEqual(response["max_progress"], 26)
+        self.assertEqual(
+            response["external_links"],
+            {"MyAnimeList": "https://myanimelist.net/anime/1"},
+        )
+        self.assertTrue(response["related"]["related_manga"])
+
+    def test_anilist_manga(self):
+        """Test the metadata method for manga from AniList."""
+        response = anilist.manga("30001")
+        self.assertEqual(response["title"], "MONSTER")
+        self.assertEqual(response["details"]["start_date"], "1994-12-05")
+        self.assertEqual(response["details"]["status"], "Finished")
+        self.assertEqual(response["details"]["number_of_chapters"], 162)
+        self.assertEqual(response["details"]["format"], "Manga")
+
+    @patch("app.providers.anilist.services.api_request")
+    def test_anilist_anime_unknown(self, mock_api_request):
+        """Test the metadata method for AniList anime with mostly unknown data."""
+        mock_api_request.return_value = {
+            "data": {
+                "Media": {
+                    "id": 999999,
+                    "idMal": None,
+                    "siteUrl": "https://anilist.co/anime/999999",
+                    "title": {"userPreferred": "Unknown Example"},
+                    "coverImage": {"extraLarge": None, "large": None},
+                    "description": None,
+                    "format": None,
+                    "status": "NOT_YET_RELEASED",
+                    "startDate": {"year": 2027, "month": None, "day": None},
+                    "endDate": {"year": None, "month": None, "day": None},
+                    "season": None,
+                    "seasonYear": None,
+                    "episodes": None,
+                    "duration": None,
+                    "chapters": None,
+                    "source": None,
+                    "genres": [],
+                    "averageScore": None,
+                    "stats": {"scoreDistribution": []},
+                    "studios": {"nodes": []},
+                    "nextAiringEpisode": None,
+                    "relations": {"edges": []},
+                    "recommendations": {"nodes": [{"mediaRecommendation": None}]},
+                },
+            },
+        }
+
+        response = anilist.anime("999999")
+        self.assertEqual(response["title"], "Unknown Example")
+        self.assertEqual(response["image"], settings.IMG_NONE)
+        self.assertEqual(response["synopsis"], "No synopsis available.")
+        self.assertIsNone(response["genres"])
+        self.assertIsNone(response["score"])
+        self.assertEqual(response["score_count"], 0)
+        self.assertEqual(response["external_links"], {})
+        self.assertIsNone(response["max_progress"])
+        self.assertEqual(response["details"]["start_date"], "2027")
+        self.assertIsNone(response["details"]["end_date"])
+        self.assertEqual(response["details"]["status"], "Upcoming")
+        self.assertIsNone(response["details"]["runtime"])
+        self.assertIsNone(response["details"]["studios"])
+        self.assertIsNone(response["details"]["season"])
+        self.assertEqual(response["related"]["recommendations"], [])
+
+    @patch("app.providers.anilist.services.api_request")
+    def test_anilist_not_found(self, mock_api_request):
+        """Test that a missing AniList media raises a provider error."""
+        error_response = MagicMock(status_code=404, text="Not Found.")
+        error_response.json.return_value = {
+            "errors": [{"message": "Not Found.", "status": 404}],
+            "data": {"Media": None},
+        }
+        mock_api_request.side_effect = requests.exceptions.HTTPError(
+            response=error_response,
+        )
+
+        with self.assertRaises(services.ProviderAPIError) as context:
+            anilist.manga("999999998")
+
+        self.assertEqual(context.exception.status_code, 404)
+        self.assertIn("AniList API (HTTP 404): Not Found.", str(context.exception))
+
+    def test_anilist_synopsis_strips_html(self):
+        """Test that AniList descriptions are converted to plain text."""
+        response = {
+            "description": "First line.<br><br>\n<i>Second</i> &amp; line.<br>",
+        }
+        self.assertEqual(
+            anilist.get_synopsis(response),
+            "First line.\n\nSecond & line.",
+        )
+
+    def test_anilist_related_split_by_media_type(self):
+        """Test that AniList relations are split into anime and manga."""
+        response = {
+            "relations": {
+                "edges": [
+                    {
+                        "node": {
+                            "id": 5,
+                            "type": "ANIME",
+                            "title": {"userPreferred": "Movie"},
+                            "coverImage": {"large": "anime.jpg"},
+                        },
+                    },
+                    {
+                        "node": {
+                            "id": 30173,
+                            "type": "MANGA",
+                            "title": {"userPreferred": "Manga"},
+                            "coverImage": {"large": "manga.jpg"},
+                        },
+                    },
+                ],
+            },
+        }
+
+        related_anime = anilist.get_related(response, MediaTypes.ANIME.value)
+        related_manga = anilist.get_related(response, MediaTypes.MANGA.value)
+
+        self.assertEqual(
+            related_anime,
+            [
+                {
+                    "media_id": 5,
+                    "source": Sources.ANILIST.value,
+                    "media_type": MediaTypes.ANIME.value,
+                    "title": "Movie",
+                    "image": "anime.jpg",
+                },
+            ],
+        )
+        self.assertEqual([item["media_id"] for item in related_manga], [30173])
+        self.assertEqual(related_manga[0]["media_type"], MediaTypes.MANGA.value)
 
     def test_tv(self):
         """Test the metadata method for TV shows."""
@@ -464,6 +611,81 @@ class Metadata(TestCase):
         """Test Open Library publish dates with abbreviated month names."""
         response = openlibrary.get_publish_date({"publish_date": "Oct 01, 2017"})
         self.assertEqual(response, "2017-10-01")
+
+    @patch("app.providers.openlibrary.asyncio.sleep", new_callable=AsyncMock)
+    def test_openlibrary_author_fetch_retries_transient_errors(self, mock_sleep):
+        """Test Open Library author fetches retry server errors."""
+        failed_response = MagicMock(status=503)
+        ok_response = MagicMock(status=200)
+        ok_response.json = AsyncMock(return_value={"name": "George Orwell"})
+        session = MagicMock()
+        session.get.return_value.__aenter__.side_effect = [
+            failed_response,
+            ok_response,
+        ]
+
+        response = asyncio.run(openlibrary.fetch_author_data(session, "author-url"))
+
+        self.assertEqual(response, {"name": "George Orwell"})
+        self.assertEqual(session.get.call_count, 2)
+        mock_sleep.assert_awaited_once_with(1)
+
+    @patch("app.providers.openlibrary.asyncio.sleep", new_callable=AsyncMock)
+    def test_openlibrary_author_fetch_does_not_retry_not_found(self, mock_sleep):
+        """Test Open Library author fetches don't retry client errors."""
+        session = MagicMock()
+        session.get.return_value.__aenter__.return_value = MagicMock(status=404)
+
+        response = asyncio.run(openlibrary.fetch_author_data(session, "author-url"))
+
+        # empty dict marks a permanent miss, so the book can still be cached
+        self.assertEqual(response, {})
+        self.assertEqual(session.get.call_count, 1)
+        mock_sleep.assert_not_awaited()
+
+    @patch("app.providers.openlibrary.asyncio.sleep", new_callable=AsyncMock)
+    def test_openlibrary_author_fetch_gives_up_after_transient_errors(
+        self,
+        mock_sleep,
+    ):
+        """Test Open Library author fetches return None when retries run out."""
+        session = MagicMock()
+        session.get.return_value.__aenter__.return_value = MagicMock(status=503)
+
+        response = asyncio.run(openlibrary.fetch_author_data(session, "author-url"))
+
+        self.assertIsNone(response)
+        self.assertEqual(session.get.call_count, openlibrary.AUTHOR_FETCH_ATTEMPTS)
+        self.assertEqual(mock_sleep.await_count, openlibrary.AUTHOR_FETCH_ATTEMPTS - 1)
+
+    @patch("app.providers.openlibrary.cache")
+    @patch("app.providers.openlibrary.get_ratings", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.get_editions", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.get_authors", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.services.api_request")
+    def test_openlibrary_book_not_cached_when_authors_incomplete(
+        self,
+        mock_api_request,
+        mock_get_authors,
+        mock_get_editions,
+        mock_get_ratings,
+        mock_cache,
+    ):
+        """Test Open Library books aren't cached when author fetches fail."""
+        mock_cache.get.return_value = None
+        mock_api_request.side_effect = [
+            {"title": "Test Book", "works": [{"key": "/works/OL1W"}]},
+            {"key": "/works/OL1W"},
+        ]
+        mock_get_authors.return_value = (None, False)
+        mock_get_editions.return_value = []
+        mock_get_ratings.return_value = (None, 0)
+
+        response = openlibrary.book("OL1M")
+
+        self.assertEqual(response["title"], "Test Book")
+        self.assertIsNone(response["details"]["author"])
+        mock_cache.set.assert_not_called()
 
     def test_comic(self):
         """Test the metadata method for comics."""

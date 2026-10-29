@@ -1,6 +1,9 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import translation
+from django.utils.html import escape
 
 from app.models import (
     Item,
@@ -72,6 +75,42 @@ class MediaListViewTests(TestCase):
             response.context["media_type_plural"],
             app_tags.media_type_readable_plural(MediaTypes.MOVIE.value).lower(),
         )
+
+    def test_empty_media_list_labels_use_singular_and_plural(self):
+        """The empty state uses a singular title and plural description."""
+        self.addCleanup(translation.deactivate)
+        media_type = MediaTypes.COMIC.value
+
+        for language, _name in settings.LANGUAGES:
+            self.user.language = language
+            self.user.save()
+
+            response = self.client.get(
+                reverse("medialist", args=[self.user.username, media_type])
+            )
+
+            with translation.override(language):
+                expected_title = translation.gettext(
+                    "No %(media_type_label)s Tracked Yet"
+                ) % {
+                    "media_type_label": escape(
+                        app_tags.media_type_readable(media_type)
+                    ),
+                }
+                expected_description = translation.gettext(
+                    "Start tracking your %(media_type_plural)s to keep a record of "
+                    "what you've %(past_verb)s."
+                ) % {
+                    "media_type_plural": escape(
+                        app_tags.media_type_readable_plural(media_type)
+                    ),
+                    "past_verb": escape(app_tags.media_past_verb(media_type)),
+                }
+
+            with self.subTest(language=language):
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected_title)
+                self.assertContains(response, expected_description)
 
     def test_media_list_with_filters(self):
         """Test the media list view with filters."""

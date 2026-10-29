@@ -53,3 +53,15 @@ class MediaSearchViewTests(TestCase):
             1,
             Sources.TMDB.value,
         )
+
+    def test_media_search_view_anilist(self):
+        """Test the media search view with AniList as the anime source."""
+        response = self.client.get(
+            reverse("search") + "?media_type=anime&q=Cowboy Bebop&source=anilist",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.context["data"]["results"]
+        self.assertTrue(results)
+        self.assertEqual(results[0]["item"]["source"], Sources.ANILIST.value)
+        self.assertContains(response, Sources.ANILIST.label)

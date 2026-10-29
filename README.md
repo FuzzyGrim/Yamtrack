@@ -99,6 +99,10 @@ Have ideas for new features? Share them through [GitHub issues](https://github.c
 
 Pull requests are welcome! Whether it's fixing typos, improving documentation, or adding new features, your contributions help make Yamtrack better for everyone.
 
+### 🌍 Translations
+
+Help translate Yamtrack into your language on [Crowdin](https://crowdin.com/project/yamtrack), no coding required. See the [localization guide](https://fuzzygrim.github.io/Yamtrack/dev/localization/) for how translations work and how to request a new language.
+
 ### ☕ Donate
 
 If you'd like to support the project financially:

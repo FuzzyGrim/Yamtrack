@@ -7,6 +7,7 @@ from django.apps import apps
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 import app
 from app import helpers as app_helpers
@@ -37,14 +38,14 @@ def get_token(request):
 
     try:
         token_response = app.providers.services.api_request(
-            "ANILIST",
+            Sources.ANILIST.value,
             "POST",
             url,
             params=params,
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid Anilist secret key."
+            msg = _("Invalid Anilist secret key.")
             raise MediaImportError(msg) from error
         raise
 
@@ -71,7 +72,7 @@ def get_username_from_oauth(access_token):
 
     try:
         response = app.providers.services.api_request(
-            "ANILIST",
+            Sources.ANILIST.value,
             "POST",
             "https://graphql.anilist.co",
             headers=headers,
@@ -79,7 +80,7 @@ def get_username_from_oauth(access_token):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid AniList access token."
+            msg = _("Invalid AniList access token.")
             raise MediaImportError(msg) from error
         raise
 
@@ -116,6 +117,18 @@ class AniListImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track every entry of each media to sync the current one and add the
+        # missing repeats in "new" mode
+        self.existing_entries = {}
+        if mode == "new":
+            self.existing_entries = helpers.get_existing_entries(
+                user,
+                [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
+            )
+
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -143,6 +156,7 @@ class AniListImporter:
                             coverImage {
                                 large
                             }
+                            id
                             idMal
                             chapters
                             episodes
@@ -177,7 +191,9 @@ class AniListImporter:
                             coverImage {
                                 large
                             }
+                            id
                             idMal
+                            chapters
                         }
                         status
                         score(format: POINT_10_DECIMAL)
@@ -215,7 +231,7 @@ class AniListImporter:
 
         try:
             response = app.providers.services.api_request(
-                "ANILIST",
+                Sources.ANILIST.value,
                 "POST",
                 url,
                 params={"query": query, "variables": variables},
@@ -224,10 +240,10 @@ class AniListImporter:
         except requests.exceptions.HTTPError as error:
             error_message = error.response.json()["errors"][0].get("message")
             if error_message == "User not found":
-                msg = f"User {self.username} not found."
+                msg = _("User %(username)s not found.") % {"username": self.username}
                 raise MediaImportError(msg) from error
             if error_message == "Private User":
-                msg = f"User {self.username} is private."
+                msg = _("User %(username)s is private.") % {"username": self.username}
                 raise MediaImportError(msg) from error
             raise
 
@@ -236,6 +252,11 @@ class AniListImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -260,18 +281,22 @@ class AniListImporter:
 
     def _process_entry(self, content, media_type):
         """Process a single entry from AniList."""
+        # Keep using MAL IDs when available, AniList only entries use AniList IDs
         if content["media"]["idMal"] is None:
-            title = content["media"]["title"]["userPreferred"]
-            self.warnings.append(f"{title}: No matching MAL ID.")
-            return
+            source = Sources.ANILIST.value
+            media_id = str(content["media"]["id"])
+        else:
+            source = Sources.MAL.value
+            media_id = str(content["media"]["idMal"])
+        existing = self._get_existing(media_type, source, media_id)
 
         # Check if we should process this entry based on mode
-        if not helpers.should_process_media(
+        if not existing and not helpers.should_process_media(
             self.existing_media,
             self.to_delete,
             media_type,
-            Sources.MAL.value,
-            str(content["media"]["idMal"]),
+            source,
+            media_id,
             self.mode,
         ):
             return
@@ -281,9 +306,39 @@ class AniListImporter:
         else:
             status = content["status"].capitalize()
 
-        item, _ = app.models.Item.objects.get_or_create(
-            media_id=str(content["media"]["idMal"]),
-            source=Sources.MAL.value,
+        current = {
+            # AniList scores unrated media as 0
+            "score": content["score"] or None,
+            "progress": content["progress"] or 0,
+            "status": status,
+            "start_date": self._get_date(content["startedAt"]),
+            "end_date": self._get_date(content["completedAt"]),
+            "notes": content["notes"] or "",
+        }
+        max_progress = content["media"].get("episodes") or content["media"].get(
+            "chapters",
+        )
+
+        repeats_count = content["repeat"]
+        if content["status"] == "REPEATING" and repeats_count == 0:
+            repeats_count = 1
+
+        # Existing media only gets the repeats it is missing
+        if existing:
+            missing = self._sync_existing(
+                media_type,
+                existing,
+                current,
+                max_progress,
+                repeats_count + 1,
+            )
+            if not missing:
+                return
+            repeats_count = missing - 1
+
+        item, _created = app.models.Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
             media_type=media_type,
             defaults={
                 "title": content["media"]["title"]["userPreferred"],
@@ -297,42 +352,53 @@ class AniListImporter:
             else timezone.datetime.fromtimestamp(content["updatedAt"], tz=UTC)
         )
 
-        repeats_count = content["repeat"]
-        if content["status"] == "REPEATING" and repeats_count == 0:
-            repeats_count = 1
+        # Add completed repeats
+        for _count in range(repeats_count):
+            instance = model(
+                item=item,
+                user=self.user,
+                **{
+                    **current,
+                    "progress": max_progress or 0,
+                    "status": Status.COMPLETED.value,
+                    "end_date": None,
+                },
+            )
+            instance._history_date = updated_at
+            self.bulk_media[media_type].append(instance)
 
-        if repeats_count >= 1:
-            for _ in range(repeats_count):
-                max_progress = content["media"].get("episodes") or content["media"].get(
-                    "chapters",
-                )
-
-                instance = model(
-                    item=item,
-                    user=self.user,
-                    score=content["score"],
-                    progress=max_progress or 0,
-                    status=Status.COMPLETED.value,
-                    start_date=self._get_date(content["startedAt"]),
-                    end_date=None,
-                    notes=content["notes"] or "",
-                )
-                instance._history_date = updated_at
-                self.bulk_media[media_type].append(instance)
-
-        instance = model(
-            item=item,
-            user=self.user,
-            score=content["score"],
-            progress=content["progress"] or 0,
-            status=status,
-            start_date=self._get_date(content["startedAt"]),
-            end_date=self._get_date(content["completedAt"]),
-            notes=content["notes"] or "",
-        )
+        instance = model(item=item, user=self.user, **current)
         instance._history_date = updated_at
 
         self.bulk_media[media_type].append(instance)
+
+    def _get_existing(self, media_type, source, media_id):
+        """Get the current entry of media already in Yamtrack, only in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        entries = self.existing_entries.get((media_type, source, media_id))
+        return helpers.get_current_entry(entries) if entries else None
+
+    def _sync_existing(self, media_type, media, current, max_progress, entries):
+        """Sync existing media and return how many of its entries are missing."""
+        changed, missing = helpers.sync_existing_entries(
+            media,
+            current,
+            max_progress,
+            entries,
+            len(
+                self.existing_entries[
+                    media_type,
+                    media.item.source,
+                    media.item.media_id,
+                ],
+            ),
+        )
+        if changed:
+            self.to_update[media_type][media.pk] = media
+
+        return missing
 
     def _get_date(self, date_dict):
         """Return date object from date dict."""

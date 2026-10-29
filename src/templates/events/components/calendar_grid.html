@@ -1,9 +1,10 @@
 {% load app_tags %}
 {% load events_tags %}
+{% load i18n %}
 
 <div class="grid grid-cols-7 gap-1 mb-2">
   {% for header in weekday_headers %}
-    <div class="text-center text-sm font-medium text-gray-400 py-2">{{ header }}</div>
+    <div class="text-center text-sm font-medium text-gray-400 py-2">{{ header|capfirst }}</div>
   {% endfor %}
 </div>
 

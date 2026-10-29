@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import translation
 
 from app import statistics
 from app.models import (
@@ -1007,6 +1008,34 @@ class GetActivityDataWeekStartTests(TestCase):
         # First day of first calendar week should be the aligned Monday
         first_day = result["calendar_weeks"][0][0]["date"]
         self.assertEqual(first_day, "2024-12-30")
+
+    @patch("app.statistics.get_filtered_historical_data")
+    def test_activity_labels_follow_active_language(self, mock_get_filtered_data):
+        """Month, weekday and most active day labels are translated."""
+        mock_get_filtered_data.return_value = []
+        start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 3, 31, 0, 0, tzinfo=datetime.UTC)
+
+        with translation.override("it"):
+            result = statistics.get_activity_data(
+                self.user_monday,
+                start_date,
+                end_date,
+            )
+            most_active_day, _ = statistics.calculate_day_of_week_stats(
+                {datetime.date(2025, 1, 5): 1},  # Sunday
+                datetime.date(2025, 1, 1),
+            )
+
+        self.assertEqual(
+            result["weekday_labels"],
+            ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"],
+        )
+        self.assertEqual(
+            [month for month, _ in result["months"] if month],
+            ["Gen", "Feb", "Mar"],
+        )
+        self.assertEqual(most_active_day, "Domenica")
 
     @patch("app.statistics.get_filtered_historical_data")
     def test_sunday_week_start_labels_and_alignment(self, mock_get_filtered_data):

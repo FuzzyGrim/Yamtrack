@@ -1,6 +1,10 @@
-from django.test import TestCase
+from datetime import timedelta
+from types import SimpleNamespace
 
-from app import config
+from django.test import TestCase
+from django.utils import timezone, translation
+
+from app import config, history_processor
 from app.history_processor import format_description
 from app.models import MediaTypes, Status
 
@@ -8,16 +12,15 @@ from app.models import MediaTypes, Status
 class HistoryProcessorTests(TestCase):
     """Test the history processor functions."""
 
-    def test_get_verb_covers_all_media_types(self):
-        """Test that get_verb covers all media types defined in MediaTypes."""
+    def test_get_activity_covers_all_media_types(self):
+        """Test that every media type has an activity with history phrases."""
         # Get all media types from the MediaTypes enum
         for media_type in MediaTypes:
-            # Ensure both present and past tense verbs are defined
             try:
-                config.get_verb(media_type.value, past_tense=False)
-                config.get_verb(media_type.value, past_tense=True)
+                activity = config.get_activity(media_type.value)
             except KeyError:
-                self.fail(f"Media type {media_type.name} not defined in get_verb")
+                self.fail(f"Media type {media_type.name} has no activity")
+            self.assertIn(activity, history_processor.INITIAL_PROGRESS_DESCRIPTIONS)
 
     def test_format_description_status_initial(self):
         """Test format_description for initial status changes."""
@@ -198,3 +201,16 @@ class HistoryProcessorTests(TestCase):
             format_description("custom_field", "old", "new"),
             "Updated custom field from old to new",
         )
+
+    def test_build_journal_days_labels_are_translated(self):
+        """Test the Today and Yesterday separators follow the active language."""
+        now = timezone.now()
+        entries = [{"date": now}, {"date": now - timedelta(days=1)}]
+        user = SimpleNamespace(date_format="Y-m-d")
+
+        with translation.override("it"):
+            days = history_processor.build_journal_days(entries, user)
+            expected = [translation.gettext("Today"), translation.gettext("Yesterday")]
+
+        self.assertEqual([day["label"] for day in days], expected)
+        self.assertNotEqual(expected, ["Today", "Yesterday"])

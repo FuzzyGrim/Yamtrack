@@ -1,20 +1,21 @@
 {% extends "socialaccount/base_manage.html" %}
 {% load allauth %}
 {% load socialaccount %}
+{% load i18n %}
 
 {% block head_title %}
-  Account Connections
+  {% trans "Account Connections" %}
 {% endblock head_title %}
 
 {% block content_title %}
-  Account Connections
+  {% trans "Account Connections" %}
 {% endblock content_title %}
 
 {% block content %}
 
   {% if form.accounts %}
     {% element p %}
-      You can sign in to your account using any of the following third-party accounts:
+      {% trans "You can sign in to your account using any of the following third-party accounts" %}:
     {% endelement %}
 
     {% url 'socialaccount_connections' as action_url %}
@@ -62,7 +63,7 @@
                     class="flex items-center px-3 py-1.5 rounded-md text-sm transition-colors"
                     :class="selectedAccount !== null ? 'bg-red-600 text-white hover:bg-red-700 cursor-pointer' : 'bg-red-600/50 text-white/70 cursor-not-allowed'">
               {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
-              Remove Selected
+              {% trans "Remove Selected" %}
             </button>
           </div>
         </div>
@@ -71,7 +72,7 @@
 
   {% else %}
     {% element p %}
-      You currently have no third-party accounts connected to this account.
+      {% trans "You currently have no third-party accounts connected to this account." %}
     {% endelement %}
   {% endif %}
 
@@ -79,7 +80,7 @@
   {% if socialaccount_providers %}
     <div class="relative flex items-center justify-center mt-6">
       <div class="border-t border-gray-600 grow"></div>
-      <span class="mx-4 text-sm text-gray-400">Add a Third-Party Account</span>
+      <span class="mx-4 text-sm text-gray-400">{% trans "Add a Third-Party Account" %}</span>
       <div class="border-t border-gray-600 grow"></div>
     </div>
 
@@ -91,6 +92,6 @@
     <a href="{% url 'home' %}"
        class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
       {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-      <span>Back to Home</span></a>
+      <span>{% trans "Back to Home" %}</span></a>
   </div>
 {% endblock content %}

@@ -36,15 +36,15 @@ def secret(key, default=undefined, **kwargs):
     If only the filename is given, try to read from /run/secrets/<key>.
     If an absolute path is specified, try to read from this path.
     """
-    if isinstance(default, Undefined):
-        default = None
+    has_default = not isinstance(default, Undefined)
+    file_default = default if has_default else None
 
-    file = config(key, default, **kwargs)
+    file = config(key, file_default, **kwargs)
 
     if file is None:
-        return undefined
-    if file == default:
-        return default
+        return default if has_default else undefined
+    if file == file_default:
+        return file_default
 
     path = Path(file)
     try:
@@ -137,9 +137,11 @@ MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "app.middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
@@ -165,13 +167,13 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.media",
                 "app.context_processors.export_vars",
                 "app.context_processors.media_enums",
                 "app.context_processors.persistent_messages",
-                "django.template.context_processors.request",
             ],
         },
     },
@@ -199,9 +201,12 @@ if config("DB_HOST", default=None):
             "ENGINE": "django.db.backends.postgresql",
             "HOST": config("DB_HOST"),
             "NAME": config("DB_NAME", default=secret("DB_NAME_FILE")),
-            "USER": config("DB_USER", default=secret("DB_USER_FILE")),
-            "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
-            "PORT": config("DB_PORT"),
+            "USER": config("DB_USER", default=secret("DB_USER_FILE", default=None)),
+            "PASSWORD": config(
+                "DB_PASSWORD",
+                default=secret("DB_PASSWORD_FILE", default=None),
+            ),
+            "PORT": config("DB_PORT", default=""),
             "OPTIONS": {
                 "pool": {
                     "min_size": DB_POOL_MIN_SIZE,
@@ -248,7 +253,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 18,
+        "VERSION": 20,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -313,7 +318,16 @@ LOGGING = {
 # Internationalization
 # https://docs.djangoproject.com/en/stable/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en"
+
+LANGUAGES = [
+    ("en", "English"),
+    ("it", "Italiano"),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
 
 TIME_ZONE = config("TZ", default="UTC")
 
@@ -391,6 +405,8 @@ MAL_API = config(
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
 
 MU_NSFW = config("MU_NSFW", default=False, cast=bool)
+
+ANILIST_NSFW = config("ANILIST_NSFW", default=False, cast=bool)
 
 IGDB_ID = config(
     "IGDB_ID",
