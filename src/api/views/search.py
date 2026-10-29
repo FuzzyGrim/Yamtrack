@@ -25,6 +25,7 @@ from api.schemas import (
 )
 from api.serializers import (
     MediaSerializer,
+    SearchMediaSerializer,
     SearchResponseSerializer,
 )
 from app.models import Sources
@@ -122,4 +123,8 @@ class SearchProviderView(drf_views.APIView):
             total=total,
             sliced=presliced,
         )
+        paginated_data["results"] = SearchMediaSerializer(
+            paginated_data["results"],
+            many=True,
+        ).data
         return Response(paginated_data, status=HTTP.OK)
