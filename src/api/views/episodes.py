@@ -659,9 +659,8 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                 episode_number=episode_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {"detail": f"{e!s}"},
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while fetching media.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -744,9 +743,8 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                 episode_number=episode_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {"detail": f"{e!s}"},
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while fetching media.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
@@ -831,9 +829,8 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                 episode_number=episode_number,
             )
         except Exception as e:  # noqa: BLE001
-            return Response(
-                {"detail": f"{e!s}"},
-                status=HTTP.INTERNAL_SERVER_ERROR,
+            return error_response(
+                "An error occurred while fetching media.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
         consumption = user_medias.filter(id=consumption_id).first()
