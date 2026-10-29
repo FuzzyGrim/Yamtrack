@@ -14,7 +14,7 @@
       {% if day == 0 %}
         <div class="min-h-32.5 p-1 rounded-md relative bg-[#343a40] opacity-40"></div>
       {% else %}
-        <div {% if day == today_day %}id="today" style="scroll-margin-top: 5rem" {% endif %}class="min-h-32.5 p-1 rounded-md relative bg-[#39404b] cursor-pointer hover:bg-[#454d5a] {% if day == today_day %}ring-2 ring-indigo-500{% endif %}">
+        <div {% if day == today_day %}id="today" {% endif %}class="min-h-32.5 p-1 rounded-md relative bg-[#39404b] cursor-pointer hover:bg-[#454d5a] {% if day == today_day %}scroll-mt-20 ring-2 ring-indigo-500{% endif %}">
           <div class="text-right text-sm p-1 font-medium {% if day == today_day %}bg-indigo-500 text-white rounded-full w-7 h-7 flex items-center justify-center ml-auto{% endif %}">
             {{ day }}
           </div>

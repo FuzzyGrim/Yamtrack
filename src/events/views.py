@@ -93,11 +93,12 @@ def calendar(request):
     today_day = today.day if (year, month) == (today.year, today.month) else None
     # list view only renders days with releases, so the Today button scrolls to
     # the first one from today on
-    list_anchor_day = (
-        min((day for day in release_dict if day >= today_day), default=None)
-        if today_day
-        else None
-    )
+    list_anchor_day = None
+    if today_day:
+        list_anchor_day = min(
+            (day for day in release_dict if day >= today_day),
+            default=None,
+        )
 
     context = {
         "calendar": calendar_format,
