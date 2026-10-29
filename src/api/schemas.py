@@ -7,6 +7,7 @@ from drf_spectacular.utils import (
     OpenApiTypes,
 )
 
+from .authentication import API_KEY_HEADER
 from .helpers import (
     EPISODE_SORTS,
     LIST_SORTS,
@@ -44,7 +45,7 @@ class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
         return {
             "type": "apiKey",
             "in": "header",
-            "name": "X-API-Key",
+            "name": API_KEY_HEADER,
         }
 
 
