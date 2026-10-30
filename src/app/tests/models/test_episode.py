@@ -242,7 +242,7 @@ class EpisodeStatusTests(TestCase):
             "season/1": {"episodes": [{"episode_number": 1}]},
             "related": {"seasons": [{"season_number": 1}]},
         }
-        self.user.language = "it"
+        self.user.language = "it-it"
         self.user.save(update_fields=["language"])
 
         # The active language stays English, like in a webhook request
@@ -252,7 +252,7 @@ class EpisodeStatusTests(TestCase):
             end_date=timezone.now(),
         )
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             expected = translation.gettext(
                 "%(title)s was marked as completed automatically.",
             ) % {"title": self.tv}

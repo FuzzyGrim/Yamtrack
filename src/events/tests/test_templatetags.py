@@ -99,7 +99,7 @@ class TemplateFiltersTagsTests(TestCase):
 
     def test_calendar_day_label_is_translated(self):
         """Weekday and month names follow the active language."""
-        with translation.override("it"):
+        with translation.override("it-it"):
             label = self._render_day_label(1, 1, 2023, DateFormatChoices.EUROPEAN)
             expected = f"{capfirst(WEEKDAYS[6])} 1 {MONTHS[1]}"
         self.assertEqual(label, expected)

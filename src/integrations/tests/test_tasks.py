@@ -15,7 +15,7 @@ class ImportMediaLanguageTests(TestCase):
         self.user = get_user_model().objects.create_user(
             username="test",
             password="12345",  # noqa: S106
-            language="it",
+            language="it-it",
         )
 
     @patch("integrations.tasks.events.tasks.reload_calendar.delay")
@@ -27,7 +27,7 @@ class ImportMediaLanguageTests(TestCase):
 
         result = import_media(importer, "identifier", self.user.id, "new")
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             expected = translation.gettext("No media was imported.")
         self.assertNotEqual(expected, "No media was imported.")
         self.assertEqual(result, expected)
@@ -44,5 +44,5 @@ class ImportMediaLanguageTests(TestCase):
 
         import_media(importer, "identifier", self.user.id, "new")
 
-        self.assertEqual(active_languages, ["it"])
+        self.assertEqual(active_languages, ["it-it"])
         self.assertEqual(translation.get_language(), language_before)

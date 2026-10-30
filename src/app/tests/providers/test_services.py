@@ -167,7 +167,7 @@ class ServicesTests(TestCase):
         mock_response.status_code = 500
         error = requests.exceptions.HTTPError(response=mock_response)
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             exception = services.ProviderAPIError(Sources.TMDB.value, error)
             expected = translation.gettext(
                 "There was an error contacting the %(provider)s API "

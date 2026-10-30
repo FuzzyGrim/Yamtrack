@@ -37,12 +37,12 @@ class CreateEntryViewTests(TestCase):
 
     def test_create_entry_status_options_are_translated(self):
         """Status options show the translated label and submit the stored value."""
-        self.user.language = "it"
+        self.user.language = "it-it"
         self.user.save()
 
         response = self.client.get(reverse("create_entry"))
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             for value, label in Status.choices:
                 with self.subTest(status=value):
                     self.assertContains(

@@ -219,15 +219,15 @@ class SidebarViewTests(TestCase):
             reverse("preferences"),
             {
                 "media_types_checkboxes": [MediaTypes.TV.value],
-                "language": "it",
+                "language": "it-it",
             },
         )
         self.assertRedirects(response, reverse("preferences"))
 
         self.user.refresh_from_db()
-        self.assertEqual(self.user.language, "it")
+        self.assertEqual(self.user.language, "it-it")
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             expected_message = translation.gettext("Settings updated.")
         self.assertNotEqual(expected_message, "Settings updated.")
 
@@ -237,7 +237,7 @@ class SidebarViewTests(TestCase):
 
     def test_post_ignores_invalid_language(self):
         """Posting a language not in LANGUAGES leaves the value unchanged."""
-        self.user.language = "it"
+        self.user.language = "it-it"
         self.user.save()
 
         response = self.client.post(
@@ -250,4 +250,4 @@ class SidebarViewTests(TestCase):
         self.assertRedirects(response, reverse("preferences"))
 
         self.user.refresh_from_db()
-        self.assertEqual(self.user.language, "it")
+        self.assertEqual(self.user.language, "it-it")

@@ -3,6 +3,6 @@ api_token_env: CROWDIN_PERSONAL_TOKEN
 preserve_hierarchy: true
 files:
   - source: /src/locale/django.pot
-    translation: /src/locale/%two_letters_code%/LC_MESSAGES/django.po
+    translation: /src/locale/%locale_with_underscore%/LC_MESSAGES/django.po
   - source: /src/locale/djangojs.pot
-    translation: /src/locale/%two_letters_code%/LC_MESSAGES/djangojs.po
+    translation: /src/locale/%locale_with_underscore%/LC_MESSAGES/djangojs.po

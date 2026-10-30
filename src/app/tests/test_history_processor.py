@@ -208,7 +208,7 @@ class HistoryProcessorTests(TestCase):
         entries = [{"date": now}, {"date": now - timedelta(days=1)}]
         user = SimpleNamespace(date_format="Y-m-d")
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             days = history_processor.build_journal_days(entries, user)
             expected = [translation.gettext("Today"), translation.gettext("Yesterday")]
 

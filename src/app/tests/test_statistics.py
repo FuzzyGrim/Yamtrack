@@ -1016,7 +1016,7 @@ class GetActivityDataWeekStartTests(TestCase):
         start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
         end_date = datetime.datetime(2025, 3, 31, 0, 0, tzinfo=datetime.UTC)
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             result = statistics.get_activity_data(
                 self.user_monday,
                 start_date,

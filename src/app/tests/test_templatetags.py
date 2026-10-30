@@ -287,7 +287,7 @@ class AppTagsTests(TestCase):
 
     def test_media_detail_label(self):
         """Known media detail keys get a translated label."""
-        with translation.override("it"):
+        with translation.override("it-it"):
             label = app_tags.media_detail_label("start_date")
             expected = pgettext("media detail", "Start date")
         self.assertEqual(label, expected)

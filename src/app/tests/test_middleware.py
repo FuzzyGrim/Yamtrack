@@ -89,13 +89,13 @@ class UserLanguageMiddlewareTest(TestCase):
 
     def test_authenticated_user_language(self):
         """Test the user's saved language is used for authenticated users."""
-        self.user.language = "it"
+        self.user.language = "it-it"
         self.user.save()
         self.client.login(**self.credentials)
 
         response = self.client.get(reverse("lists"), headers={"accept-language": "en"})
 
-        self.assertEqual(response.headers["Content-Language"], "it")
+        self.assertEqual(response.headers["Content-Language"], "it-it")
 
     def test_authenticated_user_ignores_accept_language(self):
         """Test the browser language doesn't override the saved language."""
@@ -111,4 +111,4 @@ class UserLanguageMiddlewareTest(TestCase):
             reverse("account_login"), headers={"accept-language": "it"}
         )
 
-        self.assertEqual(response.headers["Content-Language"], "it")
+        self.assertEqual(response.headers["Content-Language"], "it-it")

@@ -5,21 +5,21 @@
 Currently configured languages:
 
 - `en` (default)
-- `it`
+- `it-it`
 
 ## Translating Yamtrack
 
 Translations are managed on [Crowdin](https://crowdin.com/project/yamtrack). Sign in, pick a language and translate the strings there; you don't need to edit any files in the repository.
 
-Changes made on Crowdin are synced back automatically: a GitHub Action opens a pull request with the updated `.po` files in `src/locale/<lang>/LC_MESSAGES/`. Please don't edit those files directly in a pull request, as they are overwritten by the next sync from Crowdin.
+Changes made on Crowdin are synced back automatically: a GitHub Action opens a pull request with the updated `.po` files in `src/locale/<locale>/LC_MESSAGES/`. Please don't edit those files directly in a pull request, as they are overwritten by the next sync from Crowdin.
 
 Strings that haven't been translated yet are shown in English.
 
 ## Add a new language
 
-To request a new language, open an issue on GitHub with the English name of the language and its [locale name](https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name), for example `fr` for French. Once the language is enabled on Crowdin, it can be translated there.
+To request a new language, open the [Crowdin project](https://crowdin.com/project/yamtrack) and click **Request new language** in the Details section of the Dashboard tab. Once a maintainer approves it, the language can be translated there.
 
-After some translations have been made and synced, a maintainer adds the language to the `LANGUAGES` setting in `src/config/settings.py` so it appears in the app language selector.
+After some translations have been made and synced, a maintainer adds the language to the `LANGUAGES` setting in `src/config/settings.py` so it appears in the app language selector. The language code is the name of its folder in `src/locale/`, in lower case and with a hyphen, for example `pt-br` for `pt_BR`.
 
 !!! warning IMPORTANT
     When a new language is added, test it by running the development server and switching to the new language from the app language selector. More infos at [General setup](development.md#general-setup).

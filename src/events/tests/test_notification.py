@@ -1174,7 +1174,7 @@ class NotificationTests(TestCase):
         mock_apprise.return_value = mock_instance
         mock_instance.notify.return_value = True
 
-        self.user1.language = "it"
+        self.user1.language = "it-it"
         self.user1.save()
         language_before = translation.get_language()
 
@@ -1186,7 +1186,7 @@ class NotificationTests(TestCase):
         title = gettext_lazy("📆 YamTrack: Today's Releases 📆")
         send_notifications(recent_events, users, title)
 
-        with translation.override("it"):
+        with translation.override("it-it"):
             expected_title = str(title)
             expected_closing = translation.gettext("Enjoy your media!")
         self.assertNotEqual(expected_title, "📆 YamTrack: Today's Releases 📆")
