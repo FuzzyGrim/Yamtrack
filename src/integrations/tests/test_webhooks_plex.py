@@ -29,6 +29,22 @@ class PlexWebhookTests(TestCase):
         response = self.client.post(url, data={}, content_type="application/json")
         self.assertEqual(response.status_code, 401)
 
+    def test_payload_with_raw_control_characters(self):
+        """Test webhook accepts payloads with control characters."""
+        raw_json = (
+            '{"event": "media.scrobble", "Account": {"title": "testuser"}, '
+            '"Metadata": {"type": "episode", "grandparentTitle": "Friends", '
+            '"summary": "line\nwith\tchars", "index": 1, "parentIndex": 1, "Guid": []}}'
+        )
+        response = self.client.post(self.url, data={"payload": raw_json})
+        self.assertEqual(response.status_code, 200)
+
+    def test_invalid_json_payload(self):
+        """Test webhook returns 400 when invalid JSON is sent."""
+        response = self.client.post(self.url, data={"payload": "not-valid-json{"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode(), "Invalid JSON payload")
+
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""
         payload = {

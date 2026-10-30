@@ -36,6 +36,31 @@ class JellyfinWebhookTests(TestCase):
         response = self.client.post(url, data={}, content_type="application/json")
         self.assertEqual(response.status_code, 401)
 
+    def test_payload_with_raw_control_characters(self):
+        """Test webhook accepts payloads with control characters."""
+        raw_json = (
+            '{"Event": "Stop", "Item": {"Type": "Episode", '
+            '"Name": "Test\nWith\tChars", '
+            '"ProviderIds": {"Tvdb": "12345"}, "SeriesName": "Show", '
+            '"ParentIndexNumber": 1, "IndexNumber": 1, "UserData": {"Played": true}}}'
+        )
+        response = self.client.post(
+            self.url,
+            data=raw_json,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_invalid_json_payload(self):
+        """Test webhook returns 400 when invalid JSON is sent."""
+        response = self.client.post(
+            self.url,
+            data="not-valid-json{",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode(), "Invalid JSON payload")
+
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""
         payload = {
