@@ -347,9 +347,8 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
                     details=msg,
                 )
 
-            season_data = process_season(
-                response[season_key], response[f"{season_key}/watch/providers"]
-            )
+            providers = response.get(f"{season_key}/watch/providers") or {}
+            season_data = process_season(response[season_key], providers)
             season_data = enrich_season_with_tv_data(
                 season_data,
                 fetched_tv_data,
