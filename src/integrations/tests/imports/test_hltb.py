@@ -145,3 +145,28 @@ class ImportHowLongToBeatNewMode(TestCase):
         self.run_import(Review="0")
 
         self.assertIsNone(Game.objects.get(user=self.user).score)
+
+
+class ImportHowLongToBeatSearch(TestCase):
+    """Test how the HowLongToBeat importer searches for games."""
+
+    @patch("app.providers.services.search", autospec=True)
+    def test_search_game_uses_user_preference(self, mock_search):
+        """The real search signature accepts the preference from the importer."""
+        user = get_user_model().objects.create_user(
+            username="test",
+            password="12345",  # noqa: S106
+            show_adult_titles=False,
+        )
+        mock_search.return_value = {"results": [{"media_id": "1"}]}
+
+        importer = hltb.HowLongToBeatImporter(None, user, "new")
+        result = importer._search_game({"Title": "Test Game"})
+
+        self.assertEqual(result, {"media_id": "1"})
+        mock_search.assert_called_once_with(
+            MediaTypes.GAME.value,
+            "Test Game",
+            1,
+            show_adult_titles=False,
+        )

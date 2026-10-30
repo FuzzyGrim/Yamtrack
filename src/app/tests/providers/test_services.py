@@ -477,7 +477,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Anime"}])
 
-        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.ANIME.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.mangaupdates.search")
     def test_search_manga_mangaupdates(self, mock_search):
@@ -493,7 +495,7 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Manga"}])
 
-        mock_search.assert_called_once_with("test", 1)
+        mock_search.assert_called_once_with("test", 1, show_adult_titles=True)
 
     @patch("app.providers.mal.search")
     def test_search_manga_mal(self, mock_search):
@@ -504,7 +506,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Manga"}])
 
-        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.MANGA.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.anilist.search")
     def test_search_anime_anilist(self, mock_search):
@@ -520,7 +524,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Anime"}])
 
-        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.ANIME.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.anilist.search")
     def test_search_manga_anilist(self, mock_search):
@@ -536,7 +542,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Manga"}])
 
-        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.MANGA.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.tmdb.search")
     def test_search_tv(self, mock_search):
@@ -547,7 +555,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test TV"}])
 
-        mock_search.assert_called_once_with(MediaTypes.TV.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.TV.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.tmdb.search")
     def test_search_movie(self, mock_search):
@@ -558,7 +568,9 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Movie"}])
 
-        mock_search.assert_called_once_with(MediaTypes.MOVIE.value, "test", 1)
+        mock_search.assert_called_once_with(
+            MediaTypes.MOVIE.value, "test", 1, show_adult_titles=True
+        )
 
     @patch("app.providers.igdb.search")
     def test_search_game(self, mock_search):
@@ -569,7 +581,7 @@ class ServicesTests(TestCase):
 
         self.assertEqual(result, [{"title": "Test Game"}])
 
-        mock_search.assert_called_once_with("test", 1)
+        mock_search.assert_called_once_with("test", 1, show_adult_titles=True)
 
     @patch("app.providers.hardcover.search")
     def test_search_hardcover_book(self, mock_search):
@@ -613,3 +625,45 @@ class ServicesTests(TestCase):
         self.assertEqual(result, [{"title": "Test Comic"}])
 
         mock_search.assert_called_once_with("test", 1)
+
+    def test_search_forwards_show_adult_titles(self):
+        """Test the search function passes the preference to each provider."""
+        cases = [
+            ("app.providers.mal.search", MediaTypes.ANIME.value, None),
+            (
+                "app.providers.anilist.search",
+                MediaTypes.ANIME.value,
+                Sources.ANILIST.value,
+            ),
+            ("app.providers.mal.search", MediaTypes.MANGA.value, None),
+            (
+                "app.providers.anilist.search",
+                MediaTypes.MANGA.value,
+                Sources.ANILIST.value,
+            ),
+            (
+                "app.providers.mangaupdates.search",
+                MediaTypes.MANGA.value,
+                Sources.MANGAUPDATES.value,
+            ),
+            ("app.providers.tmdb.search", MediaTypes.TV.value, None),
+            ("app.providers.tmdb.search", MediaTypes.MOVIE.value, None),
+            ("app.providers.tmdb.search", MediaTypes.SEASON.value, None),
+            ("app.providers.tmdb.search", MediaTypes.EPISODE.value, None),
+            ("app.providers.igdb.search", MediaTypes.GAME.value, None),
+        ]
+
+        for target, media_type, source in cases:
+            with (
+                self.subTest(target=target, media_type=media_type),
+                patch(target, autospec=True) as mock_search,
+            ):
+                services.search(
+                    media_type,
+                    "test",
+                    1,
+                    source,
+                    show_adult_titles=False,
+                )
+
+                self.assertFalse(mock_search.call_args.kwargs["show_adult_titles"])

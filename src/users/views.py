@@ -269,6 +269,9 @@ def preferences(request):
     language = request.POST.get("language")
     if language in dict(settings.LANGUAGES):
         request.user.language = language
+
+    request.user.show_adult_titles = "show_adult_titles" in request.POST
+
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     provider_region = request.POST.get("watch_provider_region", "")
