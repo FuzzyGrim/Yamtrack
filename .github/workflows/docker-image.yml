@@ -36,8 +36,10 @@ jobs:
           context: .
           load: true
           tags: yamtrack:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Separate scope, otherwise this amd64-only cache replaces the
+          # multi-platform one and arm64 never gets a cache hit
+          cache-from: type=gha,scope=test
+          cache-to: type=gha,mode=max,scope=test
           provenance: false
           platforms: linux/amd64
           build-args: |
@@ -163,8 +165,8 @@ jobs:
           push: ${{ steps.push-flag.outputs.PUSH }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=build
+          cache-to: type=gha,mode=max,scope=build
           provenance: false
           platforms: linux/amd64,linux/arm64
           build-args: |

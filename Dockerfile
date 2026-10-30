@@ -53,8 +53,10 @@ COPY --from=builder /yamtrack/.venv /yamtrack/.venv
 
 # Django app
 COPY src ./
+# Skip .venv: dependencies ship compiled catalogs, and running msgfmt over all of
+# them hangs arm64 builds under QEMU
 RUN python manage.py collectstatic --noinput \
-  && python manage.py compilemessages
+  && python manage.py compilemessages --ignore=.venv
 
 # Default nginx listen port; overridden at runtime with YAMTRACK_INTERNAL_PORT
 EXPOSE 8000
