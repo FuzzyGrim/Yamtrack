@@ -773,15 +773,15 @@
 <p>Currently configured languages:</p>
 <ul>
 <li><code>en</code> (default)</li>
-<li><code>it</code></li>
+<li><code>it-it</code></li>
 </ul>
 <h2 id="translating-yamtrack">Translating Yamtrack<a class="headerlink" href="#translating-yamtrack" title="Permanent link">&para;</a></h2>
 <p>Translations are managed on <a href="https://crowdin.com/project/yamtrack">Crowdin</a>. Sign in, pick a language and translate the strings there; you don't need to edit any files in the repository.</p>
-<p>Changes made on Crowdin are synced back automatically: a GitHub Action opens a pull request with the updated <code>.po</code> files in <code>src/locale/&lt;lang&gt;/LC_MESSAGES/</code>. Please don't edit those files directly in a pull request, as they are overwritten by the next sync from Crowdin.</p>
+<p>Changes made on Crowdin are synced back automatically: a GitHub Action opens a pull request with the updated <code>.po</code> files in <code>src/locale/&lt;locale&gt;/LC_MESSAGES/</code>. Please don't edit those files directly in a pull request, as they are overwritten by the next sync from Crowdin.</p>
 <p>Strings that haven't been translated yet are shown in English.</p>
 <h2 id="add-a-new-language">Add a new language<a class="headerlink" href="#add-a-new-language" title="Permanent link">&para;</a></h2>
-<p>To request a new language, open an issue on GitHub with the English name of the language and its <a href="https://docs.djangoproject.com/en/6.0/topics/i18n/#term-locale-name">locale name</a>, for example <code>fr</code> for French. Once the language is enabled on Crowdin, it can be translated there.</p>
-<p>After some translations have been made and synced, a maintainer adds the language to the <code>LANGUAGES</code> setting in <code>src/config/settings.py</code> so it appears in the app language selector.</p>
+<p>To request a new language, open the <a href="https://crowdin.com/project/yamtrack">Crowdin project</a> and click <strong>Request new language</strong> in the Details section of the Dashboard tab. Once a maintainer approves it, the language can be translated there.</p>
+<p>After some translations have been made and synced, a maintainer adds the language to the <code>LANGUAGES</code> setting in <code>src/config/settings.py</code> so it appears in the app language selector. The language code is the name of its folder in <code>src/locale/</code>, in lower case and with a hyphen, for example <code>pt-br</code> for <code>pt_BR</code>.</p>
 <div class="admonition warning important">
 <p class="admonition-title">Warning</p>
 <p>When a new language is added, test it by running the development server and switching to the new language from the app language selector. More infos at <a href="../development/#general-setup">General setup</a>.</p>
