@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-28 23:07+0000\n"
-"PO-Revision-Date: 2026-10-29 18:02\n"
+"POT-Creation-Date: 2026-10-30 21:29+0000\n"
+"PO-Revision-Date: 2026-10-30 21:30\n"
 "Last-Translator: \n"
 "Language-Team: Italian\n"
 "Language: it_IT\n"
@@ -729,17 +729,17 @@ msgstr "Si è verificato un errore durante la comunicazione con l'API di %(provi
 msgid "No result found with ID %(media_id)s"
 msgstr "Nessun risultato trovato con ID %(media_id)s"
 
-#: app/providers/tmdb.py:334
+#: app/providers/tmdb.py:336
 #, python-format
 msgid "Season %(season_number)s not found for %(provider)s with ID %(media_id)s"
 msgstr "Stagione %(season_number)s non trovata su %(provider)s con ID %(media_id)s"
 
-#: app/providers/tmdb.py:788
+#: app/providers/tmdb.py:790
 #, python-format
 msgid "Episode %(episode_number)s not found in season %(season_number)s for %(provider)s with ID %(media_id)s"
 msgstr "Episodio %(episode_number)s non trovato nella stagione %(season_number)s su %(provider)s con ID %(media_id)s"
 
-#: app/providers/tmdb.py:839
+#: app/providers/tmdb.py:841
 msgid "Disabled"
 msgstr "Disabilitato"
 
@@ -1145,44 +1145,44 @@ msgstr "Nessun elemento di tipo %(media_type_label)s tracciato"
 msgid "Start tracking your %(media_type_plural)s to keep a record of what you've %(past_verb)s."
 msgstr "Inizia a tenere traccia di %(media_type_plural)s per conservare uno storico di ciò che hai %(past_verb)s."
 
-#: app/views.py:448
+#: app/views.py:454
 msgid "Manual items cannot be synced."
 msgstr "Gli elementi manuali non possono essere sincronizzati."
 
-#: app/views.py:464
+#: app/views.py:470
 msgid "The data was recently synced, please wait a few seconds."
 msgstr "I dati sono stati sincronizzati di recente, per favore attendi qualche secondo."
 
-#: app/views.py:540
+#: app/views.py:546
 #, python-format
 msgid "%(title)s was synced to %(source)s successfully."
 msgstr "%(title)s è stato sincronizzato con %(source)s con successo."
 
-#: app/views.py:708
+#: app/views.py:714
 msgid "Invalid form data"
 msgstr "Dati del form non validi"
 
-#: app/views.py:778
+#: app/views.py:784
 #, python-format
 msgid "Season %(season_number)s"
 msgstr "Stagione %(season_number)s"
 
-#: app/views.py:782 templates/app/components/fill_track_episode.html:27
+#: app/views.py:788 templates/app/components/fill_track_episode.html:27
 #, python-format
 msgid "Episode %(episode_number)s"
 msgstr "Episodio %(episode_number)s"
 
-#: app/views.py:789
+#: app/views.py:795
 #, python-format
 msgid "%(media_name)s already exists in the database."
 msgstr "%(media_name)s esiste già nel database."
 
-#: app/views.py:822
+#: app/views.py:828
 #, python-format
 msgid "%(item)s added successfully."
 msgstr "%(item)s aggiunto con successo."
 
-#: app/views.py:957
+#: app/views.py:963
 msgid "Record not found"
 msgstr "Pagina non trovata"
 
@@ -1481,7 +1481,7 @@ msgstr "Errore durante l'elaborazione dell'elemento con ID %(media_id)s (%(media
 msgid "%(title)s (%(media_type)s): %(errors)s"
 msgstr "%(title)s (%(media_type)s): %(errors)s"
 
-#: integrations/imports/yamtrack.py:393
+#: integrations/imports/yamtrack.py:394
 #, python-format
 msgid "Missing metadata for: %(row)s"
 msgstr "Metadata mancanti per: %(row)s"
@@ -3327,7 +3327,7 @@ msgstr "Abilita digest quotidiano"
 msgid "Receive a single notification each day with all media scheduled to release that day"
 msgstr "Ricevi una singola notifica ogni giorno con tutti i media programmati per essere rilasciati quel giorno"
 
-#: templates/users/notifications.html:104 users/models.py:416
+#: templates/users/notifications.html:104 users/models.py:422
 msgid "Receive notifications for recently released media"
 msgstr "Ricevi notifiche per contenuti pubblicati di recente"
 
@@ -3448,14 +3448,22 @@ msgid "Select your preferred language for the application interface."
 msgstr "Scegli la tua lingua preferita per l'interfaccia dell'applicazione."
 
 #: templates/users/preferences.html:264
+msgid "Show adult titles"
+msgstr ""
+
+#: templates/users/preferences.html:266
+msgid "Show adult titles in searches. Depends on them being enabled by the server."
+msgstr ""
+
+#: templates/users/preferences.html:285
 msgid "Media Types"
 msgstr "Tipi media"
 
-#: templates/users/preferences.html:267
+#: templates/users/preferences.html:288
 msgid "Control which media types are visible throughout the app (sidebar, search, calendar, notifications)."
 msgstr "Controlla quali tipi di media sono visibili in tutta l'app (barra laterale, ricerca, calendario, notifiche)."
 
-#: templates/users/preferences.html:297
+#: templates/users/preferences.html:318
 msgid "Save Preferences"
 msgstr "Salva preferenze"
 
@@ -3641,39 +3649,43 @@ msgstr "Mostra barra di avanzamento"
 msgid "Hide zero ratings from media cards"
 msgstr "Nascondi valutazioni vuote dalle schede contenuto"
 
-#: users/models.py:376
+#: users/models.py:375
+msgid "Show adult titles in search results"
+msgstr ""
+
+#: users/models.py:382
 msgid "Region to show watch providers for"
 msgstr "Regione per cui mostrare i provider di contenuti"
 
-#: users/models.py:406
+#: users/models.py:412
 msgid "Apprise URLs for notifications"
 msgstr "URL Apprise per le notifiche"
 
-#: users/models.py:412
+#: users/models.py:418
 msgid "Items excluded from notifications"
 msgstr "Elementi esclusi dalle notifiche"
 
-#: users/models.py:420
+#: users/models.py:426
 msgid "Receive a daily digest of upcoming releases"
 msgstr "Ricevi un riepilogo giornaliero delle prossime uscite"
 
-#: users/models.py:428
+#: users/models.py:434
 msgid "Token for external integrations"
 msgstr "Token per integrazioni esterne"
 
-#: users/models.py:432
+#: users/models.py:438
 msgid "Comma-separated list of Plex usernames for webhook matching"
 msgstr "Elenco separato da virgole di utenti Plex per l'abbinamento al webhook"
 
-#: users/models.py:436
+#: users/models.py:442
 msgid "Process Jellyfin MarkPlayed webhook events"
 msgstr "Elabora gli eventi webhook \"MarkPlayed\" di Jellyfin"
 
-#: users/models.py:440
+#: users/models.py:446
 msgid "Process Jellyfin MarkUnplayed webhook events"
 msgstr "Elabora gli eventi webhook \"MarkUnplayed\" di Jellyfin"
 
-#: users/tests/views/test_sidebar.py:219 users/views.py:291
+#: users/tests/views/test_sidebar.py:231 users/views.py:294
 msgid "Settings updated."
 msgstr "Impostazioni aggiornate."
 
@@ -3713,27 +3725,27 @@ msgstr "Impossibile inviare la notifica di prova."
 msgid "This section is view-only for demo accounts."
 msgstr "Per gli account demo questa sezione è solo di visualizzazione."
 
-#: users/views.py:337
+#: users/views.py:340
 msgid "Import schedule deleted."
 msgstr "Programmazione importazione eliminata."
 
-#: users/views.py:339
+#: users/views.py:342
 msgid "Import schedule not found."
 msgstr "Programmazione importazione non trovata."
 
-#: users/views.py:349
+#: users/views.py:352
 msgid "Token regenerated successfully."
 msgstr "Token rigenerato con successo."
 
-#: users/views.py:374
+#: users/views.py:377
 msgid "Plex usernames updated successfully"
 msgstr "Nomi utente Plex aggiornati con successo"
 
-#: users/views.py:394
+#: users/views.py:397
 msgid "Jellyfin webhook settings updated successfully"
 msgstr "Impostazioni webhook di Jellyfin aggiornate con successo"
 
-#: users/views.py:407
+#: users/views.py:410
 #, python-format
 msgid "Successfully cleared %(count)d search entry"
 msgid_plural "Successfully cleared %(count)d search entries"
