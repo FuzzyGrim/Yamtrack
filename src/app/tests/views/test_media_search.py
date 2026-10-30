@@ -55,6 +55,31 @@ class MediaSearchViewTests(TestCase):
             show_adult_titles=True,
         )
 
+    @patch("app.providers.services.search")
+    def test_media_search_view_hides_adult_titles(self, mock_search):
+        """Test the media search view applies the user preference."""
+        self.user.show_adult_titles = False
+        self.user.save(update_fields=["show_adult_titles"])
+        mock_search.return_value = {
+            "page": 1,
+            "total_results": 0,
+            "total_pages": 1,
+            "results": [],
+        }
+
+        response = self.client.get(
+            reverse("search") + "?media_type=movie&q=test",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_search.assert_called_once_with(
+            MediaTypes.MOVIE.value,
+            "test",
+            1,
+            Sources.TMDB.value,
+            show_adult_titles=False,
+        )
+
     def test_media_search_view_anilist(self):
         """Test the media search view with AniList as the anime source."""
         response = self.client.get(

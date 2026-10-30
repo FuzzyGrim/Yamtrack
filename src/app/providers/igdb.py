@@ -177,7 +177,10 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
 
 def search(query, page, *, show_adult_titles=True):
     """Search for games on IGDB using MultiQuery."""
-    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}_{page}_{show_adult_titles}"
+    cache_key = (
+        f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}_{page}"
+        f"_{show_adult_titles}"
+    )
     data = cache.get(cache_key)
 
     if data is None:

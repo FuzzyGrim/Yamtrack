@@ -632,3 +632,45 @@ class ImportYamtrackNewMode(TestCase):
 
         movie = Movie.objects.get(user=self.user)
         self.assertEqual(movie.status, Status.PLANNING.value)
+
+
+class ImportYamtrackShowAdultTitles(TestCase):
+    """Test the Yamtrack importer applies the adult titles preference."""
+
+    @patch("integrations.imports.yamtrack.services.search", autospec=True)
+    def test_title_search_uses_user_preference(self, mock_search):
+        """A title lookup for a row without an ID follows the user preference."""
+        user = get_user_model().objects.create_user(
+            username="test",
+            password="12345",  # noqa: S106
+            show_adult_titles=False,
+        )
+        mock_search.return_value = {
+            "results": [
+                {
+                    "title": "Perfect Blue",
+                    "source": Sources.TMDB.value,
+                    "media_id": 10494,
+                    "image": "http://example.com/image.jpg",
+                },
+            ],
+        }
+        row = {
+            "media_id": "",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.MOVIE.value,
+            "title": "Perfect Blue",
+            "image": "",
+        }
+
+        importer = yamtrack.YamtrackImporter(None, user, "new")
+        importer._handle_missing_metadata(row, MediaTypes.MOVIE.value, "", "")
+
+        self.assertEqual(row["media_id"], 10494)
+        mock_search.assert_called_once_with(
+            MediaTypes.MOVIE.value,
+            "Perfect Blue",
+            1,
+            Sources.TMDB.value,
+            show_adult_titles=False,
+        )

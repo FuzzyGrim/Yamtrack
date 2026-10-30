@@ -369,6 +369,12 @@ class User(AbstractUser):
         help_text=_("Hide zero ratings from media cards"),
     )
 
+    # Show adult titles
+    show_adult_titles = models.BooleanField(
+        default=True,
+        help_text=_("Show adult titles in search results"),
+    )
+
     # Watch provider region
     watch_provider_region = models.CharField(
         max_length=5,
@@ -438,11 +444,6 @@ class User(AbstractUser):
     jellyfin_mark_unplayed_enabled = models.BooleanField(
         default=False,
         help_text=_("Process Jellyfin MarkUnplayed webhook events"),
-    )
-
-    show_adult_titles = models.BooleanField(
-        default=True,
-        help_text="Show adult titles in search results",
     )
 
     class Meta:

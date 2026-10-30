@@ -277,16 +277,18 @@ def search(media_type, query, page, source=None, *, show_adult_titles=True):
     """Search for media based on the query and return the results."""
     search_handlers = {
         MediaTypes.MANGA.value: lambda: (
-            mangaupdates.search(query, page)
+            mangaupdates.search(query, page, show_adult_titles=show_adult_titles)
             if source == Sources.MANGAUPDATES.value
-            else anilist.search(media_type, query, page)
+            else anilist.search(
+                media_type, query, page, show_adult_titles=show_adult_titles
+            )
             if source == Sources.ANILIST.value
             else mal.search(
                 media_type, query, page, show_adult_titles=show_adult_titles
             )
         ),
         MediaTypes.ANIME.value: lambda: (
-            anilist.search(media_type, query, page)
+            anilist.search(media_type, query, page, show_adult_titles=show_adult_titles)
             if source == Sources.ANILIST.value
             else mal.search(
                 media_type, query, page, show_adult_titles=show_adult_titles

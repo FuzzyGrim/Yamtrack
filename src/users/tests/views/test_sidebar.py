@@ -61,6 +61,18 @@ class SidebarViewTests(TestCase):
         self.assertEqual(len(messages), 1)
         self.assertIn("Settings updated", str(messages[0]))
 
+    def test_sidebar_post_show_adult_titles(self):
+        """Test POST request saves and clears the adult titles preference."""
+        self.assertTrue(self.user.show_adult_titles)
+
+        self.client.post(reverse("preferences"), {})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.show_adult_titles)
+
+        self.client.post(reverse("preferences"), {"show_adult_titles": "on"})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.show_adult_titles)
+
     def test_sidebar_post_demo_user(self):
         """Test POST request from a demo user to preferences."""
         self.user.is_demo = True

@@ -45,7 +45,10 @@ def handle_error(error):
 
 def search(query, page, *, show_adult_titles=True):
     """Search for media on MangaUpdates."""
-    cache_key = f"search_{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{query}_{page}_{show_adult_titles}"
+    cache_key = (
+        f"search_{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{query}_{page}"
+        f"_{show_adult_titles}"
+    )
     data = cache.get(cache_key)
 
     if data is None:

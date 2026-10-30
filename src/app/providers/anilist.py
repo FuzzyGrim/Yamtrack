@@ -151,9 +151,12 @@ def graphql_request(query, variables):
     return response["data"]
 
 
-def search(media_type, query, page):
+def search(media_type, query, page, *, show_adult_titles=True):
     """Search for anime or manga on AniList."""
-    cache_key = f"search_{Sources.ANILIST.value}_{media_type}_{query}_{page}"
+    cache_key = (
+        f"search_{Sources.ANILIST.value}_{media_type}_{query}_{page}"
+        f"_{show_adult_titles}"
+    )
     data = cache.get(cache_key)
 
     if data is None:
@@ -164,7 +167,7 @@ def search(media_type, query, page):
             "perPage": settings.PER_PAGE,
         }
         # AniList filters by null instead of ignoring it, leave it out to get all
-        if not settings.ANILIST_NSFW:
+        if not settings.ANILIST_NSFW or not show_adult_titles:
             variables["isAdult"] = False
 
         response = graphql_request(search_query, variables)["Page"]
