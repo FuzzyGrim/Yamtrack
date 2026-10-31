@@ -914,8 +914,8 @@ class Media(models.Model):
                 if self.progress == max_progress:
                     self.status = Status.COMPLETED.value
 
-                    now = timezone.now().replace(second=0, microsecond=0)
-                    self.end_date = now
+                    if not self.end_date:
+                        self.end_date = timezone.now().replace(second=0, microsecond=0)
 
     def process_status(self):
         """Update fields depending on the status of the media."""

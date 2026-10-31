@@ -1,3 +1,4 @@
+import datetime as dt
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
@@ -61,6 +62,18 @@ class MediaModel(TestCase):
         self.assertIsNotNone(
             Anime.objects.get(item__media_id="1", user=self.user).end_date,
         )
+
+    def test_progress_is_max_keeps_given_end_date(self):
+        """When progress reaches the maximum, an end_date already set is kept."""
+        end_date = dt.datetime(2026, 10, 28, 21, 0, tzinfo=dt.UTC)
+        self.anime.status = Status.IN_PROGRESS.value
+        self.anime.progress = 26
+        self.anime.end_date = end_date
+        self.anime.save()
+
+        anime = Anime.objects.get(item__media_id="1", user=self.user)
+        self.assertEqual(anime.status, Status.COMPLETED.value)
+        self.assertEqual(anime.end_date, end_date)
 
     def test_progress_bigger_than_max(self):
         """When progress is bigger than max, it should be set to max."""
