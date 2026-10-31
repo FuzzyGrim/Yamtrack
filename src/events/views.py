@@ -90,6 +90,15 @@ def calendar(request):
 
     # Get today's date for highlighting
     today = timezone.localdate()
+    today_day = today.day if (year, month) == (today.year, today.month) else None
+    # list view only renders days with releases, so the Today button scrolls to
+    # the first one from today on
+    list_anchor_day = None
+    if today_day:
+        list_anchor_day = min(
+            (day for day in release_dict if day >= today_day),
+            default=None,
+        )
 
     context = {
         "calendar": calendar_format,
@@ -103,6 +112,8 @@ def calendar(request):
         "next_year": next_year,
         "release_dict": release_dict,
         "today": today,
+        "today_day": today_day,
+        "list_anchor_day": list_anchor_day,
         "view_type": view_type,
     }
     return render(request, "events/calendar.html", context)
