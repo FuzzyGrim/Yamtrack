@@ -273,6 +273,22 @@ class BasicGameForm(TestCase):
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data["progress"], 30)
 
+    def test_float_progress_rounds_to_the_minute(self):
+        """Test that decimal hours like 2.3 keep their exact minutes."""
+        for value, minutes in (("2.3", 138), ("1.2", 72), ("4.6", 276), ("8.2", 492)):
+            form_data = {
+                "media_id": "1",
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "user": self.user.id,
+                "status": Status.COMPLETED.value,
+                "progress": value,
+                "repeats": 0,
+            }
+            form = GameForm(data=form_data)
+            self.assertTrue(form.is_valid(), value)
+            self.assertEqual(form.cleaned_data["progress"], minutes, value)
+
     def test_invalid_negative_float_progress(self):
         """Test that negative float progress is rejected."""
         form_data = {

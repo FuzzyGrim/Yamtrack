@@ -47,9 +47,8 @@ class CustomDurationField(forms.CharField):
         """
         if value.isdigit() or "." in value:  # e.g. "5" or "3.5" for 3h 30min
             converted_to_float = float(value)
-            if math.isfinite(converted_to_float) and converted_to_float >= 0:
-                frac, hours = math.modf(converted_to_float)
-                return int(hours), int(frac * 60)
+            if math.isfinite(converted_to_float * 60) and converted_to_float >= 0:
+                return divmod(round(converted_to_float * 60), 60)
 
         if ":" in value:  # hh:mm format
             hours, minutes = value.split(":")
