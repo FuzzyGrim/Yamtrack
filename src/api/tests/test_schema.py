@@ -1,4 +1,3 @@
-import json
 import tempfile
 from io import StringIO
 from pathlib import Path
@@ -48,7 +47,6 @@ class SchemaTests(SimpleTestCase):
                 for index, child in enumerate(node):
                     yield from find_one_of(child, f"{path}/{index}")
 
-        json.dumps(schema, default=str)
         self.assertEqual(list(find_one_of(schema, "")), [])
 
     def test_response_examples_match_schema(self):
