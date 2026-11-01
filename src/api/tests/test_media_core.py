@@ -220,6 +220,19 @@ class MediaCoreTests(YamtrackApiTestCase):
             ["Movie 1", "Movie 3", "Movie 2"],
         )
 
+    def test_media_type_list_sort_keeps_nulls_last(self):
+        """Db sorts should keep null values last in both directions."""
+        self._set_movie_fields("score", [5, None, 7])
+
+        self.assertEqual(
+            self._get_movie_titles("score_asc"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+        self.assertEqual(
+            self._get_movie_titles("score_desc"),
+            ["Movie 3", "Movie 1", "Movie 2"],
+        )
+
     def test_media_list_all_types_sort_by_score_keeps_nulls_last(self):
         """Mixed media sorts should be supported and keep null values last."""
         self._set_movie_fields("score", [5, 9, 7])

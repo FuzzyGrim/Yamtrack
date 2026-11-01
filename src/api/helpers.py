@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Count, F, OrderBy, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.timezone import is_naive, localdate, make_aware
 from rest_framework.exceptions import ParseError, ValidationError
@@ -100,11 +100,6 @@ MEDIA_EXISTING_SORTS = [
     "season_number",
     "episode_number",
 ]
-
-MEDIA_ASCENDING_SORTS = {
-    MediaSortChoices.TITLE.value,
-    MediaSortChoices.START_DATE.value,
-}
 
 MEDIA_MANUAL_SORTS = [
     "added",
@@ -375,7 +370,22 @@ def check_source_type(media_type, source):
     return False
 
 
-def fetch_media_list(user, media_type, status, sort_filter, search):
+def order_media_queryset(queryset, direction):
+    """Re-apply the queryset's primary ordering in the given direction."""
+    primary, *tiebreakers = queryset.query.order_by
+    if isinstance(primary, str):
+        primary = F(primary.removeprefix("-"))
+    elif isinstance(primary, OrderBy):
+        primary = primary.expression
+
+    if direction == "desc":
+        primary = primary.desc(nulls_last=True)
+    else:
+        primary = primary.asc(nulls_last=True)
+    return queryset.order_by(primary, *tiebreakers)
+
+
+def fetch_media_list(user, media_type, status, sort_filter, search, direction="asc"):
     """Return a plain list of the requested media."""
     if media_type == MediaTypes.EPISODE.value:
         qs = Episode.objects.filter(related_season__user=user).select_related("item")
@@ -385,15 +395,16 @@ def fetch_media_list(user, media_type, status, sort_filter, search):
             qs = qs.filter(item__title__icontains=search)
         return list(qs)
 
-    return list(
-        BasicMedia.objects.get_media_list(
-            user=user,
-            media_type=media_type,
-            status_filter=status,
-            sort_filter=sort_filter,
-            search=search,
-        ),
+    qs = BasicMedia.objects.get_media_list(
+        user=user,
+        media_type=media_type,
+        status_filter=status,
+        sort_filter=sort_filter,
+        search=search,
     )
+    if sort_filter:
+        qs = order_media_queryset(qs, direction)
+    return list(qs)
 
 
 def fetch_results_for_type(user, media_type, status, sort, direction, search):
@@ -409,12 +420,9 @@ def fetch_results_for_type(user, media_type, status, sort, direction, search):
         if sort in MEDIA_EXISTING_SORTS and media_type != MediaTypes.EPISODE.value
         else ""
     )
-    results = fetch_media_list(user, media_type, status, db_sort, search)
+    results = fetch_media_list(user, media_type, status, db_sort, search, direction)
 
     if db_sort:
-        db_descending = db_sort not in MEDIA_ASCENDING_SORTS
-        if db_descending != (direction == "desc"):
-            results.reverse()
         return results
 
     if sort:
