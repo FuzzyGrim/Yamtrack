@@ -1,0 +1,94 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: yamtrack\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-28 23:07+0000\n"
+"PO-Revision-Date: 2026-11-01 17:39\n"
+"Last-Translator: \n"
+"Language-Team: German\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Crowdin-Project: yamtrack\n"
+"X-Crowdin-Project-ID: 942021\n"
+"X-Crowdin-Language: de\n"
+"X-Crowdin-File: /src/locale/djangojs.pot\n"
+"X-Crowdin-File-ID: 7\n"
+
+#: static/js/copy-item.js:67
+msgid "Could not copy to clipboard. Please select the text and press Ctrl+C/Cmd+C to copy."
+msgstr "Kopieren in die Zwischenablage nicht möglich. Bitte markiere den Text und drücke zum Kopieren Strg+C/Cmd+C."
+
+#: static/js/date-range.js:6 static/js/date-range.js:23
+msgid "Last 12 Months"
+msgstr "Letzte 12 Monate"
+
+#: static/js/date-range.js:14
+msgid "Today"
+msgstr "Heute"
+
+#: static/js/date-range.js:15
+msgid "Yesterday"
+msgstr "Gestern"
+
+#: static/js/date-range.js:16
+msgid "This Week"
+msgstr "Diese Woche"
+
+#: static/js/date-range.js:17
+msgid "Last 7 Days"
+msgstr "Letzte 7 Tage"
+
+#: static/js/date-range.js:18
+msgid "This Month"
+msgstr "Dieser Monat"
+
+#: static/js/date-range.js:19
+msgid "Last 30 Days"
+msgstr "Letzte 30 Tage"
+
+#: static/js/date-range.js:20
+msgid "Last 90 Days"
+msgstr "Letzte 90 Tage"
+
+#: static/js/date-range.js:21
+msgid "This Year"
+msgstr "Dieses Jahr"
+
+#: static/js/date-range.js:22
+msgid "Last 6 Months"
+msgstr "Letzte 6 Monate"
+
+#: static/js/date-range.js:24
+msgid "All Time"
+msgstr "Gesamter Zeitraum"
+
+#: static/js/statistics-charts.js:35 static/js/statistics-charts.js:37
+#: static/js/statistics-charts.js:339
+msgid "Score"
+msgstr "Bewertung"
+
+#: static/js/statistics-charts.js:72
+msgid "Total"
+msgstr "Gesamt"
+
+#: static/js/statistics-charts.js:131
+msgid "Count"
+msgstr "Anzahl"
+
+#: static/js/statistics-charts.js:346
+msgid "Number of Items"
+msgstr "Anzahl Einträge"
+
+#: static/js/statistics-charts.js:351
+msgid "item"
+msgid_plural "items"
+msgstr[0] "Eintrag"
+msgstr[1] "Einträge"
+
+#: static/js/statistics-charts.js:354
+msgid "Average Score"
+msgstr "Durchschnittliche Bewertung"
+
