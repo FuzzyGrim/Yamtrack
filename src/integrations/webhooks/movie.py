@@ -94,6 +94,19 @@ class MovieWebhookMixin:
         )
         movie_played = self._is_played(payload)
 
+        if (
+            current_instance
+            and current_instance.status == Status.COMPLETED.value
+            and not movie_played
+        ):
+            # A completed movie only counts as rewatched once it is played to
+            # the end: starting it again, even by mistake, opens no new entry.
+            logger.debug(
+                "Ignoring unfinished playback of completed movie: %s",
+                current_instance.item,
+            )
+            return
+
         progress = 1 if movie_played else 0
         now = timezone.now().replace(second=0, microsecond=0)
 
