@@ -11,6 +11,7 @@ from unidecode import unidecode
 
 from app import config, helpers
 from app.models import MediaTypes, Sources, Status
+from events.models import SentinelDatetime
 from users.models import WATCH_PROVIDER_REGION_UNSET
 
 register = template.Library()
@@ -404,17 +405,24 @@ def natural_day(datetime, user):
     local_dt = timezone.localtime(datetime)
     datetime_date = local_dt.date()
     formatted_date = formats.date_format(local_dt, user.date_format)
-    formatted_time = formats.time_format(local_dt, user.time_format)
+    # Releases without a known time carry the sentinel time; don't show it
+    formatted_time = (
+        ""
+        if SentinelDatetime.is_sentinel_time(datetime)
+        else formats.time_format(local_dt, user.time_format)
+    )
     days = (datetime_date - today).days
 
     if days == 0:
-        return pgettext("natural day", "Today %(time)s") % {"time": formatted_time}
+        return (
+            pgettext("natural day", "Today %(time)s") % {"time": formatted_time}
+        ).strip()
     if days == 1:
-        return pgettext("natural day", "Tomorrow %(time)s") % {
-            "time": formatted_time,
-        }
+        return (
+            pgettext("natural day", "Tomorrow %(time)s") % {"time": formatted_time}
+        ).strip()
 
-    return f"{formatted_date} {formatted_time}"
+    return f"{formatted_date} {formatted_time}".strip()
 
 
 @register.filter
