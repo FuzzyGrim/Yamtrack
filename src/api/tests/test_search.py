@@ -1,7 +1,5 @@
 from unittest.mock import patch
 
-from django.urls import reverse
-
 from api.helpers import MAX_SEARCH_PROVIDER_PAGES
 
 from .base import YamtrackApiTestCase
@@ -107,10 +105,12 @@ class SearchTests(YamtrackApiTestCase):
             "total_pages": 1,
         }
 
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",))
-            + "?search=matrix&source=tmdb&limit=5&offset=2",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"search": "matrix", "source": "tmdb", "limit": "5", "offset": "2"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -137,9 +137,12 @@ class SearchTests(YamtrackApiTestCase):
             "total_pages": 1,
         }
 
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",)) + "?limit=999",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"limit": "999"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -148,9 +151,12 @@ class SearchTests(YamtrackApiTestCase):
 
     def test_search_rejects_invalid_limit(self):
         """Search endpoint should reject non-integer limit values."""
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",)) + "?limit=abc",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"limit": "abc"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -158,9 +164,12 @@ class SearchTests(YamtrackApiTestCase):
 
     def test_search_rejects_invalid_offset(self):
         """Search endpoint should reject non-integer offset values."""
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",)) + "?offset=abc",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"offset": "abc"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -168,9 +177,12 @@ class SearchTests(YamtrackApiTestCase):
 
     def test_search_rejects_non_positive_limit(self):
         """Search endpoint should reject limit <= 0."""
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",)) + "?limit=0",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"limit": "0"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -185,10 +197,12 @@ class SearchTests(YamtrackApiTestCase):
             "total_pages": 2,
         }
 
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",))
-            + "?source=manual&limit=2&offset=2",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"source": "manual", "limit": "2", "offset": "2"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -206,9 +220,12 @@ class SearchTests(YamtrackApiTestCase):
             "total_pages": 1000,
         }
 
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",)) + "?limit=10&offset=150",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"limit": "10", "offset": "150"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -216,9 +233,12 @@ class SearchTests(YamtrackApiTestCase):
 
     def test_search_rejects_invalid_source_for_media_type(self):
         """Search endpoint should reject a source invalid for the media type."""
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",)) + "?source=mal",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"source": "mal"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -245,9 +265,12 @@ class SearchTests(YamtrackApiTestCase):
             },
         ]
 
-        response = self.client.get(
-            reverse("api_search_provider", args=("movie",)) + "?limit=2&offset=2",
-            **self.auth_headers,
+        response = self.call_api(
+            "get",
+            "api_search_provider",
+            args=("movie",),
+            params={"limit": "2", "offset": "2"},
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 200)
