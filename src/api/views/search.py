@@ -11,11 +11,10 @@ from rest_framework.response import Response
 
 from api.helpers import (
     SOURCES_COMPLETE_VALID_LIST,
-    check_source_type,
-    check_valid_type,
     fetch_search_results,
     paginate_data,
     parse_limit_offset,
+    validate_media_path,
 )
 from api.schemas import (
     BadRequestResponse,
@@ -73,11 +72,9 @@ class SearchProviderView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type, complete=True):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source or None, complete=True)
+        if error is not None:
+            return error
         if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
             # Since data of seasons and episodes (title, author, description,
             # etc.) is not saved in the db but retrieved every time, it's not
@@ -85,14 +82,6 @@ class SearchProviderView(drf_views.APIView):
             return Response(
                 {
                     "detail": f"Search for {media_type} is not supported.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if source and not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
                 },
                 status=HTTP.BAD_REQUEST,
             )

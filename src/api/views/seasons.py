@@ -26,14 +26,13 @@ from api.examples import (
 )
 from api.helpers import (
     apply_validated_fields,
-    check_source_type,
-    check_valid_type,
     error_response,
     get_item_lists,
     get_lists_by_number,
     paginate_data,
     parse_limit_offset,
     require_update_fields,
+    validate_media_path,
 )
 from api.schemas import (
     BadRequestResponse,
@@ -60,7 +59,7 @@ from api.serializers import (
     PaginatedListsMinimizedResponseSerializer,
     UpdateSeasonSerializer,
 )
-from app.models import BasicMedia, Item, MediaTypes, Sources
+from app.models import BasicMedia, Item, MediaTypes
 from app.providers import services, tmdb
 from lists.models import CustomList, CustomListItem
 
@@ -90,27 +89,13 @@ class MediaSeasonDetailView(drf_views.APIView):
         """Delete a tracked season item for the authenticated user."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -161,27 +146,13 @@ class MediaSeasonDetailView(drf_views.APIView):
         """Retrieve details of a specific season for the authenticated user."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             media_metadata = services.get_media_metadata(
@@ -282,27 +253,13 @@ class MediaSeasonDetailView(drf_views.APIView):
         """Update a tracked season item."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -407,27 +364,13 @@ class MediaSeasonChangesHistoryView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         user_medias = BasicMedia.objects.filter_media(
             request.user,
@@ -493,27 +436,13 @@ class MediaSeasonEpisodesView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             media_metadata = services.get_media_metadata(
@@ -610,27 +539,13 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -698,27 +613,13 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
         consumption_id,
     ):
         """Delete a specific consumption history entry for a specific season."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -771,27 +672,13 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id, season_number, consumption_id):
         """Retrieve a specific consumption history entry for a specific season."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -854,27 +741,13 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
         consumption_id,
     ):
         """Update a specific consumption history entry for a specific season."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -949,27 +822,13 @@ class MediaSeasonListsView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         lists = get_item_lists(
             user,
@@ -1017,27 +876,13 @@ class MediaSeasonListDetailView(drf_views.APIView):
         """Remove a specific season from a specific list."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_list = (
@@ -1104,27 +949,13 @@ class MediaSeasonListDetailView(drf_views.APIView):
         """Add a specific season to a specific list."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             user_list = (
@@ -1205,33 +1036,14 @@ class MediaSeasonSyncView(drf_views.APIView):
     )
     def post(self, _, media_type, source, media_id, season_number):
         """Trigger sync of metadata from provider (non-manual sources only)."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if source == Sources.MANUAL.value:
-            return Response(
-                {"detail": "Manual items cannot be synced."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f" Cannot sync `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+            sync=True,
+        )
+        if error is not None:
+            return error
 
         cache_key = f"{source}_season_{media_id}_{season_number}"
 

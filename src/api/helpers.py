@@ -172,6 +172,45 @@ def error_response(detail, status, exc=None):
     return Response(data, status=status)
 
 
+def validate_media_path(
+    media_type,
+    source=None,
+    *,
+    child_type=None,
+    complete=False,
+    sync=False,
+):
+    """Return a 400 response if the media type or source of a request is invalid.
+
+    `child_type` is the season or episode media type of the nested routes, which
+    are only supported for TV shows. If `source` is None it is not checked, and
+    with `sync` manual sources are rejected. Return None if the request is valid.
+    """
+    if not check_valid_type(media_type, complete=complete):
+        return error_response("Unsupported media type.", HTTP.BAD_REQUEST)
+
+    if child_type is not None and media_type != MediaTypes.TV.value:
+        return error_response(
+            f"{child_type.capitalize()}s are supported only for "
+            f"'{MediaTypes.TV.value}' media type.",
+            HTTP.BAD_REQUEST,
+        )
+
+    if source is None:
+        return None
+
+    if sync and source == Sources.MANUAL.value:
+        return error_response("Manual items cannot be synced.", HTTP.BAD_REQUEST)
+
+    if not check_source_type(media_type, source):
+        action = "sync" if sync else "query"
+        return error_response(
+            f"Cannot {action} `{source}` for `{media_type}` media type",
+            HTTP.BAD_REQUEST,
+        )
+    return None
+
+
 def require_update_fields(validated_data):
     """Raise a ParseError if the request has no updatable fields.
 

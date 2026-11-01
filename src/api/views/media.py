@@ -38,8 +38,6 @@ from api.helpers import (
     InvalidSortError,
     apply_validated_fields,
     build_lists_by_item_id,
-    check_source_type,
-    check_valid_type,
     error_response,
     fetch_results_all_types,
     fetch_results_for_type,
@@ -51,6 +49,7 @@ from api.helpers import (
     parse_sort_filter,
     parse_status_param,
     require_update_fields,
+    validate_media_path,
 )
 from api.schemas import (
     BadRequestResponse,
@@ -68,6 +67,7 @@ from api.schemas import (
     TooManyRequestsResponse,
 )
 from api.serializers import (
+    UPDATE_MEDIA_SERIALIZERS,
     ApiMessageResponseSerializer,
     ChangesHistoryEntrySerializer,
     CompleteMediaSerializer,
@@ -81,14 +81,6 @@ from api.serializers import (
     PaginatedMediaSerializer,
     RelatedResponseSerializer,
     TrackMediaSerializer,
-    UpdateAnimeSerializer,
-    UpdateBoardGameSerializer,
-    UpdateBookSerializer,
-    UpdateComicSerializer,
-    UpdateGameSerializer,
-    UpdateMangaSerializer,
-    UpdateMovieSerializer,
-    UpdateTVSerializer,
 )
 from app.forms import ManualItemForm, get_form_class
 from app.models import BasicMedia, Item, MediaTypes, Sources
@@ -169,11 +161,10 @@ class MediaListView(drf_views.APIView):
 
         sort, sort_order = parse_sort_filter(sort_filter)
 
-        if media_type and not check_valid_type(media_type, complete=True):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
+        if media_type:
+            error = validate_media_path(media_type, complete=True)
+            if error is not None:
+                return error
 
         try:
             if media_type:
@@ -274,11 +265,9 @@ class MediaTypeListView(drf_views.APIView):
 
         sort, sort_order = parse_sort_filter(sort_filter)
 
-        if not check_valid_type(media_type, complete=True):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, complete=True)
+        if error is not None:
+            return error
 
         try:
             results = fetch_results_for_type(
@@ -328,11 +317,9 @@ class MediaTypeListView(drf_views.APIView):
     )
     def post(self, request, media_type):
         """Track a new media item of a specific media type."""
-        if not check_valid_type(media_type, complete=True):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, complete=True)
+        if error is not None:
+            return error
 
         if not request.data:
             return Response(
@@ -411,13 +398,9 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source, complete=True)
+        if error is not None:
+            return error
 
         if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
             return Response(
@@ -516,19 +499,9 @@ class MediaDetailView(drf_views.APIView):
         """Delete a tracked media item and all its consumptions."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -577,19 +550,9 @@ class MediaDetailView(drf_views.APIView):
         """Retrieve details of a specific media for the authenticated user."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             media_metadata = services.get_media_metadata(media_type, media_id, source)
@@ -668,16 +631,7 @@ class MediaDetailView(drf_views.APIView):
         ],
         request=PolymorphicProxySerializer(
             component_name="HistoryUpdateRequest",
-            serializers=[
-                UpdateAnimeSerializer,
-                UpdateBoardGameSerializer,
-                UpdateBookSerializer,
-                UpdateComicSerializer,
-                UpdateGameSerializer,
-                UpdateMangaSerializer,
-                UpdateMovieSerializer,
-                UpdateTVSerializer,
-            ],
+            serializers=list(UPDATE_MEDIA_SERIALIZERS.values()),
             resource_type_field_name=None,
         ),
         responses={
@@ -694,19 +648,9 @@ class MediaDetailView(drf_views.APIView):
         """Update a tracked media item."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -728,31 +672,14 @@ class MediaDetailView(drf_views.APIView):
 
         media = user_medias[0]
 
-        serializer = None
-        match media_type:
-            case MediaTypes.ANIME.value:
-                serializer = UpdateAnimeSerializer(data=request.data, partial=True)
-            case MediaTypes.BOARDGAME.value:
-                serializer = UpdateBoardGameSerializer(data=request.data, partial=True)
-            case MediaTypes.BOOK.value:
-                serializer = UpdateBookSerializer(data=request.data, partial=True)
-            case MediaTypes.COMIC.value:
-                serializer = UpdateComicSerializer(data=request.data, partial=True)
-            case MediaTypes.GAME.value:
-                serializer = UpdateGameSerializer(data=request.data, partial=True)
-            case MediaTypes.MANGA.value:
-                serializer = UpdateMangaSerializer(data=request.data, partial=True)
-            case MediaTypes.MOVIE.value:
-                serializer = UpdateMovieSerializer(data=request.data, partial=True)
-            case MediaTypes.TV.value:
-                serializer = UpdateTVSerializer(data=request.data, partial=True)
-
-        if serializer is None:
+        serializer_class = UPDATE_MEDIA_SERIALIZERS.get(media_type)
+        if serializer_class is None:
             return Response(
                 {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
 
+        serializer = serializer_class(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         require_update_fields(data)
@@ -826,19 +753,9 @@ class MediaChangesHistoryView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         user_medias = BasicMedia.objects.filter_media(
             request.user,
@@ -899,11 +816,9 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
     )
     def get(self, request, media_type, history_id):
         """Retrieve the changes history record for a specific media."""
-        if not check_valid_type(media_type, complete=True):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, complete=True)
+        if error is not None:
+            return error
 
         try:
             record = get_changes_history_entry(media_type, history_id, request.user)
@@ -940,11 +855,9 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
     )
     def delete(self, request, media_type, history_id):
         """Delete the changes history record for a specific media."""
-        if not check_valid_type(media_type, complete=True):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, complete=True)
+        if error is not None:
+            return error
 
         try:
             delete_changes_history_entry(media_type, history_id, request.user)
@@ -989,19 +902,9 @@ class MediaConsumptionHistoryView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -1065,19 +968,9 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
     )
     def delete(self, request, media_type, source, media_id, consumption_id):
         """Delete a specific consumption history entry for a specific media."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -1128,19 +1021,9 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id, consumption_id):
         """Retrieve a specific consumption history entry for a specific media."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -1182,16 +1065,7 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
         ],
         request=PolymorphicProxySerializer(
             component_name="HistoryUpdateRequest",
-            serializers=[
-                UpdateAnimeSerializer,
-                UpdateBoardGameSerializer,
-                UpdateBookSerializer,
-                UpdateComicSerializer,
-                UpdateGameSerializer,
-                UpdateMangaSerializer,
-                UpdateMovieSerializer,
-                UpdateTVSerializer,
-            ],
+            serializers=list(UPDATE_MEDIA_SERIALIZERS.values()),
             resource_type_field_name=None,
         ),
         responses={
@@ -1206,19 +1080,9 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
     )
     def patch(self, request, media_type, source, media_id, consumption_id):
         """Update a specific consumption history entry for a specific media."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media(
@@ -1239,31 +1103,14 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        serializer = None
-        match media_type:
-            case MediaTypes.ANIME.value:
-                serializer = UpdateAnimeSerializer(data=request.data, partial=True)
-            case MediaTypes.BOARDGAME.value:
-                serializer = UpdateBoardGameSerializer(data=request.data, partial=True)
-            case MediaTypes.BOOK.value:
-                serializer = UpdateBookSerializer(data=request.data, partial=True)
-            case MediaTypes.COMIC.value:
-                serializer = UpdateComicSerializer(data=request.data, partial=True)
-            case MediaTypes.GAME.value:
-                serializer = UpdateGameSerializer(data=request.data, partial=True)
-            case MediaTypes.MANGA.value:
-                serializer = UpdateMangaSerializer(data=request.data, partial=True)
-            case MediaTypes.MOVIE.value:
-                serializer = UpdateMovieSerializer(data=request.data, partial=True)
-            case MediaTypes.TV.value:
-                serializer = UpdateTVSerializer(data=request.data, partial=True)
-
-        if serializer is None:
+        serializer_class = UPDATE_MEDIA_SERIALIZERS.get(media_type)
+        if serializer_class is None:
             return Response(
                 {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
 
+        serializer = serializer_class(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         require_update_fields(data)
@@ -1317,19 +1164,9 @@ class MediaListsView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
         lists = get_item_lists(user, media_id, source, media_type)
         paginated_data = paginate_data(request, lists, limit, offset)
 
@@ -1369,19 +1206,9 @@ class MediaListDetailView(drf_views.APIView):
         """Remove a specific media from a specific list."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_list = (
@@ -1446,19 +1273,9 @@ class MediaListDetailView(drf_views.APIView):
         """Add a specific media to a specific list."""
         user = request.user
 
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             user_list = (
@@ -1529,19 +1346,9 @@ class MediaRecommendationsView(drf_views.APIView):
     )
     def get(self, _, media_type, source, media_id):
         """Retrieve recommendations for a specific media."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source)
+        if error is not None:
+            return error
 
         try:
             media_metadata = services.get_media_metadata(media_type, media_id, source)
@@ -1595,27 +1402,13 @@ class MediaSeasonsView(drf_views.APIView):
         if err:
             return err
 
-        if not check_valid_type(media_type) or media_type != MediaTypes.TV.value:
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if media_type != MediaTypes.TV.value:
-            return Response(
-                {
-                    "detail": "Seasons are supported only for 'tv' media type.",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot query `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
 
         try:
             media_metadata = services.get_media_metadata(media_type, media_id, source)
@@ -1747,25 +1540,9 @@ class MediaSyncView(drf_views.APIView):
     )
     def post(self, _, media_type, source, media_id):
         """Trigger sync of metadata from provider (non-manual sources only)."""
-        if not check_valid_type(media_type):
-            return Response(
-                {"detail": "Unsupported media type."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if source == Sources.MANUAL.value:
-            return Response(
-                {"detail": "Manual items cannot be synced."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        if not check_source_type(media_type, source):
-            return Response(
-                {
-                    "detail": f"Cannot sync `{source}` for `{media_type}` media type",
-                },
-                status=HTTP.BAD_REQUEST,
-            )
+        error = validate_media_path(media_type, source, sync=True)
+        if error is not None:
+            return error
 
         cache_key = f"{source}_{media_type}_{media_id}"
 

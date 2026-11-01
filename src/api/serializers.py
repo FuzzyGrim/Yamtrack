@@ -1355,6 +1355,18 @@ class UpdateTVSerializer(BaseUpdateMediaSerializer):
     end_date = None
 
 
+UPDATE_MEDIA_SERIALIZERS = {
+    MediaTypes.ANIME.value: UpdateAnimeSerializer,
+    MediaTypes.BOARDGAME.value: UpdateBoardGameSerializer,
+    MediaTypes.BOOK.value: UpdateBookSerializer,
+    MediaTypes.COMIC.value: UpdateComicSerializer,
+    MediaTypes.GAME.value: UpdateGameSerializer,
+    MediaTypes.MANGA.value: UpdateMangaSerializer,
+    MediaTypes.MOVIE.value: UpdateMovieSerializer,
+    MediaTypes.TV.value: UpdateTVSerializer,
+}
+
+
 @extend_schema_field(OpenApiTypes.INT)
 class UserManualParentField(serializers.PrimaryKeyRelatedField):
     """Primary key of a manual media of the request user, used as parent."""
