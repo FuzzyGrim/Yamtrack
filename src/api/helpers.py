@@ -212,12 +212,12 @@ def build_item_id(item):
     media_type = item.media_type
     children = ""
 
-    if item.media_type == "season":
+    if item.media_type == MediaTypes.SEASON.value:
         children = f"/{item.season_number}"
-        media_type = "tv"
-    elif item.media_type == "episode":
+        media_type = MediaTypes.TV.value
+    elif item.media_type == MediaTypes.EPISODE.value:
         children = f"/{item.season_number}/{item.episode_number}"
-        media_type = "tv"
+        media_type = MediaTypes.TV.value
 
     return f"{media_type}/{item.source}/{item.media_id}{children}"
 
@@ -314,10 +314,11 @@ def build_parent_id(item):
     """Build the parent_id string for seasons and episodes."""
     if not item:
         return None
-    if item.media_type == "season":
-        return f"tv/{item.source}/{item.media_id}"
-    if item.media_type == "episode" and hasattr(item, "season_number"):
-        return f"tv/{item.source}/{item.media_id}/{item.season_number}"
+    tv = MediaTypes.TV.value
+    if item.media_type == MediaTypes.SEASON.value:
+        return f"{tv}/{item.source}/{item.media_id}"
+    if item.media_type == MediaTypes.EPISODE.value and hasattr(item, "season_number"):
+        return f"{tv}/{item.source}/{item.media_id}/{item.season_number}"
     return None
 
 

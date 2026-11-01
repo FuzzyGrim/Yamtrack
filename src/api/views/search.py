@@ -28,7 +28,7 @@ from api.serializers import (
     SearchMediaSerializer,
     SearchResponseSerializer,
 )
-from app.models import Sources
+from app.models import MediaTypes, Sources
 
 
 # /api/v1/search/[media_type]/
@@ -78,7 +78,7 @@ class SearchProviderView(drf_views.APIView):
                 {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
-        if media_type in ("season", "episode"):
+        if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
             # Since data of seasons and episodes (title, author, description,
             # etc.) is not saved in the db but retrieved every time, it's not
             # possible to search for them

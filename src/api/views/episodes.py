@@ -120,7 +120,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
             user_medias = BasicMedia.objects.filter_media(
                 user,
                 media_id,
-                "episode",
+                MediaTypes.EPISODE.value,
                 source,
                 season_number=season_number,
                 episode_number=episode_number,
@@ -194,7 +194,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
 
         try:
             media_metadata = services.get_media_metadata(
-                "season",
+                MediaTypes.SEASON.value,
                 media_id,
                 source,
                 [season_number],
@@ -231,7 +231,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
             user_medias = BasicMedia.objects.filter_media_prefetch(
                 user,
                 media_id,
-                "episode",
+                MediaTypes.EPISODE.value,
                 source,
                 season_number=season_number,
                 episode_number=episode_number,
@@ -249,7 +249,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
             user,
             media_id,
             source,
-            "episode",
+            MediaTypes.EPISODE.value,
             season_number=season_number,
             episode_number=episode_number,
         )
@@ -326,7 +326,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
             user_medias = BasicMedia.objects.filter_media(
                 user,
                 media_id,
-                "episode",
+                MediaTypes.EPISODE.value,
                 source,
                 season_number=season_number,
                 episode_number=episode_number,
@@ -355,7 +355,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
 
         try:
             media_metadata = services.get_media_metadata(
-                "season",
+                MediaTypes.SEASON.value,
                 media_id,
                 source,
                 [season_number],
@@ -398,7 +398,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
             user,
             media_id,
             source,
-            "episode",
+            MediaTypes.EPISODE.value,
             season_number=season_number,
             episode_number=episode_number,
         )
@@ -473,7 +473,7 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
         user_medias = BasicMedia.objects.filter_media(
             request.user,
             media_id,
-            "episode",
+            MediaTypes.EPISODE.value,
             source,
             season_number=season_number,
             episode_number=episode_number,
@@ -561,7 +561,7 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
             user_medias = BasicMedia.objects.filter_media(
                 request.user,
                 media_id,
-                "episode",
+                MediaTypes.EPISODE.value,
                 source,
                 season_number=season_number,
                 episode_number=episode_number,
@@ -652,7 +652,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
             user_medias = BasicMedia.objects.filter_media(
                 request.user,
                 media_id,
-                "episode",
+                MediaTypes.EPISODE.value,
                 source,
                 season_number=season_number,
                 episode_number=episode_number,
@@ -736,7 +736,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
             user_medias = BasicMedia.objects.filter_media(
                 request.user,
                 media_id,
-                "episode",
+                MediaTypes.EPISODE.value,
                 source,
                 season_number=season_number,
                 episode_number=episode_number,
@@ -822,7 +822,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
             user_medias = BasicMedia.objects.filter_media(
                 request.user,
                 media_id,
-                "episode",
+                MediaTypes.EPISODE.value,
                 source,
                 season_number=season_number,
                 episode_number=episode_number,
@@ -921,7 +921,7 @@ class MediaEpisodeListsView(drf_views.APIView):
             user,
             media_id,
             source,
-            "episode",
+            MediaTypes.EPISODE.value,
             season_number=season_number,
             episode_number=episode_number,
         )
@@ -1116,7 +1116,7 @@ class MediaEpisodeListDetailView(drf_views.APIView):
             item = Item.objects.get(
                 media_id=media_id,
                 source=source,
-                media_type="episode",
+                media_type=MediaTypes.EPISODE.value,
                 season_number=season_number,
                 episode_number=episode_number,
             )
