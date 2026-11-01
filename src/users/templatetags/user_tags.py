@@ -52,6 +52,10 @@ SOURCES_CONFIG = {
         "name": "GoodReads",
         "logo": static("img/logo-goodreads.svg"),
     },
+    "calibre-web-nextgen": {
+        "name": "Calibre-Web-NextGen",
+        "logo": static("img/calibre-web-nextgen-logo.png"),
+    },
 }
 
 
