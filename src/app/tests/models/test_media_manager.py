@@ -949,3 +949,70 @@ class MediaManagerTests(TestCase):
         ).first()
 
         self.assertIsNone(non_existent)
+
+    def test_filter_media_episodes_by_season_and_episode_number(self):
+        """Episode queries should match the given season and episode numbers."""
+        manager = MediaManager()
+        season2 = Season.objects.create(
+            item=Item.objects.create(
+                media_id="1668",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
+                title="Friends",
+                image="http://example.com/image.jpg",
+                season_number=2,
+            ),
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        for i in range(1, 3):
+            Episode.objects.create(
+                item=Item.objects.create(
+                    media_id="1668",
+                    source=Sources.TMDB.value,
+                    media_type=MediaTypes.EPISODE.value,
+                    title=f"Friends S2E{i}",
+                    image="http://example.com/image.jpg",
+                    season_number=2,
+                    episode_number=i,
+                ),
+                related_season=season2,
+                end_date=datetime(2023, 7, i, 0, 0, tzinfo=UTC),
+            )
+
+        def episode_numbers(**numbers):
+            episodes = manager.filter_media(
+                user=self.user,
+                media_id="1668",
+                media_type=MediaTypes.EPISODE.value,
+                source=Sources.TMDB.value,
+                **numbers,
+            )
+            return sorted(
+                (episode.item.season_number, episode.item.episode_number)
+                for episode in episodes
+            )
+
+        # Only the season number: every tracked episode of that season
+        self.assertEqual(
+            episode_numbers(season_number=1),
+            [(1, 1), (1, 2), (1, 3)],
+        )
+        self.assertEqual(episode_numbers(season_number=2), [(2, 1), (2, 2)])
+
+        # Season and episode number: only that episode
+        self.assertEqual(
+            episode_numbers(season_number=1, episode_number=2),
+            [(1, 2)],
+        )
+        self.assertEqual(
+            episode_numbers(season_number=2, episode_number=2),
+            [(2, 2)],
+        )
+        self.assertEqual(episode_numbers(season_number=1, episode_number=4), [])
+
+        # Without numbers every tracked episode of the show is matched
+        self.assertEqual(
+            episode_numbers(),
+            [(1, 1), (1, 2), (1, 3), (2, 1), (2, 2)],
+        )

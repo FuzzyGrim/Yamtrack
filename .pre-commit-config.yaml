@@ -41,3 +41,9 @@ repos:
         language: system
         types: [html]
         require_serial: true
+      - id: generate-openapi
+        name: generate-openapi
+        entry: uv run python src/manage.py generate_openapi --validate
+        language: system
+        pass_filenames: false
+        always_run: true

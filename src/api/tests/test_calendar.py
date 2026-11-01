@@ -103,11 +103,7 @@ class CalendarTests(YamtrackApiTestCase):
             "get",
             "api_calendar",
             headers=self.auth_headers,
-            params={
-                "start_date": (
-                    future_event_date - timezone.timedelta(days=5)
-                ).isoformat()
-            },
+            params={"start_date": future_event_date.isoformat()},
         )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -135,7 +131,7 @@ class CalendarTests(YamtrackApiTestCase):
             payload = response.json()
             self.assertIn("detail", payload)
 
-    @patch("api.views.tasks.reload_calendar.delay")
+    @patch("events.tasks.reload_calendar.delay")
     def test_calendar_update_post(self, mock_delay):
         """Calendar update should queue async task and return 202."""
         response = self.call_api(

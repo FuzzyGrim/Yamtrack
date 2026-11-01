@@ -17,6 +17,10 @@ nav = [
   { "Media Imports" = "media-imports.md" },
   { "Social Auth" = "social-auth.md" },
   { "Administration" = "administration.md" },
+  { "API" = [
+    "api/api.md",
+    "api/endpoints.md"
+  ]},
 ]
 
 [project.theme]
@@ -90,3 +94,6 @@ base_path = ["."]
 check_paths = true
 
 [project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.pymdownx.tasklist]
+custom_checkbox = true
