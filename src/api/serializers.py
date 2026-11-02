@@ -2,6 +2,7 @@ from datetime import UTC
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -73,6 +74,20 @@ class UTCDateTimeField(serializers.DateTimeField):
         """Initialize the field with the UTC timezone."""
         kwargs.setdefault("default_timezone", UTC)
         super().__init__(**kwargs)
+
+    def to_internal_value(self, value):
+        """Parse datetimes in the server timezone, then normalize to UTC."""
+        field_timezone = getattr(self, "timezone", None)
+        has_field_timezone = hasattr(self, "timezone")
+        self.timezone = timezone.get_current_timezone()
+        try:
+            value = super().to_internal_value(value)
+        finally:
+            if has_field_timezone:
+                self.timezone = field_timezone
+            else:
+                del self.timezone
+        return value.astimezone(field_timezone) if field_timezone is not None else value
 
 
 class UTCModelSerializer(serializers.ModelSerializer):
