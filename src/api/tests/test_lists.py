@@ -29,6 +29,7 @@ class ListsTests(YamtrackApiTestCase):
         check_pagination_structure(self, payload["pagination"])
         for lst in payload["results"]:
             check_complete_lists_structure(self, lst)
+            self.assertNotIn("items", lst)
 
     def test_lists_get_search_filter_returns_filtered_results(self):
         """Lists endpoint should filter by search query."""
@@ -104,6 +105,7 @@ class ListsTests(YamtrackApiTestCase):
         payload = response.json()
         self.assertEqual(payload["name"], "New List")
         self.assertEqual(payload["description"], "Test list")
+        self.assertNotIn("items", payload)
         self.assertTrue(
             CustomList.objects.filter(name="New List", owner=self.user1).exists()
         )

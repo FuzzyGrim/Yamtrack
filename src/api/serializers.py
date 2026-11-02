@@ -1146,7 +1146,7 @@ class ListSerializer(serializers.Serializer):
     collaborators = UserSerializer(many=True)
     items_count = serializers.SerializerMethodField()
     latest_update = serializers.SerializerMethodField()
-    items = PaginatedMediaResponseSerializer(source="paginated_items", required=False)
+    items = serializers.SerializerMethodField()
 
     def get_items_count(self, obj) -> int:
         """Return the number of items, annotated or counted."""
@@ -1163,15 +1163,15 @@ class ListSerializer(serializers.Serializer):
             latest_update = CustomListItem.objects.get_last_added_date(obj)
         return UTCDateTimeField().to_representation(latest_update)
 
-    def to_representation(self, instance):
-        """Serialize a list, with its items if they are in the context."""
-        data = super().to_representation(instance)
+    @extend_schema_field(PaginatedMediaResponseSerializer)
+    def get_items(self, _obj):
+        """Return the paginated items supplied in the serializer context."""
         items = self.context.get("paginated_items")
-        if items is None or not self.context.get("include_items", True):
-            return data
+        if items is None:
+            return None
 
         if isinstance(items, dict) and "results" in items:
-            items = {
+            return {
                 "pagination": items.get("pagination", {}),
                 "results": MixedMediaSerializer(
                     items.get("results", []),
@@ -1179,15 +1179,20 @@ class ListSerializer(serializers.Serializer):
                     context={**self.context, "serialize_items_as_media": True},
                 ).data,
             }
-        data["items"] = items
-        return data
+        return items
+
+
+class ListSummarySerializer(ListSerializer):
+    """Serializer for list responses that do not include paginated items."""
+
+    items = None
 
 
 class PaginatedListsResponseSerializer(serializers.Serializer):
     """Paginated custom lists serializer."""
 
     pagination = PaginationSerializer()
-    results = ListSerializer(many=True, context={"include_items": False})
+    results = ListSummarySerializer(many=True)
 
 
 class SearchMediaSerializer(serializers.Serializer):

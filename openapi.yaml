@@ -598,7 +598,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/List'
+                $ref: '#/components/schemas/ListSummary'
               examples:
                 CreatedList:
                   value:
@@ -612,38 +612,6 @@ paths:
                     collaborators: []
                     items_count: 1
                     latest_update: '2026-03-23T21:17:32.705709Z'
-                    items:
-                      pagination:
-                        total: 1
-                        limit: 20
-                        offset: 0
-                        next: null
-                        previous: null
-                      results:
-                      - id: 2902
-                        consumption_id: 1
-                        item:
-                          media_id: '1'
-                          source: manual
-                          media_type: comic
-                          title: Comic 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
-                          season_number: null
-                          episode_number: null
-                        item_id: comic/manual/1
-                        parent_id: null
-                        tracked: true
-                        created_at: '2026-03-23T21:16:16.978287Z'
-                        score: null
-                        status: 3
-                        progress: 0
-                        progressed_at: '2026-03-23T21:16:16.965721Z'
-                        start_date: null
-                        end_date: null
-                        notes: ''
-                        lists:
-                        - list_id: 1
-                          list_item_id: 16
                   summary: Created list
           description: Successfully created
         '400':
@@ -893,9 +861,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/List'
+                $ref: '#/components/schemas/ListSummary'
               examples:
-                List:
+                UpdatedList:
                   value:
                     id: 1
                     name: Favorites
@@ -907,15 +875,7 @@ paths:
                     collaborators: []
                     items_count: 1
                     latest_update: '2026-03-23T21:17:32.705709Z'
-                    items:
-                      pagination:
-                        total: 0
-                        limit: 20
-                        offset: 0
-                        next: null
-                        previous: null
-                      results: []
-                  summary: List
+                  summary: Updated list
           description: Successful response
         '400':
           content:
@@ -8544,12 +8504,15 @@ components:
           nullable: true
           readOnly: true
         items:
-          $ref: '#/components/schemas/PaginatedMediaResponse'
+          allOf:
+          - $ref: '#/components/schemas/PaginatedMediaResponse'
+          readOnly: true
       required:
       - collaborators
       - description
       - id
       - image
+      - items
       - items_count
       - latest_update
       - name
@@ -8582,6 +8545,44 @@ components:
       required:
       - list_id
       - list_item_id
+    ListSummary:
+      type: object
+      description: Serializer for list responses that do not include paginated items.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        owner:
+          $ref: '#/components/schemas/User'
+        collaborators:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        items_count:
+          type: integer
+          description: Return the number of items, annotated or counted.
+          readOnly: true
+        latest_update:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+      required:
+      - collaborators
+      - description
+      - id
+      - image
+      - items_count
+      - latest_update
+      - name
+      - owner
     Media:
       type: object
       description: Serializer used for media items.
@@ -8809,7 +8810,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/List'
+            $ref: '#/components/schemas/ListSummary'
       required:
       - pagination
       - results

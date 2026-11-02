@@ -15,6 +15,7 @@ from api.examples import (
     CREATED_LIST_EXAMPLE,
     LIST_EXAMPLE,
     LIST_ITEMS_EXAMPLE,
+    LIST_PATCH_EXAMPLE,
     LISTS_EXAMPLE,
     SEASON_DETAILS_EXAMPLE,
 )
@@ -44,6 +45,7 @@ from api.serializers import (
     CompleteMediaSerializer,
     ListCreateRequestSerializer,
     ListSerializer,
+    ListSummarySerializer,
     ListUpdateRequestSerializer,
     MixedMediaSerializer,
     PaginatedListsResponseSerializer,
@@ -105,10 +107,9 @@ class ListsView(drf_views.APIView):
             )
 
         paginated_data = paginate_data(request, sorted_lists, limit, offset)
-        paginated_data["results"] = ListSerializer(
+        paginated_data["results"] = ListSummarySerializer(
             paginated_data["results"],
             many=True,
-            context={"include_items": False},
         ).data
         return Response(paginated_data, status=HTTP.OK)
 
@@ -118,7 +119,7 @@ class ListsView(drf_views.APIView):
         request=ListCreateRequestSerializer,
         responses={
             201: OpenApiResponse(
-                ListSerializer,
+                ListSummarySerializer,
                 description="Successfully created",
                 examples=[CREATED_LIST_EXAMPLE],
             ),
@@ -143,7 +144,7 @@ class ListsView(drf_views.APIView):
             )
             custom_list.collaborators.set(collaborators)
 
-        serialized_data = ListSerializer(custom_list).data
+        serialized_data = ListSummarySerializer(custom_list).data
         return Response(serialized_data, status=HTTP.CREATED)
 
 
@@ -301,9 +302,9 @@ class ListDetailView(drf_views.APIView):
         request=ListUpdateRequestSerializer,
         responses={
             200: OpenApiResponse(
-                ListSerializer,
+                ListSummarySerializer,
                 description="Successful response",
-                examples=[LIST_EXAMPLE],
+                examples=[LIST_PATCH_EXAMPLE],
             ),
             400: BadRequestResponse,
             403: ForbiddenResponse,
@@ -359,7 +360,7 @@ class ListDetailView(drf_views.APIView):
             if collaborators is not None:
                 custom_list.collaborators.set(collaborators)
 
-        serialized_data = ListSerializer(custom_list).data
+        serialized_data = ListSummarySerializer(custom_list).data
         return Response(serialized_data, status=HTTP.OK)
 
 

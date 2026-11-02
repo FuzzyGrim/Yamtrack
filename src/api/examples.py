@@ -179,9 +179,11 @@ LISTS_EXAMPLE = _example("Lists", _page([CUSTOM_LIST]))
 
 LIST_EXAMPLE = _example("List", {**CUSTOM_LIST, "items": _page([])})
 
+LIST_PATCH_EXAMPLE = _example("Updated list", CUSTOM_LIST)
+
 CREATED_LIST_EXAMPLE = _example(
     "Created list",
-    {**CUSTOM_LIST, "items": _page([COMIC_MEDIA])},
+    CUSTOM_LIST,
 )
 
 LIST_ITEMS_EXAMPLE = _example("List items", _page([COMIC_MEDIA]))
