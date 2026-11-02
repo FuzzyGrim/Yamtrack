@@ -591,7 +591,7 @@ class EpisodeSerializer(MediaSerializer):
                 title=metadata.get("name") or "",
                 image="https://image.tmdb.org/t/p/original" + still_path
                 if still_path
-                else None,
+                else settings.IMG_NONE,
                 season_number=metadata.get("season_number"),
                 episode_number=episode_number,
             )
