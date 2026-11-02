@@ -679,7 +679,7 @@ class MediaDetailView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        serializer = serializer_class(data=request.data, partial=True)
+        serializer = serializer_class(data=request.data, instance=media, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         require_update_fields(data)
@@ -1110,7 +1110,11 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        serializer = serializer_class(data=request.data, partial=True)
+        serializer = serializer_class(
+            data=request.data,
+            instance=consumption,
+            partial=True,
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         require_update_fields(data)

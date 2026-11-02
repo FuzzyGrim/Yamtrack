@@ -1104,6 +1104,25 @@ class MediaCoreTests(YamtrackApiTestCase):
         movie.refresh_from_db()
         self.assertIsNone(movie.score)
 
+    def test_media_detail_patch_rejects_end_date_before_stored_start_date(self):
+        """Media PATCH should validate end_date against the stored start_date."""
+        movie = self.movie_medias[0]
+        movie.start_date = datetime(2024, 6, 1, tzinfo=UTC)
+        movie.save(update_fields=["start_date"])
+
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"end_date": "2024-01-01"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("end_date", response.json()["errors"])
+        movie.refresh_from_db()
+        self.assertIsNone(movie.end_date)
+
     def test_media_detail_patch_null_on_non_nullable_field_returns_bad_request(self):
         """Media PATCH should reject a null value for a non-nullable field."""
         movie = self.movie_medias[0]
@@ -1395,6 +1414,30 @@ class MediaCoreTests(YamtrackApiTestCase):
         payload = response.json()
         check_consumption_structure(self, payload)
         self.assertEqual(payload["notes"], "updated-from-test")
+
+    def test_media_consumption_patch_rejects_end_date_before_stored_start_date(self):
+        """History PATCH should validate end_date against the stored start_date."""
+        movie = self.movie_medias[0]
+        movie.start_date = datetime(2024, 6, 1, tzinfo=UTC)
+        movie.save(update_fields=["start_date"])
+
+        response = self.call_api(
+            "patch",
+            "api_media_consumption_entry_detail",
+            args=(
+                MediaTypes.MOVIE.value,
+                movie.item.source,
+                movie.item.media_id,
+                movie.id,
+            ),
+            payload={"end_date": "2024-01-01"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("end_date", response.json()["errors"])
+        movie.refresh_from_db()
+        self.assertIsNone(movie.end_date)
 
     def test_media_consumption_entry_detail_patch_accepts_datetime_strings(self):
         """Entry-detail PATCH should accept ISO datetime values for date fields."""

@@ -282,7 +282,11 @@ class MediaSeasonDetailView(drf_views.APIView):
 
         media = user_medias[0]
 
-        serializer = UpdateSeasonSerializer(data=request.data, partial=True)
+        serializer = UpdateSeasonSerializer(
+            data=request.data,
+            instance=media,
+            partial=True,
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         require_update_fields(data)
@@ -769,7 +773,11 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        serializer = UpdateSeasonSerializer(data=request.data, partial=True)
+        serializer = UpdateSeasonSerializer(
+            data=request.data,
+            instance=consumption,
+            partial=True,
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         require_update_fields(data)
