@@ -7721,54 +7721,6 @@ components:
           type: string
       required:
       - detail
-    BoardGameDetails:
-      type: object
-      description: Schema serializer for board game details.
-      properties:
-        year:
-          type: integer
-          nullable: true
-        players:
-          type: array
-          items:
-            type: integer
-        playtime:
-          type: integer
-          nullable: true
-        min_age:
-          type: integer
-          nullable: true
-        designers:
-          type: array
-          items:
-            type: string
-        publishers:
-          type: array
-          items:
-            type: string
-    BookDetails:
-      type: object
-      description: Schema serializer for book details.
-      properties:
-        format:
-          type: string
-          nullable: true
-        number_of_pages:
-          type: integer
-          nullable: true
-        publish_date:
-          type: string
-          format: date
-          nullable: true
-        author:
-          type: string
-          nullable: true
-        publisher:
-          type: string
-          nullable: true
-        isbn:
-          type: string
-          nullable: true
     ChangesHistoryChange:
       type: object
       description: Serializer for a single change in a history entry.
@@ -7802,45 +7754,6 @@ components:
           readOnly: true
       required:
       - changes
-    ComicDetails:
-      type: object
-      description: Schema serializer for comic details.
-      properties:
-        start_date:
-          type: string
-          nullable: true
-        publisher:
-          type: string
-          nullable: true
-        issues_count:
-          type: integer
-          nullable: true
-        last_issue_name:
-          type: string
-          nullable: true
-        last_issue_number:
-          type: integer
-          nullable: true
-        people:
-          type: array
-          items:
-            type: string
-        last_updated:
-          type: string
-          format: date
-          nullable: true
-        last_issue_id:
-          type: integer
-          nullable: true
-    ComicRelated:
-      type: object
-      description: Schema serializer for comic related data.
-      properties:
-        from_the_same_publisher:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
     CompleteEpisode:
       type: object
       description: Serializer that builds a CompleteEpisode response.
@@ -7890,6 +7803,9 @@ components:
           nullable: true
         details:
           $ref: '#/components/schemas/EpisodeDetails'
+        related:
+          type: object
+          additionalProperties: {}
         item_id:
           type: string
         parent_id:
@@ -7919,6 +7835,7 @@ components:
       - max_progress
       - media_id
       - parent_id
+      - related
       - score
       - score_count
       - source_url
@@ -7977,12 +7894,14 @@ components:
           type: integer
           nullable: true
         details:
-          allOf:
-          - $ref: '#/components/schemas/CompleteMediaDetails'
+          type: object
+          additionalProperties: {}
+          description: Return the raw provider details payload.
           readOnly: true
         related:
-          allOf:
-          - $ref: '#/components/schemas/CompleteMediaRelated'
+          type: object
+          additionalProperties: {}
+          description: Return the raw provider related payload.
           readOnly: true
         item_id:
           type: string
@@ -8020,21 +7939,6 @@ components:
       - synopsis
       - title
       - tracked
-    CompleteMediaDetails:
-      anyOf:
-      - $ref: '#/components/schemas/BoardGameDetails'
-      - $ref: '#/components/schemas/BookDetails'
-      - $ref: '#/components/schemas/ComicDetails'
-      - $ref: '#/components/schemas/GameDetails'
-      - $ref: '#/components/schemas/MovieDetails'
-      - $ref: '#/components/schemas/SeasonDetails'
-      - $ref: '#/components/schemas/TVDetails'
-    CompleteMediaRelated:
-      anyOf:
-      - $ref: '#/components/schemas/ComicRelated'
-      - $ref: '#/components/schemas/GameRelated'
-      - $ref: '#/components/schemas/SeasonRelated'
-      - $ref: '#/components/schemas/TVRelated'
     Episode:
       type: object
       description: Serializer used for tracked episodes and episodes from the provider
@@ -8186,87 +8090,6 @@ components:
         * `score` - score
         * `start_date` - start_date
         * `status` - status
-    FormatEnum:
-      enum:
-      - Main game
-      - DLC
-      - Expansion
-      - Bundle
-      - Standalone expansion
-      - Mod
-      - Episode
-      - Season
-      - Remake
-      - Remaster
-      - Expanded game
-      - Port
-      - Fork
-      - Pack
-      - Update
-      type: string
-      description: |-
-        * `Main game` - Main game
-        * `DLC` - DLC
-        * `Expansion` - Expansion
-        * `Bundle` - Bundle
-        * `Standalone expansion` - Standalone expansion
-        * `Mod` - Mod
-        * `Episode` - Episode
-        * `Season` - Season
-        * `Remake` - Remake
-        * `Remaster` - Remaster
-        * `Expanded game` - Expanded game
-        * `Port` - Port
-        * `Fork` - Fork
-        * `Pack` - Pack
-        * `Update` - Update
-    GameDetails:
-      type: object
-      description: Schema serializer for game details.
-      properties:
-        format:
-          allOf:
-          - $ref: '#/components/schemas/FormatEnum'
-          nullable: true
-        release_date:
-          type: string
-          format: date
-          nullable: true
-        themes:
-          type: string
-          nullable: true
-        platforms:
-          type: array
-          items:
-            type: string
-    GameRelated:
-      type: object
-      description: Schema serializer for game related data.
-      properties:
-        parent_game:
-          type: array
-          items:
-            type: string
-        remasters:
-          type: array
-          items:
-            type: string
-        remakes:
-          type: array
-          items:
-            type: string
-        expansions:
-          type: array
-          items:
-            type: string
-        standalone_expansions:
-          type: array
-          items:
-            type: string
-        expanded_games:
-          type: array
-          items:
-            type: string
     HealthCheck:
       type: object
       description: Serializer for individual health checks.
@@ -8708,34 +8531,6 @@ components:
         * `book` - book
         * `comic` - comic
         * `boardgame` - boardgame
-    MovieDetails:
-      type: object
-      description: Schema serializer for movie details.
-      properties:
-        format:
-          type: string
-          nullable: true
-        release_date:
-          type: string
-          format: date
-          nullable: true
-        status:
-          type: string
-          nullable: true
-        runtime:
-          type: string
-          nullable: true
-        studios:
-          type: array
-          items:
-            type: string
-        country:
-          type: string
-          nullable: true
-        languages:
-          type: array
-          items:
-            type: string
     PaginatedChangesHistoryResponse:
       type: object
       description: Paginated changes history serializer.
@@ -9163,39 +8958,6 @@ components:
       required:
       - pagination
       - results
-    SeasonDetails:
-      type: object
-      description: Schema serializer for season details.
-      properties:
-        first_air_date:
-          type: string
-          format: date
-          nullable: true
-        last_air_date:
-          type: string
-          format: date
-          nullable: true
-        episodes:
-          type: integer
-          nullable: true
-        runtime:
-          type: string
-          nullable: true
-        total_runtime:
-          type: string
-          nullable: true
-        tvdb_id:
-          type: integer
-          nullable: true
-    SeasonRelated:
-      type: object
-      description: Schema serializer for season related data.
-      properties:
-        episodes:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
     SourceCompleteEnum:
       enum:
       - tmdb
@@ -9308,62 +9070,6 @@ components:
       - status_pie_chart_data
       - timeline
       - top_rated
-    TVDetails:
-      type: object
-      description: Schema serializer for TV details.
-      properties:
-        format:
-          type: string
-          nullable: true
-        first_air_date:
-          type: string
-          format: date
-          nullable: true
-        last_air_date:
-          type: string
-          format: date
-          nullable: true
-        status:
-          type: string
-          nullable: true
-        seasons:
-          type: integer
-          nullable: true
-        episodes:
-          type: integer
-          nullable: true
-        runtime:
-          type: string
-          nullable: true
-        studios:
-          type: array
-          items:
-            type: string
-        country:
-          type: string
-          nullable: true
-        languages:
-          type: array
-          items:
-            type: string
-        tvdb_id:
-          type: integer
-          nullable: true
-        last_episode_season:
-          type: integer
-          nullable: true
-        next_episode_season:
-          type: integer
-          nullable: true
-    TVRelated:
-      type: object
-      description: Schema serializer for TV related data.
-      properties:
-        seasons:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
     TimelineItem:
       type: object
       description: Compact serializer used for timeline entries to reduce payload

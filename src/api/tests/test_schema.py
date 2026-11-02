@@ -49,6 +49,17 @@ class SchemaTests(SimpleTestCase):
 
         self.assertEqual(list(find_one_of(schema, "")), [])
 
+    def test_complete_media_provider_metadata_uses_generic_objects(self):
+        """Provider details and related data should not be narrowly typed."""
+        schema = SchemaGenerator().get_schema(request=None, public=True)
+        properties = schema["components"]["schemas"]["CompleteMedia"]["properties"]
+
+        for field in ("details", "related"):
+            with self.subTest(field=field):
+                self.assertEqual(properties[field]["type"], "object")
+                self.assertEqual(properties[field]["additionalProperties"], {})
+                self.assertNotIn("properties", properties[field])
+
     def test_response_examples_match_schema(self):
         """Every documented response example should match its response schema."""
         examples = list(iter_response_examples())

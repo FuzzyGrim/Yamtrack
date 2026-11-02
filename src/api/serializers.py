@@ -6,7 +6,6 @@ from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
-    PolymorphicProxySerializer,
     extend_schema_field,
     extend_schema_serializer,
 )
@@ -616,61 +615,6 @@ class PaginatedEpisodesSerializer(serializers.Serializer):
     results = EpisodeSerializer(many=True)
 
 
-class AnimeDetailsSerializer(serializers.Serializer):
-    """Schema serializer for anime details."""
-
-
-class BoardGameDetailsSerializer(serializers.Serializer):
-    """Schema serializer for board game details."""
-
-    year = serializers.IntegerField(required=False, allow_null=True)
-    players = serializers.ListField(
-        child=serializers.IntegerField(),
-        required=False,
-        allow_empty=True,
-    )
-    playtime = serializers.IntegerField(required=False, allow_null=True)
-    min_age = serializers.IntegerField(required=False, allow_null=True)
-    designers = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-    publishers = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-
-
-class BookDetailsSerializer(serializers.Serializer):
-    """Schema serializer for book details."""
-
-    format = serializers.CharField(required=False, allow_null=True)
-    number_of_pages = serializers.IntegerField(required=False, allow_null=True)
-    publish_date = serializers.DateField(required=False, allow_null=True)
-    author = serializers.CharField(required=False, allow_null=True)
-    publisher = serializers.CharField(required=False, allow_null=True)
-    isbn = serializers.CharField(required=False, allow_null=True)
-
-
-class ComicDetailsSerializer(serializers.Serializer):
-    """Schema serializer for comic details."""
-
-    start_date = serializers.CharField(required=False, allow_null=True)
-    publisher = serializers.CharField(required=False, allow_null=True)
-    issues_count = serializers.IntegerField(required=False, allow_null=True)
-    last_issue_name = serializers.CharField(required=False, allow_null=True)
-    last_issue_number = serializers.IntegerField(required=False, allow_null=True)
-    people = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-    last_updated = serializers.DateField(required=False, allow_null=True)
-    last_issue_id = serializers.IntegerField(required=False, allow_null=True)
-
-
 class EpisodeDetailsSerializer(serializers.Serializer):
     """Schema serializer for episode details."""
 
@@ -681,163 +625,6 @@ class EpisodeDetailsSerializer(serializers.Serializer):
     episode_type = serializers.CharField(required=False, allow_null=True)
     crew = serializers.ListField(child=serializers.DictField(), default=list)
     guest_stars = serializers.ListField(child=serializers.DictField(), default=list)
-
-
-class GameDetailsSerializer(serializers.Serializer):
-    """Schema serializer for game details."""
-
-    format = serializers.ChoiceField(
-        choices=[
-            "Main game",
-            "DLC",
-            "Expansion",
-            "Bundle",
-            "Standalone expansion",
-            "Mod",
-            "Episode",
-            "Season",
-            "Remake",
-            "Remaster",
-            "Expanded game",
-            "Port",
-            "Fork",
-            "Pack",
-            "Update",
-        ],
-        required=False,
-        allow_null=True,
-    )
-    release_date = serializers.DateField(required=False, allow_null=True)
-    themes = serializers.CharField(required=False, allow_null=True)
-    platforms = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-
-
-class MangaDetailsSerializer(serializers.Serializer):
-    """Schema serializer for manga details."""
-
-
-class MovieDetailsSerializer(serializers.Serializer):
-    """Schema serializer for movie details."""
-
-    format = serializers.CharField(required=False, allow_null=True)
-    release_date = serializers.DateField(required=False, allow_null=True)
-    status = serializers.CharField(required=False, allow_null=True)
-    runtime = serializers.CharField(required=False, allow_null=True)
-    studios = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-    country = serializers.CharField(required=False, allow_null=True)
-    languages = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-
-
-class SeasonDetailsSerializer(serializers.Serializer):
-    """Schema serializer for season details."""
-
-    first_air_date = serializers.DateField(required=False, allow_null=True)
-    last_air_date = serializers.DateField(required=False, allow_null=True)
-    episodes = serializers.IntegerField(required=False, allow_null=True)
-    runtime = serializers.CharField(required=False, allow_null=True)
-    total_runtime = serializers.CharField(required=False, allow_null=True)
-    tvdb_id = serializers.IntegerField(required=False, allow_null=True)
-
-
-class TVDetailsSerializer(serializers.Serializer):
-    """Schema serializer for TV details."""
-
-    format = serializers.CharField(required=False, allow_null=True)
-    first_air_date = serializers.DateField(required=False, allow_null=True)
-    last_air_date = serializers.DateField(required=False, allow_null=True)
-    status = serializers.CharField(required=False, allow_null=True)
-    seasons = serializers.IntegerField(required=False, allow_null=True)
-    episodes = serializers.IntegerField(required=False, allow_null=True)
-    runtime = serializers.CharField(required=False, allow_null=True)
-    studios = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-    country = serializers.CharField(required=False, allow_null=True)
-    languages = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-    )
-    tvdb_id = serializers.IntegerField(required=False, allow_null=True)
-    last_episode_season = serializers.IntegerField(required=False, allow_null=True)
-    next_episode_season = serializers.IntegerField(required=False, allow_null=True)
-
-
-class AnimeRelatedSerializer(serializers.Serializer):
-    """Schema serializer for anime related data."""
-
-
-class BoardGameRelatedSerializer(serializers.Serializer):
-    """Schema serializer for board game related data."""
-
-
-class BookRelatedSerializer(serializers.Serializer):
-    """Schema serializer for book related data."""
-
-
-class ComicRelatedSerializer(serializers.Serializer):
-    """Schema serializer for comic related data."""
-
-    from_the_same_publisher = serializers.ListField(
-        child=serializers.DictField(),
-        required=False,
-        allow_empty=True,
-    )
-
-
-class EpisodeRelatedSerializer(serializers.Serializer):
-    """Schema serializer for episode related data."""
-
-
-class GameRelatedSerializer(serializers.Serializer):
-    """Schema serializer for game related data."""
-
-    parent_game = serializers.ListField(child=serializers.CharField(), required=False)
-    remasters = serializers.ListField(child=serializers.CharField(), required=False)
-    remakes = serializers.ListField(child=serializers.CharField(), required=False)
-    expansions = serializers.ListField(child=serializers.CharField(), required=False)
-    standalone_expansions = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-    )
-    expanded_games = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-    )
-
-
-class MangaRelatedSerializer(serializers.Serializer):
-    """Schema serializer for manga related data."""
-
-
-class MovieRelatedSerializer(serializers.Serializer):
-    """Schema serializer for movie related data."""
-
-
-class SeasonRelatedSerializer(serializers.Serializer):
-    """Schema serializer for season related data."""
-
-    episodes = serializers.ListField(child=serializers.DictField(), required=False)
-
-
-class TVRelatedSerializer(serializers.Serializer):
-    """Schema serializer for TV related data."""
-
-    seasons = serializers.ListField(child=serializers.DictField(), required=False)
 
 
 class CompleteEpisodeSerializer(serializers.Serializer):
@@ -866,7 +653,7 @@ class CompleteEpisodeSerializer(serializers.Serializer):
     score = serializers.FloatField(allow_null=True)
     score_count = serializers.IntegerField(allow_null=True)
     details = EpisodeDetailsSerializer()
-    related = EpisodeRelatedSerializer()
+    related = serializers.DictField()
     item_id = ItemIdField()
     parent_id = ParentIdField()
     tracked = serializers.BooleanField()
@@ -960,48 +747,16 @@ class CompleteMediaSerializer(serializers.Serializer):
     consumptions = HistorySerializer(many=True)
     lists = ListMinimizedSerializer(many=True)
 
-    @extend_schema_field(
-        PolymorphicProxySerializer(
-            component_name="CompleteMediaDetails",
-            serializers=[
-                AnimeDetailsSerializer,
-                BoardGameDetailsSerializer,
-                BookDetailsSerializer,
-                ComicDetailsSerializer,
-                GameDetailsSerializer,
-                MangaDetailsSerializer,
-                MovieDetailsSerializer,
-                SeasonDetailsSerializer,
-                TVDetailsSerializer,
-            ],
-            resource_type_field_name=None,
-        ),
-    )
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_details(self, obj):
-        """Return polymorphic details payload for schema generation."""
+        """Return the raw provider details payload."""
         if isinstance(obj, dict):
             return obj.get("details", {})
         return getattr(obj, "details", {})
 
-    @extend_schema_field(
-        PolymorphicProxySerializer(
-            component_name="CompleteMediaRelated",
-            serializers=[
-                AnimeRelatedSerializer,
-                BoardGameRelatedSerializer,
-                BookRelatedSerializer,
-                ComicRelatedSerializer,
-                GameRelatedSerializer,
-                MangaRelatedSerializer,
-                MovieRelatedSerializer,
-                SeasonRelatedSerializer,
-                TVRelatedSerializer,
-            ],
-            resource_type_field_name=None,
-        ),
-    )
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_related(self, obj):
-        """Return polymorphic related payload for schema generation."""
+        """Return the raw provider related payload."""
         if isinstance(obj, dict):
             return obj.get("related", {})
         return getattr(obj, "related", {})
