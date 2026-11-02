@@ -415,15 +415,15 @@ class EpisodeHistory:
     score = None
     progress = 1
     status = Status.COMPLETED.value
-    notes = ""
 
     def __init__(self, episode):
         """Wrap the watched episode."""
         self.id = episode.id
         self.created_at = episode.created_at
-        self.progressed_at = episode.created_at
-        self.start_date = episode.created_at
         self.end_date = episode.end_date
+        self.progressed_at = self.end_date
+        self.start_date = None
+        self.notes = episode.notes
 
 
 class HistorySerializer(serializers.Serializer):
@@ -556,9 +556,10 @@ class EpisodeMedia:
         self.item = item
         self.id = getattr(episode, "id", None)
         self.created_at = getattr(episode, "created_at", None)
-        self.start_date = self.created_at
+        self.start_date = None
         self.end_date = getattr(episode, "end_date", None)
         self.progressed_at = self.end_date
+        self.notes = getattr(episode, "notes", None)
         tracked = episode is not None
         self.status = Status.COMPLETED.value if tracked else None
         self.progress = 1 if tracked else None
@@ -1343,6 +1344,7 @@ class UpdateEpisodeSerializer(serializers.Serializer):
     """Serializer for updating episode media items."""
 
     end_date = UTCDateTimeField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
 
 
 class UpdateGameSerializer(BaseUpdateMediaSerializer):

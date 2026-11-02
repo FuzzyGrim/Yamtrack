@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
 from django.urls import reverse
+from django.utils import timezone
 
-from app.models import MediaTypes, Sources
+from app.models import Episode, MediaTypes, Sources
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -355,7 +356,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
                     season_item.season_number,
                     episode_item.episode_number,
                 ),
-                payload={"end_date": None},
+                payload={"end_date": None, "notes": "updated episode notes"},
                 headers=self.auth_headers,
             )
 
@@ -365,6 +366,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         self.assertIn("consumptions", payload)
         self.assertIn("details", payload)
         self.assertIsNone(payload["consumptions"][0]["end_date"])
+        self.assertEqual(payload["consumptions"][0]["notes"], "updated episode notes")
 
     @patch("app.providers.services.get_media_metadata")
     def test_episode_detail_delete_tracked_episode_returns_204(self, mock_metadata):
@@ -400,6 +402,11 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
         season_item = self.items_by_type[MediaTypes.SEASON.value][0]
         episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+        episode = self.episode_medias[0]
+        Episode.objects.filter(pk=episode.pk).update(
+            end_date=timezone.now(),
+            notes="episode watch notes",
+        )
 
         response = self.call_api(
             "get",
@@ -423,6 +430,11 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         )
         for entry in payload["results"]:
             check_consumption_structure(self, entry)
+        entry = payload["results"][0]
+        self.assertEqual(entry["notes"], "episode watch notes")
+        self.assertIsNone(entry["start_date"])
+        self.assertEqual(entry["progressed_at"], entry["end_date"])
+        self.assertIsNotNone(entry["end_date"])
 
     def test_episode_consumption_history_invalid_media_id_returns_empty_results(self):
         """Episode history endpoint should return empty results for unknown media."""
@@ -540,7 +552,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
                     episode_item.episode_number,
                     consumption_id,
                 ),
-                payload={"end_date": None},
+                payload={"end_date": None, "notes": "updated history notes"},
                 headers=self.auth_headers,
             )
 
@@ -548,6 +560,7 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         payload = response.json()
         check_consumption_structure(self, payload)
         self.assertIsNone(payload["end_date"])
+        self.assertEqual(payload["notes"], "updated history notes")
 
     def test_episode_consumption_entry_detail_patch_invalid_payload_returns_bad_request(
         self,

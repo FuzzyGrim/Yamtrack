@@ -8998,6 +8998,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        notes:
+          type: string
     PatchedUpdateGameRequest:
       type: object
       description: Serializer for updating game media items.
