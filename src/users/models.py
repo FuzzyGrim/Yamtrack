@@ -676,6 +676,7 @@ class User(AbstractUser):
             "anilist": "Import from AniList",
             "kitsu": "Import from Kitsu",
             "yamtrack": "Import from Yamtrack",
+            "yamtrack_lists": "Import from Yamtrack Lists",
             "hltb": "Import from HowLongToBeat",
             "steam": "Import from Steam",
             "imdb": "Import from IMDB",
