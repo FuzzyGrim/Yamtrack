@@ -20,6 +20,84 @@ from app.models import (
     Sources,
     Status,
 )
+from lists.models import CustomList, CustomListItem
+
+
+class ExportListsCSVTest(TestCase):
+    """Test exporting custom lists to CSV."""
+
+    def setUp(self):
+        """Create necessary data for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+        self.credentials_other = {"username": "other", "password": "12345"}
+        self.other_user = get_user_model().objects.create_user(
+            **self.credentials_other,
+        )
+
+        self.item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="https://image.url",
+        )
+
+    def get_rows(self):
+        """Return the rows of the exported CSV."""
+        response = self.client.get(reverse("export_lists_csv"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv")
+        content = b"".join(response.streaming_content).decode("utf-8")
+        return list(csv.DictReader(StringIO(content, newline="")))
+
+    def test_export_list_and_item_rows(self):
+        """Test a list is exported as a list row followed by its items."""
+        custom_list = CustomList.objects.create(
+            name="Favorites",
+            description="The best",
+            owner=self.user,
+        )
+        CustomListItem.objects.create(item=self.item, custom_list=custom_list)
+
+        list_row, item_row = self.get_rows()
+
+        self.assertEqual(list_row["media_type"], "list")
+        self.assertEqual(list_row["list_name"], "Favorites")
+        self.assertEqual(list_row["list_description"], "The best")
+        self.assertEqual(list_row["title"], "")
+        self.assertEqual(item_row["list_name"], "Favorites")
+        self.assertEqual(item_row["list_description"], "")
+        self.assertEqual(item_row["media_id"], "10494")
+        self.assertEqual(item_row["media_type"], MediaTypes.MOVIE.value)
+        self.assertEqual(item_row["title"], "Perfect Blue")
+        self.assertNotEqual(item_row["date_added"], "")
+
+    def test_export_empty_list(self):
+        """Test a list without items is exported as a single row."""
+        CustomList.objects.create(name="Empty", owner=self.user)
+
+        rows = self.get_rows()
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["list_name"], "Empty")
+
+    def test_export_page_has_lists_button(self):
+        """Test the export page links to the lists export."""
+        response = self.client.get(reverse("export_data"))
+
+        self.assertContains(response, reverse("export_lists_csv"))
+
+    def test_export_only_owned_lists(self):
+        """Test the export only has the lists owned by the user."""
+        CustomList.objects.create(name="Owned", owner=self.user)
+        shared = CustomList.objects.create(name="Shared", owner=self.other_user)
+        shared.collaborators.add(self.user)
+
+        names = [row["list_name"] for row in self.get_rows()]
+
+        self.assertEqual(names, ["Owned"])
 
 
 class ExportCSVTest(TestCase):

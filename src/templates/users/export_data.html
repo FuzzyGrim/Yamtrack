@@ -13,12 +13,27 @@
       <h2 class="text-xl font-semibold">{% trans "Export Data" %}</h2>
     </div>
     <p class="text-gray-400 mb-5 text-sm">{% trans "Back up your data or export it for use with other services." %}</p>
-    <p class="text-sm text-gray-400 mb-4">{% trans "Your export will include all your media items." %}</p>
-    <form method="get" action="{% url 'export_csv' %}">
-      {% csrf_token %}
-      <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
-        {% trans "Export as CSV" %}
-      </button>
-    </form>
+    <div class="space-y-4">
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <h3 class="font-medium mb-1">{% trans "Media" %}</h3>
+        <p class="text-sm text-gray-400 mb-3">{% trans "Your export will include all your media items." %}</p>
+        <form method="get" action="{% url 'export_csv' %}">
+          {% csrf_token %}
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% trans "Export as CSV" %}
+          </button>
+        </form>
+      </div>
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <h3 class="font-medium mb-1">{% trans "Lists" %}</h3>
+        <p class="text-sm text-gray-400 mb-3">{% trans "Your export will include all your lists and their items. Lists you collaborate on are not included." %}</p>
+        <form method="get" action="{% url 'export_lists_csv' %}">
+          {% csrf_token %}
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% trans "Export as CSV" %}
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 {% endblock settings_content %}

@@ -317,6 +317,26 @@
               {% trans "Select CSV File" %}
             </label>
           </form>
+          <form method="post"
+                action="{% url 'import_yamtrack_lists' %}"
+                enctype="multipart/form-data"
+                class="mt-2">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :disabled="importFrequency !== 'once'">
+              <input name="yamtrack_lists_csv"
+                     accept=".csv"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
+                     @change="importFrequency === 'once' && $el.form.submit()">
+              {% trans "Select Lists CSV File" %}
+            </label>
+          </form>
         </div>
 
         {# HowLongToBeat #}
