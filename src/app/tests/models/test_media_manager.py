@@ -736,6 +736,92 @@ class MediaManagerTests(TestCase):
 
         self.assertIsNone(anime_list[0].next_event)
 
+    def test_annotate_next_event_multiple_episodes_same_datetime(self):
+        """Next event should pick the lowest episode number when air dates tie.
+
+        Regression test for https://github.com/FuzzyGrim/Yamtrack/issues/1655
+        where a season with multiple episodes released on the same day could
+        show episode 2 (or later) as the "next episode" instead of episode 1.
+        """
+        manager = MediaManager()
+
+        same_datetime = timezone.now() + timedelta(days=1)
+
+        # Create events out of episode-number order so that relying on
+        # insertion/query order alone would surface the wrong episode.
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=2,
+            datetime=same_datetime,
+        )
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=1,
+            datetime=same_datetime,
+        )
+
+        queryset = Anime.objects.filter(user=self.user.id).select_related("item")
+        anime_list = list(queryset)
+
+        for anime in anime_list:
+            # Simulate the DB returning the tied events in descending-datetime
+            # order (Event.Meta.ordering) with no secondary ordering, so ties
+            # come back in an arbitrary/insertion order.
+            anime.item.prefetched_events = list(
+                Event.objects.filter(item=anime.item).order_by("-datetime"),
+            )
+
+        manager._annotate_next_event(anime_list)
+
+        self.assertIsNotNone(anime_list[0].next_event)
+        self.assertEqual(anime_list[0].next_event.content_number, 1)
+
+    def test_annotate_next_event_picks_lowest_number_when_times_disagree(self):
+        """Next event should pick the lowest number even when times disagree.
+
+        Regression test for a report where TVMaze/TMDB agreed on the same
+        release *date* for two episodes (so the exact-tie case above didn't
+        apply), but the stored time-of-day for episode 2 was earlier than
+        episode 1's, making episode 2 sort first if datetime were the
+        primary ordering key. content_number is unique per item and defines
+        the true release order, so it must win over datetime for ordering
+        (datetime should only gate whether an event has aired yet).
+        """
+        manager = MediaManager()
+
+        release_day = (timezone.now() + timedelta(days=1)).replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+
+        # Episode 2's stored time-of-day is earlier than episode 1's, even
+        # though both are meant to release on the same day.
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=2,
+            datetime=release_day,
+        )
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=1,
+            datetime=release_day + timedelta(hours=12),
+        )
+
+        queryset = Anime.objects.filter(user=self.user.id).select_related("item")
+        anime_list = list(queryset)
+
+        for anime in anime_list:
+            anime.item.prefetched_events = list(
+                Event.objects.filter(item=anime.item).order_by("-datetime"),
+            )
+
+        manager._annotate_next_event(anime_list)
+
+        self.assertIsNotNone(anime_list[0].next_event)
+        self.assertEqual(anime_list[0].next_event.content_number, 1)
+
     def test_sort_home_media(self):
         """Test the _sort_home_media method."""
         manager = MediaManager()
