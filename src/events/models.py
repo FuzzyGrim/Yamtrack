@@ -213,7 +213,14 @@ class EventManager(models.Manager):
                 default=Value(0),
                 output_field=IntegerField(),
             ),
-        ).order_by("datetime__date", "is_sentinel", "datetime")
+        ).order_by(
+            "datetime__date",
+            "is_sentinel",
+            "datetime",
+            "item__title",
+            "item__season_number",
+            "content_number",
+        )
 
 
 class Event(models.Model):
