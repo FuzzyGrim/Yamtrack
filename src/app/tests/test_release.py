@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 
 from django.test import SimpleTestCase
@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from app.models import Status
 from app.release import (
+    _annotate_tv_seasons,
     is_released,
     is_released_episode,
     is_visible_media,
@@ -35,6 +36,26 @@ class IsReleasedTests(SimpleTestCase):
         """Year-only dates are treated as January 1 of that year."""
         self.assertTrue(is_released("2020", date(2026, 11, 4)))
         self.assertFalse(is_released("2027-12", date(2026, 11, 4)))
+
+    def test_naive_datetime_uses_its_calendar_date(self):
+        """A datetime without a timezone is compared as a calendar date."""
+        today = date(2026, 11, 4)
+        naive_today = datetime(
+            2026,
+            11,
+            4,
+            23,
+            59,
+            tzinfo=timezone.get_current_timezone(),
+        ).replace(tzinfo=None)
+        naive_tomorrow = datetime(
+            2026,
+            11,
+            5,
+            tzinfo=timezone.get_current_timezone(),
+        ).replace(tzinfo=None)
+        self.assertTrue(is_released(naive_today, today))
+        self.assertFalse(is_released(naive_tomorrow, today))
 
 
 class ReleasedEpisodeTests(SimpleTestCase):
@@ -140,6 +161,30 @@ class VisibleMediaTests(SimpleTestCase):
         self.assertFalse(is_visible_tv(_show(aired, unavailable)))
         self.assertFalse(is_visible_tv(_show(aired, caught_up)))
         self.assertTrue(is_visible_tv(_show(aired, still_airing)))
+
+    def test_show_without_numbered_seasons_stays_visible(self):
+        """Specials and an empty season list do not hide the show."""
+        specials = _season(
+            0,
+            Status.PLANNING.value,
+            next_event=object(),
+            progress=0,
+            max_progress=None,
+        )
+        self.assertTrue(is_visible_tv(_show()))
+        self.assertTrue(is_visible_tv(_show(specials)))
+
+    def test_annotation_skips_shows_without_numbered_seasons(self):
+        """Shows that only have specials do not need season release lookups."""
+        specials = _season(
+            0,
+            Status.PLANNING.value,
+            next_event=None,
+            progress=0,
+            max_progress=None,
+        )
+        _annotate_tv_seasons([_show(), _show(specials)])
+        self.assertFalse(hasattr(specials.item, "prefetched_events"))
 
 
 class ReleasedSeasonTests(SimpleTestCase):
