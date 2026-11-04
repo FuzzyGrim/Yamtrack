@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import config, helpers, history_processor
+from app import config, helpers, history_processor, release
 from app import home as home_helpers
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
@@ -51,10 +51,9 @@ def home(request):
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
     section_to_load = request.GET.get("load_status", Status.IN_PROGRESS.value)
-    hide_unreleased_param = request.GET.get("hide_unreleased")
     hide_unreleased = request.user.update_preference(
         "home_hide_unreleased",
-        None if hide_unreleased_param is None else hide_unreleased_param == "true",
+        _optional_bool_param(request, "hide_unreleased"),
     )
     items_limit = 14
 
@@ -158,6 +157,27 @@ def progress_edit(request, media_type, instance_id):
     )
 
 
+def _optional_bool_param(request, name):
+    """Return a query flag, or None when the page should keep its saved value."""
+    value = request.GET.get(name)
+    if value is None:
+        return None
+    return value == "true"
+
+
+def _paginate_media_list(media_queryset, media_type, page, *, hide_unreleased):
+    """Paginate a media list, dropping unreleased titles before the page slice."""
+    items_per_page = 32
+    if hide_unreleased:
+        media_items = release.filter_tracked_media(media_queryset, media_type)
+        return Paginator(media_items, items_per_page).get_page(page)
+
+    paginator = Paginator(media_queryset, items_per_page)
+    media_page = paginator.get_page(page)
+    BasicMedia.objects.annotate_max_progress(media_page.object_list, media_type)
+    return media_page
+
+
 @login_not_required
 @require_GET
 def media_list(request, username, media_type):
@@ -177,6 +197,10 @@ def media_list(request, username, media_type):
         status_filter = target_user.update_preference(
             f"{media_type}_status",
             request.GET.get("status"),
+        )
+        hide_unreleased = target_user.update_preference(
+            f"{media_type}_hide_unreleased",
+            _optional_bool_param(request, "hide_unreleased"),
         )
     else:
         # privacy check then media type check
@@ -208,6 +232,10 @@ def media_list(request, username, media_type):
             f"{media_type}_status",
             request.GET.get("status"),
         )
+        hide_unreleased = target_user.get_valid_preference(
+            f"{media_type}_hide_unreleased",
+            _optional_bool_param(request, "hide_unreleased"),
+        )
 
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
@@ -225,14 +253,11 @@ def media_list(request, username, media_type):
         search=search_query,
     )
 
-    # Paginate results
-    items_per_page = 32
-    paginator = Paginator(media_queryset, items_per_page)
-    media_page = paginator.get_page(page)
-
-    BasicMedia.objects.annotate_max_progress(
-        media_page.object_list,
+    media_page = _paginate_media_list(
+        media_queryset,
         media_type,
+        page,
+        hide_unreleased=hide_unreleased,
     )
 
     context = {
@@ -246,6 +271,7 @@ def media_list(request, username, media_type):
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
         "target_user": target_user,
+        "hide_unreleased": hide_unreleased,
     }
 
     # Handle HTMX requests for partial updates. Soft-navigation requests (e.g.
@@ -391,6 +417,21 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             episodes_in_db,
         )
 
+    hide_unreleased = request.user.update_preference(
+        "season_details_hide_unreleased",
+        _optional_bool_param(request, "hide_unreleased"),
+    )
+    if hide_unreleased:
+        season_metadata["episodes"] = release.released_episodes(
+            season_metadata.get("episodes") or [],
+        )
+        related = tv_with_seasons_metadata.get("related") or {}
+        if related.get("seasons"):
+            related["seasons"] = release.released_seasons(
+                related["seasons"],
+                keep_season_number=season_number,
+            )
+
     # Enrich related items with user tracking data
     if season_metadata.get("related"):
         for section_name, related_items in season_metadata["related"].items():
@@ -413,6 +454,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata.get("providers"), request.user.watch_provider_region
         ),
         "watch_provider_region": request.user.watch_provider_region,
+        "hide_unreleased": hide_unreleased,
     }
     return render(request, "app/media_details.html", context)
 

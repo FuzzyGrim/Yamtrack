@@ -1,15 +1,19 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from app.models import (
+    TV,
     Item,
     MediaTypes,
     Movie,
+    Season,
     Sources,
     Status,
 )
 from app.templatetags import app_tags
+from events.models import Event, SentinelDatetime
 from users.forms import UserUpdateForm
 
 
@@ -193,3 +197,149 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("media_list", response.context)
+
+    def test_media_list_hides_unreleased_movies_and_seasons(self):
+        """Future titles are omitted. Released titles and active seasons stay."""
+        self.user.movie_hide_unreleased = True
+        self.user.tv_hide_unreleased = True
+        self.user.save(
+            update_fields=["movie_hide_unreleased", "tv_hide_unreleased"],
+        )
+
+        future_item = Item.objects.create(
+            media_id="future-movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Future Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=future_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        Event.objects.create(
+            item=future_item,
+            datetime=timezone.now() + timezone.timedelta(days=3),
+        )
+
+        released_item = Item.objects.create(
+            media_id="released-movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Released Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=released_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        Event.objects.create(
+            item=released_item,
+            datetime=timezone.now() - timezone.timedelta(days=3),
+        )
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]),
+        )
+        movie_ids = [media.item.media_id for media in response.context["media_list"]]
+        self.assertIn("released-movie", movie_ids)
+        self.assertNotIn("future-movie", movie_ids)
+        self.assertContains(response, "Hide unreleased")
+
+        tv_item = Item.objects.create(
+            media_id="show-1",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Future Show",
+            image="http://example.com/image.jpg",
+        )
+        tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        TV.save_base(tv)
+        future_season_item = Item.objects.create(
+            media_id="show-1",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Future Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        future_season = Season(
+            item=future_season_item,
+            related_tv=tv,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        Season.save_base(future_season)
+        Event.objects.create(
+            item=future_season_item,
+            content_number=1,
+            datetime=SentinelDatetime.max_datetime(),
+        )
+
+        active_tv_item = Item.objects.create(
+            media_id="show-2",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Airing Show",
+            image="http://example.com/image.jpg",
+        )
+        active_tv = TV(
+            item=active_tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        TV.save_base(active_tv)
+        active_season_item = Item.objects.create(
+            media_id="show-2",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Airing Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        active_season = Season(
+            item=active_season_item,
+            related_tv=active_tv,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        Season.save_base(active_season)
+        Event.objects.create(
+            item=active_season_item,
+            content_number=2,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.TV.value]),
+        )
+        show_ids = [media.item.media_id for media in response.context["media_list"]]
+        self.assertIn("show-2", show_ids)
+        self.assertNotIn("show-1", show_ids)
+        airing = next(
+            media
+            for media in response.context["media_list"]
+            if media.item.media_id == "show-2"
+        )
+        self.assertEqual(airing.max_progress, 2)
+
+    def test_hide_unreleased_stays_on_the_page_that_set_it(self):
+        """A movie-list toggle does not change home or other media lists."""
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?hide_unreleased=true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["hide_unreleased"])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.movie_hide_unreleased)
+        self.assertFalse(self.user.tv_hide_unreleased)
+        self.assertFalse(self.user.home_hide_unreleased)
+        self.assertFalse(self.user.season_details_hide_unreleased)
