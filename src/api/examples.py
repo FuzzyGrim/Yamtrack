@@ -153,11 +153,15 @@ HEALTH_EXAMPLE = _example(
     "Healthy API",
     {
         "status": "ok",
-        "timestamp": "2026-04-28T08:49:33.826808Z",
+        "timestamp": "2026-11-04T16:43:24.430297Z",
         "checks": {
             "Cache(alias='default')": {"status": "ok", "error": None},
             "Database(alias='default')": {"status": "ok", "error": None},
-            "Storage(alias='default')": {"status": "ok", "error": None},
+            "Ping(app=<Celery yamtrack at 0x000000000000>)": {
+                "status": "ok",
+                "error": None,
+            },
+            "Redis(host='localhost', port=6379)": {"status": "ok", "error": None},
         },
     },
 )

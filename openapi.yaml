@@ -393,7 +393,7 @@ paths:
                 HealthyAPI:
                   value:
                     status: ok
-                    timestamp: '2026-04-28T08:49:33.826808Z'
+                    timestamp: '2026-11-04T16:43:24.430297Z'
                     checks:
                       Cache(alias='default'):
                         status: ok
@@ -401,7 +401,10 @@ paths:
                       Database(alias='default'):
                         status: ok
                         error: null
-                      Storage(alias='default'):
+                      Ping(app=<Celery yamtrack at 0x000000000000>):
+                        status: ok
+                        error: null
+                      Redis(host='localhost', port=6379):
                         status: ok
                         error: null
                   summary: Healthy API
