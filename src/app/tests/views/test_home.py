@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from app.models import (
+    TV,
     Anime,
     Episode,
     Item,
@@ -207,6 +208,114 @@ class HomeViewTests(TestCase):
         planning_movies = planning_section["media_types"][MediaTypes.MOVIE.value]
         self.assertEqual(len(planning_movies["items"]), 1)
         self.assertEqual(planning_movies["items"][0].status, Status.PLANNING.value)
+
+    def test_home_view_planning_tv_show_without_season(self):
+        """A TV show marked as planning appears on the home planning shelf.
+
+        Regression test: tracking a show as planning only creates a TV
+        entry (no season), and the home shelf is built from seasons, so
+        planned shows never showed up on the home page.
+        """
+        tv_item = Item.objects.create(
+            media_id="999",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Planned TV Show",
+            image="http://example.com/image.jpg",
+        )
+        TV.objects.create(
+            item=tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        planning_section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.PLANNING.value
+        )
+        # the planned movie from setUp plus the planned TV show
+        self.assertEqual(planning_section["count"], 2)
+        self.assertIn(MediaTypes.TV.value, planning_section["media_types"])
+        tv_items = planning_section["media_types"][MediaTypes.TV.value]["items"]
+        self.assertEqual(len(tv_items), 1)
+        self.assertEqual(tv_items[0].item.title, "Planned TV Show")
+        self.assertEqual(tv_items[0].status, Status.PLANNING.value)
+
+    def test_home_view_tv_show_with_planning_season_not_duplicated(self):
+        """A planned show with a planned season appears once, as a season."""
+        tv_item = Item.objects.create(
+            media_id="1000",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Planned Show With Season",
+            image="http://example.com/image.jpg",
+        )
+        tv = TV.objects.create(
+            item=tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        season_item = Item.objects.create(
+            media_id="1000",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Planned Show With Season",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        Season.objects.create(
+            item=season_item,
+            user=self.user,
+            related_tv=tv,
+            status=Status.PLANNING.value,
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        planning_section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.PLANNING.value
+        )
+        # the planned movie from setUp plus the season, no duplicate TV entry
+        self.assertEqual(planning_section["count"], 2)
+        self.assertNotIn(MediaTypes.TV.value, planning_section["media_types"])
+        season_items = planning_section["media_types"][MediaTypes.SEASON.value]["items"]
+        self.assertEqual(len(season_items), 1)
+
+    def test_home_view_hides_unreleased_planning_tv_show(self):
+        """Planning TV shows with a future release are hidden when filtered."""
+        tv_item = Item.objects.create(
+            media_id="1001",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Upcoming TV Show",
+            image="http://example.com/image.jpg",
+        )
+        TV.objects.create(
+            item=tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        Event.objects.create(
+            item=tv_item,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("home") + "?hide_unreleased=true")
+
+        self.assertEqual(response.status_code, 200)
+        planning_section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.PLANNING.value
+        )
+        self.assertNotIn(MediaTypes.TV.value, planning_section["media_types"])
 
     def test_home_view_with_sort(self):
         """Test the home view with sorting parameter."""
