@@ -1,9 +1,10 @@
 {% extends "users/base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
-  Integrations - Yamtrack
+  {% trans "Integrations" %} - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
@@ -17,9 +18,13 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
         {% include "app/icons/padlock.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Token</h2>
+        <h2 class="text-xl font-semibold">{% trans "Token" %}</h2>
       </div>
-      <p class="text-gray-400 mb-5 text-sm">This token is used to authenticate webhook requests from your media servers.</p>
+      <p class="text-gray-400 mb-5 text-sm">
+        {% blocktrans trimmed %}
+          This token is used to authenticate webhook requests from your media servers.
+        {% endblocktrans %}
+      </p>
       <div class="bg-[#39404b] p-2 rounded-md mb-4">
         <div class="flex items-center gap-2">
           <input readonly=""
@@ -28,7 +33,7 @@
                  type="text"
                  value="{{ user.token|default_if_none:"" }}">
           <span class="flex items-center cursor-pointer group pr-3"
-                title="Copy"
+                title="{% trans 'Copy' %}"
                 data-copy-target="#token">
             {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
           </span>
@@ -37,7 +42,7 @@
       <div class="flex justify-between items-center">
         <div class="flex items-center text-amber-400 text-sm">
           {% include "app/icons/error.svg" with classes="w-4 h-4 mr-2 shrink-0" %}
-          <p>Regenerating will invalidate the previous token</p>
+          <p>{% trans "Regenerating will invalidate the previous token" %}</p>
         </div>
         <div class="flex space-x-3">
           <form method="post" action="{% url 'regenerate_token' %}">
@@ -45,7 +50,7 @@
             <button type="submit"
                     class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
               {% include "app/icons/circle-spinning-counter-clockwise.svg" with classes="w-4 h-4 mr-2" %}
-              Regenerate
+              {% trans "Regenerate" %}
             </button>
           </form>
         </div>
@@ -54,13 +59,17 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
         {% include "app/icons/server.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Media Servers</h2>
+        <h2 class="text-xl font-semibold">{% trans "Media Servers" %}</h2>
       </div>
-      <p class="text-gray-400 mb-5 text-sm">Connect your media servers to automatically track your watching progress.</p>
+      <p class="text-gray-400 mb-5 text-sm">
+        {% blocktrans trimmed %}
+          Connect your media servers to automatically track your watching progress.
+        {% endblocktrans %}
+      </p>
       <div x-data="{ activeIntegration: 'jellyfin' }">
         <div class="mb-4 flex gap-2 overflow-x-auto"
              role="tablist"
-             aria-label="Integration services">
+             aria-label="{% trans 'Integration services' %}">
           <button type="button"
                   class="flex items-center px-4 py-2 rounded-md transition-colors text-sm cursor-pointer"
                   :class="activeIntegration === 'jellyfin' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] text-gray-300 hover:bg-[#454d59]'"
@@ -68,7 +77,7 @@
                   role="tab"
                   :aria-selected="activeIntegration === 'jellyfin'">
             {% include "app/icons/server.svg" with classes="w-4 h-4 mr-2" %}
-            Jellyfin
+            {% trans "Jellyfin" %}
           </button>
           <button type="button"
                   class="flex items-center px-4 py-2 rounded-md transition-colors text-sm cursor-pointer"
@@ -77,7 +86,7 @@
                   role="tab"
                   :aria-selected="activeIntegration === 'plex'">
             {% include "app/icons/server.svg" with classes="w-4 h-4 mr-2" %}
-            Plex
+            {% trans "Plex" %}
           </button>
           <button type="button"
                   class="flex items-center px-4 py-2 rounded-md transition-colors text-sm cursor-pointer"
@@ -86,20 +95,26 @@
                   role="tab"
                   :aria-selected="activeIntegration === 'emby'">
             {% include "app/icons/server.svg" with classes="w-4 h-4 mr-2" %}
-            Emby
+            {% trans "Emby" %}
           </button>
         </div>
         <div x-cloak x-show="activeIntegration === 'jellyfin'" role="tabpanel">
           <div class="bg-[#39404b] p-5 rounded-lg mb-6">
             <div class="flex items-center mb-3">
               {% include "app/icons/server.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-              <h3 class="text-base font-medium">Jellyfin</h3>
+              <h3 class="text-base font-medium">{% trans "Jellyfin" %}</h3>
             </div>
-            <p class="text-gray-400 mb-4 text-sm">Connect Jellyfin to automatically track your watching progress.</p>
+            <p class="text-gray-400 mb-4 text-sm">
+              {% blocktrans trimmed %}
+                Connect Jellyfin to automatically track your watching progress.
+              {% endblocktrans %}
+            </p>
             <div class="bg-[#262a2f] p-4 rounded-md mb-4">
-              <h4 class="text-sm font-medium mb-3">Webhook Events</h4>
+              <h4 class="text-sm font-medium mb-3">{% trans "Webhook Events" %}</h4>
               <p class="text-gray-400 mb-4 text-sm">
-                Play and Stop events are always processed. Enable these to sync manual watched changes from the unofficial Webhooks plugin.
+                {% blocktrans trimmed %}
+                  Play and Stop events are always processed. Enable these to sync manual watched changes from the unofficial Webhooks plugin.
+                {% endblocktrans %}
               </p>
               <form method="post"
                     action="{% url 'update_jellyfin_webhook_events' %}"
@@ -109,9 +124,13 @@
                   <div class="flex-1">
                     <div class="flex items-center text-gray-200 mb-1">
                       {% include "app/icons/circle-check.svg" with classes="w-5 h-5 mr-2" %}
-                      <span class="text-sm font-medium">Process MarkPlayed events</span>
+                      <span class="text-sm font-medium">{% trans "Process MarkPlayed events" %}</span>
                     </div>
-                    <p class="text-xs text-gray-400 ml-7">Mark media as watched when it is manually marked played in Jellyfin.</p>
+                    <p class="text-xs text-gray-400 ml-7">
+                      {% blocktrans trimmed %}
+                        Mark media as watched when it is manually marked played in Jellyfin.
+                      {% endblocktrans %}
+                    </p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer ml-4">
                     <input class="sr-only peer"
@@ -126,10 +145,12 @@
                   <div class="flex-1">
                     <div class="flex items-center text-gray-200 mb-1">
                       {% include "app/icons/error.svg" with classes="w-5 h-5 mr-2 text-amber-400" %}
-                      <span class="text-sm font-medium">Process MarkUnplayed events</span>
+                      <span class="text-sm font-medium">{% trans "Process MarkUnplayed events" %}</span>
                     </div>
                     <p class="text-xs text-gray-400 ml-7">
-                      Remove watched progress when it is manually marked unplayed in Jellyfin. This event can delete media from Yamtrack.
+                      {% blocktrans trimmed %}
+                        Remove watched progress when it is manually marked unplayed in Jellyfin. This event can delete media from Yamtrack.
+                      {% endblocktrans %}
                     </p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer ml-4">
@@ -145,34 +166,41 @@
                   <button type="submit"
                           class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
                     {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
-                    Save Changes
+                    {% trans "Save Changes" %}
                   </button>
                 </div>
               </form>
             </div>
             <div class="bg-[#262a2f] p-4 rounded-md mb-4">
-              <h4 class="text-sm font-medium mb-3">Official Webhook Plugin</h4>
+              <h4 class="text-sm font-medium mb-3">{% trans "Official Webhook Plugin" %}</h4>
               <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                <li>You will need to have TMDB and TVDB as metadata providers in Jellyfin.</li>
-                <li>Install the Webhook plugin from the 'Jellyfin Stable' repo via your server's Plugin Catalog.</li>
+                <li>{% trans "You will need to have TMDB and TVDB as metadata providers in Jellyfin." %}</li>
                 <li>
-                  Restart your server, then configure the plugin:
+                  {% blocktrans trimmed %}
+                    Install the Webhook plugin from the 'Jellyfin Stable' repo via your server's Plugin Catalog.
+                  {% endblocktrans %}
+                </li>
+                <li>
+                  {% trans "Restart your server, then configure the plugin:" %}
                   <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
-                    <li>Click on the "Add Generic Destination" button to create a new webhook.</li>
-                    <li>Name: Yamtrack</li>
+                    <li>{% trans 'Click on the "Add Generic Destination" button to create a new webhook.' %}</li>
+                    <li>{% trans "Name: Yamtrack" %}</li>
                     {# djlint:off #}
-                    <li>
-                      <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
-                        <input readonly id="jellyfin-webhook-url-official" class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono" type="text" value="{{ jellyfin_webhook_url }}">
-                        <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#jellyfin-webhook-url-official">
-                          {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
-                        </span>
-                      </div>
-                    </li>
+                  <li>
+                    <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
+                      <input readonly id="jellyfin-webhook-url-official"
+                        class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                        type="text" value="{{ jellyfin_webhook_url }}">
+                      <span class="flex items-center cursor-pointer group" title="{% trans 'Copy' %}"
+                        data-copy-target="#jellyfin-webhook-url-official">
+                        {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
+                      </span>
+                    </div>
+                  </li>
                     {# djlint:on #}
-                    <li>Notification Type: Playback Start and Playback Stop</li>
-                    <li>User Filter: Your Jellyfin User</li>
-                    <li>Finally, under the "Template" section, paste the following code.</li>
+                    <li>{% trans "Notification Type: Playback Start and Playback Stop" %}</li>
+                    <li>{% trans "User Filter: Your Jellyfin User" %}</li>
+                    <li>{% trans 'Finally, under the "Template" section, paste the following code.' %}</li>
                     <div class="relative mt-2">
                       <textarea readonly id="jellyfin-json-template" class="w-full bg-[#39404b] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono p-3 resize-none overflow-auto max-h-72" rows="14">
 {% verbatim %}{
@@ -194,8 +222,8 @@
   }
 }{% endverbatim %}</textarea>
                       <span class="absolute top-3 right-3 flex items-center cursor-pointer group"
-                        title="Copy"
-                        data-copy-target="#jellyfin-json-template">
+                            title="{% trans 'Copy' %}"
+                            data-copy-target="#jellyfin-json-template">
                         {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
                       </span>
                     </div>
@@ -204,159 +232,172 @@
               </ol>
             </div>
             <div class="bg-[#262a2f] p-4 rounded-md">
-              <h4 class="text-sm font-medium mb-3">Unofficial Webhooks Plugin</h4>
+              <h4 class="text-sm font-medium mb-3">{% trans "Unofficial Webhooks Plugin" %}</h4>
               <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                <li>You will need to have TMDB and TVDB as metadata providers in Jellyfin.</li>
-                <li>
-                  Add this repository
-                  <a href="https://raw.githubusercontent.com/shemanaev/jellyfin-plugin-repo/master/manifest.json"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  class="text-indigo-400 hover:underline">link</a>
-                  to your "Plugins Catalog" in Jellyfin settings.
-                </li>
-                <li>
-                  From your "Plugins Catalog", install the
-                  <a href="https://github.com/shemanaev/jellyfin-plugin-webhooks"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-indigo-400 hover:underline">Unofficial Webhooks plugin</a>.
+                <li>{% trans "You will need to have TMDB and TVDB as metadata providers in Jellyfin." %}</li>
+                {% with html_class="text-indigo-400 hover:underline" %}
+                  <li>
+                    {# Translators: In "Add this repository link to your Plugins Catalog in Jellyfin settings.", this is the linked text. #}
+                    {% trans "link" as repository_link_label %}
+                    {% inline_link "https://raw.githubusercontent.com/shemanaev/jellyfin-plugin-repo/master/manifest.json" html_class repository_link_label new_tab=True as repository_link %}
+                    {% blocktrans trimmed %}
+                      Add this repository {{ repository_link }} to your "Plugins Catalog" in Jellyfin settings.
+                    {% endblocktrans %}
                   </li>
                   <li>
-                    Restart your server, then configure the plugin:
-                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
-                      {# djlint:off #}
+                    {# Translators: In "From your Plugins Catalog, install the Unofficial Webhooks plugin.", this is the linked text. #}
+                    {% trans "Unofficial Webhooks plugin" as plugin_link_label %}
+                    {% inline_link "https://github.com/shemanaev/jellyfin-plugin-webhooks" html_class plugin_link_label new_tab=True as plugin_link %}
+                    {% blocktrans trimmed %}
+                      From your "Plugins Catalog", install the {{ plugin_link }}.
+                    {% endblocktrans %}
+                  </li>
+                {% endwith %}
+                <li>
+                  {% trans "Restart your server, then configure the plugin:" %}
+                  <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
+                    {# djlint:off #}
                   <li>
                     <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
                       <input readonly id="jellyfin-webhook-url-unofficial" class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono" type="text" value="{{ jellyfin_webhook_url }}">
-                      <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#jellyfin-webhook-url-unofficial">
+                      <span class="flex items-center cursor-pointer group" title="{% trans 'Copy' %}" data-copy-target="#jellyfin-webhook-url-unofficial">
                         {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
                       </span>
                     </div>
                   </li>
-                      {# djlint:on #}
-                      <li>Payload format: Default</li>
-                      <li>Listen to events only for: Your Jellyfin User</li>
-                      <li>Events: Play, Stop, MarkPlayed and MarkUnplayed</li>
-                    </ul>
-                  </li>
-                </ol>
-              </div>
+                    {# djlint:on #}
+                    <li>{% trans "Payload format:" %} Default</li>
+                    <li>{% trans "Listen to events only for:" %} {% trans "Your Jellyfin User" %}</li>
+                    <li>{% trans "Events:" %} Play, Stop, MarkPlayed and MarkUnplayed</li>
+                  </ul>
+                </li>
+              </ol>
             </div>
           </div>
-          <div x-cloak x-show="activeIntegration === 'plex'" role="tabpanel">
-            <div class="bg-[#39404b] p-5 rounded-lg mb-6">
-              <div class="flex items-center mb-3">
-                {% include "app/icons/server.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-                <h3 class="text-base font-medium">Plex</h3>
-              </div>
-              <p class="text-gray-400 mb-4 text-sm">Connect Plex to automatically track your watching progress.</p>
-              <div class="bg-[#262a2f] p-3 rounded-md mb-4">
-                <h4 class="text-sm font-medium mb-3">Plex Usernames</h4>
-                <form method="post"
-                      action="{% url 'update_plex_usernames' %}"
-                      class="space-y-2">
-                  {% csrf_token %}
-                  <div>
-                    <p class="text-gray-400 mb-4 text-sm">
+        </div>
+        <div x-cloak x-show="activeIntegration === 'plex'" role="tabpanel">
+          <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+            <div class="flex items-center mb-3">
+              {% include "app/icons/server.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+              <h3 class="text-base font-medium">{% trans "Plex" %}</h3>
+            </div>
+            <p class="text-gray-400 mb-4 text-sm">
+              {% blocktrans trimmed %}
+                Connect Plex to automatically track your watching progress.
+              {% endblocktrans %}
+            </p>
+            <div class="bg-[#262a2f] p-3 rounded-md mb-4">
+              <h4 class="text-sm font-medium mb-3">{% trans "Plex Usernames" %}</h4>
+              <form method="post"
+                    action="{% url 'update_plex_usernames' %}"
+                    class="space-y-2">
+                {% csrf_token %}
+                <div>
+                  <p class="text-gray-400 mb-4 text-sm">
+                    {% blocktrans trimmed %}
                       This username (or several, comma separated) will be used to filter which events are sent to your webhook.
-                    </p>
-                    <input name="plex_usernames"
-                           class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user.plex_usernames.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                           type="text"
-                           placeholder="username1, username2, username3"
-                           value="{{ request.user.plex_usernames }}">
-                  </div>
-                  <div class="pt-2">
-                    <button type="submit"
-                            class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
-                      {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
-                      Save Changes
-                    </button>
-                  </div>
-                </form>
-              </div>
-              <div class="bg-[#262a2f] p-4 rounded-md">
-                <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
-                <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                  <li>You will need to have a PlexPass in order to have webhooks enabled</li>
-                  <li>Go to Settings > Server > Network and enable Webhooks</li>
-                  <li>
-                    In Plex settings, go to
-                    <a href="https://app.plex.tv/desktop/#!/settings/webhooks"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="text-indigo-400 hover:underline">Webhooks</a>.
-                  </li>
-                  <li>
-                    In the Webhooks section, click on "Add Webhook" and enter the following URL:
-                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
-                      <li>
-                        <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">
-                          <input readonly
-                                 id="plex-webhook-url"
-                                 class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
-                                 type="text"
-                                 value="{{ plex_webhook_url }}">
-                          <span class="flex items-center cursor-pointer group"
-                                title="Copy"
-                                data-copy-target="#plex-webhook-url">
-                            {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
-                          </span>
-                        </div>
-                      </li>
-                    </ul>
-                  </li>
-                </ol>
-              </div>
+                    {% endblocktrans %}
+                  </p>
+                  <input name="plex_usernames"
+                         class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user.plex_usernames.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                         type="text"
+                         placeholder="username1, username2, username3"
+                         value="{{ request.user.plex_usernames }}">
+                </div>
+                <div class="pt-2">
+                  <button type="submit"
+                          class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+                    {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+                    {% trans "Save Changes" %}
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div class="bg-[#262a2f] p-4 rounded-md">
+              <h4 class="text-sm font-medium mb-3">{% trans "Setup Instructions" %}</h4>
+              <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                <li>{% trans "You will need to have a PlexPass in order to have webhooks enabled" %}</li>
+                <li>{% trans "Go to Settings > Server > Network and enable Webhooks" %}</li>
+                <li>
+                  {# Translators: In "In Plex settings, go to Webhooks.", this is the linked text. #}
+                  {% trans "Webhooks" as plex_webhook_label %}
+                  {% with html_class="text-indigo-400 hover:underline" %}
+                    {% inline_link plex_webhook_url html_class plex_webhook_label as plex_webhook_link %}
+                    {% blocktrans trimmed %}
+                      In Plex settings, go to {{ plex_webhook_link }}.
+                    {% endblocktrans %}
+                  {% endwith %}
+                </li>
+                <li>
+                  {% trans 'In the Webhooks section, click on "Add Webhook" and enter the following URL:' %}
+                  <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
+                    <li>
+                      <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">
+                        <input readonly
+                               id="plex-webhook-url"
+                               class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                               type="text"
+                               value="{{ plex_webhook_url }}">
+                        <span class="flex items-center cursor-pointer group"
+                              title="{% trans 'Copy' %}"
+                              data-copy-target="#plex-webhook-url">
+                          {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
+                        </span>
+                      </div>
+                    </li>
+                  </ul>
+                </li>
+              </ol>
             </div>
           </div>
-          <div x-cloak x-show="activeIntegration === 'emby'" role="tabpanel">
-            <div class="bg-[#39404b] p-5 rounded-lg mb-6">
-              <div class="flex items-center mb-3">
-                {% include "app/icons/server.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-                <h3 class="text-base font-medium">Emby</h3>
-              </div>
-              <p class="text-gray-400 mb-4 text-sm">Connect Emby to automatically track your watching progress.</p>
-              <div class="bg-[#262a2f] p-4 rounded-md">
-                <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
-                <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                  <li>In Emby, go to Settings > Notifications</li>
-                  <li>In the Notifications section, click on "Add Notification"</li>
-                  <li>
-                    In the Notification settings:
-                    <ul class="list-disc list-inside ml-6 mt-2 space-y-2 text-gray-400">
-                      {# djlint:off #}
+        </div>
+        <div x-cloak x-show="activeIntegration === 'emby'" role="tabpanel">
+          <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+            <div class="flex items-center mb-3">
+              {% include "app/icons/server.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+              <h3 class="text-base font-medium">{% trans "Emby" %}</h3>
+            </div>
+            <p class="text-gray-400 mb-4 text-sm">
+              {% blocktrans trimmed %}
+                Connect Emby to automatically track your watching progress.
+              {% endblocktrans %}
+            </p>
+            <div class="bg-[#262a2f] p-4 rounded-md">
+              <h4 class="text-sm font-medium mb-3">{% trans "Setup Instructions" %}</h4>
+              <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                <li>{% trans "In Emby, go to Settings > Notifications" %}</li>
+                <li>{% trans 'In the Notifications section, click on "Add Notification"' %}</li>
+                <li>
+                  {% trans "In the Notification settings:" %}
+                  <ul class="list-disc list-inside ml-6 mt-2 space-y-2 text-gray-400">
+                    {# djlint:off #}
                   <li>
                     <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
-                      <input readonly
-                             id="emby-webhook-url"
-                             class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
-                             type="text"
-                             value="{{ emby_webhook_url }}">
-                      <span class="flex items-center cursor-pointer group"
-                            title="Copy"
-                            data-copy-target="#emby-webhook-url">
+                      <input readonly id="emby-webhook-url"
+                        class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                        type="text" value="{{ emby_webhook_url }}">
+                      <span class="flex items-center cursor-pointer group" title="{% trans 'Copy' %}"
+                        data-copy-target="#emby-webhook-url">
                         {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
                       </span>
                     </div>
                   </li>
-                      {# djlint:on #}
-                      <li>Request content type: multipart/form-data</li>
-                      <li>Events: Play and Stop</li>
-                      <li>Limit user events to: Your Emby User</li>
-                      <li>"Limit library events to" and "Limit devices events to" are optional</li>
-                    </ul>
-                  </li>
-                </ol>
-              </div>
+                    {# djlint:on #}
+                    <li>{% trans "Request content type:" %} multipart/form-data</li>
+                    <li>{% trans "Events:" %} Play and Stop</li>
+                    <li>{% trans "Limit user events to:" %} {% trans "Your Emby User" %}</li>
+                    <li>{% trans '"Limit library events to" and "Limit devices events to" are optional' %}</li>
+                  </ul>
+                </li>
+              </ol>
             </div>
           </div>
         </div>
       </div>
     </div>
-  {% endblock settings_content %}
+  </div>
+{% endblock settings_content %}
 
-  {% block js %}
-    <script src="{% static 'js/copy-item.js' %}{% get_static_file_mtime 'js/copy-item.js' %}"></script>
-  {% endblock js %}
+{% block js %}
+  <script src="{% static 'js/copy-item.js' %}{% get_static_file_mtime 'js/copy-item.js' %}"></script>
+{% endblock js %}

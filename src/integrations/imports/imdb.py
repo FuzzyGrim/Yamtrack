@@ -1,10 +1,12 @@
 import logging
 from collections import defaultdict
 from csv import DictReader
+from io import StringIO
 
 from django.apps import apps
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext as _
 
 import app
 import app.providers
@@ -62,6 +64,9 @@ class IMDBImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -77,12 +82,12 @@ class IMDBImporter:
     def import_data(self):
         """Import all user data from CSV."""
         try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
+            decoded_file = self.file.read().decode("utf-8")
         except UnicodeDecodeError as e:
-            msg = "Invalid file format. Please upload a CSV file."
+            msg = _("Invalid file format. Please upload a CSV file.")
             raise MediaImportError(msg) from e
 
-        reader = DictReader(decoded_file)
+        reader = DictReader(StringIO(decoded_file, newline=""))
         rows = list(reader)
 
         # Track media IDs and their titles from the import file
@@ -94,7 +99,7 @@ class IMDBImporter:
             try:
                 self._process_first_pass(row, media_id_counts, media_id_titles)
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         # Second pass: add non-duplicates to bulk_media
@@ -102,7 +107,7 @@ class IMDBImporter:
             try:
                 self._process_second_pass(row, media_id_counts)
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         # Add consolidated warnings for duplicates
@@ -110,6 +115,11 @@ class IMDBImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -126,7 +136,9 @@ class IMDBImporter:
         title = row.get("Title", "").strip()
 
         if not imdb_id:
-            self.warnings.append(f"{title}: Invalid or missing IMDB ID")
+            self.warnings.append(
+                _("Invalid or missing IMDB ID for title: %(title)s") % {"title": title}
+            )
             return
 
         title_type = row.get("Title Type", "").strip()
@@ -134,11 +146,13 @@ class IMDBImporter:
         if not self._is_supported_type(title_type):
             if title_type in UNSUPPORTED_TYPES:
                 self.warnings.append(
-                    f"{title}: Unsupported title type '{title_type}' - skipped",
+                    _("%(title)s: Unsupported title type '%(title_type)s' - skipped")
+                    % {"title": title, "title_type": title_type}
                 )
             else:
                 self.warnings.append(
-                    f"{title}: Unknown title type '{title_type}' - skipped",
+                    _("%(title)s: Unknown title type '%(title_type)s' - skipped")
+                    % {"title": title, "title_type": title_type}
                 )
             return
 
@@ -146,7 +160,8 @@ class IMDBImporter:
 
         if not tmdb_data:
             self.warnings.append(
-                f"{title}: Couldn't find a match in {Sources.TMDB.label}",
+                _("Couldn't find a match in %(source)s for title: %(title)s")
+                % {"source": Sources.TMDB.label, "title": title}
             )
             return
 
@@ -174,7 +189,13 @@ class IMDBImporter:
         if media_id_counts[media_id] > 1:
             return
 
-        media_type = IMDB_TYPE_MAPPING[title_type]
+        media_type = IMDB_TYPE_MAPPING[title_type].value
+
+        # Existing media only gets the rating it is missing
+        existing = self._get_existing(media_type, str(media_id))
+        if existing:
+            self._sync_existing(media_type, existing, row)
+            return
 
         # Check if we should process this entry based on mode
         if not helpers.should_process_media(
@@ -187,9 +208,30 @@ class IMDBImporter:
         ):
             return
 
-        item, _ = self._create_or_update_item(tmdb_data, media_type)
+        item, _created = self._create_or_update_item(tmdb_data, media_type)
         instance = self._create_media_instance(item, row, media_type)
         self.bulk_media[media_type].append(instance)
+
+    def _get_existing(self, media_type, media_id):
+        """Get the media already in Yamtrack, only tracked in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        return self.existing_media[media_type][Sources.TMDB.value].get(media_id)
+
+    def _sync_existing(self, media_type, media, row):
+        """Fill the missing score of existing media and complete rated movies."""
+        rating = self._parse_rating(row.get("Your Rating", ""))
+        values = {"score": rating}
+
+        # A rating doesn't tell which episodes of a show were watched
+        if media_type == MediaTypes.MOVIE.value and rating is not None:
+            values["status"] = Status.COMPLETED.value
+            values["progress"] = 1
+            values["end_date"] = self._get_most_recent_date(row)
+
+        if helpers.sync_existing_media(media, values):
+            self.to_update[media_type][media.pk] = media
 
     def _add_duplicate_warnings(self, media_id_counts, media_id_titles):
         """Add warnings for duplicate entries."""
@@ -198,8 +240,11 @@ class IMDBImporter:
                 titles = media_id_titles[media_id]
                 title_list = helpers.join_with_commas_and(titles)
                 self.warnings.append(
-                    f"{title_list}: They were matched to the same TMDB ID {media_id} "
-                    "- none imported",
+                    _(
+                        "%(title_list)s: They were matched to the same TMDB ID"
+                        " %(media_id)s - none imported"
+                    )
+                    % {"title_list": title_list, "media_id": media_id}
                 )
 
     def _extract_imdb_id(self, row):
@@ -281,14 +326,7 @@ class IMDBImporter:
             "status": status,
         }
 
-        # Parse dates
-        date_created = self._parse_date(row.get("Created", ""))
-        date_modified = self._parse_date(row.get("Modified", ""))
-        date_rated = self._parse_date(row.get("Date Rated", ""))
-
-        # filter out None dates
-        dates = [date_created, date_modified, date_rated]
-        most_recent_date = max(date for date in dates if date)
+        most_recent_date = self._get_most_recent_date(row)
 
         # Movies can have progress and end_date set directly.
         # TV shows manage their own progress and dates through episodes.
@@ -300,6 +338,15 @@ class IMDBImporter:
         instance._history_date = most_recent_date or timezone.now()
 
         return instance
+
+    def _get_most_recent_date(self, row):
+        """Return the most recent date the entry was created, modified or rated."""
+        dates = [
+            self._parse_date(row.get("Created", "")),
+            self._parse_date(row.get("Modified", "")),
+            self._parse_date(row.get("Date Rated", "")),
+        ]
+        return max((date for date in dates if date), default=None)
 
     def _parse_rating(self, rating_str):
         """Parse user rating from string to decimal."""

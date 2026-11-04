@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("users", "0056_user_home_hide_unreleased"),
+        ("users", "0059_update_italian_language_code"),
     ]
 
     operations = [

@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import translation
 
 from app.models import MediaTypes
 from users.models import WeekStartDayChoices
@@ -59,6 +60,18 @@ class SidebarViewTests(TestCase):
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("Settings updated", str(messages[0]))
+
+    def test_sidebar_post_show_adult_titles(self):
+        """Test POST request saves and clears the adult titles preference."""
+        self.assertTrue(self.user.show_adult_titles)
+
+        self.client.post(reverse("preferences"), {})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.show_adult_titles)
+
+        self.client.post(reverse("preferences"), {"show_adult_titles": "on"})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.show_adult_titles)
 
     def test_sidebar_post_demo_user(self):
         """Test POST request from a demo user to preferences."""
@@ -197,3 +210,44 @@ class SidebarViewTests(TestCase):
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.week_start_day, WeekStartDayChoices.SUNDAY)
+
+    def test_post_updates_language_valid(self):
+        """Posting a configured language saves it and confirms in that language."""
+        self.addCleanup(translation.deactivate)
+        self.assertEqual(self.user.language, "en")
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+                "language": "it-it",
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.language, "it-it")
+
+        with translation.override("it-it"):
+            expected_message = translation.gettext("Settings updated.")
+        self.assertNotEqual(expected_message, "Settings updated.")
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), expected_message)
+
+    def test_post_ignores_invalid_language(self):
+        """Posting a language not in LANGUAGES leaves the value unchanged."""
+        self.user.language = "it-it"
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+                "language": "xx",
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.language, "it-it")

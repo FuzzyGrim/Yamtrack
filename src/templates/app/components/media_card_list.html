@@ -1,4 +1,5 @@
 {% load app_tags %}
+{% load i18n %}
 
 <div class="bg-[#2a2f35] rounded-lg overflow-hidden hover:bg-[#39404b] transition-colors duration-200"
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
@@ -21,6 +22,13 @@
           </h3>
 
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400">
+            {% if item.release_year %}
+              <span class="flex items-center gap-1">
+                {% include "app/icons/calendar.svg" with classes="w-4 h-4" %}
+                {{ item.release_year }}
+              </span>
+            {% endif %}
+
             <span class="flex items-center gap-1">
               {% icon item.media_type is_active=False extra_classes="w-4 h-4" %}
               {{ item.media_type|media_type_readable }}
@@ -36,7 +44,7 @@
         <div class="relative flex items-center justify-center space-x-2.5">
           {# Track Button #}
           <button class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
-                  title="Add to tracker"
+                  title="{% trans 'Add to tracker' %}"
                   hx-get="{% media_view_url 'track_modal' item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
                   hx-target="#{% component_id 'track' item media.id %}"
@@ -45,7 +53,7 @@
 
           {# Lists Button #}
           <button class="p-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-200 cursor-pointer"
-                  title="Add to custom lists"
+                  title="{% trans 'Add to custom lists' %}"
                   hx-get="{% media_view_url 'lists_modal' item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'lists' item %}"
@@ -54,7 +62,7 @@
 
           {# History Button #}
           <button class="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
-                  title="View your activity history"
+                  title="{% trans 'View your activity history' %}"
                   hx-get="{% media_view_url 'history_modal' item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'history' item %}"

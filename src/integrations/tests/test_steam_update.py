@@ -138,19 +138,59 @@ class ImportSteamUpdate(TestCase):
         self.assertEqual(newer_game.progress, 1300)
         self.assertEqual(newer_game.status, Status.IN_PROGRESS.value)
 
-    def test_new_mode_skips_existing_game(
+    def test_new_mode_syncs_existing_game(
         self,
         mock_get_metadata,
         mock_external_game,
         mock_api_request,
     ):
-        """Test that new mode still skips existing games."""
+        """Test that new mode raises the playtime and advances the status."""
         self._setup_mocks(mock_get_metadata, mock_external_game, mock_api_request)
         game = self._create_game()
 
         imported_counts, _ = steam.importer("76561198000000000", self.user, "new")
 
         game.refresh_from_db()
+        self.assertEqual(imported_counts, {MediaTypes.GAME.value: 1})
+        self.assertEqual(game.progress, 1300)
+        self.assertEqual(game.status, Status.IN_PROGRESS.value)
+        self.assertEqual(Game.objects.filter(user=self.user).count(), 1)
+
+    def test_new_mode_keeps_tracked_game(
+        self,
+        mock_get_metadata,
+        mock_external_game,
+        mock_api_request,
+    ):
+        """Test that new mode never lowers playtime or undoes a completed game."""
+        self._setup_mocks(mock_get_metadata, mock_external_game, mock_api_request)
+        game = self._create_game(status=Status.COMPLETED.value, progress=2000)
+
+        imported_counts, _ = steam.importer("76561198000000000", self.user, "new")
+
+        game.refresh_from_db()
         self.assertEqual(imported_counts, {})
-        self.assertEqual(game.progress, 0)
-        self.assertEqual(game.status, Status.PLANNING.value)
+        self.assertEqual(game.progress, 2000)
+        self.assertEqual(game.status, Status.COMPLETED.value)
+
+    def test_new_mode_pauses_planned_game_played_long_ago(
+        self,
+        mock_get_metadata,
+        mock_external_game,
+        mock_api_request,
+    ):
+        """Test that a planned game played but not recently is paused."""
+        self._setup_mocks(
+            mock_get_metadata,
+            mock_external_game,
+            mock_api_request,
+            playtime=600,
+        )
+        mock_api_request.return_value["response"]["games"][0]["playtime_2weeks"] = 0
+        game = self._create_game()
+
+        steam.importer("76561198000000000", self.user, "new")
+
+        game.refresh_from_db()
+        self.assertEqual(game.progress, 600)
+        self.assertEqual(game.status, Status.PAUSED.value)

@@ -1,6 +1,7 @@
 import json
 from unittest.mock import MagicMock, patch
 
+from django import forms
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest
 from django.test import TestCase, override_settings
@@ -133,23 +134,34 @@ class HelpersTest(TestCase):
 
     @patch("app.helpers.messages")
     def test_form_error_messages(self, mock_messages):
-        """Test form_error_messages function."""
-        form = MagicMock()
-        form.errors = {
-            "title": ["This field is required."],
-            "release_date": ["Enter a valid date."],
-        }
+        """Test form errors are prefixed with the field label."""
+
+        class TestForm(forms.Form):
+            title = forms.CharField(label="Media title")
+            release_date = forms.DateField(label="Release Date")
+
+            def clean(self):
+                msg = "Form-level error."
+                raise forms.ValidationError(msg)
+
+        form = TestForm(data={"release_date": "not a date"})
+        form.is_valid()
         request = HttpRequest()
 
         form_error_messages(form, request)
 
         # Check that error messages were added
-        self.assertEqual(mock_messages.error.call_count, 2)
-        mock_messages.error.assert_any_call(request, "Title: This field is required.")
+        self.assertEqual(mock_messages.error.call_count, 3)
+        mock_messages.error.assert_any_call(
+            request,
+            "Media title: This field is required.",
+        )
         mock_messages.error.assert_any_call(
             request,
             "Release Date: Enter a valid date.",
         )
+        # Non-field errors have no label to prefix
+        mock_messages.error.assert_any_call(request, "Form-level error.")
 
 
 class EnrichItemsWithUserDataTest(TestCase):

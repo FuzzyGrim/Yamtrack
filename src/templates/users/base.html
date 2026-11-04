@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block content %}
   <div class="mx-auto max-w-6xl">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold">Settings</h1>
-      <p class="text-gray-400 mt-2 text-sm">Configure your account and preferences</p>
+      <h1 class="text-3xl font-bold">{% trans "Settings" %}</h1>
+      <p class="text-gray-400 mt-2 text-sm">{% trans "Configure your account and preferences" %}</p>
     </div>
     <div class="flex flex-col md:flex-row gap-8">
       <div class="md:w-64 shrink-0">
@@ -15,56 +16,56 @@
             <a href="{{ account_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == account_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/person.svg" with classes="w-5 h-5" %}
-              <span>Account</span>
+              <span>{% trans "Account" %}</span>
             </a>
 
             {% url 'preferences' as preferences_url %}
             <a href="{{ preferences_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == preferences_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/vertical-sliders.svg" with classes="w-5 h-5" %}
-              <span>Preferences</span>
+              <span>{% trans "Preferences" %}</span>
             </a>
 
             {% url 'notifications' as notifications_url %}
             <a href="{{ notifications_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == notifications_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/bell.svg" with classes="w-5 h-5" %}
-              <span>Notifications</span>
+              <span>{% trans "Notifications" %}</span>
             </a>
 
             {% url 'integrations' as integrations_url %}
             <a href="{{ integrations_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == integrations_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/database.svg" with classes="w-5 h-5" %}
-              <span>Integrations</span>
+              <span>{% trans "Integrations" %}</span>
             </a>
 
             {% url 'import_data' as import_url %}
             <a href="{{ import_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == import_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/import.svg" with classes="w-5 h-5" %}
-              <span>Import Data</span>
+              <span>{% trans "Import Data" %}</span>
             </a>
 
             {% url 'export_data' as export_url %}
             <a href="{{ export_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == export_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/export.svg" with classes="w-5 h-5" %}
-              <span>Export Data</span>
+              <span>{% trans "Export Data" %}</span>
             </a>
 
             {% url 'advanced' as advanced_url %}
             <a href="{{ advanced_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == advanced_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/shield-alert.svg" with classes="w-5 h-5" %}
-              <span>Advanced</span>
+              <span>{% trans "Advanced" %}</span>
             </a>
 
             {% url 'about' as about_url %}
             <a href="{{ about_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == about_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               {% include "app/icons/info.svg" with classes="w-5 h-5" %}
-              <span>About</span>
+              <span>{% trans "About" %}</span>
             </a>
           </nav>
         </div>

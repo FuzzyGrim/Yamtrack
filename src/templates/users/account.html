@@ -2,9 +2,10 @@
 
 {% load socialaccount %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
-  Account - Yamtrack
+  {% trans "Account" %} - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
@@ -12,7 +13,7 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-5">
         {% include "app/icons/person.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Profile Information</h2>
+        <h2 class="text-xl font-semibold">{% trans "Profile Information" %}</h2>
       </div>
 
       {% if user_form.non_field_errors %}
@@ -25,7 +26,7 @@
         {% csrf_token %}
         <div>
           <label for="{{ user_form.username.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Username</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Username" %}</label>
           <input id="{{ user_form.username.id_for_label }}"
                  name="{{ user_form.username.html_name }}"
                  class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.username.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
@@ -38,14 +39,14 @@
 
         <div>
           <label for="{{ user_form.profile_private.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Profile visibility</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Profile visibility" %}</label>
           <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
             <div class="flex-1">
               <div class="flex items-center text-gray-200 mb-1">
                 {% include "app/icons/hat-glasses.svg" with classes="w-5 h-5 mr-2" %}
-                <span class="text-sm font-medium">Private profile</span>
+                <span class="text-sm font-medium">{% trans "Private profile" %}</span>
               </div>
-              <p class="text-xs text-gray-400 ml-7">Hide your profile and media lists from anonymous visitors.</p>
+              <p class="text-xs text-gray-400 ml-7">{% trans "Hide your profile and media lists from anonymous visitors." %}</p>
             </div>
             <label for="{{ user_form.profile_private.id_for_label }}"
                    class="relative inline-flex items-center cursor-pointer ml-4">
@@ -64,7 +65,7 @@
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
             {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
-            Save Changes
+            {% trans "Save Changes" %}
           </button>
         </div>
       </form>
@@ -73,7 +74,7 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-5">
         {% include "app/icons/padlock.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-        <h2 class="text-xl font-semibold">Change Password</h2>
+        <h2 class="text-xl font-semibold">{% trans "Change Password" %}</h2>
       </div>
 
       {% if password_form.non_field_errors %}
@@ -88,7 +89,7 @@
         {% csrf_token %}
         <div class="relative">
           <label for="{{ password_form.old_password.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Current Password</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Current Password" %}</label>
           <div class="relative">
             <input id="{{ password_form.old_password.id_for_label }}"
                    name="{{ password_form.old_password.html_name }}"
@@ -112,7 +113,7 @@
 
         <div class="relative">
           <label for="{{ password_form.new_password1.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">New Password</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "New Password" %}</label>
           <div class="relative">
             <input id="{{ password_form.new_password1.id_for_label }}"
                    name="{{ password_form.new_password1.html_name }}"
@@ -136,7 +137,7 @@
 
         <div class="relative">
           <label for="{{ password_form.new_password2.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Confirm New Password</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Confirm New Password" %}</label>
           <div class="relative">
             <input id="{{ password_form.new_password2.id_for_label }}"
                    name="{{ password_form.new_password2.html_name }}"
@@ -162,7 +163,7 @@
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
             {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
-            Update Password
+            {% trans "Update Password" %}
           </button>
         </div>
       </form>
@@ -173,13 +174,13 @@
       <div class="bg-[#2a2f35] rounded-lg p-6">
         <div class="flex items-center mb-5">
           {% include "app/icons/shield.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-          <h2 class="text-xl font-semibold">Third-Party Connections</h2>
+          <h2 class="text-xl font-semibold">{% trans "Third-Party Connections" %}</h2>
         </div>
-        <p class="text-gray-400 mb-5 text-sm">Manage your connected third-party accounts for easier sign-in.</p>
+        <p class="text-gray-400 mb-5 text-sm">{% trans "Manage your connected third-party accounts for easier sign-in." %}</p>
         <a href="{% url 'socialaccount_connections' %}"
            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm">
           {% include "app/icons/link.svg" with classes="w-4 h-4 mr-2" %}
-          Manage Account Connections
+          {% trans "Manage Account Connections" %}
         </a>
       </div>
     {% endif %}

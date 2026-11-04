@@ -13,6 +13,7 @@ nav = [
   { "Home" = "index.md" },
   { "Setup" = "setup.md" },
   { "Development" = "development.md" },
+  { "Localization" = "localization.md" },
   { "Environment Variables" = "env-variables.md" },
   { "Media Imports" = "media-imports.md" },
   { "Social Auth" = "social-auth.md" },

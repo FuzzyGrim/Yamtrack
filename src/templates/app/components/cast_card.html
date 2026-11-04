@@ -1,4 +1,5 @@
 {% load app_tags %}
+{% load i18n %}
 
 <div class="shrink-0 bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg group flex flex-col w-44 aspect-2/3">
   <a href="https://www.themoviedb.org/person/{{ cast.id }}"
@@ -10,7 +11,7 @@
          data-src="{{ cast.image }}">
     <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
       <div class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 transition-all duration-200"
-           title="Open TMDB page for {{ cast.name }}">
+           title="{% blocktrans with name=cast.name %}Open TMDB page for {{ name }}{% endblocktrans %}">
         {% include "app/icons/external-link.svg" with classes="w-5 h-5" %}
       </div>
     </div>

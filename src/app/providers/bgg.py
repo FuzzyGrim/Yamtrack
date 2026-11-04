@@ -9,6 +9,7 @@ import logging
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.utils.translation import gettext as _
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -27,7 +28,7 @@ def handle_error(error):
         raise services.ProviderAPIError(
             Sources.BGG.value,
             error,
-            "BGG API requires authorization",
+            _("BGG API requires authorization"),
         )
     raise services.ProviderAPIError(Sources.BGG.value, error)
 

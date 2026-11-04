@@ -1,13 +1,14 @@
 {% extends "account/base_entrance.html" %}
 {% load allauth account %}
 {% load socialaccount %}
+{% load i18n %}
 
 {% block head_title %}
-  Login
+  {% trans "Login" %}
 {% endblock head_title %}
 
 {% block content_title %}
-  Sign in to your account
+  {% trans "Sign in to your account" %}
 {% endblock content_title %}
 
 {% block content %}
@@ -24,7 +25,7 @@
 
       {% slot actions %}
         {% element button type="submit" tags="prominent,login" icon='<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" x2="3" y1="12" y2="12"></line>' %}
-          Sign In
+          {% trans "Sign In" %}
         {% endelement %}
       {% endslot %}
     {% endelement %}
@@ -37,9 +38,9 @@
   {% if not SOCIALACCOUNT_ONLY and REGISTRATION %}
     <div class="mt-6 text-center">
       <p class="text-gray-400">
-        Need an account?
+        {% trans "Need an account?" %}
         <a class="text-indigo-400 hover:text-indigo-300"
-           href="{% url 'account_signup' %}">Register now</a>
+           href="{% url 'account_signup' %}">{% trans "Register now" %}</a>
       </p>
     </div>
   {% endif %}

@@ -2,9 +2,11 @@ import logging
 from collections import defaultdict
 from csv import DictReader
 from datetime import datetime
+from io import StringIO
 
 from django.apps import apps
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -45,6 +47,9 @@ class GoodReadsImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -60,12 +65,12 @@ class GoodReadsImporter:
     def import_data(self):
         """Import all GoodReads data from the CSV file."""
         try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
+            decoded_file = self.file.read().decode("utf-8")
         except UnicodeDecodeError as e:
-            msg = "Invalid file format. Please upload a CSV file."
+            msg = _("Invalid file format. Please upload a CSV file.")
             raise MediaImportError(msg) from e
 
-        reader = DictReader(decoded_file)
+        reader = DictReader(StringIO(decoded_file, newline=""))
 
         for row in reader:
             try:
@@ -77,17 +82,25 @@ class GoodReadsImporter:
                     row_description,
                     error,
                 )
-                error_msg = f"Error processing entry: {row_description} - {error}"
+                error_msg = _("Error processing entry: %(description)s - %(error)s") % {
+                    "description": row_description,
+                    "error": error,
+                }
                 self.warnings.append(error_msg)
                 continue
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         logger.debug("processed %s", self.bulk_media)
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         logger.debug("processed %s", self.bulk_media)
 
@@ -128,8 +141,11 @@ class GoodReadsImporter:
 
         if not book:
             self.warnings.append(
-                f"{row['Title']}: Couldn't find this book via Title or ISBN13 in "
-                f"{default_source.label}",
+                _(
+                    "%(title)s: Couldn't find this book via Title or ISBN13"
+                    " in %(source)s"
+                )
+                % {"title": row.get("Title"), "source": default_source.label}
             )
             return
 
@@ -137,7 +153,14 @@ class GoodReadsImporter:
 
         media_id = book["media_id"]
 
-        item, _ = self._create_or_update_item(book)
+        # Existing books only get what they are missing
+        existing = self._get_existing(str(media_id))
+        if existing:
+            if helpers.sync_existing_media(existing, self._get_values(row)):
+                self.to_update[MediaTypes.BOOK.value][existing.pk] = existing
+            return
+
+        item, _created = self._create_or_update_item(book)
 
         # Check if we should process this entry based on mode
         if not helpers.should_process_media(
@@ -152,6 +175,15 @@ class GoodReadsImporter:
 
         instance = self._create_media_instance(item, row)
         self.bulk_media[MediaTypes.BOOK.value].append(instance)
+
+    def _get_existing(self, media_id):
+        """Get the book already in Yamtrack, only tracked in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        return self.existing_media[MediaTypes.BOOK.value][Sources.HARDCOVER.value].get(
+            media_id,
+        )
 
     def _search_book(self, row, source):
         """Search for book and return result if found."""
@@ -236,9 +268,8 @@ class GoodReadsImporter:
             tzinfo=timezone.get_current_timezone(),
         )
 
-    def _create_media_instance(self, item, row):
-        """Create media instance with all parameters."""
-        model = apps.get_model(app_label="app", model_name=MediaTypes.BOOK.value)
+    def _get_values(self, row):
+        """Get the values of the book tracked in the row."""
         book_status = self._determine_status(row)
         book_progress = (
             int(row["Number of Pages"])
@@ -246,6 +277,18 @@ class GoodReadsImporter:
             and row["Number of Pages"].isnumeric()
             else 0
         )
+
+        return {
+            "score": self._parse_rating(row["My Rating"]),
+            "progress": book_progress,
+            "status": book_status,
+            "end_date": self._parse_goodreads_date(row.get("Date Read", "")),
+            "notes": row["Private Notes"],
+        }
+
+    def _create_media_instance(self, item, row):
+        """Create media instance with all parameters."""
+        model = apps.get_model(app_label="app", model_name=MediaTypes.BOOK.value)
 
         # Parse dates
         date_created = self._parse_goodreads_date(row.get("Date Added", ""))
@@ -255,15 +298,7 @@ class GoodReadsImporter:
         dates = [date_created, date_rated]
         most_recent_date = max(date for date in dates if date)
 
-        instance = model(
-            item=item,
-            user=self.user,
-            score=self._parse_rating(row["My Rating"]),
-            progress=book_progress,
-            status=book_status,
-            end_date=date_rated,
-            notes=row["Private Notes"],
-        )
+        instance = model(item=item, user=self.user, **self._get_values(row))
         instance._history_date = most_recent_date or timezone.now()
 
         return instance

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
   {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
@@ -26,15 +27,7 @@
     <div class="flex flex-col md:flex-row gap-4 mb-6">
       <!-- Search -->
       <div class="relative grow">
-        <input placeholder="Search {{ media_type_plural }} in {% if target_user != request.user %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
-               class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
-               type="text"
-               x-model="search"
-               hx-get="{% url 'medialist' target_user.username media_type %}"
-               hx-trigger="keyup changed delay:300ms, search"
-               {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
-               hx-include="#filter-form"
-               hx-indicator="#search-indicator">
+        <input placeholder="{% if target_user != request.user %}{% blocktrans with media_type_plural=media_type_plural target_username=target_user.username %}Search {{ media_type_plural }} in {{ target_username }}'s list...{% endblocktrans %}{% else %}{% blocktrans with media_type_plural=media_type_plural %}Search {{ media_type_plural }} in your list...{% endblocktrans %}{% endif %}" class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none" type="text" x-model="search" hx-get="{% url 'medialist' target_user.username media_type %}" hx-trigger="keyup changed delay:300ms, search" {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %} hx-include="#filter-form" hx-indicator="#search-indicator">
         {% include "app/icons/magnifying-glass.svg" with classes="w-6 h-6 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" %}
         <div id="search-indicator"
              class="htmx-indicator absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -113,7 +106,7 @@
            class="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
            :class="hideUnreleased ? 'border-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700' : 'border-gray-700 bg-[#39404b] text-gray-300 hover:bg-[#454d5a] hover:text-white'">
           {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
-          <span>Hide unreleased</span>
+          <span>{% trans "Hide unreleased" %}</span>
         </a>
 
         <!-- Layout Toggle -->
@@ -121,12 +114,12 @@
           <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
-             title="Grid View"
+             title="{% trans 'Grid View' %}"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
           <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
-             title="Table View"
+             title="{% trans 'Table View' %}"
              @click="layout = 'table'">{% include "app/icons/table.svg" with classes="w-5 h-5" %}</a>
         </div>
       </div>
@@ -139,14 +132,16 @@
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             {% include "app/icons/edit.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
-          <h3 class="text-xl font-semibold mb-2">No {{ media_type|media_type_readable_plural }} Tracked Yet</h3>
+          <h3 class="text-xl font-semibold mb-2">{% blocktrans with media_type_label=media_type|media_type_readable %}No {{ media_type_label }} Tracked Yet{% endblocktrans %}</h3>
           {% if request.user == target_user %}
             <p class="text-gray-400 mb-6">
-              Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
+              {% blocktrans trimmed with media_type_plural=media_type|media_type_readable_plural past_verb=media_type|media_past_verb %}
+                Start tracking your {{ media_type_plural }} to keep a record of what you've {{ past_verb }}.
+              {% endblocktrans %}
             </p>
             <a href="{{ media_type|sample_search }}"
                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-              Browse {{ media_type|media_type_readable_plural }}
+              {% blocktrans with media_type=media_type|media_type_readable_plural %}Browse {{ media_type }}{% endblocktrans %}
             </a>
           {% endif %}
         </div>
@@ -159,13 +154,17 @@
           <thead class="text-left text-gray-400 text-sm">
             <tr>
               <th class="p-2 w-15"></th>
-              <th class="p-2 pe-8 w-2/5">Title</th>
-              <th class="p-2 text-center">Score</th>
-              {% if media_type != MediaTypes.MOVIE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
-              {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">Last Watched</th>{% endif %}
-              <th class="p-2 text-center">Status</th>
-              <th class="p-2 text-center">Start Date</th>
-              <th class="p-2 text-center">End Date</th>
+              <th class="p-2 pe-8 w-2/5">{% trans "Title" %}</th>
+              <th class="p-2 text-center">{% trans "Score" %}</th>
+              {% if media_type != MediaTypes.MOVIE.value %}
+                <th class="p-2 text-center">{% trans "Progress" %}</th>
+              {% endif %}
+              {% if media_type == MediaTypes.TV.value %}
+                <th class="p-2 text-center">{% trans "Last Watched" %}</th>
+              {% endif %}
+              <th class="p-2 text-center">{% trans "Status" %}</th>
+              <th class="p-2 text-center">{% trans "Start Date" %}</th>
+              <th class="p-2 text-center">{% trans "End Date" %}</th>
             </tr>
           </thead>
           <tbody>
@@ -191,7 +190,7 @@
   {% if target_user != request.user %}
     <ul class="space-y-1 mb-6 {% if request.user.is_authenticated %}border-t border-[#2c3136] pt-4{% endif %}">
       <li>
-        <span class="flex font-bold items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-white">{{ target_user.username }}'s Media:</span>
+        <span class="flex font-bold items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-white">{% blocktrans with username=target_user.username %}{{ username }}'s Media:{% endblocktrans %}</span>
       </li>
       {% get_sidebar_media_types target_user as sidebar_media_types %}
       {% for item in sidebar_media_types %}
@@ -234,7 +233,7 @@
             <polyline points="10 17 15 12 10 7"></polyline>
             <line x1="15" x2="3" y1="12" y2="12"></line>
           </svg>
-          Sign In
+          {% trans "Sign In" %}
         </a>
       </div>
     </div>

@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from django.test import TestCase
 
+from app.models import Item, MediaTypes, Sources
 from events.calendar.anime import (
     anilist_date_parser,
     get_anime_schedule_bulk,
@@ -341,6 +342,97 @@ class CalendarAnimeTests(CalendarFixturesMixin, TestCase):
 
         expected_date = datetime.datetime.fromtimestamp(870739200, tz=ZoneInfo("UTC"))
         self.assertEqual(events_bulk[0].datetime, expected_date)
+
+    @patch("events.calendar.anime.services.api_request")
+    def test_process_anime_bulk_anilist_source(self, mock_api_request):
+        """Test AniList anime are looked up by AniList ID and MAL anime by MAL ID."""
+        anilist_item = Item.objects.create(
+            media_id="21",
+            source=Sources.ANILIST.value,
+            media_type=MediaTypes.ANIME.value,
+            title="One Piece",
+            image="http://example.com/image.jpg",
+        )
+
+        def anilist_response(*_args, **kwargs):
+            variables = kwargs["params"]["variables"]
+            if "malIds" in variables:
+                media = {"idMal": 437, "episodes": 1}
+                episode = {"episode": 1, "airingAt": 870739200}
+            else:
+                media = {"id": 21, "episodes": 2}
+                episode = {"episode": 2, "airingAt": 1760227200}
+
+            return {
+                "data": {
+                    "Page": {
+                        "pageInfo": {"hasNextPage": False},
+                        "media": [
+                            {
+                                **media,
+                                "endDate": {"year": None, "month": None, "day": None},
+                                "airingSchedule": {"nodes": [episode]},
+                            },
+                        ],
+                    },
+                },
+            }
+
+        mock_api_request.side_effect = anilist_response
+
+        events_bulk = []
+        process_anime_bulk([self.anime_item, anilist_item], events_bulk)
+
+        call_variables = [
+            call.kwargs["params"]["variables"]
+            for call in mock_api_request.call_args_list
+        ]
+        # AniList filters by null variables, so the unused ID filter is left out
+        self.assertEqual(call_variables[0]["malIds"], ["437"])
+        self.assertNotIn("ids", call_variables[0])
+        self.assertEqual(call_variables[1]["ids"], ["21"])
+        self.assertNotIn("malIds", call_variables[1])
+
+        events = {event.item: event.content_number for event in events_bulk}
+        self.assertEqual(events, {self.anime_item: 1, anilist_item: 2})
+
+    @patch("events.calendar.anime.services.get_media_metadata")
+    @patch("events.calendar.anime.services.api_request")
+    def test_get_anime_schedule_bulk_anilist_skips_mal_episodes(
+        self,
+        mock_api_request,
+        mock_get_media_metadata,
+    ):
+        """Test AniList anime add the final episode without checking MAL."""
+        mock_api_request.return_value = {
+            "data": {
+                "Page": {
+                    "pageInfo": {"hasNextPage": False},
+                    "media": [
+                        {
+                            "id": 21,
+                            "idMal": None,
+                            "endDate": {"year": 2025, "month": 6, "day": 15},
+                            "episodes": 2,
+                            "airingSchedule": {
+                                "nodes": [
+                                    {"episode": 1, "airingAt": 1748736000},
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        }
+
+        result = get_anime_schedule_bulk(["21"], Sources.ANILIST.value)
+
+        self.assertEqual([episode["episode"] for episode in result["21"]], [1, 2])
+        self.assertEqual(
+            result["21"][-1]["airingAt"],
+            anilist_date_parser({"year": 2025, "month": 6, "day": 15}),
+        )
+        mock_get_media_metadata.assert_not_called()
 
     @patch("events.calendar.anime.services.get_media_metadata")
     @patch("events.calendar.anime.services.api_request")
