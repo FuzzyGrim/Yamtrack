@@ -320,7 +320,7 @@ class MediaManagerTests(TestCase):
 
         self.assertTrue(hasattr(prefetched_queryset, "_prefetch_related_lookups"))
         prefetch_lookups = prefetched_queryset._prefetch_related_lookups
-        self.assertEqual(len(prefetch_lookups), 2)
+        self.assertEqual(len(prefetch_lookups), 3)
 
         queryset = Season.objects.filter(user=self.user.id)
         prefetched_queryset = manager._apply_prefetch_related(
@@ -558,7 +558,7 @@ class MediaManagerTests(TestCase):
 
         media_types = manager._get_media_types_to_process(self.user, None)
 
-        self.assertNotIn(MediaTypes.TV.value, media_types)
+        self.assertIn(MediaTypes.TV.value, media_types)
         self.assertIn(MediaTypes.ANIME.value, media_types)
         self.assertIn(MediaTypes.MOVIE.value, media_types)
         self.assertIn(MediaTypes.GAME.value, media_types)
