@@ -9,11 +9,12 @@ from urllib.parse import urlencode
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, F, OrderBy, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.timezone import is_naive, localdate, make_aware
-from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.exceptions import ParseError, Throttled, ValidationError
 from rest_framework.response import Response
 
 from app.config import get_sources as get_media_type_sources
@@ -34,7 +35,7 @@ from app.models import (
     Sources,
     Status,
 )
-from app.providers import services
+from app.providers import services, tmdb
 from lists.models import CustomListItem
 from users.models import MediaSortChoices, MediaStatusChoices
 
@@ -175,35 +176,71 @@ def validate_media_path(
     complete=False,
     sync=False,
 ):
-    """Return a 400 response if the media type or source of a request is invalid.
+    """Raise a ParseError if the media type or source of a request is invalid.
 
     `child_type` is the season or episode media type of the nested routes, which
     are only supported for TV shows. If `source` is None it is not checked, and
-    with `sync` manual sources are rejected. Return None if the request is valid.
+    with `sync` manual sources are rejected.
     """
     if not check_valid_type(media_type, complete=complete):
-        return error_response("Unsupported media type.", HTTP.BAD_REQUEST)
+        msg = "Unsupported media type."
+        raise ParseError(msg)
 
     if child_type is not None and media_type != MediaTypes.TV.value:
-        return error_response(
+        msg = (
             f"{child_type.capitalize()}s are supported only for "
-            f"'{MediaTypes.TV.value}' media type.",
-            HTTP.BAD_REQUEST,
+            f"'{MediaTypes.TV.value}' media type."
         )
+        raise ParseError(msg)
 
     if source is None:
-        return None
+        return
 
     if sync and source == Sources.MANUAL.value:
-        return error_response("Manual items cannot be synced.", HTTP.BAD_REQUEST)
+        msg = "Manual items cannot be synced."
+        raise ParseError(msg)
 
     if not check_source_type(media_type, source):
         action = "sync" if sync else "query"
-        return error_response(
-            f"Cannot {action} `{source}` for `{media_type}` media type",
-            HTTP.BAD_REQUEST,
+        msg = f"Cannot {action} `{source}` for `{media_type}` media type"
+        raise ParseError(msg)
+
+
+def check_sync_available(cache_key):
+    """Raise a Throttled error if the media was synced a few seconds ago."""
+    ttl = cache.ttl(cache_key)
+    if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 3):
+        raise Throttled(
+            wait=ttl,
+            detail="The data was recently synced, please wait a few seconds.",
         )
-    return None
+
+    cache.delete(cache_key)
+
+
+def sync_season_episodes(metadata, media_id, source, season_number):
+    """Update the title and image of the stored episodes from the season metadata."""
+    metadata["episodes"] = tmdb.process_episodes(metadata, [])
+    existing_episodes = {
+        episode.episode_number: episode
+        for episode in Item.objects.filter(
+            source=source,
+            media_type=MediaTypes.EPISODE.value,
+            media_id=media_id,
+            season_number=season_number,
+        )
+    }
+
+    episodes_to_update = []
+    for episode_data in metadata["episodes"]:
+        episode_item = existing_episodes.get(episode_data["episode_number"])
+        if episode_item is not None:
+            episode_item.title = metadata["title"]
+            episode_item.image = episode_data["image"]
+            episodes_to_update.append(episode_item)
+
+    if episodes_to_update:
+        Item.objects.bulk_update(episodes_to_update, ["title", "image"], batch_size=100)
 
 
 def require_update_fields(validated_data):
@@ -617,53 +654,29 @@ def parse_excluded_items(request):
 def parse_limit_offset(request):
     """Parse and validate limit/offset query params.
 
-    If no error, error_response is None. On validation error, returns a DRF Response.
+    Return the (limit, offset) tuple, with the limit capped to MAX_RESULT_LIMIT.
+    Raise a ParseError if a param is not valid.
     """
     raw_limit = request.GET.get("limit")
     raw_offset = request.GET.get("offset")
 
-    if raw_limit in [None, ""]:
-        limit = 20
-    else:
-        try:
-            limit = int(raw_limit)
-        except (TypeError, ValueError):
-            return (
-                None,
-                None,
-                Response(
-                    {"detail": "Invalid limit parameter"},
-                    status=HTTP.BAD_REQUEST,
-                ),
-            )
-    if raw_offset in [None, ""]:
-        offset = 0
-    else:
-        try:
-            offset = int(raw_offset)
-        except (TypeError, ValueError):
-            return (
-                None,
-                None,
-                Response(
-                    {"detail": "Invalid offset parameter"},
-                    status=HTTP.BAD_REQUEST,
-                ),
-            )
-    if limit <= 0 or offset < 0:
-        return (
-            None,
-            None,
-            Response(
-                {
-                    "detail": "limit must be >0 and offset must be >=0",
-                },
-                status=HTTP.BAD_REQUEST,
-            ),
-        )
+    try:
+        limit = 20 if raw_limit in [None, ""] else int(raw_limit)
+    except (TypeError, ValueError) as e:
+        msg = "Invalid limit parameter"
+        raise ParseError(msg) from e
 
-    limit = min(limit, MAX_RESULT_LIMIT)
-    return limit, offset, None
+    try:
+        offset = 0 if raw_offset in [None, ""] else int(raw_offset)
+    except (TypeError, ValueError) as e:
+        msg = "Invalid offset parameter"
+        raise ParseError(msg) from e
+
+    if limit <= 0 or offset < 0:
+        msg = "limit must be >0 and offset must be >=0"
+        raise ParseError(msg)
+
+    return min(limit, MAX_RESULT_LIMIT), offset
 
 
 def parse_status_param(status):
@@ -671,9 +684,15 @@ def parse_status_param(status):
     if not status:
         return MediaStatusChoices.ALL
     try:
-        return get_media_status(int(status), reverse=True)
-    except (TypeError, ValueError):
-        return None
+        parsed = get_media_status(int(status), reverse=True)
+    except (TypeError, ValueError) as e:
+        msg = "Invalid status"
+        raise ParseError(msg) from e
+
+    if parsed is None:
+        msg = "Invalid status"
+        raise ParseError(msg)
+    return parsed
 
 
 def fetch_search_results(
