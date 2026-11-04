@@ -1,9 +1,11 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from app import config
 from app.models import (
@@ -144,6 +146,98 @@ class MediaDetailsViewTests(TestCase):
             Sources.TMDB.value,
             [1],
         )
+
+    @patch("app.providers.services.get_media_metadata")
+    @patch("app.providers.tmdb.process_episodes")
+    def test_season_details_hides_future_and_undated_episodes(
+        self,
+        mock_process_episodes,
+        mock_get_metadata,
+    ):
+        """Future episodes and trailing episodes with no date are omitted."""
+        self.user.season_details_hide_unreleased = True
+        self.user.save(update_fields=["season_details_hide_unreleased"])
+        past = (timezone.localdate() - timedelta(days=7)).isoformat()
+        future = (timezone.localdate() + timedelta(days=7)).isoformat()
+
+        mock_get_metadata.return_value = {
+            "title": "Test TV Show",
+            "media_id": "1668",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.TV.value,
+            "image": "http://example.com/image.jpg",
+            "related": {
+                "seasons": [
+                    {
+                        "season_number": 1,
+                        "season_title": "Season 1",
+                        "first_air_date": past,
+                        "max_progress": 5,
+                    },
+                    {
+                        "season_number": 2,
+                        "season_title": "Future season",
+                        "first_air_date": future,
+                        "max_progress": 1,
+                    },
+                    {
+                        "season_number": 3,
+                        "season_title": "Undated season",
+                        "first_air_date": None,
+                        "max_progress": 1,
+                    },
+                ],
+            },
+            "season/1": {
+                "title": "Season 1",
+                "media_id": "1668",
+                "media_type": MediaTypes.SEASON.value,
+                "source": Sources.TMDB.value,
+                "image": "http://example.com/season.jpg",
+                "season_number": 1,
+                "episodes": [],
+            },
+        }
+
+        def episode(number, title, air_date):
+            return {
+                "media_id": "1668",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.EPISODE.value,
+                "season_number": 1,
+                "episode_number": number,
+                "title": title,
+                "air_date": air_date,
+                "image": settings.IMG_NONE,
+            }
+
+        mock_process_episodes.return_value = [
+            episode(1, "Gap", None),
+            episode(2, "Aired", past),
+            episode(3, "Future", future),
+            episode(4, "No date", None),
+        ]
+
+        response = self.client.get(
+            reverse(
+                "season_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_id": "1668",
+                    "title": "test-tv-show",
+                    "season_number": 1,
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        titles = [episode["title"] for episode in response.context["media"]["episodes"]]
+        self.assertEqual(titles, ["Gap", "Aired"])
+        season_numbers = [
+            season["season_number"]
+            for season in response.context["tv"]["related"]["seasons"]
+        ]
+        self.assertEqual(season_numbers, [1])
 
     @patch("app.providers.services.get_media_metadata")
     def test_media_details_refreshes_missing_item_image(self, mock_get_metadata):

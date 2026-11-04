@@ -15,7 +15,7 @@ from app.models import (
     Sources,
     Status,
 )
-from events.models import Event
+from events.models import Event, SentinelDatetime
 from users.models import HomeSortChoices
 
 
@@ -304,6 +304,58 @@ class HomeViewTests(TestCase):
         self.assertFalse(
             any(media.item.media_id == "planning-with-release" for media in movies),
         )
+
+    def test_home_view_hides_caught_up_season_with_undated_future_episode(self):
+        """A caught-up season whose next episode has no date is hidden."""
+        season_item = Item.objects.create(
+            media_id="undated-future",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Undated Future",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=season_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        episode_item = Item.objects.create(
+            media_id="undated-future",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Undated Future",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+        Episode.objects.create(
+            item=episode_item,
+            related_season=season,
+            end_date=timezone.now(),
+        )
+        Event.objects.create(
+            item=season_item,
+            content_number=1,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=season_item,
+            content_number=2,
+            datetime=SentinelDatetime.max_datetime(),
+        )
+
+        response = self.client.get(reverse("home") + "?hide_unreleased=true")
+
+        self.assertEqual(response.status_code, 200)
+        in_progress_section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.IN_PROGRESS.value
+        )
+        seasons = in_progress_section["media_types"].get(MediaTypes.SEASON.value, {})
+        season_ids = [media.item.media_id for media in seasons.get("items", [])]
+        self.assertNotIn("undated-future", season_ids)
 
     def test_home_view_htmx_load_more_preserves_hide_unreleased(self):
         """Test HTMX load more applies hide unreleased filter."""

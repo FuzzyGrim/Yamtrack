@@ -161,6 +161,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    tv_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: TV Seasons
     season_enabled = models.BooleanField(default=True)
@@ -179,6 +180,8 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    season_hide_unreleased = models.BooleanField(default=False)
+    season_details_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: Movies
     movie_enabled = models.BooleanField(default=True)
@@ -197,6 +200,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    movie_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: Anime
     anime_enabled = models.BooleanField(default=True)
@@ -215,6 +219,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    anime_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: Manga
     manga_enabled = models.BooleanField(default=True)
@@ -233,6 +238,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    manga_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: Games
     game_enabled = models.BooleanField(default=True)
@@ -251,6 +257,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    game_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: Books
     book_enabled = models.BooleanField(default=True)
@@ -269,6 +276,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    book_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: Comics
     comic_enabled = models.BooleanField(default=True)
@@ -287,6 +295,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    comic_hide_unreleased = models.BooleanField(default=False)
 
     # Media type preferences: Board Games
     boardgame_enabled = models.BooleanField(default=True)
@@ -305,6 +314,7 @@ class User(AbstractUser):
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
     )
+    boardgame_hide_unreleased = models.BooleanField(default=False)
 
     # UI preferences
     clickable_media_cards = models.BooleanField(
