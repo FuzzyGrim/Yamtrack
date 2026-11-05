@@ -29,6 +29,10 @@ class BearerAuthentication(BaseAuthentication):
             raise AuthenticationFailed(msg) from None
         return (user, None)
 
+    def authenticate_header(self, request):  # noqa: ARG002
+        """Return the WWW-Authenticate header, so DRF responds with 401."""
+        return self.keyword
+
 
 class APIKeyAuthentication(BaseAuthentication):
     """API Key Authentication."""
@@ -46,3 +50,7 @@ class APIKeyAuthentication(BaseAuthentication):
             msg = "Invalid token"
             raise AuthenticationFailed(msg) from None
         return (user, None)
+
+    def authenticate_header(self, request):  # noqa: ARG002
+        """Return the WWW-Authenticate header, so DRF responds with 401."""
+        return f'APIKey header="{self.header_name}"'

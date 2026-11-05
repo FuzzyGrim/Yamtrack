@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Yamtrack API
-  version: 0.1.1
+  version: 0.1.2
   description: OpenAPI schema for Yamtrack's API
   license:
     name: GNU AFFERO GENERAL PUBLIC LICENSE v3.0
@@ -65,10 +65,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedEvents'
               examples:
-                EventsResponseExample:
+                Events:
                   value:
                     pagination:
-                      total: 2
+                      total: 1
                       limit: 20
                       offset: 0
                       next: null
@@ -88,22 +88,7 @@ paths:
                       content_number: 13
                       datetime: '2026-04-01T00:00:00Z'
                       notification_sent: false
-                    - id: 14438
-                      item:
-                        media_id: '75219'
-                        source: tmdb
-                        media_type: episode
-                        title: 9-1-1
-                        image: https://image.tmdb.org/t/p/w500/2hFiCrn4XtvvTGlZQdLzGhnaOsg.jpg
-                        season_number: 9
-                        episode_number: 16
-                      item_id: tv/tmdb/75219/9/16
-                      parent_id: tv/tmdb/75219/9
-                      content_number: 16
-                      datetime: '2026-04-03T00:00:00Z'
-                      notification_sent: false
-                  summary: Events response example
-                  description: Events response example
+                  summary: Events
           description: Successful response
         '400':
           content:
@@ -117,7 +102,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -133,7 +118,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -163,13 +148,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                TaskQueuedExample:
+                TaskQueued:
                   value:
                     detail: Task queued
-                  summary: Task queued example
-                  description: Task queued example
+                  summary: Task queued
           description: Task queued successfully
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -185,7 +169,19 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/changes_history/{media_type}/{history_id}/:
     get:
       operationId: changes_history_entry_get
@@ -227,7 +223,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChangesHistoryEntry'
               examples:
-                ChangesHistoryRecordExample:
+                ChangesHistoryRecord:
                   value:
                     id: 312
                     item_id: tv/tmdb/245703
@@ -236,8 +232,7 @@ paths:
                     - field: status
                       old_value: 3
                       new_value: 1
-                  summary: Changes history record example
-                  description: Changes history record example
+                  summary: Changes history record
           description: Successful response
         '400':
           content:
@@ -251,7 +246,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -267,7 +262,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -340,7 +335,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -356,7 +351,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -395,10 +390,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
               examples:
-                HealthyAPIExample:
+                HealthyAPI:
                   value:
                     status: ok
-                    timestamp: '2026-04-28T08:49:33.826808+00:00'
+                    timestamp: '2026-04-28T08:49:33.826808Z'
                     checks:
                       Cache(alias='default'):
                         status: ok
@@ -409,21 +404,14 @@ paths:
                       Storage(alias='default'):
                         status: ok
                         error: null
-                  summary: Healthy API example
-                  description: Healthy API example
+                  summary: Healthy API
           description: API is healthy
         '500':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiErrorResponse'
-              examples:
-                InternalServerErrorExample:
-                  value:
-                    detail: Internal server error.
-                  summary: Internal server error
-                  description: Internal server error
-          description: Internal server error
+                $ref: '#/components/schemas/HealthResponse'
+          description: One or more health checks failed
   /api/v1/info/:
     get:
       operationId: info_get
@@ -438,7 +426,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Info'
               examples:
-                InfoResponseExample:
+                Info:
                   value:
                     version: dev
                     debug: true
@@ -447,9 +435,20 @@ paths:
                     timezone: UTC
                     admin_enabled: true
                     track_time: true
-                  summary: Info response example
-                  description: Info response example
+                  summary: Info
           description: Successful response
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/lists/:
     get:
       operationId: lists_get
@@ -501,37 +500,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsResponse'
               examples:
-                RetrieveListsExample:
+                Lists:
                   value:
                     pagination:
-                      total: 2
+                      total: 1
                       limit: 20
                       offset: 0
                       next: null
                       previous: null
                     results:
                     - id: 1
-                      name: Test1
-                      description: This is a test list
+                      name: Favorites
+                      description: My favorite media
                       image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                       owner:
                         id: 1
                         username: admin
                       collaborators: []
-                      items_count: 17
+                      items_count: 1
                       latest_update: '2026-03-23T21:17:32.705709Z'
-                    - id: 2
-                      name: Test2
-                      description: Ciaoo
-                      image: https://image.tmdb.org/t/p/w500/xunXvzFlkf1GGgMkCySA9CCFumB.jpg
-                      owner:
-                        id: 1
-                        username: admin
-                      collaborators: []
-                      items_count: 27
-                      latest_update: '2026-04-08T15:58:11.652660Z'
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Lists
           description: Successful response
         '400':
           content:
@@ -545,7 +533,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -561,7 +549,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -610,13 +598,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/List'
+                $ref: '#/components/schemas/ListSummary'
               examples:
-                CreatedListExample:
+                CreatedList:
                   value:
                     id: 1
-                    name: Test1
-                    description: This is a test list
+                    name: Favorites
+                    description: My favorite media
                     image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                     owner:
                       id: 1
@@ -624,40 +612,7 @@ paths:
                     collaborators: []
                     items_count: 1
                     latest_update: '2026-03-23T21:17:32.705709Z'
-                    items:
-                      pagination:
-                        total: 1
-                        limit: 20
-                        offset: 0
-                        next: null
-                        previous: null
-                      results:
-                      - id: 2902
-                        consumption_id: 1
-                        item:
-                          media_id: '1'
-                          source: manual
-                          media_type: comic
-                          title: Comic 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
-                          season_number: null
-                          episode_number: null
-                        item_id: comic/manual/1
-                        parent_id: null
-                        tracked: true
-                        created_at: '2026-03-23T21:16:16.978287Z'
-                        score: null
-                        status: 3
-                        progress: 0
-                        progressed_at: '2026-03-23T21:16:16.965721Z'
-                        start_date: null
-                        end_date: null
-                        notes: ''
-                        lists:
-                        - list_id: 1
-                          list_item_id: 16
-                  summary: Created list example
-                  description: Created list example
+                  summary: Created list
           description: Successfully created
         '400':
           content:
@@ -671,7 +626,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -687,7 +642,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -736,33 +691,51 @@ paths:
         schema:
           type: string
           enum:
+          - added
           - added_asc
           - added_desc
+          - end_date
           - end_date_asc
           - end_date_desc
+          - episode_number
           - episode_number_asc
           - episode_number_desc
+          - id
           - id_asc
           - id_desc
-          - image_asc
-          - image_desc
+          - itemid
           - itemid_asc
           - itemid_desc
+          - media_id
           - media_id_asc
           - media_id_desc
+          - media_type
           - media_type_asc
           - media_type_desc
+          - progress
+          - progress_asc
+          - progress_desc
+          - score
+          - score_asc
+          - score_desc
+          - season_number
           - season_number_asc
           - season_number_desc
+          - source
           - source_asc
           - source_desc
+          - start_date
           - start_date_asc
           - start_date_desc
+          - title
           - title_asc
           - title_desc
+          - updated
           - updated_asc
           - updated_desc
-        description: Sort field and order.
+        description: 'Sort field, optionally followed by `_asc` or `_desc` (default:
+          ascending). Episodes only support a subset of the sorts: added, end_date,
+          episode_number, id, itemid, season_number, title.'
       tags:
       - lists
       security:
@@ -775,11 +748,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/List'
               examples:
-                RetrievedListExample:
+                List:
                   value:
                     id: 1
-                    name: Test1
-                    description: This is a test list
+                    name: Favorites
+                    description: My favorite media
                     image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                     owner:
                       id: 1
@@ -795,8 +768,7 @@ paths:
                         next: null
                         previous: null
                       results: []
-                  summary: Retrieved list example
-                  description: Retrieved list example
+                  summary: List
           description: Successful response
         '400':
           content:
@@ -810,7 +782,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -826,6 +798,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -877,13 +861,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/List'
+                $ref: '#/components/schemas/ListSummary'
               examples:
-                RetrievedListExample:
+                UpdatedList:
                   value:
                     id: 1
-                    name: Test1
-                    description: This is a test list
+                    name: Favorites
+                    description: My favorite media
                     image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
                     owner:
                       id: 1
@@ -891,16 +875,7 @@ paths:
                     collaborators: []
                     items_count: 1
                     latest_update: '2026-03-23T21:17:32.705709Z'
-                    items:
-                      pagination:
-                        total: 0
-                        limit: 20
-                        offset: 0
-                        next: null
-                        previous: null
-                      results: []
-                  summary: Retrieved list example
-                  description: Retrieved list example
+                  summary: Updated list
           description: Successful response
         '400':
           content:
@@ -914,7 +889,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -930,6 +905,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -974,7 +961,7 @@ paths:
       responses:
         '204':
           description: List deleted successfully
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -990,6 +977,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -1051,33 +1050,51 @@ paths:
         schema:
           type: string
           enum:
+          - added
           - added_asc
           - added_desc
+          - end_date
           - end_date_asc
           - end_date_desc
+          - episode_number
           - episode_number_asc
           - episode_number_desc
+          - id
           - id_asc
           - id_desc
-          - image_asc
-          - image_desc
+          - itemid
           - itemid_asc
           - itemid_desc
+          - media_id
           - media_id_asc
           - media_id_desc
+          - media_type
           - media_type_asc
           - media_type_desc
+          - progress
+          - progress_asc
+          - progress_desc
+          - score
+          - score_asc
+          - score_desc
+          - season_number
           - season_number_asc
           - season_number_desc
+          - source
           - source_asc
           - source_desc
+          - start_date
           - start_date_asc
           - start_date_desc
+          - title
           - title_asc
           - title_desc
+          - updated
           - updated_asc
           - updated_desc
-        description: Sort field and order.
+        description: 'Sort field, optionally followed by `_asc` or `_desc` (default:
+          ascending). Episodes only support a subset of the sorts: added, end_date,
+          episode_number, id, itemid, season_number, title.'
       tags:
       - lists
       security:
@@ -1090,7 +1107,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrievedListItemsExample:
+                ListItems:
                   value:
                     pagination:
                       total: 1
@@ -1123,8 +1140,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 16
-                  summary: Retrieved list items example
-                  description: Retrieved list items example
+                  summary: List items
           description: Successful response
         '400':
           content:
@@ -1138,7 +1154,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -1154,6 +1170,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -1207,9 +1235,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Media'
+                $ref: '#/components/schemas/CompleteListItem'
               examples:
-                RetrievedListItemExample:
+                SeasonDetails:
                   value:
                     id: 313
                     media_id: '105248'
@@ -1220,8 +1248,7 @@ paths:
                     max_progress: 10
                     image: https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg
                     synopsis: In a dystopia riddled with corruption and cybernetic
-                      implants, a talented but reckless street kid strives to become
-                      a mercenary outlaw — an edgerunner.
+                      implants...
                     genres:
                     - Animation
                     - Action & Adventure
@@ -1260,6 +1287,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt12590266/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/384541
+                    time_to_beat: null
                     item_id: tv/tmdb/105248/1
                     parent_id: tv/tmdb/105248
                     tracked: true
@@ -1277,8 +1308,7 @@ paths:
                     lists:
                     - list_id: 1
                       list_item_id: 1
-                  summary: Retrieved list item example
-                  description: Retrieved list item example
+                  summary: Season details
           description: Successful response
         '400':
           content:
@@ -1292,7 +1322,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -1308,6 +1338,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -1370,7 +1412,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -1386,6 +1428,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -1474,33 +1528,51 @@ paths:
         schema:
           type: string
           enum:
+          - added
           - added_asc
           - added_desc
+          - end_date
           - end_date_asc
           - end_date_desc
+          - episode_number
           - episode_number_asc
           - episode_number_desc
+          - id
           - id_asc
           - id_desc
-          - image_asc
-          - image_desc
+          - itemid
           - itemid_asc
           - itemid_desc
+          - media_id
           - media_id_asc
           - media_id_desc
+          - media_type
           - media_type_asc
           - media_type_desc
+          - progress
+          - progress_asc
+          - progress_desc
+          - score
+          - score_asc
+          - score_desc
+          - season_number
           - season_number_asc
           - season_number_desc
+          - source
           - source_asc
           - source_desc
+          - start_date
           - start_date_asc
           - start_date_desc
+          - title
           - title_asc
           - title_desc
+          - updated
           - updated_asc
           - updated_desc
-        description: Sort field and order.
+        description: 'Sort field, optionally followed by `_asc` or `_desc` (default:
+          ascending). Episodes only support a subset of the sorts: added, end_date,
+          episode_number, id, itemid, season_number, title.'
       - in: query
         name: status
         schema:
@@ -1525,7 +1597,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrievedMediaListExample:
+                MediaList:
                   value:
                     pagination:
                       total: 1
@@ -1558,8 +1630,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 10
-                  summary: Retrieved media list example
-                  description: Retrieved media list example
+                  summary: Media list
           description: Successful response
         '400':
           content:
@@ -1573,7 +1644,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -1589,7 +1660,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -1649,33 +1720,51 @@ paths:
         schema:
           type: string
           enum:
+          - added
           - added_asc
           - added_desc
+          - end_date
           - end_date_asc
           - end_date_desc
+          - episode_number
           - episode_number_asc
           - episode_number_desc
+          - id
           - id_asc
           - id_desc
-          - image_asc
-          - image_desc
+          - itemid
           - itemid_asc
           - itemid_desc
+          - media_id
           - media_id_asc
           - media_id_desc
+          - media_type
           - media_type_asc
           - media_type_desc
+          - progress
+          - progress_asc
+          - progress_desc
+          - score
+          - score_asc
+          - score_desc
+          - season_number
           - season_number_asc
           - season_number_desc
+          - source
           - source_asc
           - source_desc
+          - start_date
           - start_date_asc
           - start_date_desc
+          - title
           - title_asc
           - title_desc
+          - updated
           - updated_asc
           - updated_desc
-        description: Sort field and order.
+        description: 'Sort field, optionally followed by `_asc` or `_desc` (default:
+          ascending). Episodes only support a subset of the sorts: added, end_date,
+          episode_number, id, itemid, season_number, title.'
       - in: query
         name: status
         schema:
@@ -1700,7 +1789,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrievedMediaListExample:
+                MediaList:
                   value:
                     pagination:
                       total: 1
@@ -1733,8 +1822,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 10
-                  summary: Retrieved media list example
-                  description: Retrieved media list example
+                  summary: Media list
           description: Successful response
         '400':
           content:
@@ -1748,7 +1836,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -1764,7 +1852,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -1837,7 +1925,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Media'
               examples:
-                TrackedMediaItemExample:
+                TrackedMedia:
                   value:
                     id: 3599
                     consumption_id: 322
@@ -1861,8 +1949,7 @@ paths:
                     end_date: null
                     notes: ''
                     lists: []
-                  summary: Tracked media item example
-                  description: Tracked media item example
+                  summary: Tracked media
           description: Media item tracked successfully
         '400':
           content:
@@ -1876,7 +1963,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -1892,7 +1979,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -1905,6 +1992,18 @@ paths:
                   summary: Not found example
                   description: Not found example
           description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                AlreadyTrackedExample:
+                  value:
+                    detail: Conflict. Breaking Bad is already tracked.
+                  summary: Already tracked example
+                  description: Already tracked example
+          description: Conflict
         '500':
           content:
             application/json:
@@ -1958,7 +2057,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -1972,7 +2071,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                MediaDetails:
                   value:
                     id: 3599
                     media_id: '12345'
@@ -2026,6 +2125,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt0068152/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/78290
+                    time_to_beat: null
                     item_id: tv/tmdb/12345
                     parent_id: null
                     tracked: true
@@ -2041,8 +2144,7 @@ paths:
                       end_date: null
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Media details
           description: Successful response
         '400':
           content:
@@ -2056,7 +2158,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -2072,7 +2174,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -2137,7 +2239,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -2156,7 +2258,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                MediaDetails:
                   value:
                     id: 3599
                     media_id: '12345'
@@ -2210,6 +2312,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt0068152/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/78290
+                    time_to_beat: null
                     item_id: tv/tmdb/12345
                     parent_id: null
                     tracked: true
@@ -2225,8 +2331,7 @@ paths:
                       end_date: null
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Media details
           description: Successful response
         '400':
           content:
@@ -2240,7 +2345,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -2256,7 +2361,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -2321,7 +2426,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -2343,7 +2448,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -2359,7 +2464,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -2431,7 +2536,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -2445,50 +2550,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                SeasonDetails:
                   value:
-                    id: 3599
-                    media_id: '12345'
+                    id: 313
+                    media_id: '105248'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/105248/season/1
+                    media_type: season
+                    title: 'Cyberpunk: Edgerunners'
+                    max_progress: 10
+                    image: https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg
+                    synopsis: In a dystopia riddled with corruption and cybernetic
+                      implants...
                     genres:
+                    - Animation
+                    - Action & Adventure
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    - Sci-Fi & Fantasy
+                    score: 8.3
+                    score_count: 688
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
+                      first_air_date: '2022-09-12'
+                      last_air_date: '2022-09-13'
+                      episodes: 10
+                      runtime: 26m
+                      total_runtime: 4h 25m
+                      tvdb_id: 384541
                     related:
-                      seasons:
+                      episodes:
                       - id: null
                         consumption_id: null
                         item:
-                          media_id: '12345'
+                          media_id: '105248'
                           source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
+                          media_type: episode
+                          title: Let You Down
+                          image: https://image.tmdb.org/t/p/original/egBHU73t79tMg2qrqj3aJof1ibS.jpg
                           season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
+                          episode_number: 1
+                        item_id: tv/tmdb/105248/1/1
+                        parent_id: tv/tmdb/105248/1
                         tracked: false
                         created_at: null
                         score: null
@@ -2499,23 +2600,28 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt12590266/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/384541
+                    time_to_beat: null
+                    item_id: tv/tmdb/105248/1
+                    parent_id: tv/tmdb/105248
                     tracked: true
                     consumptions_number: 1
                     consumptions:
-                    - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                    - consumption_id: 3
+                      created: '2026-01-15T15:33:03.302349Z'
                       score: null
-                      progress: 0
-                      progressed_at: null
-                      status: 0
-                      start_date: null
-                      end_date: null
+                      progress: 1
+                      progressed_at: '2026-01-15T20:13:00Z'
+                      status: 1
+                      start_date: '2025-09-17T09:40:00Z'
+                      end_date: '2026-01-15T20:13:00Z'
                       notes: ''
-                    lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                    lists:
+                    - list_id: 1
+                      list_item_id: 1
+                  summary: Season details
           description: Successful response
         '400':
           content:
@@ -2529,7 +2635,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -2545,7 +2651,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -2616,7 +2722,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -2635,7 +2741,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Media'
               examples:
-                TrackedSeasonExample:
+                TrackedSeason:
                   value:
                     id: 3600
                     consumption_id: 323
@@ -2659,8 +2765,7 @@ paths:
                     end_date: null
                     notes: ''
                     lists: []
-                  summary: Tracked season example
-                  description: Tracked season example
+                  summary: Tracked season
           description: Season tracked successfully
         '400':
           content:
@@ -2674,7 +2779,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -2690,7 +2795,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -2711,7 +2816,7 @@ paths:
               examples:
                 AlreadyTrackedExample:
                   value:
-                    detail: Conflict. Season is already tracked.
+                    detail: Conflict. Breaking Bad is already tracked.
                   summary: Already tracked example
                   description: Already tracked example
           description: Conflict
@@ -2773,7 +2878,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -2792,50 +2897,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteMedia'
               examples:
-                RetrievedMediaDetailsExample:
+                SeasonDetails:
                   value:
-                    id: 3599
-                    media_id: '12345'
+                    id: 313
+                    media_id: '105248'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/105248/season/1
+                    media_type: season
+                    title: 'Cyberpunk: Edgerunners'
+                    max_progress: 10
+                    image: https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg
+                    synopsis: In a dystopia riddled with corruption and cybernetic
+                      implants...
                     genres:
+                    - Animation
+                    - Action & Adventure
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    - Sci-Fi & Fantasy
+                    score: 8.3
+                    score_count: 688
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
+                      first_air_date: '2022-09-12'
+                      last_air_date: '2022-09-13'
+                      episodes: 10
+                      runtime: 26m
+                      total_runtime: 4h 25m
+                      tvdb_id: 384541
                     related:
-                      seasons:
+                      episodes:
                       - id: null
                         consumption_id: null
                         item:
-                          media_id: '12345'
+                          media_id: '105248'
                           source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
+                          media_type: episode
+                          title: Let You Down
+                          image: https://image.tmdb.org/t/p/original/egBHU73t79tMg2qrqj3aJof1ibS.jpg
                           season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
+                          episode_number: 1
+                        item_id: tv/tmdb/105248/1/1
+                        parent_id: tv/tmdb/105248/1
                         tracked: false
                         created_at: null
                         score: null
@@ -2846,23 +2947,28 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt12590266/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/384541
+                    time_to_beat: null
+                    item_id: tv/tmdb/105248/1
+                    parent_id: tv/tmdb/105248
                     tracked: true
                     consumptions_number: 1
                     consumptions:
-                    - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                    - consumption_id: 3
+                      created: '2026-01-15T15:33:03.302349Z'
                       score: null
-                      progress: 0
-                      progressed_at: null
-                      status: 0
-                      start_date: null
-                      end_date: null
+                      progress: 1
+                      progressed_at: '2026-01-15T20:13:00Z'
+                      status: 1
+                      start_date: '2025-09-17T09:40:00Z'
+                      end_date: '2026-01-15T20:13:00Z'
                       notes: ''
-                    lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                    lists:
+                    - list_id: 1
+                      list_item_id: 1
+                  summary: Season details
           description: Successful response
         '400':
           content:
@@ -2876,7 +2982,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -2892,7 +2998,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -2963,7 +3069,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -2985,7 +3091,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -3001,7 +3107,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -3079,7 +3185,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -3093,77 +3199,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteEpisode'
               examples:
-                RetrievedMediaDetailsExample:
+                EpisodeDetails:
                   value:
-                    id: 3599
+                    id: 3612
                     media_id: '12345'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/12345/season/1/episode/1
+                    media_type: episode
+                    title: Destination Unknown
+                    max_progress: 1
+                    image: https://image.tmdb.org/t/p/original/9xX4Ycm7vN0Qb4JtCjGfC2iC2nH.jpg
+                    synopsis: Van der Valk investigates a disappearance...
                     genres:
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    score: 7.0
+                    score_count: 3
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
-                    related:
-                      seasons:
-                      - id: null
-                        consumption_id: null
-                        item:
-                          media_id: '12345'
-                          source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
-                          season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
-                        tracked: false
-                        created_at: null
-                        score: null
-                        status: null
-                        progress: null
-                        progressed_at: null
-                        start_date: null
-                        end_date: null
-                        notes: null
-                        lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                      air_date: '1972-09-13'
+                      episode_number: 1
+                      season_number: 1
+                      runtime: 50
+                      episode_type: standard
+                      crew: []
+                      guest_stars: []
+                    related: {}
+                    item_id: tv/tmdb/12345/1/1
+                    parent_id: tv/tmdb/12345/1
                     tracked: true
                     consumptions_number: 1
                     consumptions:
                     - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                      created: null
                       score: null
-                      progress: 0
+                      progress: 1
                       progressed_at: null
-                      status: 0
+                      status: 3
                       start_date: null
-                      end_date: null
+                      end_date: '2026-05-11T17:20:38Z'
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Episode details
           description: Successful response
         '400':
           content:
@@ -3177,7 +3252,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -3193,7 +3268,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -3270,7 +3345,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -3289,7 +3364,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Episode'
               examples:
-                TrackedEpisodeExample:
+                TrackedEpisode:
                   value:
                     id: 3601
                     consumption_id: 324
@@ -3313,8 +3388,7 @@ paths:
                     end_date: '2026-05-11T00:00:00Z'
                     notes: null
                     lists: []
-                  summary: Tracked episode example
-                  description: Tracked episode example
+                  summary: Tracked episode
           description: Episode tracked successfully
         '400':
           content:
@@ -3328,7 +3402,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -3344,7 +3418,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -3421,7 +3495,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -3440,77 +3514,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompleteEpisode'
               examples:
-                RetrievedMediaDetailsExample:
+                EpisodeDetails:
                   value:
-                    id: 3599
+                    id: 3612
                     media_id: '12345'
                     source: tmdb
-                    source_url: https://www.themoviedb.org/tv/12345
-                    media_type: tv
-                    title: Van der Valk
-                    max_progress: 32
-                    image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
-                    synopsis: Van der Valk is a British television...
+                    source_url: https://www.themoviedb.org/tv/12345/season/1/episode/1
+                    media_type: episode
+                    title: Destination Unknown
+                    max_progress: 1
+                    image: https://image.tmdb.org/t/p/original/9xX4Ycm7vN0Qb4JtCjGfC2iC2nH.jpg
+                    synopsis: Van der Valk investigates a disappearance...
                     genres:
                     - Drama
-                    score: 6.2
-                    score_count: 10
+                    score: 7.0
+                    score_count: 3
                     details:
-                      format: TV
-                      first_air_date: '1972-09-13'
-                      last_air_date: '1992-02-19'
-                      status: Ended
-                      seasons: 5
-                      episodes: 32
-                      runtime: 50m
-                      studios: null
-                      country: null
-                      languages:
-                      - English
-                      tvdb_id: 78290
-                      last_episode_season: 5
-                      next_episode_season: null
-                    related:
-                      seasons:
-                      - id: null
-                        consumption_id: null
-                        item:
-                          media_id: '12345'
-                          source: tmdb
-                          media_type: season
-                          title: Season 1
-                          image: https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg
-                          season_number: 1
-                          episode_number: null
-                        item_id: tv/tmdb/12345/1
-                        parent_id: tv/tmdb/12345
-                        tracked: false
-                        created_at: null
-                        score: null
-                        status: null
-                        progress: null
-                        progressed_at: null
-                        start_date: null
-                        end_date: null
-                        notes: null
-                        lists: []
-                    item_id: tv/tmdb/12345
-                    parent_id: null
+                      air_date: '1972-09-13'
+                      episode_number: 1
+                      season_number: 1
+                      runtime: 50
+                      episode_type: standard
+                      crew: []
+                      guest_stars: []
+                    related: {}
+                    item_id: tv/tmdb/12345/1/1
+                    parent_id: tv/tmdb/12345/1
                     tracked: true
                     consumptions_number: 1
                     consumptions:
                     - consumption_id: 322
-                      created: '2026-05-11T17:20:38.252187Z'
+                      created: null
                       score: null
-                      progress: 0
+                      progress: 1
                       progressed_at: null
-                      status: 0
+                      status: 3
                       start_date: null
-                      end_date: null
+                      end_date: '2026-05-11T17:20:38Z'
                       notes: ''
                     lists: []
-                  summary: Retrieved media details example
-                  description: Retrieved media details example
+                  summary: Episode details
           description: Successful response
         '400':
           content:
@@ -3524,7 +3567,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -3540,7 +3583,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -3617,7 +3660,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -3639,7 +3682,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -3655,7 +3698,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -3747,7 +3790,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -3761,10 +3804,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedChangesHistoryResponse'
               examples:
-                ExampleResponse:
+                EpisodeChangesHistory:
                   value:
                     pagination:
-                      total: 2
+                      total: 1
                       limit: 20
                       offset: 0
                       next: null
@@ -3777,14 +3820,7 @@ paths:
                       - field: end_date
                         old_value: null
                         new_value: '2026-01-18T15:15:00Z'
-                    - id: 112
-                      item_id: tv/tmdb/245703/1/1
-                      timestamp: '2026-01-15T15:33:03.502096Z'
-                      changes:
-                      - field: end_date
-                        old_value: null
-                        new_value: '2025-09-17T09:41:00Z'
-                  summary: Example response
+                  summary: Episode changes history
           description: Successful response
         '400':
           content:
@@ -3798,7 +3834,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -3814,7 +3850,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -3906,7 +3942,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -3920,7 +3956,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedHistoryResponse'
               examples:
-                ExampleResponse:
+                ConsumptionHistory:
                   value:
                     pagination:
                       total: 1
@@ -3929,16 +3965,16 @@ paths:
                       next: null
                       previous: null
                     results:
-                    - consumption_id: 138
-                      created: '2026-03-19T10:31:55.759835Z'
-                      score: null
-                      progress: 23
-                      progressed_at: '2026-03-19T10:31:00Z'
-                      status: 3
+                    - consumption_id: 312
+                      created: '2026-03-19T10:31:55.747255Z'
+                      score: 10.0
+                      progress: 26
+                      progressed_at: '2026-03-19T10:41:00Z'
+                      status: 1
                       start_date: '2026-03-19T10:31:00Z'
-                      end_date: '2026-03-19T10:31:00Z'
-                      notes: ''
-                  summary: Example response
+                      end_date: '2026-03-19T10:41:00Z'
+                      notes: Watched with friends
+                  summary: Consumption history
           description: Successful response
         '400':
           content:
@@ -3952,7 +3988,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -3968,7 +4004,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -4052,7 +4088,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -4066,7 +4102,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -4076,9 +4112,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -4092,7 +4127,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -4108,7 +4143,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -4191,7 +4226,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -4210,7 +4245,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -4220,9 +4255,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -4236,7 +4270,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -4252,7 +4286,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -4335,7 +4369,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -4357,7 +4391,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -4373,7 +4407,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -4465,7 +4499,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -4479,7 +4513,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsMinimizedResponse'
               examples:
-                RetrieveListsExample:
+                MediaLists:
                   value:
                     pagination:
                       total: 1
@@ -4490,8 +4524,7 @@ paths:
                     results:
                     - list_id: 2
                       list_item_id: 28
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Media lists
           description: Successful response
         '400':
           content:
@@ -4505,7 +4538,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -4521,7 +4554,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -4605,7 +4638,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -4617,14 +4650,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListMinimized'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ListMinimized'
               examples:
-                SeasonAddedToListExample:
+                AddedToTheList:
                   value:
-                    list_id: 2
+                  - list_id: 2
                     list_item_id: 28
-                  summary: Season added to list example
-                  description: Season added to list example
+                  summary: Added to the list
           description: Season added to list successfully
         '400':
           content:
@@ -4638,7 +4672,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -4654,6 +4688,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -4737,7 +4783,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -4759,7 +4805,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -4775,6 +4821,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -4853,7 +4911,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -4867,11 +4925,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                MetadataSyncAcceptedExample:
+                MetadataSynced:
                   value:
                     detail: Metadata synced successfully.
-                  summary: Metadata sync accepted example
-                  description: Metadata sync accepted example
+                  summary: Metadata synced
           description: Accepted
         '400':
           content:
@@ -4885,7 +4942,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -4901,7 +4958,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -4999,7 +5056,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5013,39 +5070,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedChangesHistoryResponse'
               examples:
-                ExampleResponse:
+                SeasonChangesHistory:
                   value:
                     pagination:
-                      total: 4
+                      total: 2
                       limit: 20
                       offset: 0
                       next: null
                       previous: null
                     results:
-                    - id: 144
-                      item_id: tv/tmdb/245703/1
-                      timestamp: '2026-01-18T15:21:02.888039Z'
-                      changes:
-                      - field: status
-                        old_value: 3
-                        new_value: 1
                     - id: 143
                       item_id: tv/tmdb/245703/1
                       timestamp: '2026-01-18T15:15:10.443874Z'
                       changes:
                       - field: notes
                         old_value: ''
-                        new_value: Ciccio bomba
+                        new_value: Great season
                       - field: score
                         old_value: 9.0
-                        new_value: 2.0
-                    - id: 142
-                      item_id: tv/tmdb/245703/1
-                      timestamp: '2026-01-18T15:10:47.709781Z'
-                      changes:
-                      - field: score
-                        old_value: null
-                        new_value: 9.0
+                        new_value: 8.0
                     - id: 9
                       item_id: tv/tmdb/245703/1
                       timestamp: '2025-09-17T09:41:00Z'
@@ -5056,7 +5099,7 @@ paths:
                       - field: notes
                         old_value: null
                         new_value: ''
-                  summary: Example response
+                  summary: Season changes history
           description: Successful response
         '400':
           content:
@@ -5070,7 +5113,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -5086,7 +5129,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -5158,7 +5201,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5172,12 +5215,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cover'
               examples:
-                CoverExample:
+                Cover:
                   value:
                     image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
                     custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Cover example
-                  description: Cover example
+                  summary: Cover
           description: Successful response
         '400':
           content:
@@ -5191,7 +5233,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -5207,7 +5249,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -5278,7 +5320,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5298,12 +5340,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cover'
               examples:
-                CoverExample:
+                Cover:
                   value:
                     image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
                     custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Cover example
-                  description: Cover example
+                  summary: Cover
           description: Successful response
         '400':
           content:
@@ -5317,7 +5358,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -5333,7 +5374,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -5404,7 +5445,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5418,12 +5459,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cover'
               examples:
-                CoverExample:
+                Cover:
                   value:
                     image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
                     custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Cover example
-                  description: Cover example
+                  summary: Cover
           description: Successful response
         '400':
           content:
@@ -5437,7 +5477,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -5453,7 +5493,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -5539,7 +5579,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5553,7 +5593,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedEpisodes'
               examples:
-                ExampleResponse:
+                SeasonEpisodes:
                   value:
                     pagination:
                       total: 1
@@ -5584,7 +5624,7 @@ paths:
                       end_date: null
                       notes: null
                       lists: []
-                  summary: Example response
+                  summary: Season episodes
           description: Successful response
         '400':
           content:
@@ -5598,7 +5638,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -5614,7 +5654,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -5700,7 +5740,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5714,7 +5754,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedHistoryResponse'
               examples:
-                ExampleResponse:
+                ConsumptionHistory:
                   value:
                     pagination:
                       total: 1
@@ -5723,16 +5763,16 @@ paths:
                       next: null
                       previous: null
                     results:
-                    - consumption_id: 138
-                      created: '2026-03-19T10:31:55.759835Z'
-                      score: null
-                      progress: 23
-                      progressed_at: '2026-03-19T10:31:00Z'
-                      status: 3
+                    - consumption_id: 312
+                      created: '2026-03-19T10:31:55.747255Z'
+                      score: 10.0
+                      progress: 26
+                      progressed_at: '2026-03-19T10:41:00Z'
+                      status: 1
                       start_date: '2026-03-19T10:31:00Z'
-                      end_date: '2026-03-19T10:31:00Z'
-                      notes: ''
-                  summary: Example response
+                      end_date: '2026-03-19T10:41:00Z'
+                      notes: Watched with friends
+                  summary: Consumption history
           description: Successful response
         '400':
           content:
@@ -5746,7 +5786,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -5762,7 +5802,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -5840,7 +5880,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5854,7 +5894,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -5864,9 +5904,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -5880,7 +5919,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -5896,7 +5935,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -5973,7 +6012,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -5992,7 +6031,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -6002,9 +6041,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -6018,7 +6056,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6034,7 +6072,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -6111,7 +6149,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -6133,7 +6171,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6149,7 +6187,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -6221,7 +6259,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       - in: query
         name: type
@@ -6247,7 +6285,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaImagesResponse'
               examples:
-                RetrieveImagesExample:
+                Images:
                   value:
                     posters:
                     - image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
@@ -6256,6 +6294,7 @@ paths:
                       height: 3000
                       aspect_ratio: 0.667
                       language: en
+                      source: tmdb
                       vote_average: 5.8
                       vote_count: 20
                     backdrops:
@@ -6265,12 +6304,12 @@ paths:
                       height: 2160
                       aspect_ratio: 1.778
                       language: null
+                      source: tmdb
                       vote_average: 5.6
                       vote_count: 12
                     screenshots: []
                     logos: []
-                  summary: Retrieve images example
-                  description: Retrieve images example
+                  summary: Images
           description: Successful response
         '400':
           content:
@@ -6284,7 +6323,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6300,7 +6339,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -6386,7 +6425,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -6400,7 +6439,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsMinimizedResponse'
               examples:
-                RetrieveListsExample:
+                MediaLists:
                   value:
                     pagination:
                       total: 1
@@ -6411,8 +6450,7 @@ paths:
                     results:
                     - list_id: 2
                       list_item_id: 28
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Media lists
           description: Successful response
         '400':
           content:
@@ -6426,7 +6464,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6442,7 +6480,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -6520,7 +6558,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -6532,14 +6570,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListMinimized'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ListMinimized'
               examples:
-                SeasonAddedToListExample:
+                AddedToTheList:
                   value:
-                    list_id: 2
+                  - list_id: 2
                     list_item_id: 28
-                  summary: Season added to list example
-                  description: Season added to list example
+                  summary: Added to the list
           description: Season added to list successfully
         '400':
           content:
@@ -6553,7 +6592,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6569,6 +6608,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -6646,7 +6697,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -6668,7 +6719,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6684,6 +6735,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -6762,7 +6825,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -6776,7 +6839,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/WatchProvidersResponse'
               examples:
-                RetrieveWatchProvidersExample:
+                WatchProviders:
                   value:
                     region: US
                     link: https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US
@@ -6790,8 +6853,7 @@ paths:
                       provider_name: Apple TV
                       image: https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg
                       display_priority: 4
-                  summary: Retrieve watch providers example
-                  description: Retrieve watch providers example
+                  summary: Watch providers
           description: Successful response
         '400':
           content:
@@ -6805,7 +6867,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6821,7 +6883,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -6893,7 +6955,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -6907,11 +6969,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                MetadataSyncAcceptedExample:
+                MetadataSynced:
                   value:
                     detail: Metadata synced successfully.
-                  summary: Metadata sync accepted example
-                  description: Metadata sync accepted example
+                  summary: Metadata synced
           description: Accepted
         '400':
           content:
@@ -6925,7 +6986,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -6941,7 +7002,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7050,7 +7111,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7064,7 +7125,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCast'
               examples:
-                RetrieveCastExample:
+                Cast:
                   value:
                     pagination:
                       total: 1
@@ -7079,8 +7140,7 @@ paths:
                       image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
                       order: 0
                       episode_count: null
-                  summary: Retrieve cast example
-                  description: Retrieve cast example
+                  summary: Cast
           description: Successful response
         '400':
           content:
@@ -7094,7 +7154,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -7110,7 +7170,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7190,7 +7250,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7204,7 +7264,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedChangesHistoryResponse'
               examples:
-                ExampleResponse:
+                MediaChangesHistory:
                   value:
                     pagination:
                       total: 2
@@ -7233,7 +7293,7 @@ paths:
                       - field: notes
                         old_value: null
                         new_value: ''
-                  summary: Example response
+                  summary: Media changes history
           description: Successful response
         '400':
           content:
@@ -7247,7 +7307,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -7263,7 +7323,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7343,7 +7403,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7357,7 +7417,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCredits'
               examples:
-                RetrieveCharactersExample:
+                Characters:
                   value:
                     pagination:
                       total: 1
@@ -7372,8 +7432,7 @@ paths:
                       image: null
                       issue_count: 52
                       source_url: https://comicvine.gamespot.com/batman/4005-1699/
-                  summary: Retrieve characters example
-                  description: Retrieve characters example
+                  summary: Characters
           description: Successful response
         '400':
           content:
@@ -7387,7 +7446,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -7403,7 +7462,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7493,7 +7552,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7507,7 +7566,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCompanies'
               examples:
-                RetrieveCompaniesExample:
+                Companies:
                   value:
                     pagination:
                       total: 1
@@ -7522,8 +7581,7 @@ paths:
                       roles:
                       - developer
                       - publisher
-                  summary: Retrieve companies example
-                  description: Retrieve companies example
+                  summary: Companies
           description: Successful response
         '400':
           content:
@@ -7537,7 +7595,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -7553,7 +7611,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7619,7 +7677,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7633,12 +7691,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cover'
               examples:
-                CoverExample:
+                Cover:
                   value:
                     image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
                     custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Cover example
-                  description: Cover example
+                  summary: Cover
           description: Successful response
         '400':
           content:
@@ -7652,7 +7709,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -7668,7 +7725,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7733,7 +7790,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7753,12 +7810,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cover'
               examples:
-                CoverExample:
+                Cover:
                   value:
                     image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
                     custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Cover example
-                  description: Cover example
+                  summary: Cover
           description: Successful response
         '400':
           content:
@@ -7772,7 +7828,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -7788,7 +7844,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7853,7 +7909,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7867,12 +7923,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cover'
               examples:
-                CoverExample:
+                Cover:
                   value:
                     image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
                     custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Cover example
-                  description: Cover example
+                  summary: Cover
           description: Successful response
         '400':
           content:
@@ -7886,7 +7941,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -7902,7 +7957,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -7982,7 +8037,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -7996,7 +8051,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCredits'
               examples:
-                RetrieveCreatorsExample:
+                Creators:
                   value:
                     pagination:
                       total: 1
@@ -8011,8 +8066,7 @@ paths:
                       image: null
                       issue_count: 52
                       source_url: https://comicvine.gamespot.com/scott-snyder/4040-40439/
-                  summary: Retrieve creators example
-                  description: Retrieve creators example
+                  summary: Creators
           description: Successful response
         '400':
           content:
@@ -8026,7 +8080,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8042,7 +8096,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -8128,7 +8182,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -8142,7 +8196,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCrew'
               examples:
-                RetrieveCrewExample:
+                Crew:
                   value:
                     pagination:
                       total: 1
@@ -8158,8 +8212,7 @@ paths:
                       - Director
                       image: https://image.tmdb.org/t/p/w500/2wfpFCe3nT4d3RnmL6kSHnYWJ6j.jpg
                       episode_count: null
-                  summary: Retrieve crew example
-                  description: Retrieve crew example
+                  summary: Crew
           description: Successful response
         '400':
           content:
@@ -8173,7 +8226,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8189,7 +8242,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -8269,7 +8322,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -8283,7 +8336,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedHistoryResponse'
               examples:
-                ExampleResponse:
+                ConsumptionHistory:
                   value:
                     pagination:
                       total: 1
@@ -8300,9 +8353,8 @@ paths:
                       status: 1
                       start_date: '2026-03-19T10:31:00Z'
                       end_date: '2026-03-19T10:41:00Z'
-                      notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                      notes: Watched with friends
+                  summary: Consumption history
           description: Successful response
         '400':
           content:
@@ -8316,7 +8368,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8332,7 +8384,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -8404,7 +8456,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -8418,7 +8470,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -8428,9 +8480,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -8444,7 +8495,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8460,7 +8511,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -8531,7 +8582,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -8550,7 +8601,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/History'
               examples:
-                ExampleResponse:
+                Consumption:
                   value:
                     consumption_id: 312
                     created: '2026-03-19T10:31:55.747255Z'
@@ -8560,9 +8611,8 @@ paths:
                     status: 1
                     start_date: '2026-03-19T10:31:00Z'
                     end_date: '2026-03-19T10:41:00Z'
-                    notes: aSDASDF
-                  summary: Example response
-                  description: Example response
+                    notes: Watched with friends
+                  summary: Consumption
           description: Successful response
         '400':
           content:
@@ -8576,7 +8626,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8592,7 +8642,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -8663,7 +8713,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -8685,7 +8735,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8701,7 +8751,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -8767,7 +8817,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       - in: query
         name: type
@@ -8793,7 +8843,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaImagesResponse'
               examples:
-                RetrieveImagesExample:
+                Images:
                   value:
                     posters:
                     - image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
@@ -8802,6 +8852,7 @@ paths:
                       height: 3000
                       aspect_ratio: 0.667
                       language: en
+                      source: tmdb
                       vote_average: 5.8
                       vote_count: 20
                     backdrops:
@@ -8811,12 +8862,12 @@ paths:
                       height: 2160
                       aspect_ratio: 1.778
                       language: null
+                      source: tmdb
                       vote_average: 5.6
                       vote_count: 12
                     screenshots: []
                     logos: []
-                  summary: Retrieve images example
-                  description: Retrieve images example
+                  summary: Images
           description: Successful response
         '400':
           content:
@@ -8830,7 +8881,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8846,7 +8897,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -8926,7 +8977,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -8940,7 +8991,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedListsMinimizedResponse'
               examples:
-                RetrieveListsExample:
+                MediaLists:
                   value:
                     pagination:
                       total: 1
@@ -8951,8 +9002,7 @@ paths:
                     results:
                     - list_id: 2
                       list_item_id: 28
-                  summary: Retrieve lists example
-                  description: Retrieve lists example
+                  summary: Media lists
           description: Successful response
         '400':
           content:
@@ -8966,7 +9016,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -8982,7 +9032,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -9054,7 +9104,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -9066,14 +9116,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListMinimized'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ListMinimized'
               examples:
-                MediaAddedToListExample:
+                AddedToTheList:
                   value:
                   - list_id: 2
                     list_item_id: 28
-                  summary: Media addedd to list example
-                  description: Media added to list example
+                  summary: Added to the list
           description: Successful response
         '400':
           content:
@@ -9087,7 +9138,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9103,6 +9154,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -9174,7 +9237,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -9196,7 +9259,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9212,6 +9275,18 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
           description: Forbidden
         '404':
           content:
@@ -9284,7 +9359,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -9298,7 +9373,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/WatchProvidersResponse'
               examples:
-                RetrieveWatchProvidersExample:
+                WatchProviders:
                   value:
                     region: US
                     link: https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US
@@ -9312,8 +9387,7 @@ paths:
                       provider_name: Apple TV
                       image: https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg
                       display_priority: 4
-                  summary: Retrieve watch providers example
-                  description: Retrieve watch providers example
+                  summary: Watch providers
           description: Successful response
         '400':
           content:
@@ -9327,7 +9401,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9343,7 +9417,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -9409,7 +9483,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -9425,20 +9499,14 @@ paths:
                 items:
                   $ref: '#/components/schemas/RelatedResponse'
               examples:
-                RetrieveRecommendationsExample:
+                Recommendations:
                   value:
-                  - - source: tmdb
-                      media_type: tv
-                      image: https://image.tmdb.org/t/p/w500/pFao5i4giBsGl7QQBXi7oMUPzCn.jpg
-                      media_id: 167
-                      title: La Femme Nikita
-                    - source: tmdb
-                      media_type: tv
-                      image: https://image.tmdb.org/t/p/w500/f7xmk6fNp0hXcGI9k0vXeX69Afq.jpg
-                      media_id: 45576
-                      title: Hunted
-                  summary: Retrieve recommendations example
-                  description: Retrieve recommendations example
+                  - source: tmdb
+                    media_type: tv
+                    image: https://image.tmdb.org/t/p/w500/pFao5i4giBsGl7QQBXi7oMUPzCn.jpg
+                    media_id: '167'
+                    title: La Femme Nikita
+                  summary: Recommendations
           description: Successful response
         '400':
           content:
@@ -9452,7 +9520,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9468,7 +9536,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -9548,7 +9616,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -9562,7 +9630,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedMedia'
               examples:
-                RetrieveSeasonsExample:
+                Seasons:
                   value:
                     pagination:
                       total: 1
@@ -9595,8 +9663,7 @@ paths:
                       lists:
                       - list_id: 1
                         list_item_id: 14
-                  summary: Retrieve seasons example
-                  description: Retrieve seasons example
+                  summary: Seasons
           description: Successful response
         '400':
           content:
@@ -9610,7 +9677,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9626,7 +9693,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -9692,7 +9759,7 @@ paths:
           - manual
           - openlibrary
           - tmdb
-        description: Source of media item data for import operations.
+        description: Source of the media item data.
         required: true
       tags:
       - media
@@ -9706,11 +9773,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiMessageResponse'
               examples:
-                MetadataSyncAcceptedExample:
+                MetadataSynced:
                   value:
                     detail: Metadata synced successfully.
-                  summary: Metadata sync accepted example
-                  description: Metadata sync accepted example
+                  summary: Metadata synced
           description: Accepted
         '400':
           content:
@@ -9724,7 +9790,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9740,7 +9806,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -9809,7 +9875,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Person'
               examples:
-                RetrievePersonExample:
+                Person:
                   value:
                     person_id: 6384
                     source: tmdb
@@ -9827,8 +9893,7 @@ paths:
                     external_links:
                       IMDb: https://www.imdb.com/name/nm0000206/
                       Wikidata: https://www.wikidata.org/wiki/Q43416
-                  summary: Retrieve person example
-                  description: Retrieve person example
+                  summary: Person
           description: Successful response
         '400':
           content:
@@ -9842,7 +9907,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9858,7 +9923,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -9929,7 +9994,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedPersonImages'
               examples:
-                RetrievePersonImagesExample:
+                PersonImages:
                   value:
                     pagination:
                       total: 1
@@ -9945,8 +10010,7 @@ paths:
                       aspect_ratio: 0.667
                       vote_average: 5.522
                       vote_count: 4
-                  summary: Retrieve person images example
-                  description: Retrieve person images example
+                  summary: Person images
           description: Successful response
         '400':
           content:
@@ -9960,7 +10024,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -9976,7 +10040,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -10062,7 +10126,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedKnownFor'
               examples:
-                RetrieveKnownForExample:
+                KnownFor:
                   value:
                     pagination:
                       total: 1
@@ -10082,8 +10146,7 @@ paths:
                       jobs: []
                       release_date: '1999-03-31'
                       episode_count: null
-                  summary: Retrieve known for example
-                  description: Retrieve known for example
+                  summary: Known for
           description: Successful response
         '400':
           content:
@@ -10097,7 +10160,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -10113,7 +10176,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '404':
           content:
             application/json:
@@ -10183,7 +10246,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SearchPeopleResponse'
               examples:
-                SearchPeopleExample:
+                SearchPeople:
                   value:
                     pagination:
                       total: 1
@@ -10203,8 +10266,7 @@ paths:
                         media_id: '603'
                         title: The Matrix
                         image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
-                  summary: Search people example
-                  description: Search people example
+                  summary: Search people
           description: Successful response
         '400':
           content:
@@ -10218,7 +10280,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -10234,7 +10296,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -10298,6 +10360,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of the media
@@ -10325,7 +10388,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -10341,7 +10404,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -10396,7 +10459,7 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
-        '403':
+        '401':
           content:
             application/json:
               schema:
@@ -10412,7 +10475,7 @@ paths:
                     detail: Invalid token
                   summary: Invalid token example
                   description: Invalid token example
-          description: Forbidden
+          description: Unauthorized
         '500':
           content:
             application/json:
@@ -10434,7 +10497,15 @@ components:
         detail:
           type: string
         errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Validation errors, keyed by field name.
+        debug:
           type: string
+          description: Exception message, only returned when DEBUG is enabled.
       required:
       - detail
     ApiMessageResponse:
@@ -10445,54 +10516,6 @@ components:
           type: string
       required:
       - detail
-    BoardGameDetails:
-      type: object
-      description: Schema serializer for board game details.
-      properties:
-        year:
-          type: integer
-          nullable: true
-        players:
-          type: array
-          items:
-            type: integer
-        playtime:
-          type: integer
-          nullable: true
-        min_age:
-          type: integer
-          nullable: true
-        designers:
-          type: array
-          items:
-            type: string
-        publishers:
-          type: array
-          items:
-            type: string
-    BookDetails:
-      type: object
-      description: Schema serializer for book details.
-      properties:
-        format:
-          type: string
-          nullable: true
-        number_of_pages:
-          type: integer
-          nullable: true
-        publish_date:
-          type: string
-          format: date
-          nullable: true
-        author:
-          type: string
-          nullable: true
-        publisher:
-          type: string
-          nullable: true
-        isbn:
-          type: string
-          nullable: true
     CastMember:
       type: object
       description: Serializer for a single cast member.
@@ -10528,10 +10551,8 @@ components:
         field:
           $ref: '#/components/schemas/FieldEnum'
         old_value:
-          type: string
           nullable: true
         new_value:
-          type: string
           nullable: true
       required:
       - field
@@ -10553,47 +10574,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChangesHistoryChange'
+          readOnly: true
       required:
       - changes
-    ComicDetails:
-      type: object
-      description: Schema serializer for comic details.
-      properties:
-        start_date:
-          type: string
-          nullable: true
-        publisher:
-          type: string
-          nullable: true
-        issues_count:
-          type: integer
-          nullable: true
-        last_issue_name:
-          type: string
-          nullable: true
-        last_issue_number:
-          type: integer
-          nullable: true
-        people:
-          type: array
-          items:
-            type: string
-        last_updated:
-          type: string
-          format: date
-          nullable: true
-        last_issue_id:
-          type: integer
-          nullable: true
-    ComicRelated:
-      type: object
-      description: Schema serializer for comic related data.
-      properties:
-        from_the_same_publisher:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
     Company:
       type: object
       description: Serializer for a company involved in a media.
@@ -10621,8 +10604,10 @@ components:
       properties:
         id:
           type: integer
+          nullable: true
           description: The id of the item in the database (not to be confused with
-            the item_id,which is media provider specific)
+            the item_id, which is media provider specific), null if the item is not
+            saved
         media_id:
           type: string
         source:
@@ -10652,6 +10637,7 @@ components:
           type: array
           items:
             type: string
+          nullable: true
         score:
           type: number
           format: double
@@ -10661,10 +10647,14 @@ components:
           nullable: true
         details:
           $ref: '#/components/schemas/EpisodeDetails'
+        related:
+          type: object
+          additionalProperties: {}
         item_id:
           type: string
         parent_id:
           type: string
+          nullable: true
         tracked:
           type: boolean
         consumptions_number:
@@ -10689,20 +10679,27 @@ components:
       - max_progress
       - media_id
       - parent_id
+      - related
       - score
       - score_count
       - source_url
       - synopsis
       - title
       - tracked
+    CompleteListItem:
+      anyOf:
+      - $ref: '#/components/schemas/CompleteMedia'
+      - $ref: '#/components/schemas/CompleteEpisode'
     CompleteMedia:
       type: object
       description: Serializer that builds a CompleteMedia response.
       properties:
         id:
           type: integer
+          nullable: true
           description: The id of the item in the database (not to be confused with
-            the item_id,which is media provider specific)
+            the item_id, which is media provider specific), null if the item is not
+            saved
         media_id:
           type: string
         source:
@@ -10732,6 +10729,7 @@ components:
           type: array
           items:
             type: string
+          nullable: true
         score:
           type: number
           format: double
@@ -10740,12 +10738,14 @@ components:
           type: integer
           nullable: true
         details:
-          allOf:
-          - $ref: '#/components/schemas/CompleteMediaDetails'
+          type: object
+          additionalProperties: {}
+          description: Return the raw provider details payload.
           readOnly: true
         related:
-          allOf:
-          - $ref: '#/components/schemas/CompleteMediaRelated'
+          type: object
+          additionalProperties: {}
+          description: Return the raw provider related payload.
           readOnly: true
         external_links:
           type: object
@@ -10763,6 +10763,7 @@ components:
           type: string
         parent_id:
           type: string
+          nullable: true
         tracked:
           type: boolean
         consumptions_number:
@@ -10796,21 +10797,6 @@ components:
       - time_to_beat
       - title
       - tracked
-    CompleteMediaDetails:
-      oneOf:
-      - $ref: '#/components/schemas/BoardGameDetails'
-      - $ref: '#/components/schemas/BookDetails'
-      - $ref: '#/components/schemas/ComicDetails'
-      - $ref: '#/components/schemas/GameDetails'
-      - $ref: '#/components/schemas/MovieDetails'
-      - $ref: '#/components/schemas/SeasonDetails'
-      - $ref: '#/components/schemas/TVDetails'
-    CompleteMediaRelated:
-      oneOf:
-      - $ref: '#/components/schemas/ComicRelated'
-      - $ref: '#/components/schemas/GameRelated'
-      - $ref: '#/components/schemas/SeasonRelated'
-      - $ref: '#/components/schemas/TVRelated'
     Cover:
       type: object
       description: Serializer for the cover of a media.
@@ -10902,7 +10888,8 @@ components:
       - person_id
     Episode:
       type: object
-      description: Serializer used for Episode items.
+      description: Serializer used for tracked episodes and episodes from the provider
+        metadata.
       properties:
         id:
           type: integer
@@ -10914,10 +10901,14 @@ components:
           $ref: '#/components/schemas/Item'
         item_id:
           type: string
+          nullable: true
         parent_id:
           type: string
+          nullable: true
         tracked:
           type: boolean
+          description: Return whether the user tracks the media.
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -10952,13 +10943,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ListMinimized'
+          readOnly: true
       required:
       - end_date
       - item
-      - item_id
       - lists
       - notes
-      - parent_id
       - progress
       - progressed_at
       - score
@@ -11002,12 +10992,17 @@ components:
           type: integer
           readOnly: true
         item:
-          $ref: '#/components/schemas/Item'
+          allOf:
+          - $ref: '#/components/schemas/Item'
+          readOnly: true
         item_id:
           type: string
+          description: Return the item_id of the released item.
           readOnly: true
         parent_id:
           type: string
+          nullable: true
+          description: Return the parent_id of the released item.
           readOnly: true
         content_number:
           type: integer
@@ -11042,96 +11037,18 @@ components:
         * `score` - score
         * `start_date` - start_date
         * `status` - status
-    FormatEnum:
-      enum:
-      - Main game
-      - DLC
-      - Expansion
-      - Bundle
-      - Standalone expansion
-      - Mod
-      - Episode
-      - Season
-      - Remake
-      - Remaster
-      - Expanded game
-      - Port
-      - Fork
-      - Pack
-      - Update
-      type: string
-      description: |-
-        * `Main game` - Main game
-        * `DLC` - DLC
-        * `Expansion` - Expansion
-        * `Bundle` - Bundle
-        * `Standalone expansion` - Standalone expansion
-        * `Mod` - Mod
-        * `Episode` - Episode
-        * `Season` - Season
-        * `Remake` - Remake
-        * `Remaster` - Remaster
-        * `Expanded game` - Expanded game
-        * `Port` - Port
-        * `Fork` - Fork
-        * `Pack` - Pack
-        * `Update` - Update
-    GameDetails:
-      type: object
-      description: Schema serializer for game details.
-      properties:
-        format:
-          allOf:
-          - $ref: '#/components/schemas/FormatEnum'
-          nullable: true
-        release_date:
-          type: string
-          format: date
-          nullable: true
-        themes:
-          type: string
-          nullable: true
-        platforms:
-          type: array
-          items:
-            type: string
-    GameRelated:
-      type: object
-      description: Schema serializer for game related data.
-      properties:
-        parent_game:
-          type: array
-          items:
-            type: string
-        remasters:
-          type: array
-          items:
-            type: string
-        remakes:
-          type: array
-          items:
-            type: string
-        expansions:
-          type: array
-          items:
-            type: string
-        standalone_expansions:
-          type: array
-          items:
-            type: string
-        expanded_games:
-          type: array
-          items:
-            type: string
     HealthCheck:
       type: object
       description: Serializer for individual health checks.
       properties:
         status:
-          $ref: '#/components/schemas/HealthCheckStatusEnum'
+          allOf:
+          - $ref: '#/components/schemas/HealthCheckStatusEnum'
+          readOnly: true
         error:
           type: string
           nullable: true
+          readOnly: true
       required:
       - error
       - status
@@ -11148,7 +11065,9 @@ components:
       description: Serializer for health check response.
       properties:
         status:
-          $ref: '#/components/schemas/HealthResponseStatusEnum'
+          allOf:
+          - $ref: '#/components/schemas/HealthResponseStatusEnum'
+          readOnly: true
         timestamp:
           type: string
           format: date-time
@@ -11227,6 +11146,7 @@ components:
         frontend_url:
           type: string
           format: uri
+          readOnly: true
         language:
           type: string
         timezone:
@@ -11258,10 +11178,6 @@ components:
         title:
           type: string
         image:
-          type: string
-          format: uri
-          maxLength: 200
-        custom_image:
           type: string
           format: uri
           maxLength: 200
@@ -11397,18 +11313,23 @@ components:
             $ref: '#/components/schemas/User'
         items_count:
           type: integer
+          description: Return the number of items, annotated or counted.
+          readOnly: true
         latest_update:
           type: string
           format: date-time
+          nullable: true
+          readOnly: true
         items:
           allOf:
           - $ref: '#/components/schemas/PaginatedMediaResponse'
-          nullable: true
+          readOnly: true
       required:
       - collaborators
       - description
       - id
       - image
+      - items
       - items_count
       - latest_update
       - name
@@ -11437,9 +11358,48 @@ components:
           type: integer
         list_item_id:
           type: integer
+          nullable: true
       required:
       - list_id
       - list_item_id
+    ListSummary:
+      type: object
+      description: Serializer for list responses that do not include paginated items.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        owner:
+          $ref: '#/components/schemas/User'
+        collaborators:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        items_count:
+          type: integer
+          description: Return the number of items, annotated or counted.
+          readOnly: true
+        latest_update:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+      required:
+      - collaborators
+      - description
+      - id
+      - image
+      - items_count
+      - latest_update
+      - name
+      - owner
     Media:
       type: object
       description: Serializer used for media items.
@@ -11460,6 +11420,8 @@ components:
           nullable: true
         tracked:
           type: boolean
+          description: Return whether the user tracks the media.
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -11494,6 +11456,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ListMinimized'
+          readOnly: true
       required:
       - end_date
       - item
@@ -11583,7 +11546,7 @@ components:
       type: integer
       description: |-
         * `0` - Planning
-        * `1` - In progress
+        * `1` - In Progress
         * `2` - Paused
         * `3` - Completed
         * `4` - Dropped
@@ -11631,34 +11594,6 @@ components:
         * `book` - book
         * `comic` - comic
         * `boardgame` - boardgame
-    MovieDetails:
-      type: object
-      description: Schema serializer for movie details.
-      properties:
-        format:
-          type: string
-          nullable: true
-        release_date:
-          type: string
-          format: date
-          nullable: true
-        status:
-          type: string
-          nullable: true
-        runtime:
-          type: string
-          nullable: true
-        studios:
-          type: array
-          items:
-            type: string
-        country:
-          type: string
-          nullable: true
-        languages:
-          type: array
-          items:
-            type: string
     PaginatedCast:
       type: object
       description: Paginated response serializer for cast members.
@@ -11798,7 +11733,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/List'
+            $ref: '#/components/schemas/ListSummary'
       required:
       - pagination
       - results
@@ -11864,7 +11799,7 @@ components:
       - previous
       - total
     PatchedHistoryUpdateRequestRequest:
-      oneOf:
+      anyOf:
       - $ref: '#/components/schemas/PatchedUpdateAnimeRequest'
       - $ref: '#/components/schemas/PatchedUpdateBoardGameRequest'
       - $ref: '#/components/schemas/PatchedUpdateBookRequest'
@@ -11999,6 +11934,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        notes:
+          type: string
     PatchedUpdateGameRequest:
       type: object
       description: Serializer for updating game media items.
@@ -12301,39 +12238,6 @@ components:
       required:
       - pagination
       - results
-    SeasonDetails:
-      type: object
-      description: Schema serializer for season details.
-      properties:
-        first_air_date:
-          type: string
-          format: date
-          nullable: true
-        last_air_date:
-          type: string
-          format: date
-          nullable: true
-        episodes:
-          type: integer
-          nullable: true
-        runtime:
-          type: string
-          nullable: true
-        total_runtime:
-          type: string
-          nullable: true
-        tvdb_id:
-          type: integer
-          nullable: true
-    SeasonRelated:
-      type: object
-      description: Schema serializer for season related data.
-      properties:
-        episodes:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
     SourceCompleteEnum:
       enum:
       - tmdb
@@ -12378,7 +12282,7 @@ components:
         * `bgg` - bgg
     StatisticsMediaCount:
       type: object
-      description: Serializer for media count by type in statistics response.
+      description: Serializer for media count by enabled types in statistics response.
       properties:
         total:
           type: integer
@@ -12398,30 +12302,21 @@ components:
           type: integer
         comic:
           type: integer
-        board_game:
+        boardgame:
           type: integer
       required:
-      - anime
-      - board_game
-      - book
-      - comic
-      - game
-      - manga
-      - movie
-      - season
       - total
-      - tv
     StatisticsResponse:
       type: object
       description: Serializer for statistics endpoint payload.
       properties:
         start_date:
           type: string
-          format: date-time
+          format: date
           nullable: true
         end_date:
           type: string
-          format: date-time
+          format: date
           nullable: true
         media_count:
           $ref: '#/components/schemas/StatisticsMediaCount'
@@ -12445,8 +12340,7 @@ components:
           additionalProperties:
             type: array
             items:
-              type: object
-              additionalProperties: {}
+              $ref: '#/components/schemas/TimelineItem'
       required:
       - activity_data
       - media_count
@@ -12456,62 +12350,6 @@ components:
       - status_pie_chart_data
       - timeline
       - top_rated
-    TVDetails:
-      type: object
-      description: Schema serializer for TV details.
-      properties:
-        format:
-          type: string
-          nullable: true
-        first_air_date:
-          type: string
-          format: date
-          nullable: true
-        last_air_date:
-          type: string
-          format: date
-          nullable: true
-        status:
-          type: string
-          nullable: true
-        seasons:
-          type: integer
-          nullable: true
-        episodes:
-          type: integer
-          nullable: true
-        runtime:
-          type: string
-          nullable: true
-        studios:
-          type: array
-          items:
-            type: string
-        country:
-          type: string
-          nullable: true
-        languages:
-          type: array
-          items:
-            type: string
-        tvdb_id:
-          type: integer
-          nullable: true
-        last_episode_season:
-          type: integer
-          nullable: true
-        next_episode_season:
-          type: integer
-          nullable: true
-    TVRelated:
-      type: object
-      description: Schema serializer for TV related data.
-      properties:
-        seasons:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
     TimeToBeat:
       type: object
       description: Serializer for the time to beat a game, in seconds.
@@ -12525,6 +12363,72 @@ components:
         completely:
           type: integer
           nullable: true
+    TimelineItem:
+      type: object
+      description: Compact serializer used for timeline entries to reduce payload
+        size.
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: string
+        parent_id:
+          type: string
+          nullable: true
+        title:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        media_type:
+          allOf:
+          - $ref: '#/components/schemas/MediaTypeCompleteEnum'
+          nullable: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceCompleteEnum'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        score:
+          type: number
+          format: double
+          nullable: true
+        progress:
+          type: integer
+        progressed_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MediaStatusEnum'
+          nullable: true
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+      required:
+      - created_at
+      - end_date
+      - id
+      - image
+      - item_id
+      - notes
+      - parent_id
+      - progress
+      - progressed_at
+      - score
+      - start_date
+      - title
     TrackMediaRequest:
       type: object
       description: |-
@@ -12580,6 +12484,16 @@ components:
         episode_number:
           type: integer
           nullable: true
+        parent_tv:
+          type: integer
+          nullable: true
+          description: '`consumption_id` of the manual TV show the season belongs
+            to, required for manual seasons.'
+        parent_season:
+          type: integer
+          nullable: true
+          description: '`consumption_id` of the manual season the episode belongs
+            to, required for manual episodes.'
     UpdateEpisodeRequest:
       type: object
       description: Serializer for updating episode media items.
@@ -12588,6 +12502,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        notes:
+          type: string
     UpdateSeasonRequest:
       type: object
       description: Serializer for updating season media items.

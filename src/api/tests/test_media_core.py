@@ -1,9 +1,11 @@
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import UUID
 
 from django.utils import timezone
 
-from app.models import TV, Episode, Item, MediaTypes, Movie, Sources, Status
+from api.helpers import MEDIA_STATUS_MAP, error_response
+from app.models import TV, Episode, Item, MediaTypes, Movie, Season, Sources, Status
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -144,7 +146,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             check_media_structure(self, item)
             self.assertNotEqual(item["item"]["media_type"], MediaTypes.MOVIE.value)
 
-    def test_media_list_get_invalid_status_returns_not_found(self):
+    def test_media_list_get_invalid_status_returns_bad_request(self):
         """Media list endpoint should reject unsupported status values."""
         response = self.call_api(
             "get",
@@ -153,9 +155,9 @@ class MediaCoreTests(YamtrackApiTestCase):
             headers=self.auth_headers,
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
 
-    def test_media_list_get_invalid_sort_returns_not_found(self):
+    def test_media_list_get_invalid_sort_returns_bad_request(self):
         """Media list endpoint should reject unsupported sort values."""
         response = self.call_api(
             "get",
@@ -164,7 +166,116 @@ class MediaCoreTests(YamtrackApiTestCase):
             headers=self.auth_headers,
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
+
+    def _set_movie_fields(self, field, values):
+        """Set a field on the tracked movies, in fixture order."""
+        for media, value in zip(self.movie_medias, values, strict=True):
+            setattr(media, field, value)
+            media.save()
+
+    def _get_movie_titles(self, sort):
+        """Return the movie titles listed with the given sort."""
+        response = self.call_api(
+            "get",
+            "api_media_type_list",
+            args=(MediaTypes.MOVIE.value,),
+            params={"sort": sort},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        return [item["item"]["title"] for item in response.json()["results"]]
+
+    def test_media_type_list_sort_field_with_underscore(self):
+        """Sorts whose field contains an underscore should be parsed correctly."""
+        now = timezone.now()
+        self._set_movie_fields(
+            "start_date",
+            [now - timedelta(days=1), now - timedelta(days=3), now - timedelta(days=2)],
+        )
+
+        self.assertEqual(
+            self._get_movie_titles("start_date_asc"),
+            ["Movie 2", "Movie 3", "Movie 1"],
+        )
+        self.assertEqual(
+            self._get_movie_titles("start_date_desc"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+
+    def test_media_type_list_sort_respects_direction(self):
+        """Sorts applied in descending order by the db should honor `_asc`."""
+        self._set_movie_fields("score", [5, 9, 7])
+
+        self.assertEqual(
+            self._get_movie_titles("score_asc"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+        self.assertEqual(
+            self._get_movie_titles("score_desc"),
+            ["Movie 2", "Movie 3", "Movie 1"],
+        )
+        # Without a direction the sort is ascending
+        self.assertEqual(
+            self._get_movie_titles("score"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+
+    def test_media_type_list_sort_keeps_nulls_last(self):
+        """Db sorts should keep null values last in both directions."""
+        self._set_movie_fields("score", [5, None, 7])
+
+        self.assertEqual(
+            self._get_movie_titles("score_asc"),
+            ["Movie 1", "Movie 3", "Movie 2"],
+        )
+        self.assertEqual(
+            self._get_movie_titles("score_desc"),
+            ["Movie 3", "Movie 1", "Movie 2"],
+        )
+
+    def test_media_list_all_types_sort_by_score_keeps_nulls_last(self):
+        """Mixed media sorts should be supported and keep null values last."""
+        self._set_movie_fields("score", [5, 9, 7])
+
+        response = self.call_api(
+            "get",
+            "api_media_list",
+            params={"sort": "score_desc", "limit": 200},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        scores = [item["score"] for item in response.json()["results"]]
+        self.assertEqual(scores[:3], [9, 7, 5])
+        self.assertTrue(all(score is None for score in scores[3:]))
+
+    def test_media_type_list_episode_sorts(self):
+        """Episode lists should support their own sorts and reject the others."""
+        response = self.call_api(
+            "get",
+            "api_media_type_list",
+            args=(MediaTypes.EPISODE.value,),
+            params={"sort": "episode_number_desc"},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        episode_numbers = [
+            item["item"]["episode_number"] for item in response.json()["results"]
+        ]
+        self.assertEqual(episode_numbers, sorted(episode_numbers, reverse=True))
+        for item in response.json()["results"]:
+            self.assertEqual(item["status"], MEDIA_STATUS_MAP["Completed"])
+            self.assertEqual(item["progress"], 1)
+
+        response = self.call_api(
+            "get",
+            "api_media_type_list",
+            args=(MediaTypes.EPISODE.value,),
+            params={"sort": "score"},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 400)
 
     def test_media_type_list_invalid_type_returns_bad_request(self):
         """Media-type list endpoint should reject unsupported media types."""
@@ -329,6 +440,118 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(str(UUID(manual_media_id)), manual_media_id)
         self.assertEqual(payload["item"]["source"], "manual")
         self.assertEqual(payload["item"]["media_type"], MediaTypes.MOVIE.value)
+        self.assertEqual(payload["status"], 3)
+        self.assertEqual(
+            Movie.objects.get(item__media_id=manual_media_id).status,
+            Status.COMPLETED.value,
+        )
+
+    def _post_manual(self, media_type, payload, headers=None):
+        return self.call_api(
+            "post",
+            "api_media_type_list",
+            args=(media_type,),
+            payload={"source": "manual", **payload},
+            headers=headers or self.auth_headers,
+        )
+
+    def test_media_type_list_post_manual_season_and_episode_with_parents(self):
+        """Manual seasons and episodes should be linked to their parent media."""
+        response = self._post_manual(MediaTypes.TV.value, {"title": "Manual Show"})
+        self.assertEqual(response.status_code, 201)
+        tv_id = response.json()["consumption_id"]
+
+        response = self._post_manual(
+            MediaTypes.SEASON.value,
+            {"title": "S1", "season_number": 1, "parent_tv": tv_id},
+        )
+        self.assertEqual(response.status_code, 201)
+        season_id = response.json()["consumption_id"]
+        self.assertEqual(Season.objects.get(id=season_id).related_tv_id, tv_id)
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            return_value={"season/1": {"episodes": []}},
+        ):
+            response = self._post_manual(
+                MediaTypes.EPISODE.value,
+                {"title": "E1", "episode_number": 1, "parent_season": season_id},
+            )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            Episode.objects.filter(
+                related_season_id=season_id,
+                item__episode_number=1,
+            ).exists(),
+        )
+
+    def test_media_type_list_post_manual_season_rejects_invalid_parent(self):
+        """Manual seasons should reject a missing parent or one of another user."""
+        response = self._post_manual(
+            MediaTypes.TV.value,
+            {"title": "Other Show"},
+            headers=self.auth_headers2,
+        )
+        self.assertEqual(response.status_code, 201)
+        other_tv_id = response.json()["consumption_id"]
+
+        invalid_payloads = [
+            {"title": "S1", "season_number": 1},
+            {"title": "S1", "season_number": 1, "parent_tv": other_tv_id},
+            {"title": "S1", "season_number": 1, "parent_tv": self.tv_medias[0].id},
+        ]
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                response = self._post_manual(MediaTypes.SEASON.value, payload)
+                self.assertEqual(response.status_code, 400)
+
+    def test_media_type_list_post_provider_rejects_invalid_source(self):
+        """Tracking from a provider should reject sources invalid for the type."""
+        response = self.call_api(
+            "post",
+            "api_media_type_list",
+            args=(MediaTypes.MOVIE.value,),
+            payload={"source": Sources.MAL.value, "media_id": "501"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_media_type_list_post_provider_rejects_season_and_episode(self):
+        """Tracking seasons and episodes from a provider isn't supported yet."""
+        for media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
+            with self.subTest(media_type=media_type):
+                response = self.call_api(
+                    "post",
+                    "api_media_type_list",
+                    args=(media_type,),
+                    payload={
+                        "source": Sources.TMDB.value,
+                        "media_id": "1001",
+                        "season_number": 1,
+                        "episode_number": 1,
+                    },
+                    headers=self.auth_headers,
+                )
+
+                self.assertEqual(response.status_code, 400)
+
+    def test_media_type_list_post_provider_already_tracked_returns_conflict(self):
+        """Tracking again a media allowed only once per user should return 409."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        response = self.call_api(
+            "post",
+            "api_media_type_list",
+            args=(MediaTypes.TV.value,),
+            payload={"source": tv_item.source, "media_id": tv_item.media_id},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            TV.objects.filter(item=tv_item, user=self.user1).count(),
+            1,
+        )
 
     def test_media_type_list_post_saves_requested_status(self):
         """Media-type create endpoint should save the status sent in the body."""
@@ -417,10 +640,9 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_detail_get_returns_expected_shape(self, mock_metadata):
         """Media detail GET should return a complete serialized payload."""
-        # TODO: Use real mock data fixtures instead of hardcoding values
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
         mock_metadata.return_value = {
             "media_id": 1,
@@ -655,7 +877,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         payload = response.json()
         check_complete_media_structure(self, payload)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_detail_get_returns_external_links(self, mock_metadata):
         """Media detail GET should return the external links of the media."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -691,7 +913,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         )
         self.assertIsNone(payload["time_to_beat"])
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_detail_get_returns_game_time_to_beat(self, mock_metadata):
         """Media detail GET should return the time to beat of a game."""
         game_item = self.items_by_type[MediaTypes.GAME.value][0]
@@ -717,7 +939,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         payload = response.json()
         self.assertEqual(
             payload["time_to_beat"],
-            {"hastily": 36000, "normally": 54000},
+            {"hastily": 36000, "normally": 54000, "completely": None},
         )
         self.assertEqual(payload["external_links"], {})
 
@@ -743,10 +965,9 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_detail_patch_updates_media_fields(self, mock_metadata):
         """Media detail PATCH should update mutable media fields."""
-        # TODO: Use real mock data fixtures instead of hardcoding values
         status = 2
         score = 8
         notes = "Great TV show!"
@@ -1027,6 +1248,109 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("no valid fields", response.json().get("detail", "").lower())
 
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_detail_patch_null_clears_nullable_field(self, mock_metadata):
+        """Media PATCH with a null value should clear a nullable field."""
+        movie = self.movie_medias[0]
+        mock_metadata.return_value = {
+            "media_id": movie.item.media_id,
+            "source": movie.item.source,
+            "media_type": MediaTypes.MOVIE.value,
+            "title": movie.item.title,
+            "max_progress": 1,
+            "related": {},
+        }
+        movie.score = 7
+        movie.save()
+
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"score": None},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        movie.refresh_from_db()
+        self.assertIsNone(movie.score)
+
+    def test_media_detail_patch_rejects_end_date_before_stored_start_date(self):
+        """Media PATCH should validate end_date against the stored start_date."""
+        movie = self.movie_medias[0]
+        movie.start_date = datetime(2024, 6, 1, tzinfo=UTC)
+        movie.save(update_fields=["start_date"])
+
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"end_date": "2024-01-01"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("end_date", response.json()["errors"])
+        movie.refresh_from_db()
+        self.assertIsNone(movie.end_date)
+
+    def test_media_detail_patch_null_on_non_nullable_field_returns_bad_request(self):
+        """Media PATCH should reject a null value for a non-nullable field."""
+        movie = self.movie_medias[0]
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"status": None},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("status", response.json()["errors"])
+
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
+    def test_media_detail_patch_provider_error_does_not_save(self, _mock_metadata):
+        """Media PATCH shouldn't save changes when the provider request fails."""
+        movie = self.movie_medias[0]
+        response = self.call_api(
+            "patch",
+            "api_media_detail",
+            args=(MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id),
+            payload={"score": 4},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 500)
+        movie.refresh_from_db()
+        self.assertNotEqual(movie.score, 4)
+
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
+    def test_server_error_hides_exception_without_debug(self, _mock_metadata):
+        """Server errors shouldn't expose the exception message without DEBUG."""
+        movie = self.movie_medias[0]
+        args = (MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id)
+
+        with self.settings(DEBUG=False), self.assertLogs("api.helpers", "ERROR"):
+            response = self.call_api(
+                "get", "api_media_detail", args=args, headers=self.auth_headers
+            )
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("boom", response.content.decode())
+
+    def test_error_response_adds_exception_only_with_debug(self):
+        """The exception message should be returned only when DEBUG is enabled."""
+        # The helper is tested directly, since enabling DEBUG during a request
+        # activates the debug toolbar, whose urls are registered only at startup
+        exc = Exception("boom")
+
+        with self.settings(DEBUG=False):
+            response = error_response("Not found.", 404, exc)
+        self.assertEqual(response.data, {"detail": "Not found."})
+
+        with self.settings(DEBUG=True):
+            response = error_response("Not found.", 404, exc)
+        self.assertEqual(response.data, {"detail": "Not found.", "debug": "boom"})
+
     def test_media_changes_history_returns_paginated_payload(self):
         """Changes history endpoint should return change entries."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1262,6 +1586,30 @@ class MediaCoreTests(YamtrackApiTestCase):
         check_consumption_structure(self, payload)
         self.assertEqual(payload["notes"], "updated-from-test")
 
+    def test_media_consumption_patch_rejects_end_date_before_stored_start_date(self):
+        """History PATCH should validate end_date against the stored start_date."""
+        movie = self.movie_medias[0]
+        movie.start_date = datetime(2024, 6, 1, tzinfo=UTC)
+        movie.save(update_fields=["start_date"])
+
+        response = self.call_api(
+            "patch",
+            "api_media_consumption_entry_detail",
+            args=(
+                MediaTypes.MOVIE.value,
+                movie.item.source,
+                movie.item.media_id,
+                movie.id,
+            ),
+            payload={"end_date": "2024-01-01"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("end_date", response.json()["errors"])
+        movie.refresh_from_db()
+        self.assertIsNone(movie.end_date)
+
     def test_media_consumption_entry_detail_patch_accepts_datetime_strings(self):
         """Entry-detail PATCH should accept ISO datetime values for date fields."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1287,6 +1635,34 @@ class MediaCoreTests(YamtrackApiTestCase):
         check_consumption_structure(self, payload)
         self.assertTrue(payload["start_date"].startswith("2023-10-01T00:00:00"))
         self.assertTrue(payload["end_date"].startswith("2023-10-02T15:30:00"))
+
+    def test_media_consumption_patch_uses_server_timezone_for_naive_dates(self):
+        """Entry-detail PATCH should parse naive dates in the server timezone."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        movie_media = self.movie_medias[0]
+        with timezone.override("America/New_York"):
+            response = self.call_api(
+                "patch",
+                "api_media_consumption_entry_detail",
+                args=(
+                    MediaTypes.MOVIE.value,
+                    movie_item.source,
+                    movie_item.media_id,
+                    movie_media.id,
+                ),
+                payload={
+                    "start_date": "2026-03-10",
+                    "end_date": "2026-03-10T10:00:00",
+                },
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["start_date"], "2026-03-10T04:00:00Z")
+        self.assertEqual(response.json()["end_date"], "2026-03-10T14:00:00Z")
+        movie_media.refresh_from_db()
+        self.assertEqual(movie_media.start_date, datetime(2026, 3, 10, 4, tzinfo=UTC))
+        self.assertEqual(movie_media.end_date, datetime(2026, 3, 10, 14, tzinfo=UTC))
 
     def test_media_consumption_entry_detail_patch_invalid_payload_returns_bad_request(
         self,
@@ -1353,7 +1729,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         list_id = self.lists_by_name["favorites"].id
         put_response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=("invalid", "tmdb", 501, list_id),
             payload={},
             headers=self.auth_headers,
@@ -1362,7 +1738,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         delete_response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=("invalid", "tmdb", 501, list_id),
             headers=self.auth_headers,
         )
@@ -1375,7 +1751,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,
@@ -1400,7 +1776,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         list_id = self.lists_by_name["favorites"].id
         response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(MediaTypes.MOVIE.value, "tmdb", 999999, list_id),
             headers=self.auth_headers,
         )
@@ -1412,7 +1788,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
         response = self.call_api(
             "delete",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,
@@ -1431,7 +1807,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,
@@ -1461,7 +1837,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         list_id = self.lists_by_name["favorites"].id
         response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(MediaTypes.MOVIE.value, "tmdb", 999999, list_id),
             payload={},
             headers=self.auth_headers,
@@ -1474,7 +1850,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][1]
         response = self.call_api(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=(
                 MediaTypes.MOVIE.value,
                 movie_item.source,
@@ -1487,7 +1863,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_providers_returns_grouped_providers(self, mock_metadata):
         """Providers endpoint should group providers into no charge and paid."""
         self.user1.watch_provider_region = "US"
@@ -1522,7 +1898,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             "https://image.tmdb.org/t/p/w500/apple.jpg",
         )
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_providers_region_param_overrides_user_region(
         self,
         mock_metadata,
@@ -1551,7 +1927,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         )
         self.assertEqual(payload["paid"], [])
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_providers_unknown_region_returns_empty_groups(
         self,
         mock_metadata,
@@ -1603,7 +1979,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             )
             self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_providers_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1619,7 +1995,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_recommendations_returns_related_items(self, mock_metadata):
         """Recommendations endpoint should return provider recommendations."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1651,6 +2027,34 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(payload[0]["media_id"], recommended_item.media_id)
         self.assertEqual(payload[0]["title"], recommended_item.title)
 
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_recommendations_returns_string_media_ids(self, mock_metadata):
+        """Recommendations should return string media ids like the other endpoints."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {
+            "related": {
+                "recommendations": [
+                    {
+                        "media_id": 167,
+                        "source": Sources.TMDB.value,
+                        "media_type": MediaTypes.MOVIE.value,
+                        "title": "La Femme Nikita",
+                        "image": None,
+                    },
+                ],
+            },
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_recommendations",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["media_id"], "167")
+
     def test_media_recommendations_invalid_type_returns_bad_request(self):
         """Recommendations endpoint should reject unsupported media types."""
         response = self.call_api(
@@ -1662,7 +2066,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_recommendations_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1677,7 +2081,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_seasons_get_returns_expected_structure(self, mock_metadata):
         """Media seasons endpoint should return paginated media payload."""
         tv_item = self.items_by_type[MediaTypes.TV.value][0]
@@ -1732,7 +2136,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_seasons_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1747,7 +2151,7 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_media_sync_returns_accepted_and_updates_item(self, mock_metadata):
         """Sync endpoint should refresh metadata and return accepted."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
@@ -1771,7 +2175,7 @@ class MediaCoreTests(YamtrackApiTestCase):
         self.assertEqual(movie_item.title, "Movie 1 Synced")
         self.assertEqual(movie_item.image, "https://example.com/movie-1-synced.jpg")
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_media_sync_invalid_media_id_returns_internal_server_error(
         self, _mock_metadata
     ):

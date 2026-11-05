@@ -185,7 +185,7 @@ class FanartImagesTests(YamtrackApiTestCase):
         self.assertEqual(len(response.json()["posters"]), 1)
 
     @override_settings(FANART_API="key")
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.fanart.services.api_request")
     def test_fanart_image_can_be_set_as_cover(
         self,

@@ -2,10 +2,15 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management import BaseCommand, call_command
+from drf_spectacular.settings import patched_settings
 
 
 class Command(BaseCommand):
-    """Generate the OpenAPI schema file from DRF endpoints."""
+    """Generate the OpenAPI schema file from DRF endpoints.
+
+    The servers are always the local development server, so the file doesn't
+    depend on the `BASE_URL` of who generates it.
+    """
 
     help = "Generate openapi.yaml using drf-spectacular."
 
@@ -31,12 +36,13 @@ class Command(BaseCommand):
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        call_command(
-            "spectacular",
-            file=str(output_path),
-            validate=options["validate"],
-            color=True,
-        )
+        with patched_settings({"SERVERS": [settings.SPECTACULAR_LOCAL_SERVER]}):
+            call_command(
+                "spectacular",
+                file=str(output_path),
+                validate=options["validate"],
+                color=True,
+            )
 
         self.stdout.write(
             self.style.SUCCESS(f"OpenAPI schema generated: {output_path}"),

@@ -270,7 +270,7 @@ class MediaCastTests(YamtrackApiTestCase):
             )
             self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.media_credits", side_effect=Exception("boom"))
+    @patch("app.providers.tmdb.media_credits", side_effect=Exception("boom"))
     def test_cast_provider_error_returns_internal_server_error(self, _mock_cast):
         """Cast endpoint should surface provider lookup failures."""
         response = self.call_api(
@@ -392,7 +392,7 @@ class MediaCrewTests(YamtrackApiTestCase):
             )
             self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.media_credits", side_effect=Exception("boom"))
+    @patch("app.providers.tmdb.media_credits", side_effect=Exception("boom"))
     def test_crew_provider_error_returns_internal_server_error(self, _mock_credits):
         """Crew endpoint should surface provider lookup failures."""
         response = self.call_api(
@@ -560,7 +560,7 @@ class PersonKnownForTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.person_known_for", side_effect=Exception("boom"))
+    @patch("app.providers.tmdb.person_known_for", side_effect=Exception("boom"))
     def test_known_for_provider_error_returns_internal_server_error(
         self,
         _mock_known_for,
@@ -651,7 +651,7 @@ class PersonDetailTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.person", side_effect=Exception("boom"))
+    @patch("app.providers.tmdb.person", side_effect=Exception("boom"))
     def test_person_detail_provider_error_returns_internal_server_error(
         self,
         _mock_person,
@@ -794,7 +794,7 @@ class PeopleSearchTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.search_people", side_effect=Exception("boom"))
+    @patch("app.providers.tmdb.search_people", side_effect=Exception("boom"))
     def test_people_search_provider_error_returns_internal_server_error(
         self,
         _mock_search,
@@ -895,7 +895,7 @@ class PersonImagesTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.person_images", side_effect=Exception("boom"))
+    @patch("app.providers.tmdb.person_images", side_effect=Exception("boom"))
     def test_person_images_provider_error_returns_internal_server_error(
         self,
         _mock_images,
@@ -1082,7 +1082,7 @@ class MediaImagesTests(YamtrackApiTestCase):
             )
             self.assertEqual(response.status_code, 400)
 
-    @patch("api.views.tmdb.media_images", side_effect=Exception("boom"))
+    @patch("app.providers.tmdb.media_images", side_effect=Exception("boom"))
     def test_images_provider_error_returns_internal_server_error(self, _mock_images):
         """Images endpoints should surface provider lookup failures."""
         requests = [

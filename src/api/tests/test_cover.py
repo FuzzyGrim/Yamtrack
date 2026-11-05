@@ -32,7 +32,7 @@ MOVIE_IMAGES = {
 
 
 @patch("api.helpers.fetch_images", return_value=MOVIE_IMAGES)
-@patch("api.views.services.get_media_metadata", return_value=MOVIE_METADATA)
+@patch("app.providers.services.get_media_metadata", return_value=MOVIE_METADATA)
 class MediaCoverTests(YamtrackApiTestCase):
     """Validate the custom cover endpoints."""
 
@@ -211,7 +211,7 @@ class MediaSeasonCoverTests(YamtrackApiTestCase):
     """Validate the custom season cover endpoint."""
 
     @patch(
-        "api.views.tmdb.media_images",
+        "app.providers.tmdb.media_images",
         return_value={
             "posters": [
                 {
@@ -222,7 +222,7 @@ class MediaSeasonCoverTests(YamtrackApiTestCase):
         },
     )
     @patch(
-        "api.views.services.get_media_metadata",
+        "app.providers.services.get_media_metadata",
         return_value={
             "media_id": "1001",
             "source": "tmdb",
