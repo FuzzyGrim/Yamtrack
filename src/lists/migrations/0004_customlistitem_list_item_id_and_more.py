@@ -45,8 +45,4 @@ class Migration(migrations.Migration):
             code=populate_list_item_id,
             reverse_code=reverse_populate_list_item_id,
         ),
-        migrations.AddConstraint(
-            model_name='customlistitem',
-            constraint=models.UniqueConstraint(fields=('custom_list', 'list_item_id'), name='lists_customlistitem_unique_list_item_id'),
-        ),
     ]
