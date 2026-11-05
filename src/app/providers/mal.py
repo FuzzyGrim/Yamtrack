@@ -396,3 +396,40 @@ def get_related(related_medias, media_type):
             for media in related_medias
         ]
     return []
+
+
+def media_pictures(media_type, media_id):
+    """Return the main picture and extra pictures of an anime or manga."""
+    cache_key = f"{Sources.MAL.value}_{media_type}_{media_id}_pictures"
+    data = cache.get(cache_key)
+
+    if data is None:
+        try:
+            response = services.api_request(
+                Sources.MAL.value,
+                "GET",
+                f"{base_url}/{media_type}/{media_id}",
+                params={"fields": "main_picture,pictures"},
+                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        pictures = [response.get("main_picture"), *response.get("pictures", [])]
+        posters = []
+        seen = set()
+        for picture in pictures:
+            if not picture:
+                continue
+            original = picture.get("large") or picture.get("medium")
+            if not original or original in seen:
+                continue
+            seen.add(original)
+            posters.append(
+                helpers.build_image_entry(picture.get("medium") or original, original),
+            )
+
+        data = {"posters": posters}
+        cache.set(cache_key, data)
+
+    return data

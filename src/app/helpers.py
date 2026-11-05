@@ -156,6 +156,20 @@ def form_error_messages(form, request):
             )
 
 
+def build_image_entry(image, original=None, width=None, height=None):
+    """Build an image entry in the format shared by the API images endpoints."""
+    return {
+        "image": image,
+        "original": original or image,
+        "width": width,
+        "height": height,
+        "aspect_ratio": round(width / height, 3) if width and height else None,
+        "language": None,
+        "vote_average": None,
+        "vote_count": None,
+    }
+
+
 def format_search_response(page, per_page, total_results, results):
     """Format the search response for pagination."""
     return {
@@ -200,6 +214,25 @@ def _needs_image_refresh(item, new_image):
     if item is None or not new_image or new_image == settings.IMG_NONE:
         return False
     return not item.image or item.image == settings.IMG_NONE
+
+
+def apply_custom_image(metadata, media_type, media_id, source, season_number=None):
+    """Return the metadata with its image replaced by the custom cover, if any."""
+    custom_image = (
+        Item.objects.filter(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            season_number=season_number,
+            episode_number=None,
+        )
+        .exclude(custom_image="")
+        .values_list("custom_image", flat=True)
+        .first()
+    )
+    if not custom_image:
+        return metadata
+    return {**metadata, "image": custom_image}
 
 
 def refresh_item_image_if_missing(item, new_image):

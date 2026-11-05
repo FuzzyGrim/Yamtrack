@@ -108,6 +108,24 @@ Open the development server at:
 http://localhost:8000
 ```
 
+## API
+
+Generate the OpenAPI schema with the following command:
+
+```bash
+cd src
+uv run manage.py generate_openapi --validate
+```
+
+The schema is generated at every commit by the pre-commit hook, so it should always be up to date. The API tests fail if `openapi.yaml` doesn't match the generated schema.
+
+The generated file doesn't depend on the local settings: it always lists the local development server, and it doesn't include the `/api/v1/schema/` endpoint.
+
+When schema serving is enabled (default: `DEBUG=True`, or by setting `SPECTACULAR_ENABLE_SERVE=True`), docs are available at:
+
+- `http://localhost:8000/api/v1/schema/`
+- `http://localhost:8000/api/v1/docs/`
+
 ## Documentation
 
 Install the docs dependency group, then serve the docs from the current checkout:
