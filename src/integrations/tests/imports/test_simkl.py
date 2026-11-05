@@ -402,8 +402,19 @@ class ImportSimklNewMode(TestCase):
             shows=[self.show([{"number": 1, "watched_at": "2023-01-01T10:00:00Z"}])],
         )
 
+        watched_at = datetime(2023, 1, 1, 10, 0, tzinfo=UTC)
+        watched_at += helpers.WATCH_MATCH_TOLERANCE
         imported_counts, _ = self.run_import(
-            shows=[self.show([{"number": 1, "watched_at": "2023-01-01T10:07:00Z"}])],
+            shows=[
+                self.show(
+                    [
+                        {
+                            "number": 1,
+                            "watched_at": watched_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        },
+                    ],
+                ),
+            ],
         )
 
         self.assertEqual(imported_counts, {})

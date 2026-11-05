@@ -16,6 +16,9 @@ from app.providers import (
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 
+BREAKING_BAD_TMDB_ID = 1396
+THE_MATRIX_TMDB_ID = 603
+
 
 class Search(TestCase):
     """Test the external API calls for media search."""
@@ -55,6 +58,21 @@ class Search(TestCase):
 
         self.assertEqual(response["results"], [])
 
+    @patch("app.providers.mangaupdates.services.api_request")
+    def test_mangaupdates_nsfw_setting(self, mock_api_request):
+        """Test MangaUpdates adult genres follow MU_NSFW, not MAL_NSFW."""
+        mock_api_request.return_value = {"results": [], "total_hits": 0}
+
+        with self.settings(MU_NSFW=False, MAL_NSFW=True):
+            mangaupdates.search("mu nsfw disabled", 1)
+        params = mock_api_request.call_args.kwargs["params"]
+        self.assertIn("Hentai", params["exclude_genre"])
+
+        with self.settings(MU_NSFW=True, MAL_NSFW=False):
+            mangaupdates.search("mu nsfw enabled", 1)
+        params = mock_api_request.call_args.kwargs["params"]
+        self.assertNotIn("exclude_genre", params)
+
     def test_tv(self):
         """Test the search method for TV shows.
 
@@ -65,6 +83,43 @@ class Search(TestCase):
 
         for tv in response["results"]:
             self.assertTrue(all(key in tv for key in required_keys))
+
+        breaking_bad = next(
+            tv for tv in response["results"] if tv["media_id"] == BREAKING_BAD_TMDB_ID
+        )
+        self.assertEqual(breaking_bad["release_year"], 2008)
+
+    def test_movie(self):
+        """Test the search method for movies.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = tmdb.search(MediaTypes.MOVIE.value, "The Matrix", 1)
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        for movie in response["results"]:
+            self.assertTrue(all(key in movie for key in required_keys))
+
+        the_matrix = next(
+            movie
+            for movie in response["results"]
+            if movie["media_id"] == THE_MATRIX_TMDB_ID
+        )
+        self.assertEqual(the_matrix["release_year"], 1999)
+
+    def test_tmdb_release_year(self):
+        """Test the release year is read from movie and TV date fields."""
+        self.assertEqual(tmdb.get_release_year({"release_date": "1999-03-31"}), 1999)
+        self.assertEqual(
+            tmdb.get_release_year({"first_air_date": "2008-01-20"}),
+            2008,
+        )
+
+    def test_tmdb_release_year_unknown(self):
+        """Test the release year is None when the date is empty or missing."""
+        self.assertIsNone(tmdb.get_release_year({"release_date": ""}))
+        self.assertIsNone(tmdb.get_release_year({"first_air_date": ""}))
+        self.assertIsNone(tmdb.get_release_year({}))
 
     def test_games(self):
         """Test the search method for games.

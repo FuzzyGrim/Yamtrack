@@ -48,7 +48,7 @@ class JournalViewTests(TestCase):
         self.movie.score = 8
         self.movie.save()
 
-    def _add_episode(self):
+    def _add_episode(self, notes=""):
         """Add a watched episode without triggering provider lookups."""
         season_item = Item.objects.create(
             media_id="1668",
@@ -76,6 +76,7 @@ class JournalViewTests(TestCase):
             item=episode_item,
             related_season=season,
             end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
+            notes=notes,
         )
         episode._history_user = self.user
         Episode.save_base(episode)
@@ -183,6 +184,24 @@ class JournalViewTests(TestCase):
             episode_entries[0]["changes"][0]["description"],
             "Watched episode 1",
         )
+
+    def test_journal_episode_entry_with_notes(self):
+        """An episode watched with notes also lists the added notes."""
+        self._add_episode(notes="Great episode")
+
+        response = self.client.get(reverse("journal"))
+
+        episode_entries = [
+            entry
+            for entry in response.context["entries"]
+            if entry["media_type"] == MediaTypes.EPISODE.value
+        ]
+        self.assertEqual(len(episode_entries), 1)
+        self.assertEqual(
+            [change["description"] for change in episode_entries[0]["changes"]],
+            ["Watched episode 1", "Added notes"],
+        )
+        self.assertEqual(episode_entries[0]["accent"], Status.COMPLETED.value)
 
     def test_journal_excludes_other_users(self):
         """The feed only contains the requesting user's activity."""

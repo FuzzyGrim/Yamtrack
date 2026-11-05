@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from app import config
 from app.models import (
     Item,
     MediaTypes,
@@ -211,3 +212,82 @@ class MediaDetailsViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         item.refresh_from_db()
         self.assertEqual(item.image, existing_image)
+
+    def _get_tracked_movie_details(self, mock_get_metadata, status):
+        """Return the details page of a movie tracked with the given status."""
+        mock_get_metadata.return_value = {
+            "media_id": "238",
+            "title": "Test Movie",
+            "media_type": MediaTypes.MOVIE.value,
+            "source": Sources.TMDB.value,
+            "image": "http://example.com/image.jpg",
+            "max_progress": 1,
+            "overview": "Test overview",
+            "release_date": "2023-01-01",
+        }
+        item = Item.objects.create(
+            media_id="238",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Test Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(item=item, user=self.user, status=status)
+
+        return self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "238",
+                    "title": "test-movie",
+                },
+            ),
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_track_button_uses_status_color(self, mock_get_metadata):
+        """The track button is filled with the status color of the tracked media."""
+        response = self._get_tracked_movie_details(
+            mock_get_metadata,
+            Status.PAUSED.value,
+        )
+
+        # main button and "more tracking options" button
+        self.assertContains(
+            response,
+            config.get_status_button_color(Status.PAUSED.value),
+            count=2,
+        )
+        self.assertNotContains(
+            response,
+            config.get_status_button_color(Status.IN_PROGRESS.value),
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_track_button_color_ignores_progress_bar_setting(self, mock_get_metadata):
+        """The track button uses the status color with the progress bar off."""
+        self.user.progress_bar = False
+        self.user.save(update_fields=["progress_bar"])
+
+        response = self._get_tracked_movie_details(
+            mock_get_metadata,
+            Status.PAUSED.value,
+        )
+
+        self.assertContains(
+            response,
+            config.get_status_button_color(Status.PAUSED.value),
+            count=2,
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_track_button_has_no_progress_bar(self, mock_get_metadata):
+        """The track button does not render a progress bar."""
+        response = self._get_tracked_movie_details(
+            mock_get_metadata,
+            Status.IN_PROGRESS.value,
+        )
+
+        self.assertNotContains(response, "h-1.25")

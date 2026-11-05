@@ -21,6 +21,13 @@
           </h3>
 
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400">
+            {% if item.release_year %}
+              <span class="flex items-center gap-1">
+                {% include "app/icons/calendar.svg" with classes="w-4 h-4" %}
+                {{ item.release_year }}
+              </span>
+            {% endif %}
+
             <span class="flex items-center gap-1">
               {% icon item.media_type is_active=False extra_classes="w-4 h-4" %}
               {{ item.media_type|media_type_readable }}

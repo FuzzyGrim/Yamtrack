@@ -60,7 +60,7 @@ def search(query, page):
             "page": page,
         }
 
-        if not settings.MAL_NSFW:
+        if not settings.MU_NSFW:
             params["exclude_genre"] = [
                 "Adult",
                 "Hentai",

@@ -114,3 +114,103 @@ class ImportKitsu(TestCase):
         self.assertEqual(instance.progress, 26)
         self.assertEqual(instance.status, Status.COMPLETED.value)
         self.assertEqual(instance.notes, "Great series!")
+
+
+class ImportKitsuNewMode(TestCase):
+    """Test that "new" mode only imports what is missing from Yamtrack."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+
+    def anime(self, status, progress, rating=None, reconsume_count=0, **kwargs):
+        """Return a Kitsu library entry of an anime."""
+        return {
+            "attributes": {
+                "status": status,
+                "progress": progress,
+                "ratingTwenty": rating,
+                "startedAt": "2023-01-01T00:00:00.000Z",
+                "finishedAt": (
+                    "2023-02-01T00:00:00.000Z" if status == "completed" else None
+                ),
+                "notes": None,
+                "reconsumeCount": reconsume_count,
+                "reconsuming": kwargs.get("reconsuming", False),
+                "updatedAt": "2023-02-01T00:00:00.000Z",
+            },
+            "relationships": {"anime": {"data": {"id": "1"}}},
+        }
+
+    def run_import(self, anime):
+        """Run a Kitsu import in "new" mode."""
+        response = {
+            "entries": [anime],
+            "included": [
+                {
+                    "id": "1",
+                    "type": "anime",
+                    "attributes": {
+                        "canonicalTitle": "Cowboy Bebop",
+                        "posterImage": {"medium": "https://example.com/image.jpg"},
+                        "episodeCount": 26,
+                    },
+                    "relationships": {"mappings": {"data": [{"id": "10"}]}},
+                },
+                {
+                    "id": "10",
+                    "type": "mappings",
+                    "attributes": {
+                        "externalSite": "myanimelist/anime",
+                        "externalId": "1",
+                    },
+                },
+            ],
+        }
+        with patch.object(
+            kitsu.KitsuImporter,
+            "_get_media_response",
+            side_effect=lambda media_type: (
+                response
+                if media_type == MediaTypes.ANIME.value
+                else {"entries": [], "included": []}
+            ),
+        ):
+            return kitsu.importer("1", self.user, "new")
+
+    def test_existing_anime_is_synced(self):
+        """An existing anime gets its progress, status and score."""
+        self.run_import(self.anime("current", 3))
+
+        self.run_import(self.anime("completed", 26, rating=17))
+
+        anime = Anime.objects.get(user=self.user)
+        self.assertEqual(anime.progress, 26)
+        self.assertEqual(anime.status, Status.COMPLETED.value)
+        self.assertEqual(float(anime.score), 8.5)
+        self.assertEqual(anime.end_date, datetime(2023, 2, 1, tzinfo=UTC))
+
+    def test_reconsuming_adds_completed_entry(self):
+        """Reconsuming for the first time keeps the first watch as completed."""
+        self.run_import(self.anime("completed", 26))
+
+        rewatch = self.anime("current", 3, reconsuming=True)
+        self.run_import(rewatch)
+        self.run_import(rewatch)
+
+        entries = Anime.objects.filter(user=self.user).order_by("created_at")
+        self.assertEqual(
+            [(anime.status, anime.progress) for anime in entries],
+            [(Status.COMPLETED.value, 26), (Status.IN_PROGRESS.value, 3)],
+        )
+
+    def test_fresh_import_of_reconsuming_entry(self):
+        """A fresh import of a reconsumed entry adds the first watch as completed."""
+        self.run_import(self.anime("current", 3, reconsuming=True))
+
+        entries = Anime.objects.filter(user=self.user).order_by("created_at")
+        self.assertEqual(
+            [(anime.status, anime.progress) for anime in entries],
+            [(Status.COMPLETED.value, 26), (Status.IN_PROGRESS.value, 3)],
+        )

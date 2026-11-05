@@ -79,6 +79,7 @@ class ExportCSVTest(TestCase):
             item=item_episode,
             related_season=season,
             end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
+            notes="Favorite episode",
         )
 
         item_anime = Item.objects.create(
@@ -175,6 +176,8 @@ class ExportCSVTest(TestCase):
         for row in reader:
             media_id = row["media_id"]
             self.assertIn(media_id, db_media_ids)
+            if row["media_type"] == MediaTypes.EPISODE.value:
+                self.assertEqual(row["notes"], "Favorite episode")
 
 
 class ExportCustomCoverTest(TestCase):

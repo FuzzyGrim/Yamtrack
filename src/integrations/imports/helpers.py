@@ -33,23 +33,26 @@ WATCH_MATCH_TOLERANCE = datetime.timedelta(minutes=5)
 EXISTING_MEDIA_UPDATE_FIELDS = {
     MediaTypes.TV.value: ["status", "score", "notes"],
     MediaTypes.SEASON.value: ["status", "score", "notes"],
-    MediaTypes.MOVIE.value: [
-        "status",
-        "score",
-        "notes",
-        "progress",
-        "progressed_at",
-        "start_date",
-        "end_date",
-    ],
-    MediaTypes.ANIME.value: [
-        "status",
-        "score",
-        "notes",
-        "progress",
-        "progressed_at",
-        "end_date",
-    ],
+    **{
+        media_type: [
+            "status",
+            "score",
+            "notes",
+            "progress",
+            "progressed_at",
+            "start_date",
+            "end_date",
+        ]
+        for media_type in (
+            MediaTypes.MOVIE.value,
+            MediaTypes.ANIME.value,
+            MediaTypes.MANGA.value,
+            MediaTypes.GAME.value,
+            MediaTypes.BOOK.value,
+            MediaTypes.COMIC.value,
+            MediaTypes.BOARDGAME.value,
+        )
+    },
 }
 
 
@@ -82,6 +85,38 @@ def get_existing_media(user):
     ]
     logger.debug("Existing media for user %s: %s", user.username, ", ".join(counts))
     return existing
+
+
+def get_existing_entries(user, media_types):
+    """Get every entry of the user's media, newest first, including repeats.
+
+    Used in "new" mode to know which entries of a media are already tracked,
+    keyed by media type, source and media ID.
+    """
+    entries = defaultdict(list)
+    for media_type in media_types:
+        media_model = apps.get_model(app_label="app", model_name=media_type)
+        queryset = (
+            media_model.objects.filter(user=user)
+            .select_related("item")
+            .order_by("-created_at")
+        )
+        for media in queryset:
+            key = (media_type, media.item.source, media.item.media_id)
+            entries[key].append(media)
+    return entries
+
+
+def get_current_entry(entries):
+    """Return the entry being tracked now out of the entries of a media.
+
+    Repeats are completed, so an unfinished entry is the current one even when
+    it isn't the newest, like after importing a file in a different order.
+    """
+    return next(
+        (entry for entry in entries if entry.status != Status.COMPLETED.value),
+        entries[0],
+    )
 
 
 def get_existing_seasons(user):
@@ -141,15 +176,19 @@ def get_existing_watches(user):
     return watches
 
 
+def is_same_watch_date(date, other_date):
+    """Return whether two end dates are of the same watch."""
+    if date is None or other_date is None:
+        return date == other_date
+    return abs(date - other_date) <= WATCH_MATCH_TOLERANCE
+
+
 def is_existing_watch(existing_watches, watch_key, end_date):
     """Return whether the user already has a watch at around the same date."""
-    for existing_date in existing_watches.get(watch_key, ()):
-        if existing_date is None or end_date is None:
-            if existing_date == end_date:
-                return True
-        elif abs(existing_date - end_date) <= WATCH_MATCH_TOLERANCE:
-            return True
-    return False
+    return any(
+        is_same_watch_date(existing_date, end_date)
+        for existing_date in existing_watches.get(watch_key, ())
+    )
 
 
 def advance_status(media, status):
@@ -191,6 +230,73 @@ def fill_empty_fields(media, values):
         setattr(media, field, value)
         changed = True
     return changed
+
+
+def sync_existing_media(media, values):
+    """Sync existing media with the values of an import, return whether it changed.
+
+    Fills the score, notes and dates the media is missing, moves its status
+    forward and raises its progress, without undoing anything tracked in Yamtrack.
+    """
+    changed = fill_empty_fields(media, values)
+
+    if advance_status(media, values.get("status")):
+        changed = True
+
+    progress = values.get("progress")
+    if progress and progress > media.progress:
+        media.progress = progress
+        media.progressed_at = timezone.now()
+        changed = True
+
+    # Values are checked first, as shows and seasons get their dates by querying
+    # their episodes
+    if values.get("start_date") and media.start_date is None:
+        media.start_date = values["start_date"]
+        changed = True
+
+    # Only finished media has an end date
+    if (
+        values.get("end_date")
+        and media.status == Status.COMPLETED.value
+        and media.end_date is None
+    ):
+        media.end_date = values["end_date"]
+        changed = True
+
+    return changed
+
+
+def sync_existing_entries(media, current, max_progress, entries, existing_count):
+    """Sync the current entry of existing media from a list import.
+
+    A fresh import creates `entries` entries of the media, its completed repeats
+    and its current one. When Yamtrack has fewer, its current entry was finished
+    and the missing ones should be added after it, so the newest entry shown as
+    the main one has the current status of the source.
+
+    Returns whether the media changed and how many entries are missing.
+    """
+    missing = max(entries - existing_count, 0)
+
+    if not missing:
+        return sync_existing_media(media, current), missing
+
+    changed = sync_existing_media(
+        media,
+        {
+            "score": current["score"],
+            "notes": current["notes"],
+            "progress": max_progress,
+        },
+    )
+
+    # Repeats only come after a finished entry, even if it was paused or dropped
+    if media.status != Status.COMPLETED.value:
+        media.status = Status.COMPLETED.value
+        changed = True
+
+    return changed, missing
 
 
 def should_process_media(existing_media, to_delete, media_type, source, media_id, mode):

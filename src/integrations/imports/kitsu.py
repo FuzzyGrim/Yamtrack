@@ -43,6 +43,18 @@ class KitsuImporter:
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
+        # Track every entry of each media to sync the current one and add the
+        # missing repeats in "new" mode
+        self.existing_entries = {}
+        if mode == "new":
+            self.existing_entries = helpers.get_existing_entries(
+                user,
+                [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
+            )
+
+        # Track existing media changed in "new" mode, by primary key
+        self.to_update = defaultdict(dict)
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -74,6 +86,11 @@ class KitsuImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.bulk_update_media(
+            self.to_update,
+            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -188,8 +205,10 @@ class KitsuImporter:
             mapping_lookup,
         )
 
+        existing = self._get_existing(media_type, item.source, item.media_id)
+
         # Check if we should process this entry based on mode
-        if not helpers.should_process_media(
+        if not existing and not helpers.should_process_media(
             self.existing_media,
             self.to_delete,
             media_type,
@@ -206,42 +225,63 @@ class KitsuImporter:
             "episodeCount",
         ) or kitsu_metadata["attributes"].get("chapterCount")
 
+        current = {
+            "score": self._get_rating(attributes["ratingTwenty"]),
+            "progress": attributes["progress"],
+            "status": self._get_status(attributes["status"]),
+            "start_date": self._get_date(attributes["startedAt"]),
+            "end_date": self._get_date(attributes["finishedAt"]),
+            "notes": attributes["notes"] or "",
+        }
+        if attributes["reconsuming"]:
+            current["status"] = Status.IN_PROGRESS.value
+
         # Handle completed repeats
         repeats_count = attributes["reconsumeCount"]
         if attributes["reconsuming"] and repeats_count == 0:
             repeats_count = 1
 
-        if repeats_count >= 1:
-            for _ in range(attributes["reconsumeCount"]):
-                instance = model(
-                    item=item,
-                    user=self.user,
-                    score=self._get_rating(attributes["ratingTwenty"]),
-                    progress=max_progress or attributes["progress"],
-                    status=Status.COMPLETED.value,
-                    start_date=self._get_date(attributes["startedAt"]),
-                    end_date=self._get_date(attributes["finishedAt"]),
-                    notes=attributes["notes"] or "",
-                )
-                instance._history_date = updated_at
-                self.bulk_media[media_type].append(instance)
+        # Existing media only gets the repeats it is missing
+        if existing:
+            changed, missing = helpers.sync_existing_entries(
+                existing,
+                current,
+                max_progress,
+                repeats_count + 1,
+                len(
+                    self.existing_entries[media_type, item.source, item.media_id],
+                ),
+            )
+            if changed:
+                self.to_update[media_type][existing.pk] = existing
+            if not missing:
+                return
+            repeats_count = missing - 1
 
-        instance = model(
-            item=item,
-            user=self.user,
-            score=self._get_rating(attributes["ratingTwenty"]),
-            progress=attributes["progress"],
-            status=self._get_status(attributes["status"]),
-            start_date=self._get_date(attributes["startedAt"]),
-            end_date=self._get_date(attributes["finishedAt"]),
-            notes=attributes["notes"] or "",
-        )
+        for _ in range(repeats_count):
+            instance = model(
+                item=item,
+                user=self.user,
+                **{
+                    **current,
+                    "progress": max_progress or attributes["progress"],
+                    "status": Status.COMPLETED.value,
+                },
+            )
+            instance._history_date = updated_at
+            self.bulk_media[media_type].append(instance)
 
-        if attributes["reconsuming"]:
-            instance.status = Status.IN_PROGRESS.value
-
+        instance = model(item=item, user=self.user, **current)
         instance._history_date = updated_at
         self.bulk_media[media_type].append(instance)
+
+    def _get_existing(self, media_type, source, media_id):
+        """Get the current entry of media already in Yamtrack, only in "new" mode."""
+        if self.mode != "new":
+            return None
+
+        entries = self.existing_entries.get((media_type, source, media_id))
+        return helpers.get_current_entry(entries) if entries else None
 
     def _fetch_media_from_related_url(self, relationship, media_type):
         """Fetch media data from Kitsu related URL when relationship data is null."""

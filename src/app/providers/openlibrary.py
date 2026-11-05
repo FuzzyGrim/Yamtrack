@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 base_url = "https://openlibrary.org/api"
 search_url = "https://openlibrary.org/search.json"
 headers = {"User-Agent": "Yamtrack/1.0 (github@fuzzygrim.com)"}
+AUTHOR_FETCH_ATTEMPTS = 3
 
 
 def handle_error(error):
@@ -171,6 +172,7 @@ async def async_book(media_id):
             get_ratings(response_work),
         )
         score, score_count = await ratings_task
+        authors, authors_complete = await authors_task
 
         data = {
             "media_id": media_id,
@@ -188,7 +190,7 @@ async def async_book(media_id):
                 "physical_format": get_physical_format(response_book),
                 "number_of_pages": response_book.get("number_of_pages"),
                 "publish_date": get_publish_date(response_book),
-                "author": await authors_task,
+                "author": authors,
                 "publishers": get_publishers(response_book),
                 "isbn": get_isbns(response_book),
             },
@@ -197,7 +199,9 @@ async def async_book(media_id):
             },
         }
 
-        cache.set(cache_key, data)
+        # don't cache missing authors from transient errors for the full timeout
+        if authors_complete:
+            cache.set(cache_key, data)
 
     return data
 
@@ -264,7 +268,12 @@ def get_publish_date(response):
 
 
 async def get_authors(response):
-    """Get list of author names asynchronously."""
+    """Get list of author names asynchronously.
+
+    Returns a tuple of (authors, complete), where complete is False when any
+    author failed with a transient error, so callers can avoid caching partial
+    data.
+    """
     authors = []
     author_entries = response.get("authors", [])
 
@@ -281,15 +290,38 @@ async def get_authors(response):
             data.get("name", "Unknown Author") for data in author_data_list if data
         ]
 
-    return authors or None
+    complete = all(data is not None for data in author_data_list)
+    return authors or None, complete
 
 
 async def fetch_author_data(session, url):
-    """Fetch author data asynchronously."""
-    async with session.get(url) as response:
-        if response.status == requests.codes.ok:
-            return await response.json()
+    """Fetch author data asynchronously, retrying transient failures.
 
+    Returns an empty dict for permanent errors like 404 so the author is skipped
+    but the book can still be cached, and None when transient errors persist.
+    """
+    for attempt in range(1, AUTHOR_FETCH_ATTEMPTS + 1):
+        try:
+            async with session.get(url) as response:
+                if response.status == requests.codes.ok:
+                    return await response.json()
+                status = response.status
+        except (aiohttp.ClientError, TimeoutError) as error:
+            status = error
+
+        retryable = not isinstance(status, int) or (
+            status == requests.codes.too_many_requests
+            or status >= requests.codes.internal_server_error
+        )
+        if not retryable:
+            logger.warning("Open Library author %s not available: %s", url, status)
+            return {}
+        if attempt == AUTHOR_FETCH_ATTEMPTS:
+            break
+
+        await asyncio.sleep(attempt)
+
+    logger.warning("Failed to fetch Open Library author %s: %s", url, status)
     return None
 
 
