@@ -55,7 +55,7 @@ jobs:
           uv run manage.py makemessages --all --keep-pot -d djangojs
 
       - name: Upload source strings
-        uses: crowdin/github-action@v3.5.0
+        uses: crowdin/github-action@v3.5.1
         with:
           upload_sources: true
           upload_translations: ${{ inputs.upload_translations == true }}
@@ -66,7 +66,7 @@ jobs:
       # The generated templates stay in place because Crowdin needs them to map
       # translations to files; they are gitignored so the download commit skips them.
       - name: Download translations
-        uses: crowdin/github-action@v3.5.0
+        uses: crowdin/github-action@v3.5.1
         with:
           upload_sources: false
           upload_translations: false
