@@ -414,6 +414,9 @@ SPECTACULAR_SETTINGS = {
         "SourceCompleteEnum": "api.helpers.SOURCES_COMPLETE_VALID_LIST",
         "MediaTypeEnum": "api.helpers.MEDIA_TYPE_VALID_LIST",
         "MediaTypeCompleteEnum": "api.helpers.MEDIA_TYPE_COMPLETE_VALID_LIST",
+        "PreferenceLayoutEnum": "users.models.LayoutChoices",
+        "PreferenceSortEnum": "users.models.MediaSortChoices",
+        "PreferenceStatusEnum": "users.models.MediaStatusChoices",
     },
 }
 

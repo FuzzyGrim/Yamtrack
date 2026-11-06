@@ -25,6 +25,12 @@
 - [x] `/api/v1/lists/{list_id}/items/{item_id}/`
     - [x] DELETE: Delete item from list
     - [x] GET: Get tracked item
+- [x] `/api/v1/me/`
+    - [x] GET: Get the authenticated user, with the preferences
+    - [x] PATCH: Update the username or the profile visibility
+- [x] `/api/v1/me/preferences/`
+    - [x] GET: Get the preferences
+    - [x] PATCH: Update the preferences
 - [x] `/api/v1/media/`
     - [x] GET: List tracked media
 - [x] `/api/v1/media/{media_type}/`

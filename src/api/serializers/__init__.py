@@ -84,6 +84,11 @@ from .system import (
     HealthResponseSerializer,
     InfoSerializer,
 )
+from .users import (
+    PreferencesSerializer,
+    UserProfileSerializer,
+    UserUpdateSerializer,
+)
 
 __all__ = [
     "UPDATE_MEDIA_SERIALIZERS",
@@ -127,6 +132,7 @@ __all__ = [
     "PaginatedMediaSerializer",
     "PaginationSerializer",
     "ParentIdField",
+    "PreferencesSerializer",
     "RelatedResponseSerializer",
     "SearchMediaSerializer",
     "SearchResponseSerializer",
@@ -148,6 +154,8 @@ __all__ = [
     "UpdateSeasonSerializer",
     "UpdateTVSerializer",
     "UserManualParentField",
+    "UserProfileSerializer",
     "UserSerializer",
+    "UserUpdateSerializer",
     "serializer_map",
 ]

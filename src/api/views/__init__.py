@@ -51,6 +51,10 @@ from .system import (
     HealthView,
     InfoView,
 )
+from .users import (
+    MePreferencesView,
+    MeView,
+)
 
 __all__ = [
     "CalendarUpdateView",
@@ -61,6 +65,8 @@ __all__ = [
     "ListItemView",
     "ListItemsView",
     "ListsView",
+    "MePreferencesView",
+    "MeView",
     "MediaChangesHistoryView",
     "MediaConsumptionEntryDetailView",
     "MediaConsumptionHistoryView",

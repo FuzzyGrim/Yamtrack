@@ -244,4 +244,12 @@ def get_endpoint_cases() -> list[EndpointCase]:
         EndpointCase("post", "api_media_episode_sync", args=("tv", "tmdb", 1, 1, 1)),
         EndpointCase("get", "api_search_provider", args=("movie",)),
         EndpointCase("get", "api_statistics"),
+        EndpointCase("get", "api_me"),
+        EndpointCase("patch", "api_me", payload={"profile_private": False}),
+        EndpointCase("get", "api_me_preferences"),
+        EndpointCase(
+            "patch",
+            "api_me_preferences",
+            payload={"tv_layout": "table"},
+        ),
     ]

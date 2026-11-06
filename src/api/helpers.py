@@ -14,7 +14,12 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, F, OrderBy, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.timezone import is_naive, localdate, make_aware
-from rest_framework.exceptions import ParseError, Throttled, ValidationError
+from rest_framework.exceptions import (
+    ParseError,
+    PermissionDenied,
+    Throttled,
+    ValidationError,
+)
 from rest_framework.response import Response
 
 from app.config import get_sources as get_media_type_sources
@@ -930,3 +935,10 @@ def apply_list_sort(queryset, sort, sort_order):
         ).order_by(items_ordering, "name")
 
     return queryset.order_by(ordering)
+
+
+def forbid_demo_user(user):
+    """Raise PermissionDenied if the user is a demo account (view-only settings)."""
+    if user.is_demo:
+        msg = "This section is view-only for demo accounts."
+        raise PermissionDenied(msg)

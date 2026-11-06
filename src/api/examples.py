@@ -542,3 +542,72 @@ EPISODE_CHANGES_HISTORY_EXAMPLE = _example(
         ],
     ),
 )
+
+
+_MEDIA_TYPE_PREFERENCES = {
+    media_type: {
+        f"{media_type}_enabled": True,
+        f"{media_type}_layout": layout,
+        f"{media_type}_sort": "score",
+        f"{media_type}_status": "All",
+    }
+    for media_type, layout in (
+        ("tv", "grid"),
+        ("season", "grid"),
+        ("movie", "grid"),
+        ("anime", "table"),
+        ("manga", "table"),
+        ("game", "grid"),
+        ("book", "grid"),
+        ("comic", "grid"),
+        ("boardgame", "grid"),
+    )
+}
+
+PREFERENCES = {
+    "home_sort": "upcoming",
+    "home_hide_unreleased": False,
+    **{
+        key: value
+        for preferences in _MEDIA_TYPE_PREFERENCES.values()
+        for key, value in preferences.items()
+    },
+    "clickable_media_cards": False,
+    "obfuscate_unseen_episodes": False,
+    "quick_watch_date": "current_date",
+    "date_format": "Y-m-d",
+    "time_format": "H:i",
+    "week_start_day": "monday",
+    "progress_bar": True,
+    "hide_completed_recommendations": False,
+    "hide_zero_rating": False,
+    "watch_provider_region": "IT",
+    "calendar_layout": "grid",
+    "lists_sort": "last_item_added",
+    "list_detail_sort": "date_added",
+    "list_detail_status": "All",
+}
+
+PREFERENCES_EXAMPLE = _example("Preferences", PREFERENCES)
+
+ME_EXAMPLE = _example(
+    "Current user",
+    {
+        "id": 1,
+        "username": "alice",
+        "is_demo": False,
+        "profile_private": True,
+        "enabled_media_types": [
+            "tv",
+            "season",
+            "movie",
+            "anime",
+            "manga",
+            "game",
+            "book",
+            "comic",
+            "boardgame",
+        ],
+        "preferences": PREFERENCES,
+    },
+)

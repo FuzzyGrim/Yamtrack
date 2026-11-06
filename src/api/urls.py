@@ -37,6 +37,12 @@ urlpatterns = [
         views.ListItemView.as_view(),
         name="api_list_remove_item",
     ),
+    re_path(r"^me/?$", views.MeView.as_view(), name="api_me"),
+    re_path(
+        r"^me/preferences/?$",
+        views.MePreferencesView.as_view(),
+        name="api_me_preferences",
+    ),
     re_path(r"^media/?$", views.MediaListView.as_view(), name="api_media_list"),
     re_path(
         r"^media/(?P<media_type>[^/]+)/?$",
