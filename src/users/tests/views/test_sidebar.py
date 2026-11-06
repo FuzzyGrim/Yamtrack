@@ -73,6 +73,18 @@ class SidebarViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.show_adult_titles)
 
+    def test_sidebar_post_auto_start_next_season(self):
+        """Test POST request saves and clears the next season preference."""
+        self.assertTrue(self.user.auto_start_next_season)
+
+        self.client.post(reverse("preferences"), {})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.auto_start_next_season)
+
+        self.client.post(reverse("preferences"), {"auto_start_next_season": "on"})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.auto_start_next_season)
+
     def test_sidebar_post_demo_user(self):
         """Test POST request from a demo user to preferences."""
         self.user.is_demo = True

@@ -1206,8 +1206,14 @@ class TV(Media):
     def _start_next_available_season(
         self,
         min_season_number=0,
+        *,
+        start=True,
     ):
-        """Find the next available season to watch and set it to in-progress."""
+        """Find the next available season to watch and set it to in-progress.
+
+        With ``start=False`` nothing is created or changed: the return value
+        only says whether a released season the user has not completed exists.
+        """
         min_season_number = int(min_season_number or 0)
         current_date = timezone.localdate()
         existing_seasons = {
@@ -1243,6 +1249,9 @@ class TV(Media):
                 current_date,
             ):
                 continue
+
+            if not start:
+                return True
 
             if next_unwatched_season is None:
                 item, _created = Item.objects.get_or_create(
@@ -1305,9 +1314,18 @@ class TV(Media):
         completed_season_number,
     ):
         """Start the next season, or complete the TV show if no seasons remain."""
-        if self._start_next_available_season(
+        if self.user.auto_start_next_season:
+            if self._start_next_available_season(completed_season_number):
+                return
+        elif self._start_next_available_season(
             completed_season_number,
+            start=False,
         ):
+            # A later season is out, so the show is not complete; leave
+            # starting it to the user.
+            if self.status != Status.IN_PROGRESS.value:
+                self.status = Status.IN_PROGRESS.value
+                bulk_update_with_history([self], TV, fields=["status"])
             return
 
         incomplete_seasons_exist = (
