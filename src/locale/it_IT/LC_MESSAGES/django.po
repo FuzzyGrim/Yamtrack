@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 21:29+0000\n"
-"PO-Revision-Date: 2026-10-30 21:30\n"
+"POT-Creation-Date: 2026-10-31 15:18+0000\n"
+"PO-Revision-Date: 2026-11-02 04:29\n"
 "Last-Translator: \n"
 "Language-Team: Italian\n"
 "Language: it_IT\n"
@@ -1210,7 +1210,7 @@ msgstr "📆 YamTrack: uscite di oggi 📆"
 msgid "Enjoy your media!"
 msgstr "Buona visione!"
 
-#: events/views.py:115
+#: events/views.py:126
 msgid "The task to refresh upcoming releases has been queued."
 msgstr "Il task per aggiornare le uscite imminenti è stato messo in coda."
 
@@ -3449,11 +3449,11 @@ msgstr "Scegli la tua lingua preferita per l'interfaccia dell'applicazione."
 
 #: templates/users/preferences.html:264
 msgid "Show adult titles"
-msgstr ""
+msgstr "Mostra titoli per adulti"
 
 #: templates/users/preferences.html:266
 msgid "Show adult titles in searches. Depends on them being enabled by the server."
-msgstr ""
+msgstr "Mostra titoli per adulti nelle ricerche. Dipende se sono stati abilitati dal server."
 
 #: templates/users/preferences.html:285
 msgid "Media Types"
@@ -3651,7 +3651,7 @@ msgstr "Nascondi valutazioni vuote dalle schede contenuto"
 
 #: users/models.py:375
 msgid "Show adult titles in search results"
-msgstr ""
+msgstr "Mostra titoli per adulti nei risultati della ricerca"
 
 #: users/models.py:382
 msgid "Region to show watch providers for"
