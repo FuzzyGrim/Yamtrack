@@ -256,3 +256,89 @@ class TokenAndPasswordTests(YamtrackApiTestCase):
         self.assertEqual(response.json(), {"deleted": 1})
         self.assertIsNone(cache.get("search_movie_test"))
         self.assertEqual(cache.get("other_key"), "y")
+
+
+class PublicProfileTests(YamtrackApiTestCase):
+    """Tests for the public profile endpoints."""
+
+    def test_private_profile_is_not_found(self):
+        """Private profiles look like missing users."""
+        for url_name, args in (
+            ("api_user_profile", ("api-test-user2",)),
+            ("api_user_media_type_list", ("api-test-user2", "movie")),
+        ):
+            with self.subTest(url_name=url_name):
+                response = self.call_api("get", url_name, args=args)
+                self.assertEqual(response.status_code, 404)
+
+                response = self.call_api(
+                    "get",
+                    url_name,
+                    args=args,
+                    headers=self.auth_headers,
+                )
+                self.assertEqual(response.status_code, 404)
+
+    def test_owner_sees_private_profile(self):
+        """The owner can see their own profile."""
+        response = self.call_api(
+            "get",
+            "api_user_profile",
+            args=("api-test-user1",),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_public_profile(self):
+        """Anonymous users can read the profile and media of public users."""
+        self.user2.profile_private = False
+        self.user2.save()
+
+        response = self.call_api("get", "api_user_profile", args=("api-test-user2",))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["username"], "api-test-user2")
+
+        response = self.call_api(
+            "get",
+            "api_user_media_type_list",
+            args=("api-test-user2", "movie"),
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("pagination", payload)
+        for media in payload["results"]:
+            self.assertEqual(media["lists"], [])
+
+    def test_unknown_user(self):
+        """Missing users answer 404."""
+        response = self.call_api("get", "api_user_profile", args=("nobody",))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_disabled_media_type(self):
+        """Media types the user disabled answer 404."""
+        self.user2.profile_private = False
+        self.user2.movie_enabled = False
+        self.user2.save()
+
+        response = self.call_api(
+            "get",
+            "api_user_media_type_list",
+            args=("api-test-user2", "movie"),
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_media_type(self):
+        """Invalid media types are a bad request."""
+        self.user2.profile_private = False
+        self.user2.save()
+
+        response = self.call_api(
+            "get",
+            "api_user_media_type_list",
+            args=("api-test-user2", "invalid"),
+        )
+
+        self.assertEqual(response.status_code, 400)

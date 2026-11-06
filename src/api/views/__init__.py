@@ -31,6 +31,10 @@ from .media import (
     MediaTypeChangesHistoryDetailView,
     MediaTypeListView,
 )
+from .profiles import (
+    UserMediaTypeListView,
+    UserProfileView,
+)
 from .search import (
     SearchProviderView,
 )
@@ -102,4 +106,6 @@ __all__ = [
     "MediaTypeListView",
     "SearchProviderView",
     "StatisticsView",
+    "UserMediaTypeListView",
+    "UserProfileView",
 ]

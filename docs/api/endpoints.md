@@ -109,6 +109,10 @@
     - [x] GET: Search for media using the specified provider
 - [x] `/api/v1/statistics/`
     - [x] GET: Get user statistics
+- [x] `/api/v1/users/{username}/`
+    - [x] GET: Get a public profile
+- [x] `/api/v1/users/{username}/media/{media_type}/`
+    - [x] GET: List the media of a public profile
 - [x] `/api/v1/health/`
     - [x] GET: Health check endpoint
 - [x] `/api/v1/info/`

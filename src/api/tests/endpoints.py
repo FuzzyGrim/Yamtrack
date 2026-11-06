@@ -259,4 +259,13 @@ def get_endpoint_cases() -> list[EndpointCase]:
             payload={"old_password": "old", "new_password": "new"},
         ),
         EndpointCase("delete", "api_me_search_cache"),
+        EndpointCase(
+            "get", "api_user_profile", args=("api-test-user2",), is_public=True
+        ),
+        EndpointCase(
+            "get",
+            "api_user_media_type_list",
+            args=("api-test-user2", "movie"),
+            is_public=True,
+        ),
     ]

@@ -87,6 +87,7 @@ from .system import (
 from .users import (
     PasswordChangeSerializer,
     PreferencesSerializer,
+    PublicProfileSerializer,
     SearchCacheResponseSerializer,
     TokenResponseSerializer,
     UserProfileSerializer,
@@ -137,6 +138,7 @@ __all__ = [
     "ParentIdField",
     "PasswordChangeSerializer",
     "PreferencesSerializer",
+    "PublicProfileSerializer",
     "RelatedResponseSerializer",
     "SearchCacheResponseSerializer",
     "SearchMediaSerializer",

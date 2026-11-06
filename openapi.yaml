@@ -8388,6 +8388,240 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/users/{username}/:
+    get:
+      operationId: user_profile_get
+      description: Private profiles answer 404, as if the user didn't exist.
+      summary: Get a public profile
+      parameters:
+      - in: path
+        name: username
+        schema:
+          type: string
+        description: Username of the user.
+        required: true
+      tags:
+      - users
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProfile'
+              examples:
+                PublicProfile:
+                  value:
+                    username: alice
+                    enabled_media_types:
+                    - tv
+                    - movie
+                    - anime
+                  summary: Public profile
+          description: Successful response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/users/{username}/media/{media_type}/:
+    get:
+      operationId: user_media_type_list_get
+      description: Private profiles and media types the user disabled answer 404.
+        The lists the media belongs to aren't exposed.
+      summary: List the media of a public profile
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - episode
+          - game
+          - manga
+          - movie
+          - season
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: query
+        name: sort
+        schema:
+          type: string
+          enum:
+          - added
+          - added_asc
+          - added_desc
+          - end_date
+          - end_date_asc
+          - end_date_desc
+          - episode_number
+          - episode_number_asc
+          - episode_number_desc
+          - id
+          - id_asc
+          - id_desc
+          - itemid
+          - itemid_asc
+          - itemid_desc
+          - media_id
+          - media_id_asc
+          - media_id_desc
+          - media_type
+          - media_type_asc
+          - media_type_desc
+          - progress
+          - progress_asc
+          - progress_desc
+          - score
+          - score_asc
+          - score_desc
+          - season_number
+          - season_number_asc
+          - season_number_desc
+          - source
+          - source_asc
+          - source_desc
+          - start_date
+          - start_date_asc
+          - start_date_desc
+          - title
+          - title_asc
+          - title_desc
+          - updated
+          - updated_asc
+          - updated_desc
+        description: 'Sort field, optionally followed by `_asc` or `_desc` (default:
+          ascending). Episodes only support a subset of the sorts: added, end_date,
+          episode_number, id, itemid, season_number, title.'
+      - in: path
+        name: username
+        schema:
+          type: string
+        description: Username of the user.
+        required: true
+      tags:
+      - users
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMedia'
+              examples:
+                MediaList:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - id: 1
+                      consumption_id: 1
+                      item:
+                        media_id: '100088'
+                        source: tmdb
+                        media_type: tv
+                        title: The Last of Us
+                        image: https://image.tmdb.org/t/p/original//dmo6TYuuJgaYinXBPjrgG9mB5od.jpg
+                        season_number: null
+                        episode_number: null
+                      item_id: tv/tmdb/100088
+                      parent_id: null
+                      tracked: true
+                      created_at: '2026-01-15T15:33:03.209328Z'
+                      score: null
+                      status: 0
+                      progress: 0
+                      progressed_at: null
+                      start_date: null
+                      end_date: null
+                      notes: ''
+                      lists:
+                      - list_id: 1
+                        list_item_id: 10
+                  summary: Media list
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
 components:
   schemas:
     ApiErrorResponse:
@@ -10012,6 +10246,21 @@ components:
           $ref: '#/components/schemas/PreferenceStatusEnum'
       required:
       - watch_provider_region
+    PublicProfile:
+      type: object
+      description: Serializer for the public information of a user.
+      properties:
+        username:
+          type: string
+        enabled_media_types:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/MediaTypeCompleteEnum'
+            nullable: true
+      required:
+      - enabled_media_types
+      - username
     QuickWatchDateEnum:
       enum:
       - current_date

@@ -623,3 +623,8 @@ PASSWORD_CHANGED_EXAMPLE = _example(
 )
 
 SEARCH_CACHE_CLEARED_EXAMPLE = _example("Search cache cleared", {"deleted": 12})
+
+PUBLIC_PROFILE_EXAMPLE = _example(
+    "Public profile",
+    {"username": "alice", "enabled_media_types": ["tv", "movie", "anime"]},
+)

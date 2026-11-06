@@ -41,7 +41,7 @@ You can also regenerate it with `POST /api/v1/me/token/`: the previous token sto
 
 ### Authentication errors
 
-Requests with a missing or invalid token return a `401 Unauthorized` response, while `403 Forbidden` is returned when the authenticated user can't access a resource (e.g. another user's list).
+Requests with a missing or invalid token return a `401 Unauthorized` response, while `403 Forbidden` is returned when the authenticated user can't access a resource (e.g. another user's list). Profiles set as private answer `404 Not Found` on the `/users/{username}/` endpoints, as if the user didn't exist.
 
 ## Endpoints
 

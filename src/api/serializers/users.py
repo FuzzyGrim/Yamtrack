@@ -5,6 +5,8 @@ from rest_framework import serializers
 
 from users.models import WATCH_PROVIDER_REGION_UNSET
 
+from .fields import MediaTypeCompleteChoiceField
+
 User = get_user_model()
 
 MEDIA_TYPE_PREFERENCES = (
@@ -135,3 +137,10 @@ class SearchCacheResponseSerializer(serializers.Serializer):
     """Serializer for the result of clearing the search cache."""
 
     deleted = serializers.IntegerField(help_text="Number of cache entries deleted.")
+
+
+class PublicProfileSerializer(serializers.Serializer):
+    """Serializer for the public information of a user."""
+
+    username = serializers.CharField()
+    enabled_media_types = serializers.ListField(child=MediaTypeCompleteChoiceField())
