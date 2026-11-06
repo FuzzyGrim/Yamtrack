@@ -6,6 +6,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
+from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
@@ -158,6 +159,27 @@ def progress_edit(request, media_type, instance_id):
         "app/components/progress_changer.html",
         context,
     )
+
+
+@login_not_required
+@require_GET
+def own_media_list(request, media_type):
+    """Redirect /medialist/<media_type> to the logged-in user's own media list.
+
+    Media lists moved to /<username>/<media_type>, but the PWA shortcuts in
+    site.webmanifest and older bookmarks still use the previous URL. A user
+    actually named "medialist" keeps their media list at this URL.
+    """
+    if User.objects.filter(username="medialist").exists():
+        return media_list(request, "medialist", media_type)
+
+    if not request.user.is_authenticated:
+        return redirect_to_login(request.get_full_path())
+
+    url = reverse("medialist", args=[request.user.username, media_type])
+    if request.GET:
+        url = f"{url}?{request.GET.urlencode()}"
+    return redirect(url)
 
 
 @login_not_required
