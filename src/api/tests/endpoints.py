@@ -252,4 +252,11 @@ def get_endpoint_cases() -> list[EndpointCase]:
             "api_me_preferences",
             payload={"tv_layout": "table"},
         ),
+        EndpointCase("post", "api_me_token"),
+        EndpointCase(
+            "post",
+            "api_me_password",
+            payload={"old_password": "old", "new_password": "new"},
+        ),
+        EndpointCase("delete", "api_me_search_cache"),
     ]

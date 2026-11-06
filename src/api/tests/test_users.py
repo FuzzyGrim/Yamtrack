@@ -1,5 +1,9 @@
 from unittest.mock import patch
 
+from django.contrib.sessions.models import Session
+from django.core.cache import cache
+from django.test import Client
+
 from .base import YamtrackApiTestCase
 
 REGIONS = [("", "Disabled"), ("IT", "Italy"), ("US", "United States")]
@@ -144,3 +148,111 @@ class PreferencesTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+
+class TokenAndPasswordTests(YamtrackApiTestCase):
+    """Tests for the token, password and search cache endpoints."""
+
+    def test_regenerate_token(self):
+        """The old token stops working and the new one works."""
+        old_token = self.user1.token
+
+        response = self.call_api("post", "api_me_token", headers=self.auth_headers)
+
+        self.assertEqual(response.status_code, 200)
+        new_token = response.json()["token"]
+        self.assertNotEqual(new_token, old_token)
+
+        response = self.call_api("get", "api_me", headers=self.auth_headers)
+        self.assertEqual(response.status_code, 401)
+
+        response = self.call_api(
+            "get",
+            "api_me",
+            headers={"HTTP_X_API_KEY": new_token},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_change_password(self):
+        """The password changes, the token stays and web sessions are revoked."""
+        self.user1.set_password("old-pass-12345")
+        self.user1.save()
+        web_client = Client()
+        self.assertTrue(
+            web_client.login(username="api-test-user1", password="old-pass-12345")  # noqa: S106
+        )
+        self.assertEqual(Session.objects.count(), 1)
+        token = self.user1.token
+
+        response = self.call_api(
+            "post",
+            "api_me_password",
+            payload={
+                "old_password": "old-pass-12345",
+                "new_password": "n3w-str0ng-pass",
+            },
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user1.refresh_from_db()
+        self.assertTrue(self.user1.check_password("n3w-str0ng-pass"))
+        self.assertEqual(self.user1.token, token)
+        self.assertEqual(Session.objects.count(), 0)
+
+    def test_change_password_wrong_old_password(self):
+        """The current password is required."""
+        response = self.call_api(
+            "post",
+            "api_me_password",
+            payload={"old_password": "nope", "new_password": "n3w-str0ng-pass"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("old_password", response.json()["errors"])
+
+    def test_change_password_weak_password(self):
+        """The password validators are applied."""
+        self.user1.set_password("old-pass-12345")
+        self.user1.save()
+
+        response = self.call_api(
+            "post",
+            "api_me_password",
+            payload={"old_password": "old-pass-12345", "new_password": "123"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("new_password", response.json()["errors"])
+
+    def test_change_password_demo_user(self):
+        """Demo accounts are view-only."""
+        self.user1.is_demo = True
+        self.user1.save()
+
+        response = self.call_api(
+            "post",
+            "api_me_password",
+            payload={"old_password": "a", "new_password": "b"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_clear_search_cache(self):
+        """The cached searches are deleted."""
+        cache.set("search_movie_test", "x")
+        cache.set("other_key", "y")
+
+        response = self.call_api(
+            "delete",
+            "api_me_search_cache",
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"deleted": 1})
+        self.assertIsNone(cache.get("search_movie_test"))
+        self.assertEqual(cache.get("other_key"), "y")

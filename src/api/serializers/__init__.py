@@ -85,7 +85,10 @@ from .system import (
     InfoSerializer,
 )
 from .users import (
+    PasswordChangeSerializer,
     PreferencesSerializer,
+    SearchCacheResponseSerializer,
+    TokenResponseSerializer,
     UserProfileSerializer,
     UserUpdateSerializer,
 )
@@ -132,13 +135,16 @@ __all__ = [
     "PaginatedMediaSerializer",
     "PaginationSerializer",
     "ParentIdField",
+    "PasswordChangeSerializer",
     "PreferencesSerializer",
     "RelatedResponseSerializer",
+    "SearchCacheResponseSerializer",
     "SearchMediaSerializer",
     "SearchResponseSerializer",
     "StatisticsMediaCountSerializer",
     "StatisticsResponseSerializer",
     "TimelineItemSerializer",
+    "TokenResponseSerializer",
     "TrackMediaSerializer",
     "UTCDateTimeField",
     "UTCModelSerializer",

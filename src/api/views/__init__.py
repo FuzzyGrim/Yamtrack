@@ -52,7 +52,10 @@ from .system import (
     InfoView,
 )
 from .users import (
+    MePasswordView,
     MePreferencesView,
+    MeSearchCacheView,
+    MeTokenView,
     MeView,
 )
 
@@ -65,7 +68,10 @@ __all__ = [
     "ListItemView",
     "ListItemsView",
     "ListsView",
+    "MePasswordView",
     "MePreferencesView",
+    "MeSearchCacheView",
+    "MeTokenView",
     "MeView",
     "MediaChangesHistoryView",
     "MediaConsumptionEntryDetailView",

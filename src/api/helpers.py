@@ -9,11 +9,12 @@ from urllib.parse import urlencode
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, F, OrderBy, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
-from django.utils.timezone import is_naive, localdate, make_aware
+from django.utils.timezone import is_naive, localdate, make_aware, now
 from rest_framework.exceptions import (
     ParseError,
     PermissionDenied,
@@ -942,3 +943,11 @@ def forbid_demo_user(user):
     if user.is_demo:
         msg = "This section is view-only for demo accounts."
         raise PermissionDenied(msg)
+
+
+def revoke_user_sessions(user):
+    """Sign the user out of every web login session."""
+    user_id = str(user.pk)
+    for session in Session.objects.filter(expire_date__gt=now()):
+        if session.get_decoded().get("_auth_user_id") == user_id:
+            session.delete()

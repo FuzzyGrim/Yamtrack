@@ -611,3 +611,15 @@ ME_EXAMPLE = _example(
         "preferences": PREFERENCES,
     },
 )
+
+TOKEN_EXAMPLE = _example(
+    "Regenerated token",
+    {"token": "Zk3j9wq1rXb7T0fU5mYcLdE2aHnOvS4p"},
+)
+
+PASSWORD_CHANGED_EXAMPLE = _example(
+    "Password changed",
+    {"detail": "Password changed. Web sessions were signed out."},
+)
+
+SEARCH_CACHE_CLEARED_EXAMPLE = _example("Search cache cleared", {"deleted": 12})

@@ -1726,6 +1726,88 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/me/password/:
+    post:
+      operationId: me_password_post
+      description: The API token isn't changed, but all the web login sessions are
+        signed out.
+      summary: Change the password
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiMessageResponse'
+              examples:
+                PasswordChanged:
+                  value:
+                    detail: Password changed. Web sessions were signed out.
+                  summary: Password changed
+          description: Password changed
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/me/preferences/:
     get:
       operationId: me_preferences_get
@@ -1918,6 +2000,121 @@ paths:
                   summary: Invalid request example
                   description: Invalid request example
           description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/search-cache/:
+    delete:
+      operationId: me_search_cache_delete
+      description: Delete all the cached search entries.
+      summary: Clear the search cache
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchCacheResponse'
+              examples:
+                SearchCacheCleared:
+                  value:
+                    deleted: 12
+                  summary: Search cache cleared
+          description: Search cache cleared
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/token/:
+    post:
+      operationId: me_token_post
+      description: The previous token stops working immediately, so the following
+        requests have to use the returned one.
+      summary: Regenerate the API token
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                RegeneratedToken:
+                  value:
+                    token: Zk3j9wq1rXb7T0fU5mYcLdE2aHnOvS4p
+                  summary: Regenerated token
+          description: Token regenerated
         '401':
           content:
             application/json:
@@ -9213,6 +9410,21 @@ components:
       - offset
       - previous
       - total
+    PasswordChangeRequest:
+      type: object
+      description: Serializer to change the password of the authenticated user.
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - new_password
+      - old_password
     PatchedHistoryUpdateRequestRequest:
       anyOf:
       - $ref: '#/components/schemas/PatchedUpdateAnimeRequest'
@@ -9834,6 +10046,15 @@ components:
       - image
       - media_id
       - title
+    SearchCacheResponse:
+      type: object
+      description: Serializer for the result of clearing the search cache.
+      properties:
+        deleted:
+          type: integer
+          description: Number of cache entries deleted.
+      required:
+      - deleted
     SearchMedia:
       type: object
       description: Serializer for individual media items in search results.
@@ -10054,6 +10275,14 @@ components:
       - score
       - start_date
       - title
+    TokenResponse:
+      type: object
+      description: Serializer for the regenerated API token.
+      properties:
+        token:
+          type: string
+      required:
+      - token
     TrackMediaRequest:
       type: object
       description: |-

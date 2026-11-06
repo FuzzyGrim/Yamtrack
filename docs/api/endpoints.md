@@ -28,9 +28,15 @@
 - [x] `/api/v1/me/`
     - [x] GET: Get the authenticated user, with the preferences
     - [x] PATCH: Update the username or the profile visibility
+- [x] `/api/v1/me/password/`
+    - [x] POST: Change the password (signs out the web sessions)
 - [x] `/api/v1/me/preferences/`
     - [x] GET: Get the preferences
     - [x] PATCH: Update the preferences
+- [x] `/api/v1/me/search-cache/`
+    - [x] DELETE: Clear the search cache
+- [x] `/api/v1/me/token/`
+    - [x] POST: Regenerate the API token
 - [x] `/api/v1/media/`
     - [x] GET: List tracked media
 - [x] `/api/v1/media/{media_type}/`

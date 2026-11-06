@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from users.models import WATCH_PROVIDER_REGION_UNSET
@@ -99,3 +101,37 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:  # noqa: D106
         model = User
         fields = ("username", "profile_private")
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Serializer to change the password of the authenticated user."""
+
+    old_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate_old_password(self, value):
+        """Check the current password."""
+        if not self.context["request"].user.check_password(value):
+            msg = "The old password is incorrect."
+            raise serializers.ValidationError(msg)
+        return value
+
+    def validate_new_password(self, value):
+        """Run the configured password validators."""
+        try:
+            validate_password(value, self.context["request"].user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages)) from e
+        return value
+
+
+class TokenResponseSerializer(serializers.Serializer):
+    """Serializer for the regenerated API token."""
+
+    token = serializers.CharField()
+
+
+class SearchCacheResponseSerializer(serializers.Serializer):
+    """Serializer for the result of clearing the search cache."""
+
+    deleted = serializers.IntegerField(help_text="Number of cache entries deleted.")
