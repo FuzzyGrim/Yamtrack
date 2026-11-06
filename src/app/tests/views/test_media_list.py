@@ -135,6 +135,22 @@ class MediaListViewTests(TestCase):
         self.assertEqual(self.user.movie_sort, "score")
         self.assertEqual(self.user.movie_layout, "table")
 
+    def test_media_list_search_is_escaped_in_alpine_state(self):
+        """Test the search param can't break out of the x-data JS string."""
+        payload = "x', y: alert(document.domain), z: '"
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]),
+            {"search": payload},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertNotIn(escape(payload), content)
+        self.assertIn(
+            "search: 'x\\u0027, y: alert(document.domain), z: \\u0027'",
+            content,
+        )
+
     def test_media_list_htmx_request(self):
         """Test the media list view with HTMX request."""
         response = self.client.get(
