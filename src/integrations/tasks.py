@@ -25,6 +25,7 @@ from integrations.imports import (
 
 logger = logging.getLogger(__name__)
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
+UPDATE_MODE_IMPORTERS = {anilist.importer}
 
 
 def format_media_type_display(count, media_type):
@@ -70,6 +71,10 @@ def import_media(
     # Celery tasks run outside a request, so build the warnings, errors and
     # summary in the user's language instead of LANGUAGE_CODE
     with translation.override(user.language):
+        if mode == "update" and importer_func not in UPDATE_MODE_IMPORTERS:
+            msg = _("Update mode is only available for AniList imports.")
+            raise helpers.MediaImportError(msg)
+
         with disable_fetch_releases():
             if oauth_username is None:
                 imported_counts, warnings = importer_func(
