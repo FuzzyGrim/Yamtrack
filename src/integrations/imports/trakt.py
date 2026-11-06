@@ -1,6 +1,9 @@
+import base64
+import hashlib
 import json
 import logging
 import re
+import secrets
 import zipfile
 from collections import defaultdict
 
@@ -49,7 +52,29 @@ ENDPOINTS_TO_FILES = {
 }
 
 
-def handle_oauth_callback(request, redirect_uri=None):
+def generate_pkce_pair():
+    """Return a PKCE ``(code_verifier, code_challenge)`` pair for one sign-in.
+
+    Trakt only supports the S256 method: the challenge is the base64url-encoded
+    SHA-256 hash of the verifier, without padding.
+    """
+    code_verifier = secrets.token_urlsafe(64)
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return code_verifier, code_challenge
+
+
+def add_client_secret(params):
+    """Add the client secret to token request params when one is configured.
+
+    Trakt apps created for PKCE are not issued a secret, and Trakt asks not to
+    send one with them.
+    """
+    if settings.TRAKT_API_SECRET:
+        params["client_secret"] = settings.TRAKT_API_SECRET
+
+
+def handle_oauth_callback(request, redirect_uri=None, code_verifier=None):
     """View for getting the Trakt OAuth2 token."""
     code = request.GET["code"]
 
@@ -61,11 +86,13 @@ def handle_oauth_callback(request, redirect_uri=None):
 
     params = {
         "client_id": settings.TRAKT_API,
-        "client_secret": settings.TRAKT_API_SECRET,
         "code": code,
         "grant_type": "authorization_code",
         "redirect_uri": redirect_uri,
     }
+    add_client_secret(params)
+    if code_verifier:
+        params["code_verifier"] = code_verifier
 
     try:
         token_response = app.providers.services.api_request(
@@ -125,10 +152,10 @@ def get_access_token(encrypted_refresh_token, redirect_uri=None):
 
     params = {
         "client_id": settings.TRAKT_API,
-        "client_secret": settings.TRAKT_API_SECRET,
         "refresh_token": decrypted_token,
         "grant_type": "refresh_token",
     }
+    add_client_secret(params)
     if redirect_uri:
         params["redirect_uri"] = redirect_uri
 
