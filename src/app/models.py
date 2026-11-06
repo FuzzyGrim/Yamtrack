@@ -1211,38 +1211,32 @@ class TV(Media):
         later season is completed or has not aired yet.
         """
         min_season_number = int(min_season_number or 0)
-        current_date = timezone.localdate()
         existing_seasons = {
             season.item.season_number: season
             for season in self.seasons.filter(
                 item__season_number__gt=min_season_number,
-            ).order_by("item__season_number")
+            )
         }
         tv_metadata = providers.services.get_media_metadata(
             self.item.media_type,
             self.item.media_id,
             self.item.source,
         )
-        related_seasons = tv_metadata.get("related", {}).get("seasons", [])
+        season_data = app.helpers.next_released_season(
+            tv_metadata.get("related", {}).get("seasons", []),
+            completed_season_numbers={
+                number
+                for number, season in existing_seasons.items()
+                if season.status == Status.COMPLETED.value
+            },
+            after_season_number=min_season_number,
+            current_date=timezone.localdate(),
+        )
+        if season_data is None:
+            return None
 
-        for season_data in related_seasons:
-            season_number = season_data["season_number"]
-            if season_number <= min_season_number:
-                continue
-
-            season = existing_seasons.get(season_number)
-            if season and season.status == Status.COMPLETED.value:
-                continue
-
-            if not app.helpers.is_released_date(
-                season_data.get("first_air_date"),
-                current_date,
-            ):
-                continue
-
-            return season_number, season_data, season
-
-        return None
+        season_number = season_data["season_number"]
+        return season_number, season_data, existing_seasons.get(season_number)
 
     def _start_next_available_season(
         self,
