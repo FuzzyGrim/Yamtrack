@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 from collections import defaultdict
+from decimal import Decimal
 
 from cryptography.fernet import Fernet
 from django.apps import apps
@@ -298,6 +299,72 @@ def sync_existing_entries(media, current, max_progress, entries, existing_count)
         changed = True
 
     return changed, missing
+
+
+def is_same_value(current, value):
+    """Return whether a field of existing media already has an imported value."""
+    if isinstance(current, Decimal) and value is not None:
+        return current == Decimal(str(value))
+    return current == value
+
+
+def update_existing_media(media, values, updated_at):
+    """Update existing media to the values of an import, return whether it changed.
+
+    The history record is dated when the source changed the media. When Yamtrack
+    has a record as new or newer, the update is dated now, as the history shows
+    each record as a change from the one before it.
+    """
+    changed = {
+        field: value
+        for field, value in values.items()
+        if not is_same_value(getattr(media, field), value)
+    }
+    if not changed:
+        return False
+
+    latest = media.history.first()
+    if latest and latest.history_date >= updated_at:
+        updated_at = timezone.now()
+
+    for field, value in changed.items():
+        setattr(media, field, value)
+    if "progress" in changed:
+        media.progressed_at = updated_at
+    media._history_date = updated_at
+    return True
+
+
+def update_existing_entries(
+    media,
+    current,
+    max_progress,
+    entries,
+    existing_count,
+    updated_at,
+):
+    """Update the current entry of existing media from a list import.
+
+    When the source has entries Yamtrack is missing, the current entry becomes a
+    finished repeat. It keeps its dates, as the source only has the dates of its
+    newest entry.
+
+    Returns whether the media changed and how many entries are missing.
+    """
+    missing = max(entries - existing_count, 0)
+
+    if not missing:
+        return update_existing_media(media, current, updated_at), missing
+
+    values = {
+        "score": current["score"],
+        "notes": current["notes"],
+        "status": Status.COMPLETED.value,
+    }
+    if max_progress:
+        values["progress"] = max_progress
+
+    return update_existing_media(media, values, updated_at), missing
 
 
 def should_process_media(existing_media, to_delete, media_type, source, media_id, mode):
