@@ -742,6 +742,13 @@ class SeasonStatusTests(TestCase):
                 message__contains="was marked as in progress automatically",
             ).exists(),
         )
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message=f"{self.tv} Season 2 is available to watch.",
+            ).exists(),
+        )
 
     @patch("app.models.providers.services.get_media_metadata")
     def test_completed_status_without_auto_start_keeps_planning_season(

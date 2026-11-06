@@ -1203,16 +1203,12 @@ class TV(Media):
                 fields=["status"],
             )
 
-    def _start_next_available_season(
-        self,
-        min_season_number=0,
-        *,
-        start=True,
-    ):
-        """Find the next available season to watch and set it to in-progress.
+    def _find_next_available_season(self, min_season_number=0):
+        """Return the next released season after min_season_number to watch.
 
-        With ``start=False`` nothing is created or changed: the return value
-        only says whether a released season the user has not completed exists.
+        The result is a ``(season_number, season_data, season)`` tuple, where
+        ``season`` is the user's tracked Season or None, or None when every
+        later season is completed or has not aired yet.
         """
         min_season_number = int(min_season_number or 0)
         current_date = timezone.localdate()
@@ -1229,19 +1225,13 @@ class TV(Media):
         )
         related_seasons = tv_metadata.get("related", {}).get("seasons", [])
 
-        season_started = False
-        started_season_number = None
-
         for season_data in related_seasons:
             season_number = season_data["season_number"]
             if season_number <= min_season_number:
                 continue
 
-            next_unwatched_season = existing_seasons.get(season_number)
-            if (
-                next_unwatched_season
-                and next_unwatched_season.status == Status.COMPLETED.value
-            ):
+            season = existing_seasons.get(season_number)
+            if season and season.status == Status.COMPLETED.value:
                 continue
 
             if not app.helpers.is_released_date(
@@ -1250,52 +1240,53 @@ class TV(Media):
             ):
                 continue
 
-            if not start:
-                return True
+            return season_number, season_data, season
 
-            if next_unwatched_season is None:
-                item, _created = Item.objects.get_or_create(
-                    media_id=self.item.media_id,
-                    source=self.item.source,
-                    media_type=MediaTypes.SEASON.value,
-                    season_number=season_number,
-                    defaults={
-                        "title": self.item.title,
-                        "image": season_data["image"],
-                    },
-                )
+        return None
 
-                next_unwatched_season = Season(
-                    item=item,
-                    user=self.user,
-                    related_tv=self,
-                    status=Status.IN_PROGRESS.value,
-                )
-                bulk_create_with_history([next_unwatched_season], Season)
-                season_started = True
-                started_season_number = season_number
-                break
+    def _start_next_available_season(
+        self,
+        min_season_number=0,
+    ):
+        """Find the next available season to watch and set it to in-progress."""
+        next_season = self._find_next_available_season(min_season_number)
+        if next_season is None:
+            return False
 
-            if next_unwatched_season.status != Status.IN_PROGRESS.value:
-                next_unwatched_season.status = Status.IN_PROGRESS.value
-                bulk_update_with_history(
-                    [next_unwatched_season],
-                    Season,
-                    fields=["status"],
-                )
-                season_started = True
-                started_season_number = season_number
-            else:
-                season_started = True
-            break
+        season_number, season_data, next_unwatched_season = next_season
+        started_season_number = None
 
-        if season_started and self.status != Status.IN_PROGRESS.value:
-            self.status = Status.IN_PROGRESS.value
+        if next_unwatched_season is None:
+            item, _created = Item.objects.get_or_create(
+                media_id=self.item.media_id,
+                source=self.item.source,
+                media_type=MediaTypes.SEASON.value,
+                season_number=season_number,
+                defaults={
+                    "title": self.item.title,
+                    "image": season_data["image"],
+                },
+            )
+
+            next_unwatched_season = Season(
+                item=item,
+                user=self.user,
+                related_tv=self,
+                status=Status.IN_PROGRESS.value,
+            )
+            bulk_create_with_history([next_unwatched_season], Season)
+            started_season_number = season_number
+
+        elif next_unwatched_season.status != Status.IN_PROGRESS.value:
+            next_unwatched_season.status = Status.IN_PROGRESS.value
             bulk_update_with_history(
-                [self],
-                TV,
+                [next_unwatched_season],
+                Season,
                 fields=["status"],
             )
+            started_season_number = season_number
+
+        self._set_in_progress()
 
         if started_season_number is not None:
             self.create_user_message(
@@ -1307,7 +1298,17 @@ class TV(Media):
                 season_number=started_season_number,
             )
 
-        return season_started
+        return True
+
+    def _set_in_progress(self):
+        """Mark the TV show as in progress if it is not already."""
+        if self.status != Status.IN_PROGRESS.value:
+            self.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [self],
+                TV,
+                fields=["status"],
+            )
 
     def _handle_completed_season(
         self,
@@ -1317,16 +1318,18 @@ class TV(Media):
         if self.user.auto_start_next_season:
             if self._start_next_available_season(completed_season_number):
                 return
-        elif self._start_next_available_season(
-            completed_season_number,
-            start=False,
-        ):
-            # A later season is out, so the show is not complete; leave
-            # starting it to the user.
-            if self.status != Status.IN_PROGRESS.value:
-                self.status = Status.IN_PROGRESS.value
-                bulk_update_with_history([self], TV, fields=["status"])
-            return
+        else:
+            next_season = self._find_next_available_season(completed_season_number)
+            if next_season is not None:
+                # A later season is out, so the show is not complete, but
+                # starting it is left to the user.
+                self._set_in_progress()
+                self.create_user_message(
+                    _("%(title)s Season %(season_number)s is available to watch."),
+                    level=UserMessageLevel.INFO,
+                    season_number=next_season[0],
+                )
+                return
 
         incomplete_seasons_exist = (
             self.seasons.filter(
