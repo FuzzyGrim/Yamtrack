@@ -21,7 +21,8 @@ class MeTests(YamtrackApiTestCase):
         self.assertEqual(payload["username"], "api-test-user1")
         self.assertTrue(payload["profile_private"])
         self.assertIn("movie", payload["enabled_media_types"])
-        self.assertEqual(payload["preferences"]["tv_layout"], "grid")
+        self.assertTrue(payload["preferences"]["tv_enabled"])
+        self.assertNotIn("tv_layout", payload["preferences"])
         self.assertNotIn("token", payload)
 
     def test_me_patch(self):
@@ -74,24 +75,24 @@ class PreferencesTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertEqual(payload["anime_layout"], "table")
-        self.assertEqual(payload["date_format"], "Y-m-d")
+        self.assertTrue(payload["anime_enabled"])
+        self.assertEqual(payload["week_start_day"], "monday")
         self.assertEqual(payload["watch_provider_region"], "UNSET")
+        self.assertNotIn("anime_layout", payload)
+        self.assertNotIn("date_format", payload)
 
     def test_preferences_patch_is_partial(self):
         """Only the sent fields change."""
         response = self.call_api(
             "patch",
             "api_me_preferences",
-            payload={"tv_layout": "table", "movie_enabled": False},
+            payload={"movie_enabled": False},
             headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 200)
         self.user1.refresh_from_db()
-        self.assertEqual(self.user1.tv_layout, "table")
         self.assertFalse(self.user1.movie_enabled)
-        self.assertEqual(self.user1.anime_layout, "table")
         self.assertTrue(self.user1.tv_enabled)
 
     def test_preferences_patch_invalid_choice(self):
@@ -99,12 +100,12 @@ class PreferencesTests(YamtrackApiTestCase):
         response = self.call_api(
             "patch",
             "api_me_preferences",
-            payload={"tv_layout": "carousel"},
+            payload={"week_start_day": "friday"},
             headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("tv_layout", response.json()["errors"])
+        self.assertIn("week_start_day", response.json()["errors"])
 
     @patch("app.providers.tmdb.watch_provider_regions", return_value=REGIONS)
     def test_preferences_watch_provider_region(self, _regions):
@@ -143,6 +144,57 @@ class PreferencesTests(YamtrackApiTestCase):
         response = self.call_api(
             "patch",
             "api_me_preferences",
+            payload={"tv_enabled": False},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_webui_preferences_get(self):
+        """Only the web UI preferences are returned."""
+        response = self.call_api(
+            "get",
+            "api_me_preferences_webui",
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["anime_layout"], "table")
+        self.assertEqual(payload["date_format"], "Y-m-d")
+        self.assertNotIn("tv_enabled", payload)
+        self.assertNotIn("watch_provider_region", payload)
+
+    def test_webui_preferences_patch(self):
+        """Web UI preferences are updated partially and validated."""
+        response = self.call_api(
+            "patch",
+            "api_me_preferences_webui",
+            payload={"tv_layout": "table"},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.user1.refresh_from_db()
+        self.assertEqual(self.user1.tv_layout, "table")
+        self.assertEqual(self.user1.anime_layout, "table")
+
+        response = self.call_api(
+            "patch",
+            "api_me_preferences_webui",
+            payload={"tv_layout": "carousel"},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("tv_layout", response.json()["errors"])
+
+    def test_webui_preferences_patch_demo_user(self):
+        """Demo accounts are view-only."""
+        self.user1.is_demo = True
+        self.user1.save()
+
+        response = self.call_api(
+            "patch",
+            "api_me_preferences_webui",
             payload={"tv_layout": "table"},
             headers=self.auth_headers,
         )

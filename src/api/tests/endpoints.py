@@ -250,6 +250,12 @@ def get_endpoint_cases() -> list[EndpointCase]:
         EndpointCase(
             "patch",
             "api_me_preferences",
+            payload={"tv_enabled": False},
+        ),
+        EndpointCase("get", "api_me_preferences_webui"),
+        EndpointCase(
+            "patch",
+            "api_me_preferences_webui",
             payload={"tv_layout": "table"},
         ),
         EndpointCase("post", "api_me_token"),

@@ -1498,58 +1498,17 @@ paths:
                     - comic
                     - boardgame
                     preferences:
-                      home_sort: upcoming
-                      home_hide_unreleased: false
                       tv_enabled: true
-                      tv_layout: grid
-                      tv_sort: score
-                      tv_status: All
                       season_enabled: true
-                      season_layout: grid
-                      season_sort: score
-                      season_status: All
                       movie_enabled: true
-                      movie_layout: grid
-                      movie_sort: score
-                      movie_status: All
                       anime_enabled: true
-                      anime_layout: table
-                      anime_sort: score
-                      anime_status: All
                       manga_enabled: true
-                      manga_layout: table
-                      manga_sort: score
-                      manga_status: All
                       game_enabled: true
-                      game_layout: grid
-                      game_sort: score
-                      game_status: All
                       book_enabled: true
-                      book_layout: grid
-                      book_sort: score
-                      book_status: All
                       comic_enabled: true
-                      comic_layout: grid
-                      comic_sort: score
-                      comic_status: All
                       boardgame_enabled: true
-                      boardgame_layout: grid
-                      boardgame_sort: score
-                      boardgame_status: All
-                      clickable_media_cards: false
-                      obfuscate_unseen_episodes: false
-                      quick_watch_date: current_date
-                      date_format: Y-m-d
-                      time_format: H:i
                       week_start_day: monday
-                      progress_bar: true
-                      hide_completed_recommendations: false
-                      hide_zero_rating: false
                       watch_provider_region: IT
-                      calendar_layout: grid
-                      lists_sort: last_item_added
-                      list_detail_sort: date_added
-                      list_detail_status: All
                   summary: Current user
           description: Successful response
         '401':
@@ -1619,58 +1578,17 @@ paths:
                     - comic
                     - boardgame
                     preferences:
-                      home_sort: upcoming
-                      home_hide_unreleased: false
                       tv_enabled: true
-                      tv_layout: grid
-                      tv_sort: score
-                      tv_status: All
                       season_enabled: true
-                      season_layout: grid
-                      season_sort: score
-                      season_status: All
                       movie_enabled: true
-                      movie_layout: grid
-                      movie_sort: score
-                      movie_status: All
                       anime_enabled: true
-                      anime_layout: table
-                      anime_sort: score
-                      anime_status: All
                       manga_enabled: true
-                      manga_layout: table
-                      manga_sort: score
-                      manga_status: All
                       game_enabled: true
-                      game_layout: grid
-                      game_sort: score
-                      game_status: All
                       book_enabled: true
-                      book_layout: grid
-                      book_sort: score
-                      book_status: All
                       comic_enabled: true
-                      comic_layout: grid
-                      comic_sort: score
-                      comic_status: All
                       boardgame_enabled: true
-                      boardgame_layout: grid
-                      boardgame_sort: score
-                      boardgame_status: All
-                      clickable_media_cards: false
-                      obfuscate_unseen_episodes: false
-                      quick_watch_date: current_date
-                      date_format: Y-m-d
-                      time_format: H:i
                       week_start_day: monday
-                      progress_bar: true
-                      hide_completed_recommendations: false
-                      hide_zero_rating: false
                       watch_provider_region: IT
-                      calendar_layout: grid
-                      lists_sort: last_item_added
-                      list_detail_sort: date_added
-                      list_detail_status: All
                   summary: Current user
           description: User updated
         '400':
@@ -1812,7 +1730,7 @@ paths:
     get:
       operationId: me_preferences_get
       description: Return the preferences of the authenticated user.
-      summary: Get the preferences
+      summary: Get the general preferences
       tags:
       - me
       security:
@@ -1827,58 +1745,17 @@ paths:
               examples:
                 Preferences:
                   value:
-                    home_sort: upcoming
-                    home_hide_unreleased: false
                     tv_enabled: true
-                    tv_layout: grid
-                    tv_sort: score
-                    tv_status: All
                     season_enabled: true
-                    season_layout: grid
-                    season_sort: score
-                    season_status: All
                     movie_enabled: true
-                    movie_layout: grid
-                    movie_sort: score
-                    movie_status: All
                     anime_enabled: true
-                    anime_layout: table
-                    anime_sort: score
-                    anime_status: All
                     manga_enabled: true
-                    manga_layout: table
-                    manga_sort: score
-                    manga_status: All
                     game_enabled: true
-                    game_layout: grid
-                    game_sort: score
-                    game_status: All
                     book_enabled: true
-                    book_layout: grid
-                    book_sort: score
-                    book_status: All
                     comic_enabled: true
-                    comic_layout: grid
-                    comic_sort: score
-                    comic_status: All
                     boardgame_enabled: true
-                    boardgame_layout: grid
-                    boardgame_sort: score
-                    boardgame_status: All
-                    clickable_media_cards: false
-                    obfuscate_unseen_episodes: false
-                    quick_watch_date: current_date
-                    date_format: Y-m-d
-                    time_format: H:i
                     week_start_day: monday
-                    progress_bar: true
-                    hide_completed_recommendations: false
-                    hide_zero_rating: false
                     watch_provider_region: IT
-                    calendar_layout: grid
-                    lists_sort: last_item_added
-                    list_detail_sort: date_added
-                    list_detail_status: All
                   summary: Preferences
           description: Successful response
         '401':
@@ -1912,9 +1789,10 @@ paths:
           description: Internal server error
     patch:
       operationId: me_preferences_patch
-      description: Only the sent fields are updated. Invalid values are rejected,
-        unlike the web UI which ignores them.
-      summary: Update the preferences
+      description: Preferences that apply to the whole application. Only the sent
+        fields are updated. Invalid values are rejected, unlike the web UI which ignores
+        them.
+      summary: Update the general preferences
       tags:
       - me
       requestBody:
@@ -1934,41 +1812,117 @@ paths:
               examples:
                 Preferences:
                   value:
+                    tv_enabled: true
+                    season_enabled: true
+                    movie_enabled: true
+                    anime_enabled: true
+                    manga_enabled: true
+                    game_enabled: true
+                    book_enabled: true
+                    comic_enabled: true
+                    boardgame_enabled: true
+                    week_start_day: monday
+                    watch_provider_region: IT
+                  summary: Preferences
+          description: Preferences updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/preferences/webui/:
+    get:
+      operationId: me_preferences_webui_get
+      description: Preferences that only change how the web UI looks or behaves.
+      summary: Get the web UI preferences
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebUIPreferences'
+              examples:
+                WebUIPreferences:
+                  value:
                     home_sort: upcoming
                     home_hide_unreleased: false
-                    tv_enabled: true
                     tv_layout: grid
                     tv_sort: score
                     tv_status: All
-                    season_enabled: true
                     season_layout: grid
                     season_sort: score
                     season_status: All
-                    movie_enabled: true
                     movie_layout: grid
                     movie_sort: score
                     movie_status: All
-                    anime_enabled: true
                     anime_layout: table
                     anime_sort: score
                     anime_status: All
-                    manga_enabled: true
                     manga_layout: table
                     manga_sort: score
                     manga_status: All
-                    game_enabled: true
                     game_layout: grid
                     game_sort: score
                     game_status: All
-                    book_enabled: true
                     book_layout: grid
                     book_sort: score
                     book_status: All
-                    comic_enabled: true
                     comic_layout: grid
                     comic_sort: score
                     comic_status: All
-                    boardgame_enabled: true
                     boardgame_layout: grid
                     boardgame_sort: score
                     boardgame_status: All
@@ -1977,16 +1931,110 @@ paths:
                     quick_watch_date: current_date
                     date_format: Y-m-d
                     time_format: H:i
-                    week_start_day: monday
                     progress_bar: true
                     hide_completed_recommendations: false
                     hide_zero_rating: false
-                    watch_provider_region: IT
                     calendar_layout: grid
                     lists_sort: last_item_added
                     list_detail_sort: date_added
                     list_detail_status: All
-                  summary: Preferences
+                  summary: Web UI preferences
+          description: Successful response
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    patch:
+      operationId: me_preferences_webui_patch
+      description: Only the sent fields are updated. Invalid values are rejected,
+        unlike the web UI which ignores them.
+      summary: Update the web UI preferences
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWebUIPreferencesRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebUIPreferences'
+              examples:
+                WebUIPreferences:
+                  value:
+                    home_sort: upcoming
+                    home_hide_unreleased: false
+                    tv_layout: grid
+                    tv_sort: score
+                    tv_status: All
+                    season_layout: grid
+                    season_sort: score
+                    season_status: All
+                    movie_layout: grid
+                    movie_sort: score
+                    movie_status: All
+                    anime_layout: table
+                    anime_sort: score
+                    anime_status: All
+                    manga_layout: table
+                    manga_sort: score
+                    manga_status: All
+                    game_layout: grid
+                    game_sort: score
+                    game_status: All
+                    book_layout: grid
+                    book_sort: score
+                    book_status: All
+                    comic_layout: grid
+                    comic_sort: score
+                    comic_status: All
+                    boardgame_layout: grid
+                    boardgame_sort: score
+                    boardgame_status: All
+                    clickable_media_cards: false
+                    obfuscate_unseen_episodes: false
+                    quick_watch_date: current_date
+                    date_format: Y-m-d
+                    time_format: H:i
+                    progress_bar: true
+                    hide_completed_recommendations: false
+                    hide_zero_rating: false
+                    calendar_layout: grid
+                    lists_sort: last_item_added
+                    list_detail_sort: date_added
+                    list_detail_status: All
+                  summary: Web UI preferences
           description: Preferences updated
         '400':
           content:
@@ -9685,119 +9733,26 @@ components:
           description: List of username ids allowed to collaborate on this list.
     PatchedPreferencesRequest:
       type: object
-      description: Serializer for the user preferences.
+      description: Serializer for the preferences that apply to the whole application.
       properties:
-        home_sort:
-          $ref: '#/components/schemas/HomeSortEnum'
-        home_hide_unreleased:
-          type: boolean
-          description: Hide unreleased media from the home page
         tv_enabled:
           type: boolean
-        tv_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        tv_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        tv_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         season_enabled:
           type: boolean
-        season_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        season_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        season_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         movie_enabled:
           type: boolean
-        movie_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        movie_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        movie_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         anime_enabled:
           type: boolean
-        anime_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        anime_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        anime_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         manga_enabled:
           type: boolean
-        manga_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        manga_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        manga_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         game_enabled:
           type: boolean
-        game_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        game_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        game_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         book_enabled:
           type: boolean
-        book_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        book_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        book_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         comic_enabled:
           type: boolean
-        comic_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        comic_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        comic_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
         boardgame_enabled:
           type: boolean
-        boardgame_layout:
-          $ref: '#/components/schemas/PreferenceLayoutEnum'
-        boardgame_sort:
-          $ref: '#/components/schemas/PreferenceSortEnum'
-        boardgame_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
-        clickable_media_cards:
-          type: boolean
-          description: Hide hover overlay on touch devices
-        obfuscate_unseen_episodes:
-          type: boolean
-          description: Blur unseen episode images and descriptions
-        quick_watch_date:
-          allOf:
-          - $ref: '#/components/schemas/QuickWatchDateEnum'
-          description: |-
-            Date to use when bulk-marking media as completed
-
-            * `current_date` - Current Date
-            * `release_date` - Release Date
-            * `no_date` - No Date
-        date_format:
-          allOf:
-          - $ref: '#/components/schemas/DateFormatEnum'
-          description: |-
-            Preferred date display format
-
-            * `Y-m-d` - 2026-01-18 (ISO)
-            * `d/m/Y` - 18/01/2026 (EU)
-            * `m/d/Y` - 01/18/2026 (US)
-            * `M j, Y` - Jan 18, 2026
-            * `j M, Y` - 18 Jan, 2026
-        time_format:
-          allOf:
-          - $ref: '#/components/schemas/TimeFormatEnum'
-          description: |-
-            Preferred time display format
-
-            * `H:i` - 14:30 (24-hour)
-            * `g:i A` - 2:30 PM (12-hour)
         week_start_day:
           allOf:
           - $ref: '#/components/schemas/WeekStartDayEnum'
@@ -9806,28 +9761,11 @@ components:
 
             * `monday` - Monday
             * `sunday` - Sunday
-        progress_bar:
-          type: boolean
-          description: Show progress bar
-        hide_completed_recommendations:
-          type: boolean
-          description: Hide completed media in recommendations
-        hide_zero_rating:
-          type: boolean
-          description: Hide zero ratings from media cards
         watch_provider_region:
           type: string
           description: TMDB watch provider region code, an empty string to disable
             them or `UNSET` if it was never set.
           maxLength: 5
-        calendar_layout:
-          $ref: '#/components/schemas/CalendarLayoutEnum'
-        lists_sort:
-          $ref: '#/components/schemas/ListsSortEnum'
-        list_detail_sort:
-          $ref: '#/components/schemas/ListDetailSortEnum'
-        list_detail_status:
-          $ref: '#/components/schemas/PreferenceStatusEnum'
     PatchedUpdateAnimeRequest:
       type: object
       description: Serializer for updating anime media items.
@@ -10061,119 +9999,63 @@ components:
         profile_private:
           type: boolean
           description: Toggle profile visibility to anonymous users
-    PreferenceLayoutEnum:
-      enum:
-      - grid
-      - table
-      type: string
-      description: |-
-        * `grid` - Grid
-        * `table` - Table
-    PreferenceSortEnum:
-      enum:
-      - score
-      - title
-      - progress
-      - start_date
-      - end_date
-      type: string
-      description: |-
-        * `score` - Rating
-        * `title` - Title
-        * `progress` - Progress
-        * `start_date` - Start Date
-        * `end_date` - End Date
-    PreferenceStatusEnum:
-      enum:
-      - All
-      - Completed
-      - In progress
-      - Planning
-      - Paused
-      - Dropped
-      type: string
-      description: |-
-        * `All` - All
-        * `Completed` - Completed
-        * `In progress` - In Progress
-        * `Planning` - Planning
-        * `Paused` - Paused
-        * `Dropped` - Dropped
-    Preferences:
+    PatchedWebUIPreferencesRequest:
       type: object
-      description: Serializer for the user preferences.
+      description: Serializer for the preferences that only affect the web UI.
       properties:
         home_sort:
           $ref: '#/components/schemas/HomeSortEnum'
         home_hide_unreleased:
           type: boolean
           description: Hide unreleased media from the home page
-        tv_enabled:
-          type: boolean
         tv_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         tv_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         tv_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        season_enabled:
-          type: boolean
         season_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         season_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         season_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        movie_enabled:
-          type: boolean
         movie_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         movie_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         movie_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        anime_enabled:
-          type: boolean
         anime_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         anime_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         anime_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        manga_enabled:
-          type: boolean
         manga_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         manga_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         manga_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        game_enabled:
-          type: boolean
         game_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         game_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         game_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        book_enabled:
-          type: boolean
         book_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         book_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         book_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        comic_enabled:
-          type: boolean
         comic_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         comic_sort:
           $ref: '#/components/schemas/PreferenceSortEnum'
         comic_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
-        boardgame_enabled:
-          type: boolean
         boardgame_layout:
           $ref: '#/components/schemas/PreferenceLayoutEnum'
         boardgame_sort:
@@ -10214,14 +10096,6 @@ components:
 
             * `H:i` - 14:30 (24-hour)
             * `g:i A` - 2:30 PM (12-hour)
-        week_start_day:
-          allOf:
-          - $ref: '#/components/schemas/WeekStartDayEnum'
-          description: |-
-            First day of the week
-
-            * `monday` - Monday
-            * `sunday` - Sunday
         progress_bar:
           type: boolean
           description: Show progress bar
@@ -10231,11 +10105,6 @@ components:
         hide_zero_rating:
           type: boolean
           description: Hide zero ratings from media cards
-        watch_provider_region:
-          type: string
-          description: TMDB watch provider region code, an empty string to disable
-            them or `UNSET` if it was never set.
-          maxLength: 5
         calendar_layout:
           $ref: '#/components/schemas/CalendarLayoutEnum'
         lists_sort:
@@ -10244,6 +10113,79 @@ components:
           $ref: '#/components/schemas/ListDetailSortEnum'
         list_detail_status:
           $ref: '#/components/schemas/PreferenceStatusEnum'
+    PreferenceLayoutEnum:
+      enum:
+      - grid
+      - table
+      type: string
+      description: |-
+        * `grid` - Grid
+        * `table` - Table
+    PreferenceSortEnum:
+      enum:
+      - score
+      - title
+      - progress
+      - start_date
+      - end_date
+      type: string
+      description: |-
+        * `score` - Rating
+        * `title` - Title
+        * `progress` - Progress
+        * `start_date` - Start Date
+        * `end_date` - End Date
+    PreferenceStatusEnum:
+      enum:
+      - All
+      - Completed
+      - In progress
+      - Planning
+      - Paused
+      - Dropped
+      type: string
+      description: |-
+        * `All` - All
+        * `Completed` - Completed
+        * `In progress` - In Progress
+        * `Planning` - Planning
+        * `Paused` - Paused
+        * `Dropped` - Dropped
+    Preferences:
+      type: object
+      description: Serializer for the preferences that apply to the whole application.
+      properties:
+        tv_enabled:
+          type: boolean
+        season_enabled:
+          type: boolean
+        movie_enabled:
+          type: boolean
+        anime_enabled:
+          type: boolean
+        manga_enabled:
+          type: boolean
+        game_enabled:
+          type: boolean
+        book_enabled:
+          type: boolean
+        comic_enabled:
+          type: boolean
+        boardgame_enabled:
+          type: boolean
+        week_start_day:
+          allOf:
+          - $ref: '#/components/schemas/WeekStartDayEnum'
+          description: |-
+            First day of the week
+
+            * `monday` - Monday
+            * `sunday` - Sunday
+        watch_provider_region:
+          type: string
+          description: TMDB watch provider region code, an empty string to disable
+            them or `UNSET` if it was never set.
+          maxLength: 5
       required:
       - watch_provider_region
     PublicProfile:
@@ -10644,6 +10586,120 @@ components:
       - preferences
       - profile_private
       - username
+    WebUIPreferences:
+      type: object
+      description: Serializer for the preferences that only affect the web UI.
+      properties:
+        home_sort:
+          $ref: '#/components/schemas/HomeSortEnum'
+        home_hide_unreleased:
+          type: boolean
+          description: Hide unreleased media from the home page
+        tv_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        tv_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        tv_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        season_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        season_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        season_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        movie_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        movie_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        movie_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        anime_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        anime_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        anime_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        manga_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        manga_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        manga_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        game_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        game_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        game_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        book_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        book_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        book_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        comic_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        comic_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        comic_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        boardgame_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        boardgame_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        boardgame_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        clickable_media_cards:
+          type: boolean
+          description: Hide hover overlay on touch devices
+        obfuscate_unseen_episodes:
+          type: boolean
+          description: Blur unseen episode images and descriptions
+        quick_watch_date:
+          allOf:
+          - $ref: '#/components/schemas/QuickWatchDateEnum'
+          description: |-
+            Date to use when bulk-marking media as completed
+
+            * `current_date` - Current Date
+            * `release_date` - Release Date
+            * `no_date` - No Date
+        date_format:
+          allOf:
+          - $ref: '#/components/schemas/DateFormatEnum'
+          description: |-
+            Preferred date display format
+
+            * `Y-m-d` - 2026-01-18 (ISO)
+            * `d/m/Y` - 18/01/2026 (EU)
+            * `m/d/Y` - 01/18/2026 (US)
+            * `M j, Y` - Jan 18, 2026
+            * `j M, Y` - 18 Jan, 2026
+        time_format:
+          allOf:
+          - $ref: '#/components/schemas/TimeFormatEnum'
+          description: |-
+            Preferred time display format
+
+            * `H:i` - 14:30 (24-hour)
+            * `g:i A` - 2:30 PM (12-hour)
+        progress_bar:
+          type: boolean
+          description: Show progress bar
+        hide_completed_recommendations:
+          type: boolean
+          description: Hide completed media in recommendations
+        hide_zero_rating:
+          type: boolean
+          description: Hide zero ratings from media cards
+        calendar_layout:
+          $ref: '#/components/schemas/CalendarLayoutEnum'
+        lists_sort:
+          $ref: '#/components/schemas/ListsSortEnum'
+        list_detail_sort:
+          $ref: '#/components/schemas/ListDetailSortEnum'
+        list_detail_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
     WeekStartDayEnum:
       enum:
       - monday

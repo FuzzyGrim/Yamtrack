@@ -92,6 +92,7 @@ from .users import (
     TokenResponseSerializer,
     UserProfileSerializer,
     UserUpdateSerializer,
+    WebUIPreferencesSerializer,
 )
 
 __all__ = [
@@ -165,5 +166,6 @@ __all__ = [
     "UserProfileSerializer",
     "UserSerializer",
     "UserUpdateSerializer",
+    "WebUIPreferencesSerializer",
     "serializer_map",
 ]

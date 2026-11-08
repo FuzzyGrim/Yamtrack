@@ -45,6 +45,11 @@ urlpatterns = [
         name="api_me_preferences",
     ),
     re_path(
+        r"^me/preferences/webui/?$",
+        views.MeWebUIPreferencesView.as_view(),
+        name="api_me_preferences_webui",
+    ),
+    re_path(
         r"^me/search-cache/?$",
         views.MeSearchCacheView.as_view(),
         name="api_me_search_cache",

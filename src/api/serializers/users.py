@@ -21,24 +21,30 @@ MEDIA_TYPE_PREFERENCES = (
     "boardgame",
 )
 
-PREFERENCE_FIELDS = (
+# Preferences that apply to the whole application.
+GENERAL_PREFERENCE_FIELDS = (
+    *(f"{media_type}_enabled" for media_type in MEDIA_TYPE_PREFERENCES),
+    "week_start_day",
+    "watch_provider_region",
+)
+
+# Preferences that only change how the web UI looks or behaves.
+WEBUI_PREFERENCE_FIELDS = (
     "home_sort",
     "home_hide_unreleased",
     *(
         f"{media_type}_{suffix}"
         for media_type in MEDIA_TYPE_PREFERENCES
-        for suffix in ("enabled", "layout", "sort", "status")
+        for suffix in ("layout", "sort", "status")
     ),
     "clickable_media_cards",
     "obfuscate_unseen_episodes",
     "quick_watch_date",
     "date_format",
     "time_format",
-    "week_start_day",
     "progress_bar",
     "hide_completed_recommendations",
     "hide_zero_rating",
-    "watch_provider_region",
     "calendar_layout",
     "lists_sort",
     "list_detail_sort",
@@ -47,7 +53,7 @@ PREFERENCE_FIELDS = (
 
 
 class PreferencesSerializer(serializers.ModelSerializer):
-    """Serializer for the user preferences."""
+    """Serializer for the preferences that apply to the whole application."""
 
     watch_provider_region = serializers.CharField(
         max_length=5,
@@ -60,7 +66,7 @@ class PreferencesSerializer(serializers.ModelSerializer):
 
     class Meta:  # noqa: D106
         model = User
-        fields = PREFERENCE_FIELDS
+        fields = GENERAL_PREFERENCE_FIELDS
 
     def validate_watch_provider_region(self, value):
         """Check the region is one of the TMDB watch provider regions."""
@@ -72,6 +78,14 @@ class PreferencesSerializer(serializers.ModelSerializer):
             msg = "Invalid watch provider region."
             raise serializers.ValidationError(msg)
         return value
+
+
+class WebUIPreferencesSerializer(serializers.ModelSerializer):
+    """Serializer for the preferences that only affect the web UI."""
+
+    class Meta:  # noqa: D106
+        model = User
+        fields = WEBUI_PREFERENCE_FIELDS
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

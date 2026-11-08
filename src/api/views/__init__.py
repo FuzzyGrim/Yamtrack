@@ -61,6 +61,7 @@ from .users import (
     MeSearchCacheView,
     MeTokenView,
     MeView,
+    MeWebUIPreferencesView,
 )
 
 __all__ = [
@@ -77,6 +78,7 @@ __all__ = [
     "MeSearchCacheView",
     "MeTokenView",
     "MeView",
+    "MeWebUIPreferencesView",
     "MediaChangesHistoryView",
     "MediaConsumptionEntryDetailView",
     "MediaConsumptionHistoryView",

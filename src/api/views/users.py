@@ -16,6 +16,7 @@ from api.examples import (
     PREFERENCES_EXAMPLE,
     SEARCH_CACHE_CLEARED_EXAMPLE,
     TOKEN_EXAMPLE,
+    WEBUI_PREFERENCES_EXAMPLE,
 )
 from api.helpers import forbid_demo_user, revoke_user_sessions
 from api.schemas import (
@@ -30,6 +31,7 @@ from api.serializers import (
     TokenResponseSerializer,
     UserProfileSerializer,
     UserUpdateSerializer,
+    WebUIPreferencesSerializer,
 )
 from app.providers import tmdb
 
@@ -87,13 +89,13 @@ class MeView(drf_views.APIView):
 
 # /api/v1/me/preferences/
 class MePreferencesView(drf_views.APIView):
-    """Preferences of the authenticated user."""
+    """General preferences of the authenticated user."""
 
     serializer_class = PreferencesSerializer
 
     @extend_schema(
         operation_id="me_preferences_get",
-        summary="Get the preferences",
+        summary="Get the general preferences",
         responses={
             200: OpenApiResponse(
                 PreferencesSerializer,
@@ -108,10 +110,11 @@ class MePreferencesView(drf_views.APIView):
 
     @extend_schema(
         operation_id="me_preferences_patch",
-        summary="Update the preferences",
+        summary="Update the general preferences",
         description=(
-            "Only the sent fields are updated. Invalid values are rejected, "
-            "unlike the web UI which ignores them."
+            "Preferences that apply to the whole application. Only the sent "
+            "fields are updated. Invalid values are rejected, unlike the web UI "
+            "which ignores them."
         ),
         request=PreferencesSerializer,
         responses={
@@ -141,6 +144,60 @@ class MePreferencesView(drf_views.APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(PreferencesSerializer(user).data, status=HTTP.OK)
+
+
+# /api/v1/me/preferences/webui/
+class MeWebUIPreferencesView(drf_views.APIView):
+    """Web UI only preferences of the authenticated user."""
+
+    serializer_class = WebUIPreferencesSerializer
+
+    @extend_schema(
+        operation_id="me_preferences_webui_get",
+        summary="Get the web UI preferences",
+        description="Preferences that only change how the web UI looks or behaves.",
+        responses={
+            200: OpenApiResponse(
+                WebUIPreferencesSerializer,
+                description="Successful response",
+                examples=[WEBUI_PREFERENCES_EXAMPLE],
+            ),
+        },
+    )
+    def get(self, request):
+        """Return the web UI preferences of the authenticated user."""
+        return Response(WebUIPreferencesSerializer(request.user).data, status=HTTP.OK)
+
+    @extend_schema(
+        operation_id="me_preferences_webui_patch",
+        summary="Update the web UI preferences",
+        description=(
+            "Only the sent fields are updated. Invalid values are rejected, "
+            "unlike the web UI which ignores them."
+        ),
+        request=WebUIPreferencesSerializer,
+        responses={
+            200: OpenApiResponse(
+                WebUIPreferencesSerializer,
+                description="Preferences updated",
+                examples=[WEBUI_PREFERENCES_EXAMPLE],
+            ),
+            400: BadRequestResponse,
+            403: ForbiddenResponse,
+        },
+    )
+    def patch(self, request):
+        """Update the sent web UI preferences."""
+        forbid_demo_user(request.user)
+
+        serializer = WebUIPreferencesSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(WebUIPreferencesSerializer(user).data, status=HTTP.OK)
 
 
 # /api/v1/me/token/
