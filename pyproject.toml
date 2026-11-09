@@ -13,7 +13,7 @@ dependencies = [
   "aiohttp~=3.14.3",
   "apprise~=1.12.0",
   "beautifulsoup4~=4.15.0",
-  "celery~=5.6.3",
+  "celery>=5.6.3,<5.8.0",
   "croniter~=6.2.4",
   "defusedxml~=0.7.1",
   "django~=5.2.16",
@@ -27,8 +27,8 @@ dependencies = [
   "django-select2~=8.4.8",
   "django-simple-history~=3.13.0",
   "django-widget-tweaks~=1.5.1",
-  "gunicorn~=26.0.0",
-  "icalendar~=7.2.2",
+  "gunicorn>=26.0,<26.3",
+  "icalendar>=7.2.2,<7.4.0",
   "pillow~=12.3.0",
   "psycopg[binary,pool]~=3.3.4",
   "python-decouple~=3.8",
@@ -41,16 +41,16 @@ dependencies = [
 
 [dependency-groups]
 lint = [
-  "django-upgrade~=1.31.1",
-  "djlint~=1.44.0",
-  "pre-commit~=4.6.1",
-  "ruff~=0.16.1",
+  "django-upgrade>=1.31.1,<1.34.0",
+  "djlint>=1.44,<1.50",
+  "pre-commit>=4.6.1,<4.8.0",
+  "ruff>=0.16.1,<0.18.0",
 ]
 test = [
-  "coverage~=7.15.3",
+  "coverage>=7.15.3,<7.18.0",
   "fakeredis[lua]>=2.35.1,<2.40.0",
-  "pytest-django~=4.12.0",
-  "pytest-playwright~=0.8.0",
+  "pytest-django>=4.12,<4.15",
+  "pytest-playwright>=0.8,<0.11",
   "tblib~=3.2.2",
 ]
 dev = [
@@ -58,7 +58,7 @@ dev = [
   {include-group = "test"},
 ]
 docs = [
-  "zensical==0.0.53",
+  "zensical==0.1.0",
   "mike @ git+https://github.com/squidfunk/mike.git",
 ]
 
