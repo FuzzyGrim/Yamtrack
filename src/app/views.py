@@ -1093,7 +1093,7 @@ def journal(request):
 
 
 @require_GET
-def service_worker():
+def service_worker(request):  # noqa: ARG001
     """Serve the service worker file."""
     sw_path = Path(settings.STATICFILES_DIRS[0]) / "js" / "serviceworker.js"
     with sw_path.open() as f:
