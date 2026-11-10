@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
-from app.models import MediaTypes, Sources
+from django.utils import timezone
+
+from app.models import Episode, MediaTypes, Sources
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -161,7 +163,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_season_detail_get_returns_expected_shape(self, mock_metadata):
         """Season detail GET should return complete serialized payload."""
         source = "tmdb"
@@ -528,7 +530,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_season_detail_patch_updates_season_fields(self, mock_metadata):
         """Season detail PATCH should update season fields."""
         status = 2
@@ -933,7 +935,51 @@ class MediaSeasonTests(YamtrackApiTestCase):
         for episode in payload["results"]:
             check_media_structure(self, episode)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata")
+    def test_season_episodes_return_tracked_notes_and_dates(self, mock_metadata):
+        """Tracked episode output should use its notes and actual watch date."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode = self.episode_medias[0]
+        Episode.objects.filter(pk=episode.pk).update(
+            end_date=timezone.now(),
+            notes="episode watch notes",
+        )
+        mock_metadata.return_value = {
+            "episodes": [
+                {
+                    "episode_number": episode.item.episode_number,
+                    "season_number": season_item.season_number,
+                    "show_id": tv_item.media_id,
+                    "name": episode.item.title,
+                    "still_path": None,
+                },
+            ],
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_season_episodes",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+            ),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        serialized_episode = response.json()["results"][0]
+        self.assertEqual(serialized_episode["notes"], "episode watch notes")
+        self.assertIsNone(serialized_episode["start_date"])
+        self.assertEqual(
+            serialized_episode["progressed_at"],
+            serialized_episode["end_date"],
+        )
+        self.assertIsNotNone(serialized_episode["end_date"])
+
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_episodes_get_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -956,7 +1002,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_episodes_get_invalid_season_number_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1452,8 +1498,8 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch("api.views.tmdb.process_episodes", return_value=[])
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.tmdb.process_episodes", return_value=[])
+    @patch("app.providers.services.get_media_metadata")
     def test_season_sync_returns_accepted_and_updates_item(
         self,
         mock_metadata,
@@ -1488,7 +1534,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
         self.assertEqual(season_item.title, "TV Show 1 - Season 1 Synced")
         self.assertEqual(season_item.image, "https://example.com/season-1-synced.jpg")
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_sync_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1503,7 +1549,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_sync_invalid_season_number_returns_internal_server_error(
         self,
         _mock_metadata,
