@@ -1821,6 +1821,37 @@ class MediaCoreTests(YamtrackApiTestCase):
         for item in payload["results"]:
             check_media_structure(self, item)
 
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_detail_tv_marks_tracked_related_seasons(self, mock_metadata):
+        """TV detail should flag the user's tracked seasons in related.seasons."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        mock_metadata.return_value = {
+            "media_id": tv_item.media_id,
+            "source": tv_item.source,
+            "media_type": MediaTypes.TV.value,
+            "title": tv_item.title,
+            "related": {
+                "seasons": [
+                    {"season_number": number, "season_title": f"Season {number}"}
+                    for number in (1, 2, 4)
+                ],
+            },
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_detail",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        seasons = response.json()["related"]["seasons"]
+        tracked_by_number = {
+            season["item"]["season_number"]: season["tracked"] for season in seasons
+        }
+        self.assertEqual(tracked_by_number, {1: True, 2: True, 4: False})
+
     def test_media_seasons_invalid_type_returns_bad_request(self):
         """Media seasons endpoint should reject non-tv media types."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
