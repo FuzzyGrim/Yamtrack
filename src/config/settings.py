@@ -392,6 +392,16 @@ OMDB_API_KEY = config(
     default=secret("OMDB_API_KEY_FILE", ""),
 )
 OMDB_DAILY_LIMIT = config("OMDB_DAILY_LIMIT", default=900, cast=int)
+PUBLIC_SCORE_MIN_IMDB_VOTES = config(
+    "PUBLIC_SCORE_MIN_IMDB_VOTES",
+    default=1000,
+    cast=int,
+)
+PUBLIC_SCORE_MIN_TMDB_VOTES = config(
+    "PUBLIC_SCORE_MIN_TMDB_VOTES",
+    default=50,
+    cast=int,
+)
 
 TVDB_API = config(
     "TVDB_API",

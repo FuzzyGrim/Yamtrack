@@ -34,6 +34,9 @@
           <div class="bg-[#2a2f35] px-3 py-2 rounded-lg min-w-24">
             <div class="text-xs text-gray-400">{{ source.label }}</div>
             <div class="text-sm {% if source.missing %}text-gray-400{% else %}text-white{% endif %}">{{ source.display }}</div>
+            {% if source.low_votes %}
+              <div class="text-xs text-gray-500">{% trans "low votes" %}</div>
+            {% endif %}
           </div>
         {% endif %}
       {% endfor %}

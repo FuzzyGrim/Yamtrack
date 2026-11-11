@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from app.models import (
     Item,
@@ -164,6 +165,39 @@ class PublicRatingSortTests(TestCase):
         self.assertEqual(by_title["Zeroed"], Decimal("40.0"))
         self.assertEqual([entry.item.title for entry in media], ["Skipped", "Zeroed"])
 
+    def test_low_vote_score_sorts_as_missing(self):
+        """A score under the vote minimum is ignored. An unknown count still counts."""
+        low = self._movie("7", "Low", Status.PLANNING.value)
+        counted = self._movie("8", "Counted", Status.PLANNING.value)
+        unknown = self._movie("9", "Unknown", Status.PLANNING.value)
+        ItemRating.objects.create(
+            item=low,
+            imdb_normalized=Decimal("90.0"),
+            imdb_value=Decimal("9.0"),
+            imdb_votes=10,
+        )
+        ItemRating.objects.create(
+            item=counted,
+            imdb_normalized=Decimal("40.0"),
+            imdb_value=Decimal("4.0"),
+            imdb_votes=1000,
+        )
+        ItemRating.objects.create(
+            item=unknown,
+            imdb_normalized=Decimal("80.0"),
+            imdb_value=Decimal("8.0"),
+        )
+
+        by_title = {entry.item.title: entry.public_rating for entry in self._sorted()}
+
+        self.assertIsNone(by_title["Low"])
+        self.assertEqual(by_title["Counted"], Decimal("40.0"))
+        self.assertEqual(by_title["Unknown"], Decimal("80.0"))
+        self.assertEqual(
+            self._titles(MediaStatusChoices.ALL),
+            ["Unknown", "Counted", "Low"],
+        )
+
     def test_zero_weight_drops_that_source(self):
         """Letterboxd's default weight of 0 leaves it out of the aggregate."""
         item = self._movie("6", "Weighted", Status.PLANNING.value)
@@ -231,7 +265,9 @@ class RefreshRatingTests(TestCase):
         rating.refresh_from_db()
         self.assertEqual(rating.tmdb_value, Decimal("8.2"))
         self.assertEqual(rating.tmdb_normalized, Decimal("82.0"))
+        self.assertEqual(rating.tmdb_votes, 100)
         self.assertIsNone(rating.imdb_value)
+        self.assertIsNone(rating.imdb_votes)
         self.assertIsNone(rating.rotten_tomatoes_value)
         self.assertIsNone(rating.metacritic_value)
         self.assertIsNotNone(rating.ratings_updated_at)
@@ -248,6 +284,7 @@ class RefreshRatingTests(TestCase):
 
         self.assertIsNone(item.public_rating.tmdb_value)
         self.assertIsNone(item.public_rating.tmdb_normalized)
+        self.assertEqual(item.public_rating.tmdb_votes, 0)
 
     @override_settings(OMDB_API_KEY="test-key", OMDB_DAILY_LIMIT=1)
     @patch("app.providers.services.api_request")
@@ -257,6 +294,7 @@ class RefreshRatingTests(TestCase):
         mock_request.return_value = {
             "Response": "True",
             "imdbRating": "8.0",
+            "imdbVotes": "12,000",
             "Metascore": "80",
             "Ratings": [{"Source": "Rotten Tomatoes", "Value": "90%"}],
         }
@@ -279,6 +317,8 @@ class RefreshRatingTests(TestCase):
 
         first.public_rating.refresh_from_db()
         self.assertEqual(first.public_rating.imdb_value, Decimal("8.0"))
+        self.assertEqual(first.public_rating.imdb_votes, 12000)
+        self.assertEqual(first.public_rating.tmdb_votes, 20)
         self.assertEqual(first.public_rating.rotten_tomatoes_value, Decimal(90))
         self.assertIsNotNone(first.public_rating.ratings_updated_at)
         self.assertFalse(ItemRating.objects.filter(item=second).exists())
@@ -286,6 +326,38 @@ class RefreshRatingTests(TestCase):
         self.assertIsNone(anime.public_rating.imdb_value)
         self.assertIsNotNone(anime.public_rating.ratings_updated_at)
         mock_request.assert_called_once()
+
+    @override_settings(OMDB_API_KEY="")
+    @patch("app.providers.services.get_media_metadata")
+    def test_backfill_copies_tmdb_votes_from_cache(self, mock_metadata):
+        """Fresh rows take TMDB votes from cache and do not trigger a new request."""
+        cached = self._movie("401")
+        missed = self._movie("402")
+        now = timezone.now()
+        ItemRating.objects.create(
+            item=cached,
+            tmdb_value=Decimal("8.0"),
+            tmdb_normalized=Decimal("80.0"),
+            ratings_updated_at=now,
+        )
+        ItemRating.objects.create(
+            item=missed,
+            tmdb_value=Decimal("7.0"),
+            tmdb_normalized=Decimal("70.0"),
+            ratings_updated_at=now,
+        )
+        cache.set(
+            f"{Sources.TMDB.value}_{MediaTypes.MOVIE.value}_401",
+            {"score": 8.0, "score_count": 120},
+        )
+
+        call_command("backfill_public_ratings")
+
+        cached.public_rating.refresh_from_db()
+        missed.public_rating.refresh_from_db()
+        self.assertEqual(cached.public_rating.tmdb_votes, 120)
+        self.assertIsNone(missed.public_rating.tmdb_votes)
+        mock_metadata.assert_not_called()
 
     def _movie(self, media_id):
         return Item.objects.create(
@@ -374,6 +446,44 @@ class LetterboxdViewTests(TestCase):
         self.assertContains(response, "PUBLIC RATING")
         self.assertContains(response, "\u2013")
         self.assertContains(response, 'placeholder="\u2013"')
+
+    @override_settings(OMDB_API_KEY="")
+    def test_low_votes_stay_on_the_page_and_out_of_the_aggregate(self):
+        """The raw score stays visible, with a hint, and does not move the average."""
+        item = Item.objects.create(
+            media_id="238",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Test Movie",
+            image="http://example.com/image.jpg",
+        )
+        ItemRating.objects.create(
+            item=item,
+            imdb_value=Decimal("9.0"),
+            imdb_normalized=Decimal("90.0"),
+            imdb_votes=10,
+            tmdb_value=Decimal("5.0"),
+            tmdb_normalized=Decimal("50.0"),
+            tmdb_votes=80,
+            ratings_updated_at=timezone.now(),
+        )
+
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "238",
+                    "title": "test-movie",
+                },
+            ),
+        )
+
+        self.assertContains(response, "9/10")
+        self.assertContains(response, "low votes")
+        self.assertEqual(response.content.decode().count("low votes"), 1)
+        self.assertContains(response, 'text-white">50')
 
     def test_demo_user_cannot_edit_the_shared_score(self):
         """The public demo account cannot change a shared Letterboxd score."""

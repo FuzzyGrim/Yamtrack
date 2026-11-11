@@ -49,6 +49,14 @@ RATING_SOURCES = (
 )
 OMDB_SOURCE_KEYS = ("imdb", "rotten_tomatoes", "metacritic")
 SOURCE_SCALE = {key: scale for key, _label, scale, _suffix in RATING_SOURCES}
+VOTE_FIELDS = {
+    "imdb": "imdb_votes",
+    "tmdb": "tmdb_votes",
+}
+VOTE_SETTINGS = {
+    "imdb": "PUBLIC_SCORE_MIN_IMDB_VOTES",
+    "tmdb": "PUBLIC_SCORE_MIN_TMDB_VOTES",
+}
 
 
 def weight_field(key):
@@ -143,7 +151,7 @@ def annotate_public_rating(queryset, user):
         if weight <= 0:
             continue
         field = f"item__public_rating__{key}_normalized"
-        present = Q(**{f"{field}__isnull": False})
+        present = _counts_toward_aggregate(key)
         numerator_terms.append(
             Case(
                 When(
@@ -228,22 +236,23 @@ def page_context(user, source, media_type, media_id):
 def build_display(item, user, *, source, media_type, media_id):
     """Return template context for the public rating breakdown."""
     rating = ItemRating.objects.filter(item=item).first() if item is not None else None
-    normalized = {}
     sources = []
     for key, label, _scale, suffix in RATING_SOURCES:
         raw = getattr(rating, f"{key}_value", None) if rating is not None else None
-        normalized[key] = (
-            getattr(rating, f"{key}_normalized", None) if rating is not None else None
-        )
         sources.append(
             {
                 "key": key,
                 "label": label,
                 "display": format_source_value(raw, suffix),
                 "missing": raw is None,
+                "low_votes": is_low_votes(rating, key),
             },
         )
-    aggregate = weighted_average(normalized, user_weights(user)) if rating else None
+    aggregate = (
+        weighted_average(aggregate_values(rating), user_weights(user))
+        if rating
+        else None
+    )
     letterboxd_input = ""
     if rating is not None and rating.letterboxd_value is not None:
         letterboxd_input = format_public_value(rating.letterboxd_value)
@@ -319,6 +328,29 @@ def refresh_stale_ratings(*, batch_size=100):
     return updated, deferred
 
 
+def fill_tmdb_votes_from_cache(*, batch_size=100):
+    """Copy TMDB vote counts out of cached metadata, without calling TMDB."""
+    filled = 0
+    last_pk = 0
+    queryset = ItemRating.objects.filter(
+        tmdb_votes__isnull=True,
+        item__source=Sources.TMDB.value,
+        item__media_type__in=(MediaTypes.MOVIE.value, MediaTypes.TV.value),
+    ).select_related("item")
+    while True:
+        batch = list(queryset.filter(pk__gt=last_pk).order_by("pk")[:batch_size])
+        if not batch:
+            return filled
+        for rating in batch:
+            last_pk = rating.pk
+            votes = _cached_tmdb_votes(rating.item)
+            if votes is None:
+                continue
+            rating.tmdb_votes = votes
+            rating.save(update_fields=["tmdb_votes"])
+            filled += 1
+
+
 def refresh_item_rating(item, *, allow_omdb=True):
     """Fetch TMDB and OMDb scores for one item. Letterboxd is left unchanged."""
     if not is_ratable(item):
@@ -353,10 +385,56 @@ def refresh_item_rating(item, *, allow_omdb=True):
             "metacritic_normalized",
             "tmdb_value",
             "tmdb_normalized",
+            "imdb_votes",
+            "tmdb_votes",
             "ratings_updated_at",
         ],
     )
     return "updated"
+
+
+def aggregate_values(rating):
+    """Return normalized scores, with below-threshold sources left out."""
+    values = {}
+    for key, *_rest in RATING_SOURCES:
+        value = (
+            getattr(rating, f"{key}_normalized", None) if rating is not None else None
+        )
+        if is_low_votes(rating, key):
+            value = None
+        values[key] = value
+    return values
+
+
+def is_low_votes(rating, key):
+    """Return whether this stored score has fewer votes than its minimum."""
+    vote_field = VOTE_FIELDS.get(key)
+    if rating is None or vote_field is None:
+        return False
+    if getattr(rating, f"{key}_value") is None:
+        return False
+    votes = getattr(rating, vote_field)
+    if votes is None:
+        return False
+    return votes < _vote_minimum(key)
+
+
+def _vote_minimum(key):
+    return getattr(settings, VOTE_SETTINGS[key])
+
+
+def _counts_toward_aggregate(key):
+    """Match sources that have a score and are not under the vote minimum."""
+    field = f"item__public_rating__{key}_normalized"
+    present = Q(**{f"{field}__isnull": False})
+    vote_field = VOTE_FIELDS.get(key)
+    if vote_field is None:
+        return present
+    votes = f"item__public_rating__{vote_field}"
+    enough = Q(**{f"{votes}__isnull": True}) | Q(
+        **{f"{votes}__gte": _vote_minimum(key)},
+    )
+    return present & enough
 
 
 def _add_expressions(terms):
@@ -418,6 +496,27 @@ def _apply_tmdb(rating, metadata):
     raw, normalized = normalize(_tmdb_raw(metadata), SOURCE_SCALE["tmdb"])
     rating.tmdb_value = raw
     rating.tmdb_normalized = normalized
+    rating.tmdb_votes = _tmdb_votes(metadata)
+
+
+def _tmdb_votes(metadata):
+    if not metadata:
+        return None
+    votes = metadata.get("score_count")
+    if votes is None:
+        return None
+    try:
+        return int(votes)
+    except (TypeError, ValueError):
+        return None
+
+
+def _cached_tmdb_votes(item):
+    """Return the vote count from cached TMDB metadata, or None on a miss."""
+    cached = cache.get(f"{item.source}_{item.media_type}_{item.media_id}")
+    if not isinstance(cached, dict):
+        return None
+    return _tmdb_votes(cached)
 
 
 def _apply_omdb(rating, scores):
@@ -427,11 +526,14 @@ def _apply_omdb(rating, scores):
         raw, normalized = normalize(scores.get(key), SOURCE_SCALE[key])
         setattr(rating, f"{key}_value", raw)
         setattr(rating, f"{key}_normalized", normalized)
+    if "imdb_votes" in scores:
+        rating.imdb_votes = scores["imdb_votes"]
 
 
 def _omdb_cached(imdb_id):
-    """Return whether this IMDb id already has a cached OMDb response."""
-    return cache.get(f"omdb_ratings_{imdb_id}") is not None
+    """Return whether this IMDb id has a cached OMDb response that includes votes."""
+    cached = cache.get(f"omdb_ratings_{imdb_id}")
+    return isinstance(cached, dict) and "imdb_votes" in cached
 
 
 def _iter_stale_items(batch_size):

@@ -34,7 +34,7 @@ def fetch_ratings(imdb_id):
 
     cache_key = f"omdb_ratings_{imdb_id}"
     cached = cache.get(cache_key)
-    if cached is not None:
+    if isinstance(cached, dict) and "imdb_votes" in cached:
         return cached
 
     if not _consume_budget():
@@ -86,6 +86,7 @@ def _parse_payload(payload, imdb_id):
 
     return {
         "imdb": _number(payload.get("imdbRating")),
+        "imdb_votes": _votes(payload.get("imdbVotes")),
         "rotten_tomatoes": _rotten_tomatoes(payload),
         "metacritic": _number(payload.get("Metascore")),
     }
@@ -97,6 +98,19 @@ def _rotten_tomatoes(payload):
         if entry.get("Source") == "Rotten Tomatoes":
             return _number(str(entry.get("Value", "")).rstrip("%"))
     return None
+
+
+def _votes(text):
+    """Return an integer vote count, or None for missing OMDb values."""
+    if text is None:
+        return None
+    cleaned = str(text).strip().replace(",", "")
+    if not cleaned or cleaned == "N/A":
+        return None
+    try:
+        return int(cleaned)
+    except ValueError:
+        return None
 
 
 def _number(text):
@@ -114,4 +128,9 @@ def _number(text):
 
 def _empty_scores():
     """Return a ratings dict with every OMDb source missing."""
-    return {"imdb": None, "rotten_tomatoes": None, "metacritic": None}
+    return {
+        "imdb": None,
+        "imdb_votes": None,
+        "rotten_tomatoes": None,
+        "metacritic": None,
+    }

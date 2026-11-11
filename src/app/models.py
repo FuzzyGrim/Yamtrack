@@ -244,6 +244,7 @@ class ItemRating(models.Model):
         max_digits=5,
         decimal_places=1,
     )
+    imdb_votes = models.PositiveIntegerField(null=True, blank=True)
     rotten_tomatoes_value = models.DecimalField(
         null=True,
         blank=True,
@@ -280,6 +281,7 @@ class ItemRating(models.Model):
         max_digits=5,
         decimal_places=1,
     )
+    tmdb_votes = models.PositiveIntegerField(null=True, blank=True)
     letterboxd_value = models.DecimalField(
         null=True,
         blank=True,

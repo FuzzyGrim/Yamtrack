@@ -9,6 +9,7 @@ from app.providers.omdb import OmdbBudgetError, fetch_ratings
 OMDB_HIT = {
     "Response": "True",
     "imdbRating": "8.7",
+    "imdbVotes": "1,234,567",
     "Metascore": "73",
     "Ratings": [
         {"Source": "Internet Movie Database", "Value": "8.7/10"},
@@ -39,6 +40,7 @@ class OmdbClientTests(SimpleTestCase):
         parsed = fetch_ratings("tt0133093")
 
         self.assertEqual(parsed["imdb"], Decimal("8.7"))
+        self.assertEqual(parsed["imdb_votes"], 1234567)
         self.assertEqual(parsed["rotten_tomatoes"], Decimal(83))
         self.assertEqual(parsed["metacritic"], Decimal(73))
         mock_request.assert_called_once()
@@ -53,6 +55,7 @@ class OmdbClientTests(SimpleTestCase):
         mock_request.return_value = {
             "Response": "True",
             "imdbRating": "N/A",
+            "imdbVotes": "N/A",
             "Metascore": "N/A",
             "Ratings": [],
         }
@@ -61,8 +64,27 @@ class OmdbClientTests(SimpleTestCase):
 
         self.assertEqual(
             parsed,
-            {"imdb": None, "rotten_tomatoes": None, "metacritic": None},
+            {
+                "imdb": None,
+                "imdb_votes": None,
+                "rotten_tomatoes": None,
+                "metacritic": None,
+            },
         )
+
+    @override_settings(OMDB_API_KEY="test-key", OMDB_DAILY_LIMIT=900)
+    @patch("app.providers.omdb.services.api_request", return_value=OMDB_HIT)
+    def test_cached_response_without_votes_is_fetched_again(self, mock_request):
+        """A cache entry from before vote counts were stored is not reused."""
+        cache.set(
+            "omdb_ratings_tt0133093",
+            {"imdb": Decimal("8.0"), "rotten_tomatoes": None, "metacritic": None},
+        )
+
+        parsed = fetch_ratings("tt0133093")
+
+        self.assertEqual(parsed["imdb_votes"], 1234567)
+        mock_request.assert_called_once()
 
     @override_settings(OMDB_API_KEY="test-key", OMDB_DAILY_LIMIT=1)
     @patch("app.providers.omdb.services.api_request", return_value=OMDB_HIT)
