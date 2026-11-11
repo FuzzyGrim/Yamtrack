@@ -3541,9 +3541,46 @@ msgstr "Completamento"
 msgid "Episodes Left"
 msgstr "Episodi rimanenti"
 
-#: users/models.py:41
-msgid "Rating"
-msgstr "Valutazione"
+#: users/models.py:42
+msgid "My rating"
+msgstr "La mia valutazione"
+
+#: users/models.py:43 templates/app/components/media_card.html:57
+#: templates/app/media_list.html:152 templates/users/preferences.html:285
+msgid "Public score"
+msgstr "Punteggio pubblico"
+
+#: templates/app/components/public_ratings.html:6
+msgid "PUBLIC SCORE"
+msgstr "PUNTEGGIO PUBBLICO"
+
+#: templates/app/components/public_ratings.html:38
+msgid "low votes"
+msgstr "pochi voti"
+
+#: templates/users/preferences.html:288
+msgid "Weight each public source from 0 to 10. A weight of 0 ignores that source. The score is a weighted average of the sources that have a value. Letterboxd counts only when a score is entered."
+msgstr "Pesa ogni fonte pubblica da 0 a 10. Un peso pari a 0 ignora quella fonte. Il punteggio è una media ponderata delle fonti che hanno un valore. Letterboxd conta solo quando viene inserito un punteggio."
+
+#: users/models.py:378
+msgid "Weight of the IMDb score in the public score"
+msgstr "Peso del punteggio IMDb nel punteggio pubblico"
+
+#: users/models.py:383
+msgid "Weight of the Rotten Tomatoes score in the public score"
+msgstr "Peso del punteggio Rotten Tomatoes nel punteggio pubblico"
+
+#: users/models.py:388
+msgid "Weight of the Metacritic score in the public score"
+msgstr "Peso del punteggio Metacritic nel punteggio pubblico"
+
+#: users/models.py:393
+msgid "Weight of the TMDB score in the public score"
+msgstr "Peso del punteggio TMDB nel punteggio pubblico"
+
+#: users/models.py:398
+msgid "Weight of the Letterboxd score in the public score"
+msgstr "Peso del punteggio Letterboxd nel punteggio pubblico"
 
 #: users/models.py:62 users/models.py:69
 msgid "Grid"

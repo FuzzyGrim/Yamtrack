@@ -39,8 +39,8 @@ class HomeSortChoices(models.TextChoices):
 class MediaSortChoices(models.TextChoices):
     """Choices for media list sort options."""
 
-    SCORE = "score", _("Rating")
-    PUBLIC_RATING = "public_rating", _("Public rating")
+    SCORE = "score", _("My rating")
+    PUBLIC_RATING = "public_rating", _("Public score")
     TITLE = "title", _("Title")
     PROGRESS = "progress", _("Progress")
     START_DATE = "start_date", _("Start Date")
@@ -375,27 +375,27 @@ class User(AbstractUser):
     rating_weight_imdb = models.PositiveSmallIntegerField(
         default=3,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
-        help_text=_("Weight of the IMDb score in the public rating"),
+        help_text=_("Weight of the IMDb score in the public score"),
     )
     rating_weight_rotten_tomatoes = models.PositiveSmallIntegerField(
         default=1,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
-        help_text=_("Weight of the Rotten Tomatoes score in the public rating"),
+        help_text=_("Weight of the Rotten Tomatoes score in the public score"),
     )
     rating_weight_metacritic = models.PositiveSmallIntegerField(
         default=2,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
-        help_text=_("Weight of the Metacritic score in the public rating"),
+        help_text=_("Weight of the Metacritic score in the public score"),
     )
     rating_weight_tmdb = models.PositiveSmallIntegerField(
         default=1,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
-        help_text=_("Weight of the TMDB score in the public rating"),
+        help_text=_("Weight of the TMDB score in the public score"),
     )
     rating_weight_letterboxd = models.PositiveSmallIntegerField(
         default=2,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
-        help_text=_("Weight of the Letterboxd score in the public rating"),
+        help_text=_("Weight of the Letterboxd score in the public score"),
     )
 
     # Show adult titles

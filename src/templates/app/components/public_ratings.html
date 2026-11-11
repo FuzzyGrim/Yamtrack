@@ -3,7 +3,7 @@
 {% if public_ratings.show %}
   <div id="public-ratings" class="mt-4">
     <div class="flex items-baseline gap-2 mb-2">
-      <h3 class="text-xs font-semibold text-gray-400">{% trans "PUBLIC RATING" %}</h3>
+      <h3 class="text-xs font-semibold text-gray-400">{% trans "PUBLIC SCORE" %}</h3>
       <span class="text-lg font-bold {% if public_ratings.aggregate_missing %}text-gray-400{% else %}text-white{% endif %}">{{ public_ratings.aggregate_display }}</span>
     </div>
     <div class="flex flex-wrap gap-2">

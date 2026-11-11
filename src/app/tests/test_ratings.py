@@ -25,7 +25,7 @@ from app.ratings import (
     user_weights,
     weighted_average,
 )
-from users.models import MediaStatusChoices
+from users.models import MediaSortChoices, MediaStatusChoices
 
 METADATA = {
     "title": "Test Movie",
@@ -107,6 +107,13 @@ class RatingMathTests(TestCase):
         self.assertEqual(format_public_value(Decimal(0)), "0")
         self.assertEqual(format_public_value(Decimal("82.0")), "82")
         self.assertEqual(format_public_value(Decimal("8.5")), "8.5")
+
+    def test_sort_labels_keep_their_stored_keys(self):
+        """The visible names change, and the stored sort values do not."""
+        self.assertEqual(MediaSortChoices.SCORE.value, "score")
+        self.assertEqual(str(MediaSortChoices.SCORE.label), "My rating")
+        self.assertEqual(MediaSortChoices.PUBLIC_RATING.value, "public_rating")
+        self.assertEqual(str(MediaSortChoices.PUBLIC_RATING.label), "Public score")
 
 
 class PublicRatingSortTests(TestCase):
@@ -261,6 +268,18 @@ class PublicRatingSortTests(TestCase):
         self.assertEqual(self.user.rating_weight_letterboxd, 2)
         self.assertEqual(by_title["Blank"], Decimal("60.0"))
         self.assertEqual(by_title["Filled"], Decimal("76.0"))
+
+    def test_media_list_uses_the_clearer_labels(self):
+        """The list names the personal score and the public score separately."""
+        self.client.login(username="sort-user", password="test-pass")  # noqa: S106
+        self._movie("12", "Labeled", Status.PLANNING.value)
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]),
+        )
+
+        self.assertContains(response, "My rating")
+        self.assertContains(response, "Public score")
 
     def _sorted(self):
         return MediaManager().get_media_list(
@@ -486,7 +505,7 @@ class LetterboxdViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "PUBLIC RATING")
+        self.assertContains(response, "PUBLIC SCORE")
         self.assertContains(response, "\u2013")
         self.assertContains(response, 'placeholder="\u2013"')
 
