@@ -893,3 +893,96 @@ TRACKED_EPISODE_EXAMPLE = _example(
         "lists": [],
     },
 )
+
+
+_MEDIA_TYPE_PREFERENCES = {
+    media_type: {
+        f"{media_type}_enabled": True,
+        f"{media_type}_layout": layout,
+        f"{media_type}_sort": "score",
+        f"{media_type}_status": "All",
+    }
+    for media_type, layout in (
+        ("tv", "grid"),
+        ("season", "grid"),
+        ("movie", "grid"),
+        ("anime", "table"),
+        ("manga", "table"),
+        ("game", "grid"),
+        ("book", "grid"),
+        ("comic", "grid"),
+        ("boardgame", "grid"),
+    )
+}
+
+PREFERENCES = {
+    **{f"{media_type}_enabled": True for media_type in _MEDIA_TYPE_PREFERENCES},
+    "week_start_day": "monday",
+    "watch_provider_region": "IT",
+}
+
+WEBUI_PREFERENCES = {
+    "home_sort": "upcoming",
+    "home_hide_unreleased": False,
+    **{
+        key: value
+        for preferences in _MEDIA_TYPE_PREFERENCES.values()
+        for key, value in preferences.items()
+        if not key.endswith("_enabled")
+    },
+    "clickable_media_cards": False,
+    "obfuscate_unseen_episodes": False,
+    "quick_watch_date": "current_date",
+    "date_format": "Y-m-d",
+    "time_format": "H:i",
+    "progress_bar": True,
+    "hide_completed_recommendations": False,
+    "hide_zero_rating": False,
+    "calendar_layout": "grid",
+    "lists_sort": "last_item_added",
+    "list_detail_sort": "date_added",
+    "list_detail_status": "All",
+}
+
+PREFERENCES_EXAMPLE = _example("Preferences", PREFERENCES)
+
+WEBUI_PREFERENCES_EXAMPLE = _example("Web UI preferences", WEBUI_PREFERENCES)
+
+ME_EXAMPLE = _example(
+    "Current user",
+    {
+        "id": 1,
+        "username": "alice",
+        "is_demo": False,
+        "profile_private": True,
+        "enabled_media_types": [
+            "tv",
+            "season",
+            "movie",
+            "anime",
+            "manga",
+            "game",
+            "book",
+            "comic",
+            "boardgame",
+        ],
+        "preferences": PREFERENCES,
+    },
+)
+
+TOKEN_EXAMPLE = _example(
+    "Regenerated token",
+    {"token": "Zk3j9wq1rXb7T0fU5mYcLdE2aHnOvS4p"},
+)
+
+PASSWORD_CHANGED_EXAMPLE = _example(
+    "Password changed",
+    {"detail": "Password changed. Web sessions were signed out."},
+)
+
+SEARCH_CACHE_CLEARED_EXAMPLE = _example("Search cache cleared", {"deleted": 12})
+
+PUBLIC_PROFILE_EXAMPLE = _example(
+    "Public profile",
+    {"username": "alice", "enabled_media_types": ["tv", "movie", "anime"]},
+)

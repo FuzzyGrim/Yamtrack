@@ -10,7 +10,6 @@ from api.helpers import (
     IMAGE_TYPES,
     check_supported_source,
     check_valid_type,
-    error_response,
     fetch_images,
     fetch_season_images,
     filter_images,
@@ -60,9 +59,7 @@ class MediaImagesView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the images of a media."""
-        err = check_supported_source(IMAGE_SOURCES, media_type, source, "images")
-        if err:
-            return err
+        check_supported_source(IMAGE_SOURCES, media_type, source, "images")
 
         type_filter = request.GET.get("type")
         if type_filter and type_filter not in IMAGE_TYPES:
@@ -75,12 +72,7 @@ class MediaImagesView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            images = fetch_images(media_type, source, media_id)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        images = fetch_images(media_type, source, media_id)
 
         images = filter_images(images, type_filter)
         return Response(MediaImagesResponseSerializer(images).data, status=HTTP.OK)
@@ -147,12 +139,7 @@ class MediaSeasonImagesView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            images = fetch_season_images(media_id, season_number)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        images = fetch_season_images(media_id, season_number)
 
         images = filter_images(images, type_filter)
         return Response(MediaImagesResponseSerializer(images).data, status=HTTP.OK)
@@ -184,9 +171,7 @@ class MediaCoverView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Get the current cover of a media."""
-        cover, err = resolve_cover(request, media_type, source, media_id)
-        if err:
-            return err
+        cover = resolve_cover(request, media_type, source, media_id)
 
         return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
@@ -211,9 +196,7 @@ class MediaCoverView(drf_views.APIView):
     )
     def put(self, request, media_type, source, media_id):
         """Set a custom cover for a media."""
-        cover, err = resolve_cover(request, media_type, source, media_id)
-        if err:
-            return err
+        cover = resolve_cover(request, media_type, source, media_id)
 
         return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
@@ -237,9 +220,7 @@ class MediaCoverView(drf_views.APIView):
     )
     def delete(self, request, media_type, source, media_id):
         """Reset the cover of a media to the provider image."""
-        cover, err = resolve_cover(request, media_type, source, media_id)
-        if err:
-            return err
+        cover = resolve_cover(request, media_type, source, media_id)
 
         return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
@@ -271,15 +252,13 @@ class MediaSeasonCoverView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id, season_number):
         """Get the current cover of a season."""
-        cover, err = resolve_cover(
+        cover = resolve_cover(
             request,
             media_type,
             source,
             media_id,
             season_number=season_number,
         )
-        if err:
-            return err
 
         return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
@@ -305,15 +284,13 @@ class MediaSeasonCoverView(drf_views.APIView):
     )
     def put(self, request, media_type, source, media_id, season_number):
         """Set a custom cover for a season."""
-        cover, err = resolve_cover(
+        cover = resolve_cover(
             request,
             media_type,
             source,
             media_id,
             season_number=season_number,
         )
-        if err:
-            return err
 
         return Response(CoverSerializer(cover).data, status=HTTP.OK)
 
@@ -338,14 +315,12 @@ class MediaSeasonCoverView(drf_views.APIView):
     )
     def delete(self, request, media_type, source, media_id, season_number):
         """Reset the cover of a season to the provider image."""
-        cover, err = resolve_cover(
+        cover = resolve_cover(
             request,
             media_type,
             source,
             media_id,
             season_number=season_number,
         )
-        if err:
-            return err
 
         return Response(CoverSerializer(cover).data, status=HTTP.OK)

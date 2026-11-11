@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from api.examples import WATCH_PROVIDERS_EXAMPLE
 from api.helpers import (
     check_valid_type,
-    error_response,
     group_watch_providers,
     parse_watch_provider_region,
 )
@@ -77,16 +76,9 @@ class MediaWatchProvidersView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        region, err = parse_watch_provider_region(request)
-        if err:
-            return err
+        region = parse_watch_provider_region(request)
 
-        try:
-            media_metadata = services.get_media_metadata(media_type, media_id, source)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        media_metadata = services.get_media_metadata(media_type, media_id, source)
 
         providers = group_watch_providers(media_metadata.get("providers"), region)
         return Response(providers, status=HTTP.OK)
@@ -142,21 +134,14 @@ class MediaSeasonWatchProvidersView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        region, err = parse_watch_provider_region(request)
-        if err:
-            return err
+        region = parse_watch_provider_region(request)
 
-        try:
-            season_metadata = services.get_media_metadata(
-                MediaTypes.SEASON.value,
-                media_id,
-                source,
-                [season_number],
-            )
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        season_metadata = services.get_media_metadata(
+            MediaTypes.SEASON.value,
+            media_id,
+            source,
+            [season_number],
+        )
 
         providers = group_watch_providers(season_metadata.get("providers"), region)
         return Response(providers, status=HTTP.OK)

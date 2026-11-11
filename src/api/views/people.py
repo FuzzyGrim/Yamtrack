@@ -12,7 +12,6 @@ from api.examples import (
     SEARCH_PEOPLE_EXAMPLE,
 )
 from api.helpers import (
-    error_response,
     filter_known_for,
     paginate_data,
     parse_limit_offset,
@@ -77,9 +76,7 @@ class PeopleSearchView(drf_views.APIView):
         """Search for people using the specified provider."""
         search = request.GET.get("search", "").strip()
         source = request.GET.get("source") or Sources.TMDB.value
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
         if source != Sources.TMDB.value:
             return Response(
@@ -97,26 +94,19 @@ class PeopleSearchView(drf_views.APIView):
         page = 1
         last_response = None
 
-        try:
-            while True:
-                last_response = tmdb.search_people(search, page)
-                page_results = last_response.get("results", []) or []
-                results_accum.extend(page_results)
-                if len(results_accum) >= offset + limit:
-                    break
-                total_pages = last_response.get("total_pages")
-                if total_pages and page >= total_pages:
-                    break
-                if not page_results:
-                    break
+        while True:
+            last_response = tmdb.search_people(search, page)
+            page_results = last_response.get("results", []) or []
+            results_accum.extend(page_results)
+            if len(results_accum) >= offset + limit:
+                break
+            total_pages = last_response.get("total_pages")
+            if total_pages and page >= total_pages:
+                break
+            if not page_results:
+                break
 
-                page += 1
-
-        except Exception:  # noqa: BLE001
-            return Response(
-                {"detail": HTTP.INTERNAL_SERVER_ERROR.phrase},
-                status=HTTP.INTERNAL_SERVER_ERROR,
-            )
+            page += 1
 
         total = last_response.get("total_results") or len(results_accum)
         paginated_data = paginate_data(
@@ -163,12 +153,7 @@ class PersonDetailView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            person = tmdb.person(person_id)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        person = tmdb.person(person_id)
 
         return Response(PersonSerializer(person).data, status=HTTP.OK)
 
@@ -200,9 +185,7 @@ class PersonImagesView(drf_views.APIView):
     )
     def get(self, request, source, person_id):
         """Retrieve the profile images of a specific person."""
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
         if source != Sources.TMDB.value:
             return Response(
@@ -210,12 +193,7 @@ class PersonImagesView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            images = tmdb.person_images(person_id)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        images = tmdb.person_images(person_id)
 
         paginated = paginate_data(request, images, limit, offset)
         return Response(
@@ -253,9 +231,7 @@ class PersonKnownForView(drf_views.APIView):
     )
     def get(self, request, source, person_id):
         """Retrieve the movies and tv series a person is known for as cast or crew."""
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
         if source != Sources.TMDB.value:
             return Response(
@@ -273,12 +249,7 @@ class PersonKnownForView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            known_for = tmdb.person_known_for(person_id)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        known_for = tmdb.person_known_for(person_id)
 
         known_for = filter_known_for(
             known_for,

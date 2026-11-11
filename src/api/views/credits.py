@@ -17,7 +17,6 @@ from api.helpers import (
     GAME_COMPANY_ROLES,
     VOICE_ACTOR_LANGUAGES,
     check_supported_source,
-    error_response,
     fetch_cast,
     fetch_companies,
     fetch_crew,
@@ -75,13 +74,9 @@ class MediaCastView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the cast of a specific movie, tv serie or anime."""
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
-        err = check_supported_source(CAST_CREW_SOURCES, media_type, source, "cast")
-        if err:
-            return err
+        check_supported_source(CAST_CREW_SOURCES, media_type, source, "cast")
 
         language = request.GET.get("language", "").lower() or None
         if language and (
@@ -98,12 +93,7 @@ class MediaCastView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            cast = fetch_cast(media_type, source, media_id, language=language)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        cast = fetch_cast(media_type, source, media_id, language=language)
 
         paginated = paginate_data(request, cast, limit, offset)
         return Response(PaginatedCastSerializer(paginated).data, status=HTTP.OK)
@@ -138,20 +128,11 @@ class MediaCrewView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the crew of a specific movie, tv serie or anime."""
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
-        err = check_supported_source(CAST_CREW_SOURCES, media_type, source, "crew")
-        if err:
-            return err
+        check_supported_source(CAST_CREW_SOURCES, media_type, source, "crew")
 
-        try:
-            crew = fetch_crew(media_type, source, media_id)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        crew = fetch_crew(media_type, source, media_id)
 
         department = request.GET.get("department")
         if department:
@@ -193,15 +174,13 @@ class MediaCreatorsView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the creators of a manga, book, comic or board game."""
-        paginated, err = get_paginated_credits(
+        paginated = get_paginated_credits(
             request,
             media_type,
             source,
             media_id,
             "creators",
         )
-        if err:
-            return err
 
         return Response(PaginatedCreditsSerializer(paginated).data, status=HTTP.OK)
 
@@ -234,15 +213,13 @@ class MediaCharactersView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the characters of an anime, manga or comic."""
-        paginated, err = get_paginated_credits(
+        paginated = get_paginated_credits(
             request,
             media_type,
             source,
             media_id,
             "characters",
         )
-        if err:
-            return err
 
         return Response(PaginatedCreditsSerializer(paginated).data, status=HTTP.OK)
 
@@ -276,18 +253,14 @@ class MediaCompaniesView(drf_views.APIView):
     )
     def get(self, request, media_type, source, media_id):
         """Retrieve the companies involved in a game or board game."""
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
-        err = check_supported_source(
+        check_supported_source(
             COMPANY_SOURCES,
             media_type,
             source,
             "companies",
         )
-        if err:
-            return err
 
         role = request.GET.get("role")
         if role and role not in GAME_COMPANY_ROLES:
@@ -301,12 +274,7 @@ class MediaCompaniesView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            companies = fetch_companies(source, media_id)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
+        companies = fetch_companies(source, media_id)
 
         if role:
             companies = [company for company in companies if role in company["roles"]]

@@ -1468,6 +1468,746 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/me/:
+    get:
+      operationId: me_get
+      description: Return the profile and the preferences of the authenticated user.
+      summary: Get the authenticated user
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+              examples:
+                CurrentUser:
+                  value:
+                    id: 1
+                    username: alice
+                    is_demo: false
+                    profile_private: true
+                    enabled_media_types:
+                    - tv
+                    - season
+                    - movie
+                    - anime
+                    - manga
+                    - game
+                    - book
+                    - comic
+                    - boardgame
+                    preferences:
+                      tv_enabled: true
+                      season_enabled: true
+                      movie_enabled: true
+                      anime_enabled: true
+                      manga_enabled: true
+                      game_enabled: true
+                      book_enabled: true
+                      comic_enabled: true
+                      boardgame_enabled: true
+                      week_start_day: monday
+                      watch_provider_region: IT
+                  summary: Current user
+          description: Successful response
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    patch:
+      operationId: me_patch
+      description: Update the username and/or the profile visibility.
+      summary: Update the username or the profile visibility
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+              examples:
+                CurrentUser:
+                  value:
+                    id: 1
+                    username: alice
+                    is_demo: false
+                    profile_private: true
+                    enabled_media_types:
+                    - tv
+                    - season
+                    - movie
+                    - anime
+                    - manga
+                    - game
+                    - book
+                    - comic
+                    - boardgame
+                    preferences:
+                      tv_enabled: true
+                      season_enabled: true
+                      movie_enabled: true
+                      anime_enabled: true
+                      manga_enabled: true
+                      game_enabled: true
+                      book_enabled: true
+                      comic_enabled: true
+                      boardgame_enabled: true
+                      week_start_day: monday
+                      watch_provider_region: IT
+                  summary: Current user
+          description: User updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/password/:
+    post:
+      operationId: me_password_post
+      description: The API token isn't changed, but all the web login sessions are
+        signed out.
+      summary: Change the password
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiMessageResponse'
+              examples:
+                PasswordChanged:
+                  value:
+                    detail: Password changed. Web sessions were signed out.
+                  summary: Password changed
+          description: Password changed
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/preferences/:
+    get:
+      operationId: me_preferences_get
+      description: Return the preferences of the authenticated user.
+      summary: Get the general preferences
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+              examples:
+                Preferences:
+                  value:
+                    tv_enabled: true
+                    season_enabled: true
+                    movie_enabled: true
+                    anime_enabled: true
+                    manga_enabled: true
+                    game_enabled: true
+                    book_enabled: true
+                    comic_enabled: true
+                    boardgame_enabled: true
+                    week_start_day: monday
+                    watch_provider_region: IT
+                  summary: Preferences
+          description: Successful response
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    patch:
+      operationId: me_preferences_patch
+      description: Preferences that apply to the whole application. Only the sent
+        fields are updated. Invalid values are rejected, unlike the web UI which ignores
+        them.
+      summary: Update the general preferences
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPreferencesRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+              examples:
+                Preferences:
+                  value:
+                    tv_enabled: true
+                    season_enabled: true
+                    movie_enabled: true
+                    anime_enabled: true
+                    manga_enabled: true
+                    game_enabled: true
+                    book_enabled: true
+                    comic_enabled: true
+                    boardgame_enabled: true
+                    week_start_day: monday
+                    watch_provider_region: IT
+                  summary: Preferences
+          description: Preferences updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/preferences/webui/:
+    get:
+      operationId: me_preferences_webui_get
+      description: Preferences that only change how the web UI looks or behaves.
+      summary: Get the web UI preferences
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebUIPreferences'
+              examples:
+                WebUIPreferences:
+                  value:
+                    home_sort: upcoming
+                    home_hide_unreleased: false
+                    tv_layout: grid
+                    tv_sort: score
+                    tv_status: All
+                    season_layout: grid
+                    season_sort: score
+                    season_status: All
+                    movie_layout: grid
+                    movie_sort: score
+                    movie_status: All
+                    anime_layout: table
+                    anime_sort: score
+                    anime_status: All
+                    manga_layout: table
+                    manga_sort: score
+                    manga_status: All
+                    game_layout: grid
+                    game_sort: score
+                    game_status: All
+                    book_layout: grid
+                    book_sort: score
+                    book_status: All
+                    comic_layout: grid
+                    comic_sort: score
+                    comic_status: All
+                    boardgame_layout: grid
+                    boardgame_sort: score
+                    boardgame_status: All
+                    clickable_media_cards: false
+                    obfuscate_unseen_episodes: false
+                    quick_watch_date: current_date
+                    date_format: Y-m-d
+                    time_format: H:i
+                    progress_bar: true
+                    hide_completed_recommendations: false
+                    hide_zero_rating: false
+                    calendar_layout: grid
+                    lists_sort: last_item_added
+                    list_detail_sort: date_added
+                    list_detail_status: All
+                  summary: Web UI preferences
+          description: Successful response
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    patch:
+      operationId: me_preferences_webui_patch
+      description: Only the sent fields are updated. Invalid values are rejected,
+        unlike the web UI which ignores them.
+      summary: Update the web UI preferences
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWebUIPreferencesRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebUIPreferences'
+              examples:
+                WebUIPreferences:
+                  value:
+                    home_sort: upcoming
+                    home_hide_unreleased: false
+                    tv_layout: grid
+                    tv_sort: score
+                    tv_status: All
+                    season_layout: grid
+                    season_sort: score
+                    season_status: All
+                    movie_layout: grid
+                    movie_sort: score
+                    movie_status: All
+                    anime_layout: table
+                    anime_sort: score
+                    anime_status: All
+                    manga_layout: table
+                    manga_sort: score
+                    manga_status: All
+                    game_layout: grid
+                    game_sort: score
+                    game_status: All
+                    book_layout: grid
+                    book_sort: score
+                    book_status: All
+                    comic_layout: grid
+                    comic_sort: score
+                    comic_status: All
+                    boardgame_layout: grid
+                    boardgame_sort: score
+                    boardgame_status: All
+                    clickable_media_cards: false
+                    obfuscate_unseen_episodes: false
+                    quick_watch_date: current_date
+                    date_format: Y-m-d
+                    time_format: H:i
+                    progress_bar: true
+                    hide_completed_recommendations: false
+                    hide_zero_rating: false
+                    calendar_layout: grid
+                    lists_sort: last_item_added
+                    list_detail_sort: date_added
+                    list_detail_status: All
+                  summary: Web UI preferences
+          description: Preferences updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/search-cache/:
+    delete:
+      operationId: me_search_cache_delete
+      description: Delete all the cached search entries.
+      summary: Clear the search cache
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchCacheResponse'
+              examples:
+                SearchCacheCleared:
+                  value:
+                    deleted: 12
+                  summary: Search cache cleared
+          description: Search cache cleared
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/token/:
+    post:
+      operationId: me_token_post
+      description: The previous token stops working immediately, so the following
+        requests have to use the returned one.
+      summary: Regenerate the API token
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                RegeneratedToken:
+                  value:
+                    token: Zk3j9wq1rXb7T0fU5mYcLdE2aHnOvS4p
+                  summary: Regenerated token
+          description: Token regenerated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/:
     get:
       operationId: media_list_get
@@ -10491,6 +11231,240 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/users/{username}/:
+    get:
+      operationId: user_profile_get
+      description: Private profiles answer 404, as if the user didn't exist.
+      summary: Get a public profile
+      parameters:
+      - in: path
+        name: username
+        schema:
+          type: string
+        description: Username of the user.
+        required: true
+      tags:
+      - users
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProfile'
+              examples:
+                PublicProfile:
+                  value:
+                    username: alice
+                    enabled_media_types:
+                    - tv
+                    - movie
+                    - anime
+                  summary: Public profile
+          description: Successful response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/users/{username}/media/{media_type}/:
+    get:
+      operationId: user_media_type_list_get
+      description: Private profiles and media types the user disabled answer 404.
+        The lists the media belongs to aren't exposed.
+      summary: List the media of a public profile
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - episode
+          - game
+          - manga
+          - movie
+          - season
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: query
+        name: sort
+        schema:
+          type: string
+          enum:
+          - added
+          - added_asc
+          - added_desc
+          - end_date
+          - end_date_asc
+          - end_date_desc
+          - episode_number
+          - episode_number_asc
+          - episode_number_desc
+          - id
+          - id_asc
+          - id_desc
+          - itemid
+          - itemid_asc
+          - itemid_desc
+          - media_id
+          - media_id_asc
+          - media_id_desc
+          - media_type
+          - media_type_asc
+          - media_type_desc
+          - progress
+          - progress_asc
+          - progress_desc
+          - score
+          - score_asc
+          - score_desc
+          - season_number
+          - season_number_asc
+          - season_number_desc
+          - source
+          - source_asc
+          - source_desc
+          - start_date
+          - start_date_asc
+          - start_date_desc
+          - title
+          - title_asc
+          - title_desc
+          - updated
+          - updated_asc
+          - updated_desc
+        description: 'Sort field, optionally followed by `_asc` or `_desc` (default:
+          ascending). Episodes only support a subset of the sorts: added, end_date,
+          episode_number, id, itemid, season_number, title.'
+      - in: path
+        name: username
+        schema:
+          type: string
+        description: Username of the user.
+        required: true
+      tags:
+      - users
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMedia'
+              examples:
+                MediaList:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - id: 1
+                      consumption_id: 1
+                      item:
+                        media_id: '100088'
+                        source: tmdb
+                        media_type: tv
+                        title: The Last of Us
+                        image: https://image.tmdb.org/t/p/original//dmo6TYuuJgaYinXBPjrgG9mB5od.jpg
+                        season_number: null
+                        episode_number: null
+                      item_id: tv/tmdb/100088
+                      parent_id: null
+                      tracked: true
+                      created_at: '2026-01-15T15:33:03.209328Z'
+                      score: null
+                      status: 0
+                      progress: 0
+                      progressed_at: null
+                      start_date: null
+                      end_date: null
+                      notes: ''
+                      lists:
+                      - list_id: 1
+                        list_item_id: 10
+                  summary: Media list
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
 components:
   schemas:
     ApiErrorResponse:
@@ -10519,6 +11493,14 @@ components:
           type: string
       required:
       - detail
+    CalendarLayoutEnum:
+      enum:
+      - grid
+      - list
+      type: string
+      description: |-
+        * `grid` - Grid
+        * `list` - List
     CastMember:
       type: object
       description: Serializer for a single cast member.
@@ -10889,6 +11871,20 @@ components:
       - jobs
       - name
       - person_id
+    DateFormatEnum:
+      enum:
+      - Y-m-d
+      - d/m/Y
+      - m/d/Y
+      - M j, Y
+      - j M, Y
+      type: string
+      description: |-
+        * `Y-m-d` - 2026-01-18 (ISO)
+        * `d/m/Y` - 18/01/2026 (EU)
+        * `m/d/Y` - 01/18/2026 (US)
+        * `M j, Y` - Jan 18, 2026
+        * `j M, Y` - 18 Jan, 2026
     Episode:
       type: object
       description: Serializer used for tracked episodes and episodes from the provider
@@ -11138,6 +12134,20 @@ components:
       - progressed_at
       - score
       - start_date
+    HomeSortEnum:
+      enum:
+      - upcoming
+      - recent
+      - completion
+      - episodes_left
+      - title
+      type: string
+      description: |-
+        * `upcoming` - Upcoming
+        * `recent` - Recent
+        * `completion` - Completion
+        * `episodes_left` - Episodes Left
+        * `title` - Title
     Info:
       type: object
       description: Serializer for the info endpoint.
@@ -11353,6 +12363,16 @@ components:
           description: List of username ids allowed to collaborate on this list.
       required:
       - name
+    ListDetailSortEnum:
+      enum:
+      - date_added
+      - title
+      - media_type
+      type: string
+      description: |-
+        * `date_added` - Date Added
+        * `title` - Title
+        * `media_type` - Media Type
     ListMinimized:
       type: object
       description: Serializer for minimized list information.
@@ -11403,6 +12423,18 @@ components:
       - latest_update
       - name
       - owner
+    ListsSortEnum:
+      enum:
+      - last_item_added
+      - name
+      - items_count
+      - newest_first
+      type: string
+      description: |-
+        * `last_item_added` - Last Item Added
+        * `name` - Name
+        * `items_count` - Items Count
+        * `newest_first` - Newest First
     Media:
       type: object
       description: Serializer used for media items.
@@ -11801,6 +12833,21 @@ components:
       - offset
       - previous
       - total
+    PasswordChangeRequest:
+      type: object
+      description: Serializer to change the password of the authenticated user.
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - new_password
+      - old_password
     PatchedHistoryUpdateRequestRequest:
       anyOf:
       - $ref: '#/components/schemas/PatchedUpdateAnimeRequest'
@@ -11825,6 +12872,41 @@ components:
           items:
             type: integer
           description: List of username ids allowed to collaborate on this list.
+    PatchedPreferencesRequest:
+      type: object
+      description: Serializer for the preferences that apply to the whole application.
+      properties:
+        tv_enabled:
+          type: boolean
+        season_enabled:
+          type: boolean
+        movie_enabled:
+          type: boolean
+        anime_enabled:
+          type: boolean
+        manga_enabled:
+          type: boolean
+        game_enabled:
+          type: boolean
+        book_enabled:
+          type: boolean
+        comic_enabled:
+          type: boolean
+        boardgame_enabled:
+          type: boolean
+        week_start_day:
+          allOf:
+          - $ref: '#/components/schemas/WeekStartDayEnum'
+          description: |-
+            First day of the week
+
+            * `monday` - Monday
+            * `sunday` - Sunday
+        watch_provider_region:
+          type: string
+          description: TMDB watch provider region code, an empty string to disable
+            them or `UNSET` if it was never set.
+          maxLength: 5
     PatchedUpdateAnimeRequest:
       type: object
       description: Serializer for updating anime media items.
@@ -12044,6 +13126,134 @@ components:
         notes:
           type: string
           nullable: true
+    PatchedUserUpdateRequest:
+      type: object
+      description: Serializer to update username and profile visibility.
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        profile_private:
+          type: boolean
+          description: Toggle profile visibility to anonymous users
+    PatchedWebUIPreferencesRequest:
+      type: object
+      description: Serializer for the preferences that only affect the web UI.
+      properties:
+        home_sort:
+          $ref: '#/components/schemas/HomeSortEnum'
+        home_hide_unreleased:
+          type: boolean
+          description: Hide unreleased media from the home page
+        tv_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        tv_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        tv_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        season_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        season_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        season_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        movie_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        movie_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        movie_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        anime_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        anime_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        anime_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        manga_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        manga_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        manga_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        game_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        game_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        game_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        book_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        book_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        book_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        comic_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        comic_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        comic_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        boardgame_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        boardgame_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        boardgame_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        clickable_media_cards:
+          type: boolean
+          description: Hide hover overlay on touch devices
+        obfuscate_unseen_episodes:
+          type: boolean
+          description: Blur unseen episode images and descriptions
+        quick_watch_date:
+          allOf:
+          - $ref: '#/components/schemas/QuickWatchDateEnum'
+          description: |-
+            Date to use when bulk-marking media as completed
+
+            * `current_date` - Current Date
+            * `release_date` - Release Date
+            * `no_date` - No Date
+        date_format:
+          allOf:
+          - $ref: '#/components/schemas/DateFormatEnum'
+          description: |-
+            Preferred date display format
+
+            * `Y-m-d` - 2026-01-18 (ISO)
+            * `d/m/Y` - 18/01/2026 (EU)
+            * `m/d/Y` - 01/18/2026 (US)
+            * `M j, Y` - Jan 18, 2026
+            * `j M, Y` - 18 Jan, 2026
+        time_format:
+          allOf:
+          - $ref: '#/components/schemas/TimeFormatEnum'
+          description: |-
+            Preferred time display format
+
+            * `H:i` - 14:30 (24-hour)
+            * `g:i A` - 2:30 PM (12-hour)
+        progress_bar:
+          type: boolean
+          description: Show progress bar
+        hide_completed_recommendations:
+          type: boolean
+          description: Hide completed media in recommendations
+        hide_zero_rating:
+          type: boolean
+          description: Hide zero ratings from media cards
+        calendar_layout:
+          $ref: '#/components/schemas/CalendarLayoutEnum'
+        lists_sort:
+          $ref: '#/components/schemas/ListsSortEnum'
+        list_detail_sort:
+          $ref: '#/components/schemas/ListDetailSortEnum'
+        list_detail_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
     Person:
       type: object
       description: Serializer for person details.
@@ -12141,6 +13351,106 @@ components:
       - vote_average
       - vote_count
       - width
+    PreferenceLayoutEnum:
+      enum:
+      - grid
+      - table
+      type: string
+      description: |-
+        * `grid` - Grid
+        * `table` - Table
+    PreferenceSortEnum:
+      enum:
+      - score
+      - title
+      - progress
+      - start_date
+      - end_date
+      type: string
+      description: |-
+        * `score` - Rating
+        * `title` - Title
+        * `progress` - Progress
+        * `start_date` - Start Date
+        * `end_date` - End Date
+    PreferenceStatusEnum:
+      enum:
+      - All
+      - Completed
+      - In progress
+      - Planning
+      - Paused
+      - Dropped
+      type: string
+      description: |-
+        * `All` - All
+        * `Completed` - Completed
+        * `In progress` - In Progress
+        * `Planning` - Planning
+        * `Paused` - Paused
+        * `Dropped` - Dropped
+    Preferences:
+      type: object
+      description: Serializer for the preferences that apply to the whole application.
+      properties:
+        tv_enabled:
+          type: boolean
+        season_enabled:
+          type: boolean
+        movie_enabled:
+          type: boolean
+        anime_enabled:
+          type: boolean
+        manga_enabled:
+          type: boolean
+        game_enabled:
+          type: boolean
+        book_enabled:
+          type: boolean
+        comic_enabled:
+          type: boolean
+        boardgame_enabled:
+          type: boolean
+        week_start_day:
+          allOf:
+          - $ref: '#/components/schemas/WeekStartDayEnum'
+          description: |-
+            First day of the week
+
+            * `monday` - Monday
+            * `sunday` - Sunday
+        watch_provider_region:
+          type: string
+          description: TMDB watch provider region code, an empty string to disable
+            them or `UNSET` if it was never set.
+          maxLength: 5
+      required:
+      - watch_provider_region
+    PublicProfile:
+      type: object
+      description: Serializer for the public information of a user.
+      properties:
+        username:
+          type: string
+        enabled_media_types:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/MediaTypeCompleteEnum'
+            nullable: true
+      required:
+      - enabled_media_types
+      - username
+    QuickWatchDateEnum:
+      enum:
+      - current_date
+      - release_date
+      - no_date
+      type: string
+      description: |-
+        * `current_date` - Current Date
+        * `release_date` - Release Date
+        * `no_date` - No Date
     RelatedResponse:
       type: object
       description: Serializer for related media endpoint.
@@ -12165,6 +13475,15 @@ components:
       - image
       - media_id
       - title
+    SearchCacheResponse:
+      type: object
+      description: Serializer for the result of clearing the search cache.
+      properties:
+        deleted:
+          type: integer
+          description: Number of cache entries deleted.
+      required:
+      - deleted
     SearchMedia:
       type: object
       description: Serializer for individual media items in search results.
@@ -12353,6 +13672,14 @@ components:
       - status_pie_chart_data
       - timeline
       - top_rated
+    TimeFormatEnum:
+      enum:
+      - H:i
+      - g:i A
+      type: string
+      description: |-
+        * `H:i` - 14:30 (24-hour)
+        * `g:i A` - 2:30 PM (12-hour)
     TimeToBeat:
       type: object
       description: Serializer for the time to beat a game, in seconds.
@@ -12432,6 +13759,14 @@ components:
       - score
       - start_date
       - title
+    TokenResponse:
+      type: object
+      description: Serializer for the regenerated API token.
+      properties:
+        token:
+          type: string
+      required:
+      - token
     TrackMediaRequest:
       type: object
       description: |-
@@ -12533,6 +13868,42 @@ components:
       required:
       - id
       - username
+    UserProfile:
+      type: object
+      description: Serializer for the authenticated user.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+        is_demo:
+          type: boolean
+          readOnly: true
+        profile_private:
+          type: boolean
+          readOnly: true
+          description: Toggle profile visibility to anonymous users
+        enabled_media_types:
+          type: array
+          items:
+            type: string
+          description: Return media types the user has enabled.
+          readOnly: true
+        preferences:
+          allOf:
+          - $ref: '#/components/schemas/Preferences'
+          readOnly: true
+      required:
+      - enabled_media_types
+      - id
+      - is_demo
+      - preferences
+      - profile_private
+      - username
     WatchProvider:
       type: object
       description: Serializer for a single watch provider.
@@ -12576,6 +13947,128 @@ components:
       - no_charge
       - paid
       - region
+    WebUIPreferences:
+      type: object
+      description: Serializer for the preferences that only affect the web UI.
+      properties:
+        home_sort:
+          $ref: '#/components/schemas/HomeSortEnum'
+        home_hide_unreleased:
+          type: boolean
+          description: Hide unreleased media from the home page
+        tv_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        tv_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        tv_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        season_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        season_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        season_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        movie_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        movie_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        movie_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        anime_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        anime_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        anime_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        manga_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        manga_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        manga_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        game_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        game_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        game_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        book_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        book_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        book_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        comic_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        comic_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        comic_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        boardgame_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        boardgame_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        boardgame_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        clickable_media_cards:
+          type: boolean
+          description: Hide hover overlay on touch devices
+        obfuscate_unseen_episodes:
+          type: boolean
+          description: Blur unseen episode images and descriptions
+        quick_watch_date:
+          allOf:
+          - $ref: '#/components/schemas/QuickWatchDateEnum'
+          description: |-
+            Date to use when bulk-marking media as completed
+
+            * `current_date` - Current Date
+            * `release_date` - Release Date
+            * `no_date` - No Date
+        date_format:
+          allOf:
+          - $ref: '#/components/schemas/DateFormatEnum'
+          description: |-
+            Preferred date display format
+
+            * `Y-m-d` - 2026-01-18 (ISO)
+            * `d/m/Y` - 18/01/2026 (EU)
+            * `m/d/Y` - 01/18/2026 (US)
+            * `M j, Y` - Jan 18, 2026
+            * `j M, Y` - 18 Jan, 2026
+        time_format:
+          allOf:
+          - $ref: '#/components/schemas/TimeFormatEnum'
+          description: |-
+            Preferred time display format
+
+            * `H:i` - 14:30 (24-hour)
+            * `g:i A` - 2:30 PM (12-hour)
+        progress_bar:
+          type: boolean
+          description: Show progress bar
+        hide_completed_recommendations:
+          type: boolean
+          description: Hide completed media in recommendations
+        hide_zero_rating:
+          type: boolean
+          description: Hide zero ratings from media cards
+        calendar_layout:
+          $ref: '#/components/schemas/CalendarLayoutEnum'
+        lists_sort:
+          $ref: '#/components/schemas/ListsSortEnum'
+        list_detail_sort:
+          $ref: '#/components/schemas/ListDetailSortEnum'
+        list_detail_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+    WeekStartDayEnum:
+      enum:
+      - monday
+      - sunday
+      type: string
+      description: |-
+        * `monday` - Monday
+        * `sunday` - Sunday
   securitySchemes:
     ApiKeyAuth:
       type: apiKey

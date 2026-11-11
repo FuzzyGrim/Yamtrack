@@ -14,7 +14,6 @@ from api.examples import (
     TASK_QUEUED_EXAMPLE,
 )
 from api.helpers import (
-    error_response,
     paginate_data,
     parse_limit_offset,
     resolve_calendar_date_range,
@@ -96,9 +95,7 @@ class CalendarView(drf_views.APIView):
         month_q = request.GET.get("month")
         year_q = request.GET.get("year")
 
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
         try:
             first_day, last_day = resolve_calendar_date_range(
@@ -113,13 +110,7 @@ class CalendarView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        try:
-            releases = Event.objects.get_user_events(request.user, first_day, last_day)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                "Error occurred while fetching events.", HTTP.INTERNAL_SERVER_ERROR, e
-            )
-
+        releases = Event.objects.get_user_events(request.user, first_day, last_day)
         paginated_data = paginate_data(request, releases, limit, offset)
         paginated_data["results"] = EventSerializer(
             paginated_data["results"],

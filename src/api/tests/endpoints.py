@@ -298,4 +298,34 @@ def get_endpoint_cases() -> list[EndpointCase]:
         EndpointCase("get", "api_person_known_for", args=("tmdb", 1)),
         EndpointCase("get", "api_search_provider", args=("movie",)),
         EndpointCase("get", "api_statistics"),
+        EndpointCase("get", "api_me"),
+        EndpointCase("patch", "api_me", payload={"profile_private": False}),
+        EndpointCase("get", "api_me_preferences"),
+        EndpointCase(
+            "patch",
+            "api_me_preferences",
+            payload={"tv_enabled": False},
+        ),
+        EndpointCase("get", "api_me_preferences_webui"),
+        EndpointCase(
+            "patch",
+            "api_me_preferences_webui",
+            payload={"tv_layout": "table"},
+        ),
+        EndpointCase("post", "api_me_token"),
+        EndpointCase(
+            "post",
+            "api_me_password",
+            payload={"old_password": "old", "new_password": "new"},
+        ),
+        EndpointCase("delete", "api_me_search_cache"),
+        EndpointCase(
+            "get", "api_user_profile", args=("api-test-user2",), is_public=True
+        ),
+        EndpointCase(
+            "get",
+            "api_user_media_type_list",
+            args=("api-test-user2", "movie"),
+            is_public=True,
+        ),
     ]

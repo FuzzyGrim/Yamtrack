@@ -6,6 +6,13 @@
 !!! warning
     This page is still a WIP
 
+- [ ] `/api/v1/admin/users/`
+    - [ ] GET: List users
+    - [ ] POST: Create a user
+- [ ] `/api/v1/admin/users/{user_id}/`
+    - [ ] DELETE: Delete a user
+    - [ ] GET: Get a user
+    - [ ] PATCH: Edit a user (e.g. make or remove admin, deactivate)
 - [x] `/api/v1/calendar/`
     - [x] GET: List upcoming calendar events
 - [x] `/api/v1/calendar/update/`
@@ -13,6 +20,23 @@
 - [x] `/api/v1/changes_history/{media_type}/{history_id}/`
     - [x] DELETE: Delete specific changes history entry
     - [x] GET: Get specific changes history entry
+- [ ] `/api/v1/export/`
+    - [ ] GET: Export the tracked media as CSV
+- [ ] `/api/v1/home/`
+    - [ ] GET: Home / "up next" list, honouring the `home_sort` and `home_hide_unreleased` preferences
+- [ ] `/api/v1/imports/`
+    - [ ] GET: List the imports and their status (progress and result)
+    - [ ] POST: Trigger an import (Trakt, Simkl, MAL, AniList, Kitsu, Yamtrack, HLTB, Steam, IMDb, Goodreads)
+- [ ] `/api/v1/imports/{import_id}/`
+    - [ ] GET: Get the status of an import
+- [ ] `/api/v1/imports/schedules/`
+    - [ ] GET: List the recurring import schedules
+- [ ] `/api/v1/imports/schedules/{schedule_id}/`
+    - [ ] DELETE: Delete a recurring import schedule
+- [ ] `/api/v1/journal/`
+    - [ ] GET: Global activity feed (keyset pagination)
+- [ ] `/api/v1/journal/activity/`
+    - [ ] GET: Activity heatmap data
 - [x] `/api/v1/lists/`
     - [x] GET: List all user & shared lists
     - [x] POST: Create new list
@@ -25,6 +49,41 @@
 - [x] `/api/v1/lists/{list_id}/items/{item_id}/`
     - [x] DELETE: Delete item from list
     - [x] GET: Get tracked item
+- [x] `/api/v1/me/`
+    - [x] GET: Get the authenticated user, with the general preferences
+    - [x] PATCH: Update the username or the profile visibility
+- [ ] `/api/v1/me/calendar-feed/`
+    - [ ] GET: Get the token-based `.ics` calendar URL
+- [ ] `/api/v1/me/integrations/`
+    - [ ] GET: Get the integration settings (Plex usernames, Jellyfin webhook events, webhook URLs)
+    - [ ] PATCH: Update the integration settings
+- [ ] `/api/v1/me/notifications/`
+    - [ ] GET: Get the notification settings (Apprise URLs, release notifications, daily digest)
+    - [ ] PATCH: Update the notification settings
+- [ ] `/api/v1/me/notifications/excluded-items/`
+    - [ ] GET: List the items excluded from notifications
+    - [ ] POST: Exclude an item from notifications
+- [ ] `/api/v1/me/notifications/excluded-items/{item_id}/`
+    - [ ] DELETE: Include an item in notifications again
+- [ ] `/api/v1/me/notifications/test/`
+    - [ ] POST: Send a test notification
+- [x] `/api/v1/me/password/`
+    - [x] POST: Change the password (signs out the web sessions)
+- [x] `/api/v1/me/preferences/`
+    - [x] GET: Get the general preferences (enabled media types, week start, watch provider region, home)
+    - [x] PATCH: Update the general preferences
+- [x] `/api/v1/me/preferences/webui/`
+    - [x] GET: Get the preferences that only affect the web UI (layouts, sorting, date and time formats, ...)
+    - [x] PATCH: Update the web UI preferences
+- [x] `/api/v1/me/search-cache/`
+    - [x] DELETE: Clear the search cache
+- [ ] `/api/v1/me/sessions/`
+    - [ ] DELETE: Sign out all the sessions
+    - [ ] GET: List the sessions (type, provider, login time, device)
+- [ ] `/api/v1/me/sessions/{session_id}/`
+    - [ ] DELETE: Sign out a session
+- [x] `/api/v1/me/token/`
+    - [x] POST: Regenerate the API token
 - [x] `/api/v1/media/`
     - [x] GET: List tracked media
 - [x] `/api/v1/media/{media_type}/`
@@ -66,12 +125,16 @@
     - [x] PUT: Add tracked item to specific list
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/providers/`
     - [x] GET: Get where to watch a movie or tv serie (no charge and paid providers)
+- [ ] `/api/v1/media/{media_type}/{source}/{media_id}/progress/`
+    - [ ] POST: Increase or decrease the progress of a tracked item (also updates seasons and episodes)
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/recommendations/`
     - [x] GET: Get recommendations based on tracked item
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/seasons/`
     - [x] GET: List seasons of tracked tv serie if media is tv serie
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/sync/`
     - [x] POST: Update metadata of tracked item
+- [ ] `/api/v1/media/{media_type}/{source}/{media_id}/watch-providers/`
+    - [ ] GET: Where to watch it, for the `watch_provider_region` of the user
 - [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/`
     - [x] DELETE: Delete tracked season if media is tv serie
     - [x] GET: Get tracked season if media is tv serie
@@ -130,10 +193,24 @@
     - [x] GET: Get profile images of a person
 - [x] `/api/v1/people/{source}/{person_id}/known_for/`
     - [x] GET: Get movies and tv series a person is known for as cast or crew, optionally filtered by `media_type` (`movie` or `tv`) and `department`
+- [ ] `/api/v1/search/`
+    - [ ] GET: Search across all media types
+- [ ] `/api/v1/search/tracked/`
+    - [ ] GET: Search the already tracked media (by `item_id` and tracked fields)
 - [x] `/api/v1/search/{media_type}/`
     - [x] GET: Search for media using the specified provider
 - [x] `/api/v1/statistics/`
     - [x] GET: Get user statistics
+- [x] `/api/v1/users/{username}/`
+    - [x] GET: Get a public profile
+- [x] `/api/v1/users/{username}/media/{media_type}/`
+    - [x] GET: List the media of a public profile
+- [ ] `/api/v1/webhooks/`
+    - [ ] GET: List the webhooks
+    - [ ] POST: Create a webhook
+- [ ] `/api/v1/webhooks/{webhook_id}/`
+    - [ ] DELETE: Delete a webhook
+    - [ ] PATCH: Edit a webhook
 - [x] `/api/v1/health/`
     - [x] GET: Health check endpoint
 - [x] `/api/v1/info/`

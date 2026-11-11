@@ -1308,7 +1308,7 @@ class GameExtrasTests(YamtrackApiTestCase):
         mock_request.assert_called_once()
 
     @patch("app.providers.igdb.services.api_request", return_value=[])
-    def test_game_not_found_returns_internal_server_error(
+    def test_game_not_found_returns_not_found(
         self,
         _mock_request,
         _mock_token,
@@ -1321,7 +1321,7 @@ class GameExtrasTests(YamtrackApiTestCase):
                 args=(MediaTypes.GAME.value, "igdb", 999999),
                 headers=self.auth_headers,
             )
-            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.status_code, 404)
 
     def test_companies_invalid_requests_return_bad_request(self, _mock_token):
         """Companies should reject unsupported media types, sources and roles."""
@@ -1507,8 +1507,8 @@ class ComicExtrasTests(YamtrackApiTestCase):
         "app.providers.comicvine.services.api_request",
         return_value={"results": {}},
     )
-    def test_comic_not_found_returns_internal_server_error(self, _mock_request):
-        """Comic endpoints should surface missing comics as provider errors."""
+    def test_comic_not_found_returns_not_found(self, _mock_request):
+        """Comic endpoints should return 404 for comics missing at the provider."""
         for url_name in ("api_media_creators", "api_media_characters"):
             response = self.call_api(
                 "get",
@@ -1516,7 +1516,7 @@ class ComicExtrasTests(YamtrackApiTestCase):
                 args=(MediaTypes.COMIC.value, "comicvine", "999999"),
                 headers=self.auth_headers,
             )
-            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.status_code, 404)
 
     def test_comic_credits_invalid_requests_return_bad_request(self):
         """Creators and characters should reject non comics and other sources."""

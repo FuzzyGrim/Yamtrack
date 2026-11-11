@@ -9,11 +9,18 @@ from urllib.parse import urlencode
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.sessions.models import Session
+from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, F, OrderBy, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
-from django.utils.timezone import is_naive, localdate, make_aware
-from rest_framework.exceptions import ParseError, ValidationError
+from django.utils.timezone import is_naive, localdate, make_aware, now
+from rest_framework.exceptions import (
+    ParseError,
+    PermissionDenied,
+    Throttled,
+    ValidationError,
+)
 from rest_framework.response import Response
 
 from app.config import get_sources as get_media_type_sources
@@ -240,35 +247,71 @@ def validate_media_path(
     complete=False,
     sync=False,
 ):
-    """Return a 400 response if the media type or source of a request is invalid.
+    """Raise a ParseError if the media type or source of a request is invalid.
 
     `child_type` is the season or episode media type of the nested routes, which
     are only supported for TV shows. If `source` is None it is not checked, and
-    with `sync` manual sources are rejected. Return None if the request is valid.
+    with `sync` manual sources are rejected.
     """
     if not check_valid_type(media_type, complete=complete):
-        return error_response("Unsupported media type.", HTTP.BAD_REQUEST)
+        msg = "Unsupported media type."
+        raise ParseError(msg)
 
     if child_type is not None and media_type != MediaTypes.TV.value:
-        return error_response(
+        msg = (
             f"{child_type.capitalize()}s are supported only for "
-            f"'{MediaTypes.TV.value}' media type.",
-            HTTP.BAD_REQUEST,
+            f"'{MediaTypes.TV.value}' media type."
         )
+        raise ParseError(msg)
 
     if source is None:
-        return None
+        return
 
     if sync and source == Sources.MANUAL.value:
-        return error_response("Manual items cannot be synced.", HTTP.BAD_REQUEST)
+        msg = "Manual items cannot be synced."
+        raise ParseError(msg)
 
     if not check_source_type(media_type, source):
         action = "sync" if sync else "query"
-        return error_response(
-            f"Cannot {action} `{source}` for `{media_type}` media type",
-            HTTP.BAD_REQUEST,
+        msg = f"Cannot {action} `{source}` for `{media_type}` media type"
+        raise ParseError(msg)
+
+
+def check_sync_available(cache_key):
+    """Raise a Throttled error if the media was synced a few seconds ago."""
+    ttl = cache.ttl(cache_key)
+    if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 3):
+        raise Throttled(
+            wait=ttl,
+            detail="The data was recently synced, please wait a few seconds.",
         )
-    return None
+
+    cache.delete(cache_key)
+
+
+def sync_season_episodes(metadata, media_id, source, season_number):
+    """Update the title and image of the stored episodes from the season metadata."""
+    metadata["episodes"] = tmdb.process_episodes(metadata, [])
+    existing_episodes = {
+        episode.episode_number: episode
+        for episode in Item.objects.filter(
+            source=source,
+            media_type=MediaTypes.EPISODE.value,
+            media_id=media_id,
+            season_number=season_number,
+        )
+    }
+
+    episodes_to_update = []
+    for episode_data in metadata["episodes"]:
+        episode_item = existing_episodes.get(episode_data["episode_number"])
+        if episode_item is not None:
+            episode_item.title = metadata["title"]
+            episode_item.image = episode_data["image"]
+            episodes_to_update.append(episode_item)
+
+    if episodes_to_update:
+        Item.objects.bulk_update(episodes_to_update, ["title", "image"], batch_size=100)
 
 
 def require_update_fields(validated_data):
@@ -594,28 +637,18 @@ def group_watch_providers(all_providers, region):
 
 
 def check_supported_source(supported_sources, media_type, source, feature):
-    """Return an error response if the media type or source is not supported."""
+    """Raise a ParseError if the media type or source is not supported."""
     if media_type not in supported_sources:
         supported = ", ".join(f"'{key}'" for key in supported_sources)
-        return Response(
-            {
-                "detail": (
-                    f"No {feature} available for `{media_type}` media type. "
-                    f"Supported media types: {supported}."
-                ),
-            },
-            status=HTTP.BAD_REQUEST,
+        msg = (
+            f"No {feature} available for `{media_type}` media type. "
+            f"Supported media types: {supported}."
         )
+        raise ParseError(msg)
 
     if source not in supported_sources[media_type]:
-        return Response(
-            {
-                "detail": f"Cannot query `{source}` for `{media_type}` media type",
-            },
-            status=HTTP.BAD_REQUEST,
-        )
-
-    return None
+        msg = f"Cannot query `{source}` for `{media_type}` media type"
+        raise ParseError(msg)
 
 
 def fetch_images(media_type, source, media_id):
@@ -817,31 +850,12 @@ def fetch_companies(source, media_id):
 
 
 def get_paginated_credits(request, media_type, source, media_id, credit_type):
-    """Return the paginated creators or characters of a media, or an error response.
+    """Return the paginated creators or characters of a media."""
+    limit, offset = parse_limit_offset(request)
+    check_supported_source(CREDIT_SOURCES[credit_type], media_type, source, credit_type)
 
-    If no error, error_response is None. On error, returns a DRF Response.
-    """
-    limit, offset, err = parse_limit_offset(request)
-    if err:
-        return None, err
-
-    err = check_supported_source(
-        CREDIT_SOURCES[credit_type],
-        media_type,
-        source,
-        credit_type,
-    )
-    if err:
-        return None, err
-
-    try:
-        credits_data = fetch_credits(credit_type, media_type, source, media_id)
-    except Exception as e:  # noqa: BLE001
-        return None, error_response(
-            HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-        )
-
-    return paginate_data(request, credits_data, limit, offset), None
+    credits_data = fetch_credits(credit_type, media_type, source, media_id)
+    return paginate_data(request, credits_data, limit, offset)
 
 
 def get_cover_state(item, provider_image):
@@ -920,37 +934,21 @@ def set_custom_cover(item_filter, metadata, images, new_image):
 def resolve_cover(request, media_type, source, media_id, season_number=None):
     """Get, set or reset the custom cover of a media or season.
 
-    Returns the cover state of the media. If no error, error_response is None.
-    On error, returns a DRF Response.
+    Return the cover state of the media. Raise a ParseError if the request is
+    not valid.
     """
-    err = check_supported_source(IMAGE_SOURCES, media_type, source, "covers")
-    if err:
-        return None, err
+    check_supported_source(IMAGE_SOURCES, media_type, source, "covers")
 
     if season_number is not None and media_type != MediaTypes.TV.value:
-        return None, Response(
-            {"detail": "Seasons are supported only for 'tv' media type."},
-            status=HTTP.BAD_REQUEST,
-        )
+        msg = "Seasons are supported only for 'tv' media type."
+        raise ParseError(msg)
 
     new_image = (request.data or {}).get("image")
     if request.method == "PUT" and (not new_image or not isinstance(new_image, str)):
-        return None, Response(
-            {"detail": "image is required."},
-            status=HTTP.BAD_REQUEST,
-        )
+        msg = "image is required."
+        raise ParseError(msg)
 
-    try:
-        metadata, images = get_cover_metadata(
-            media_type,
-            source,
-            media_id,
-            season_number,
-        )
-    except Exception as e:  # noqa: BLE001
-        return None, error_response(
-            HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-        )
+    metadata, images = get_cover_metadata(media_type, source, media_id, season_number)
 
     item_filter = get_cover_item_filter(media_type, source, media_id, season_number)
     item = Item.objects.filter(**item_filter, episode_number=None).first()
@@ -958,11 +956,11 @@ def resolve_cover(request, media_type, source, media_id, season_number=None):
     if request.method == "PUT":
         item, error = set_custom_cover(item_filter, metadata, images, new_image)
         if error:
-            return None, Response({"detail": error}, status=HTTP.BAD_REQUEST)
+            raise ParseError(error)
     elif request.method == "DELETE":
         reset_custom_cover(item, metadata)
 
-    return get_cover_state(item, metadata.get("image")), None
+    return get_cover_state(item, metadata.get("image"))
 
 
 def reset_custom_cover(item, metadata):
@@ -1136,76 +1134,45 @@ def parse_excluded_items(request):
 def parse_limit_offset(request):
     """Parse and validate limit/offset query params.
 
-    If no error, error_response is None. On validation error, returns a DRF Response.
+    Return the (limit, offset) tuple, with the limit capped to MAX_RESULT_LIMIT.
+    Raise a ParseError if a param is not valid.
     """
     raw_limit = request.GET.get("limit")
     raw_offset = request.GET.get("offset")
 
-    if raw_limit in [None, ""]:
-        limit = 20
-    else:
-        try:
-            limit = int(raw_limit)
-        except (TypeError, ValueError):
-            return (
-                None,
-                None,
-                Response(
-                    {"detail": "Invalid limit parameter"},
-                    status=HTTP.BAD_REQUEST,
-                ),
-            )
-    if raw_offset in [None, ""]:
-        offset = 0
-    else:
-        try:
-            offset = int(raw_offset)
-        except (TypeError, ValueError):
-            return (
-                None,
-                None,
-                Response(
-                    {"detail": "Invalid offset parameter"},
-                    status=HTTP.BAD_REQUEST,
-                ),
-            )
-    if limit <= 0 or offset < 0:
-        return (
-            None,
-            None,
-            Response(
-                {
-                    "detail": "limit must be >0 and offset must be >=0",
-                },
-                status=HTTP.BAD_REQUEST,
-            ),
-        )
+    try:
+        limit = 20 if raw_limit in [None, ""] else int(raw_limit)
+    except (TypeError, ValueError) as e:
+        msg = "Invalid limit parameter"
+        raise ParseError(msg) from e
 
-    limit = min(limit, MAX_RESULT_LIMIT)
-    return limit, offset, None
+    try:
+        offset = 0 if raw_offset in [None, ""] else int(raw_offset)
+    except (TypeError, ValueError) as e:
+        msg = "Invalid offset parameter"
+        raise ParseError(msg) from e
+
+    if limit <= 0 or offset < 0:
+        msg = "limit must be >0 and offset must be >=0"
+        raise ParseError(msg)
+
+    return min(limit, MAX_RESULT_LIMIT), offset
 
 
 def parse_watch_provider_region(request):
-    """Parse the watch provider region, falling back to the user's preference.
+    """Return the watch provider region, falling back to the user's preference.
 
-    If no error, error_response is None. On validation error, returns a DRF Response.
+    Raise a ParseError if neither is set.
     """
     region = request.GET.get("region") or request.user.watch_provider_region
     if not region or region == WATCH_PROVIDER_REGION_UNSET:
-        return (
-            None,
-            Response(
-                {
-                    "detail": (
-                        "Watch provider region not set. Pass the `region` query "
-                        "parameter or set it in the user preferences."
-                    ),
-                },
-                status=HTTP.BAD_REQUEST,
-            ),
+        msg = (
+            "Watch provider region not set. Pass the `region` query "
+            "parameter or set it in the user preferences."
         )
+        raise ParseError(msg)
 
-    return region.upper(), None
+    return region.upper()
 
 
 def parse_status_param(status):
@@ -1213,9 +1180,15 @@ def parse_status_param(status):
     if not status:
         return MediaStatusChoices.ALL
     try:
-        return get_media_status(int(status), reverse=True)
-    except (TypeError, ValueError):
-        return None
+        parsed = get_media_status(int(status), reverse=True)
+    except (TypeError, ValueError) as e:
+        msg = "Invalid status"
+        raise ParseError(msg) from e
+
+    if parsed is None:
+        msg = "Invalid status"
+        raise ParseError(msg)
+    return parsed
 
 
 def fetch_search_results(
@@ -1453,3 +1426,18 @@ def apply_list_sort(queryset, sort, sort_order):
         ).order_by(items_ordering, "name")
 
     return queryset.order_by(ordering)
+
+
+def forbid_demo_user(user):
+    """Raise PermissionDenied if the user is a demo account (view-only settings)."""
+    if user.is_demo:
+        msg = "This section is view-only for demo accounts."
+        raise PermissionDenied(msg)
+
+
+def revoke_user_sessions(user):
+    """Sign the user out of every web login session."""
+    user_id = str(user.pk)
+    for session in Session.objects.filter(expire_date__gt=now()):
+        if session.get_decoded().get("_auth_user_id") == user_id:
+            session.delete()

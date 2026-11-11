@@ -269,8 +269,8 @@ class AnimeMangaExtrasTests(YamtrackApiTestCase):
         "app.providers.anilist.services.api_request",
         return_value={"data": {"Media": None}},
     )
-    def test_anilist_missing_media_returns_internal_server_error(self, _mock):
-        """Credits of media missing on AniList should surface a provider error."""
+    def test_anilist_missing_media_returns_not_found(self, _mock):
+        """Credits of media missing on AniList should return 404."""
         response = self.call_api(
             "get",
             "api_media_characters",
@@ -278,7 +278,7 @@ class AnimeMangaExtrasTests(YamtrackApiTestCase):
             headers=self.auth_headers,
         )
 
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 404)
 
     @patch("app.providers.mal.services.api_request")
     def test_mal_images_returns_unique_pictures(self, mock_request):
@@ -519,8 +519,8 @@ class BookExtrasTests(YamtrackApiTestCase):
         "app.providers.hardcover.services.api_request",
         return_value={"data": {"books_by_pk": None}},
     )
-    def test_hardcover_missing_book_returns_internal_server_error(self, _mock):
-        """Missing Hardcover books should surface a provider error."""
+    def test_hardcover_missing_book_returns_not_found(self, _mock):
+        """Missing Hardcover books should return 404."""
         response = self.call_api(
             "get",
             "api_media_creators",
@@ -528,7 +528,7 @@ class BookExtrasTests(YamtrackApiTestCase):
             headers=self.auth_headers,
         )
 
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 404)
 
 
 BGG_THING_RESPONSE = """

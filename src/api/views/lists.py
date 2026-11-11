@@ -89,9 +89,7 @@ class ListsView(drf_views.APIView):
         search = request.GET.get("search", "")
         sort_filter = request.GET.get("sort", "")
 
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
         custom_lists = CustomList.objects.get_user_lists_with_stats(
             user,
@@ -257,9 +255,7 @@ class ListDetailView(drf_views.APIView):
         if search_query:
             items = items.filter(title__icontains=search_query)
 
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
         # Shows info about the last consumption of the media if it's tracked
         items = list(items)
@@ -433,9 +429,7 @@ class ListItemsView(drf_views.APIView):
         if search_query:
             items = items.filter(title__icontains=search_query)
 
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
         # Shows info about the last consumption of the media if it's tracked
         items = list(items)

@@ -262,6 +262,8 @@ MediaTypeCompleteQueryParam = OpenApiParameter(
     enum=MEDIA_TYPE_COMPLETE_VALID_LIST,
 )
 
+UsernameParam = _path_param("username", "Username of the user.")
+
 MediaIdParam = _path_param("media_id", "ID of the media item.")
 
 SourceParam = _path_param(
@@ -383,6 +385,7 @@ VoiceActorLanguageParam = OpenApiParameter(
         "hungarian",
     ],
 )
+
 
 class ApiAutoSchema(AutoSchema):
     """Add the error responses shared by all the endpoints.

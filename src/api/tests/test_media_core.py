@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import UUID
 
@@ -6,6 +7,7 @@ from django.utils import timezone
 
 from api.helpers import MEDIA_STATUS_MAP, error_response
 from app.models import TV, Episode, Item, MediaTypes, Movie, Season, Sources, Status
+from app.providers.services import ProviderAPIError
 
 from .base import YamtrackApiTestCase
 from .helpers import (
@@ -1326,16 +1328,63 @@ class MediaCoreTests(YamtrackApiTestCase):
 
     @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_server_error_hides_exception_without_debug(self, _mock_metadata):
-        """Server errors shouldn't expose the exception message without DEBUG."""
+        """Unexpected errors shouldn't expose the exception message without DEBUG."""
         movie = self.movie_medias[0]
         args = (MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id)
 
-        with self.settings(DEBUG=False), self.assertLogs("api.helpers", "ERROR"):
+        # Unhandled exceptions are logged and rendered by the API middleware
+        with self.settings(DEBUG=False), self.assertLogs("api.middleware", "ERROR"):
             response = self.call_api(
                 "get", "api_media_detail", args=args, headers=self.auth_headers
             )
         self.assertEqual(response.status_code, 500)
         self.assertNotIn("boom", response.content.decode())
+
+    def provider_error(self, status_code):
+        """Build the error raised by the providers for a failed request."""
+        response = SimpleNamespace(status_code=status_code, text="provider failure")
+        return ProviderAPIError(
+            Sources.TMDB.value,
+            SimpleNamespace(response=response),
+        )
+
+    def test_provider_failure_returns_server_error(self):
+        """Provider failures should be returned as 500, hiding the details."""
+        movie = self.movie_medias[0]
+        args = (MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id)
+
+        with (
+            patch(
+                "app.providers.services.get_media_metadata",
+                side_effect=self.provider_error(503),
+            ),
+            self.settings(DEBUG=False),
+            self.assertLogs("api.helpers", "ERROR"),
+        ):
+            response = self.call_api(
+                "get", "api_media_detail", args=args, headers=self.auth_headers
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.json(),
+            {"detail": "An error occurred while contacting the provider."},
+        )
+
+    def test_provider_not_found_returns_not_found(self):
+        """A media that doesn't exist at the provider should be returned as 404."""
+        movie = self.movie_medias[0]
+        args = (MediaTypes.MOVIE.value, movie.item.source, movie.item.media_id)
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            side_effect=self.provider_error(404),
+        ):
+            response = self.call_api(
+                "get", "api_media_detail", args=args, headers=self.auth_headers
+            )
+
+        self.assertEqual(response.status_code, 404)
 
     def test_error_response_adds_exception_only_with_debug(self):
         """The exception message should be returned only when DEBUG is enabled."""

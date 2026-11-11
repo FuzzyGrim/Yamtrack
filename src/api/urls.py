@@ -37,6 +37,24 @@ urlpatterns = [
         views.ListItemView.as_view(),
         name="api_list_remove_item",
     ),
+    re_path(r"^me/?$", views.MeView.as_view(), name="api_me"),
+    re_path(r"^me/password/?$", views.MePasswordView.as_view(), name="api_me_password"),
+    re_path(
+        r"^me/preferences/?$",
+        views.MePreferencesView.as_view(),
+        name="api_me_preferences",
+    ),
+    re_path(
+        r"^me/preferences/webui/?$",
+        views.MeWebUIPreferencesView.as_view(),
+        name="api_me_preferences_webui",
+    ),
+    re_path(
+        r"^me/search-cache/?$",
+        views.MeSearchCacheView.as_view(),
+        name="api_me_search_cache",
+    ),
+    re_path(r"^me/token/?$", views.MeTokenView.as_view(), name="api_me_token"),
     re_path(r"^media/?$", views.MediaListView.as_view(), name="api_media_list"),
     re_path(
         r"^media/(?P<media_type>[^/]+)/?$",
@@ -244,6 +262,16 @@ urlpatterns = [
         name="api_search_provider",
     ),
     re_path(r"^statistics/?$", views.StatisticsView.as_view(), name="api_statistics"),
+    re_path(
+        r"^users/(?P<username>[^/]+)/?$",
+        views.UserProfileView.as_view(),
+        name="api_user_profile",
+    ),
+    re_path(
+        r"^users/(?P<username>[^/]+)/media/(?P<media_type>[^/]+)/?$",
+        views.UserMediaTypeListView.as_view(),
+        name="api_user_media_type_list",
+    ),
 ]
 
 if settings.SPECTACULAR_ENABLE_SERVE:
