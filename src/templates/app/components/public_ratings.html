@@ -1,0 +1,42 @@
+{% load i18n %}
+
+{% if public_ratings.show %}
+  <div id="public-ratings" class="mt-4">
+    <div class="flex items-baseline gap-2 mb-2">
+      <h3 class="text-xs font-semibold text-gray-400">{% trans "PUBLIC RATING" %}</h3>
+      <span class="text-lg font-bold {% if public_ratings.aggregate_missing %}text-gray-400{% else %}text-white{% endif %}">{{ public_ratings.aggregate_display }}</span>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      {% for source in public_ratings.sources %}
+        {% if source.key == "letterboxd" and not request.user.is_demo %}
+          <form class="bg-[#2a2f35] px-3 py-2 rounded-lg"
+                hx-post="{% url 'update_letterboxd_rating' public_ratings.source public_ratings.media_type public_ratings.media_id %}"
+                hx-target="#public-ratings"
+                hx-swap="outerHTML"
+                hx-trigger="change">
+            {% csrf_token %}
+            <label class="block text-xs text-gray-400 mb-1" for="letterboxd-score">{% trans "Letterboxd" %}</label>
+            <div class="flex items-center gap-1">
+              <input id="letterboxd-score"
+                     class="w-16 bg-[#39404b] rounded px-2 py-1 text-sm text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                     type="number"
+                     name="letterboxd"
+                     min="0"
+                     max="5"
+                     step="0.1"
+                     value="{{ public_ratings.letterboxd_input }}"
+                     placeholder="–"
+                     aria-label="{% trans 'Letterboxd score' %}">
+              <span class="text-xs text-gray-400">/5</span>
+            </div>
+          </form>
+        {% else %}
+          <div class="bg-[#2a2f35] px-3 py-2 rounded-lg min-w-24">
+            <div class="text-xs text-gray-400">{{ source.label }}</div>
+            <div class="text-sm {% if source.missing %}text-gray-400{% else %}text-white{% endif %}">{{ source.display }}</div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}

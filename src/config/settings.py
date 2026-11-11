@@ -387,6 +387,12 @@ TMDB_API = config(
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
+OMDB_API_KEY = config(
+    "OMDB_API_KEY",
+    default=secret("OMDB_API_KEY_FILE", ""),
+)
+OMDB_DAILY_LIMIT = config("OMDB_DAILY_LIMIT", default=900, cast=int)
+
 TVDB_API = config(
     "TVDB_API",
     default=secret(
@@ -604,6 +610,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     "cleanup_user_messages": {
         "task": "Cleanup user messages",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
+    "refresh_public_ratings": {
+        "task": "Refresh public ratings",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
 }

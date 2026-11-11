@@ -2,6 +2,7 @@ import secrets
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
@@ -39,6 +40,7 @@ class MediaSortChoices(models.TextChoices):
     """Choices for media list sort options."""
 
     SCORE = "score", _("Rating")
+    PUBLIC_RATING = "public_rating", _("Public rating")
     TITLE = "title", _("Title")
     PROGRESS = "progress", _("Progress")
     START_DATE = "start_date", _("Start Date")
@@ -367,6 +369,33 @@ class User(AbstractUser):
     hide_zero_rating = models.BooleanField(
         default=False,
         help_text=_("Hide zero ratings from media cards"),
+    )
+
+    # Weights for the aggregated public rating. 0 excludes that source.
+    rating_weight_imdb = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text=_("Weight of the IMDb score in the public rating"),
+    )
+    rating_weight_rotten_tomatoes = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text=_("Weight of the Rotten Tomatoes score in the public rating"),
+    )
+    rating_weight_metacritic = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text=_("Weight of the Metacritic score in the public rating"),
+    )
+    rating_weight_tmdb = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text=_("Weight of the TMDB score in the public rating"),
+    )
+    rating_weight_letterboxd = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text=_("Weight of the Letterboxd score in the public rating"),
     )
 
     # Show adult titles

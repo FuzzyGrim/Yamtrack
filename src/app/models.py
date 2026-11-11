@@ -219,6 +219,86 @@ class Item(CalendarTriggerMixin, models.Model):
             events.tasks.reload_calendar(items_to_process=items_to_process)
 
 
+class ItemRating(models.Model):
+    """Public scores for a movie, TV show, or anime.
+
+    Each source keeps its raw value and a 0-100 normalization. Missing data
+    stays NULL. ``ratings_updated_at`` is the last external fetch; editing
+    Letterboxd does not change it.
+    """
+
+    item = models.OneToOneField(
+        Item,
+        on_delete=models.CASCADE,
+        related_name="public_rating",
+    )
+    imdb_value = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=4,
+        decimal_places=1,
+    )
+    imdb_normalized = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=5,
+        decimal_places=1,
+    )
+    rotten_tomatoes_value = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=5,
+        decimal_places=1,
+    )
+    rotten_tomatoes_normalized = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=5,
+        decimal_places=1,
+    )
+    metacritic_value = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=5,
+        decimal_places=1,
+    )
+    metacritic_normalized = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=5,
+        decimal_places=1,
+    )
+    tmdb_value = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=4,
+        decimal_places=1,
+    )
+    tmdb_normalized = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=5,
+        decimal_places=1,
+    )
+    letterboxd_value = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=3,
+        decimal_places=1,
+    )
+    letterboxd_normalized = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=5,
+        decimal_places=1,
+    )
+    ratings_updated_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        """Return the item these ratings belong to."""
+        return str(self.item)
+
+
 class MediaManager(models.Manager):
     """Custom manager for media models."""
 
@@ -254,10 +334,17 @@ class MediaManager(models.Manager):
 
         queryset = queryset.select_related("item")
         queryset = self._apply_prefetch_related(queryset, media_type)
+        queryset = self._with_public_rating(queryset, user)
 
         if sort_filter:
             return self._sort_media_list(queryset, sort_filter, media_type)
         return queryset
+
+    def _with_public_rating(self, queryset, user):
+        """Annotate the list owner's weighted public rating."""
+        from app.ratings import annotate_public_rating  # noqa: PLC0415
+
+        return annotate_public_rating(queryset, user)
 
     def _apply_prefetch_related(self, queryset, media_type):
         """Apply appropriate prefetch_related based on media type."""
@@ -383,6 +470,12 @@ class MediaManager(models.Manager):
 
     def _sort_generic_media_list(self, queryset, sort_filter):
         """Apply generic sorting logic for all media types."""
+        if sort_filter == "public_rating":
+            return queryset.order_by(
+                models.F("public_rating").desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
         # Handle sorting by date fields with special null handling
         if sort_filter in ("start_date", "end_date"):
             # For start_date, sort ascending (earliest first)
@@ -635,6 +728,8 @@ class MediaManager(models.Manager):
                     filter_kwargs["status"] = status_filter
 
             queryset = model.objects.filter(**filter_kwargs).select_related("item")
+            if media_type != MediaTypes.EPISODE.value:
+                queryset = self._with_public_rating(queryset, user)
             queryset = self._apply_prefetch_related(queryset, media_type)
             self.annotate_max_progress(queryset, media_type)
 

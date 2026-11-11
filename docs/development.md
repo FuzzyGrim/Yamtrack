@@ -48,6 +48,8 @@ Create a `.env` file in the repository root:
 
 ```bash
 TMDB_API=API_KEY
+OMDB_API_KEY=
+OMDB_DAILY_LIMIT=900
 MAL_API=API_KEY
 IGDB_ID=IGDB_ID
 IGDB_SECRET=IGDB_SECRET

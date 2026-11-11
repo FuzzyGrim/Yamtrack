@@ -11,6 +11,7 @@ from unidecode import unidecode
 
 from app import config, helpers
 from app.models import MediaTypes, Sources, Status
+from app.ratings import format_public_value
 from users.models import WATCH_PROVIDER_REGION_UNSET
 
 register = template.Library()
@@ -33,6 +34,22 @@ def get_static_file_mtime(file_path):
 def absolute_app_url(context, path):
     """Return an absolute app URL for links copied into external services."""
     return helpers.build_absolute_app_url(context.get("request"), path)
+
+
+@register.filter
+def has_public_rating(media):
+    """Return whether the card has an aggregated public rating."""
+    if media is None:
+        return False
+    return getattr(media, "public_rating", None) is not None
+
+
+@register.filter
+def public_rating_text(media):
+    """Return the aggregated score. A real zero stays ``0``."""
+    if not has_public_rating(media):
+        return ""
+    return format_public_value(media.public_rating)
 
 
 @register.filter

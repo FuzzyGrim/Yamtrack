@@ -7,6 +7,7 @@ from django.contrib.admin.sites import AlreadyRegistered
 from app.models import (
     Episode,
     Item,
+    ItemRating,
     UserMessage,
 )
 
@@ -45,6 +46,15 @@ class UserMessageAdmin(admin.ModelAdmin):
     list_filter = ["level", "shown_at"]
 
 
+@admin.register(ItemRating)
+class ItemRatingAdmin(admin.ModelAdmin):
+    """Admin for the public ratings stored on a catalog item."""
+
+    search_fields = ["item__title", "item__media_id"]
+    list_display = ["item", "ratings_updated_at"]
+    raw_id_fields = ["item"]
+
+
 class MediaAdmin(admin.ModelAdmin):
     """Custom admin for regular media model with search and filter options."""
 
@@ -58,7 +68,7 @@ class MediaAdmin(admin.ModelAdmin):
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage", "ItemRating"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

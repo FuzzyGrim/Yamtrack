@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from urllib.parse import urlencode
 
+import requests
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
@@ -10,14 +11,20 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import Prefetch, prefetch_related_objects
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import config, helpers, history_processor
+from app import config, helpers, history_processor, ratings
 from app import home as home_helpers
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
@@ -357,6 +364,12 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "current_instance": current_instance,
         "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
+        "public_ratings": ratings.page_context(
+            request.user,
+            source,
+            media_type,
+            media_id,
+        ),
     }
     return render(request, "app/media_details.html", context)
 
@@ -421,8 +434,49 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata.get("providers"), request.user.watch_provider_region
         ),
         "watch_provider_region": request.user.watch_provider_region,
+        "public_ratings": ratings.page_context(
+            request.user,
+            source,
+            MediaTypes.SEASON.value,
+            media_id,
+        ),
     }
     return render(request, "app/media_details.html", context)
+
+
+@require_POST
+def update_letterboxd_rating(request, source, media_type, media_id):
+    """Save the shared Letterboxd score for a movie, show, or anime."""
+    if media_type not in ratings.RATED_MEDIA_TYPES:
+        return HttpResponseBadRequest(_("This media type has no public rating."))
+    if request.user.is_demo:
+        return HttpResponseForbidden(_("Demo accounts cannot edit public ratings."))
+
+    try:
+        value = ratings.parse_letterboxd(request.POST.get("letterboxd"))
+    except ValueError:
+        return HttpResponseBadRequest(_("Enter a Letterboxd score from 0 to 5."))
+
+    try:
+        item = ratings.save_letterboxd(source, media_type, media_id, value)
+    except (requests.RequestException, services.ProviderAPIError):
+        logger.exception("Could not store a Letterboxd score for %s", media_id)
+        return HttpResponseBadRequest(_("Could not save the Letterboxd score."))
+
+    ratings.schedule_refresh(item)
+    return render(
+        request,
+        "app/components/public_ratings.html",
+        {
+            "public_ratings": ratings.build_display(
+                item,
+                request.user,
+                source=source,
+                media_type=media_type,
+                media_id=media_id,
+            ),
+        },
+    )
 
 
 @require_POST

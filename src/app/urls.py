@@ -26,6 +26,11 @@ urlpatterns = [
         name="update_media_score",
     ),
     path(
+        "letterboxd/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.update_letterboxd_rating,
+        name="update_letterboxd_rating",
+    ),
+    path(
         "details/sync/<source:source>/<media_type:media_type>/<str:media_id>",
         views.sync_metadata,
         name="sync_metadata",

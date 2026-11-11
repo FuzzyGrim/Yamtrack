@@ -52,6 +52,13 @@
       </div>
     {% endif %}
 
+    {% if media|has_public_rating %}
+      <div class="absolute right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md shadow-md {% if media.repeats > 1 %}sm:bottom-10 bottom-2{% else %}bottom-2{% endif %}"
+           title="{% trans 'Public rating' %}">
+        <span class="text-sm text-white">{{ media|public_rating_text }}</span>
+      </div>
+    {% endif %}
+
     {% with user=target_user|default:user %}
       <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100{% if user.clickable_media_cards %} pointer-coarse:hidden{% endif %}">
         <a href="{{ item|media_url }}" class="absolute inset-0"></a>
