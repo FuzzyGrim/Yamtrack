@@ -80,6 +80,8 @@ class Item(CalendarTriggerMixin, models.Model):
     )
     title = models.TextField()
     image = models.URLField()  # if add default, custom media entry will show the value
+    # Cover chosen by a user, shown instead of the provider image when set
+    custom_image = models.URLField(blank=True, default="")
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -167,6 +169,16 @@ class Item(CalendarTriggerMixin, models.Model):
             if self.episode_number is not None:
                 name += f"E{self.episode_number}"
         return name
+
+    def save(self, *args, **kwargs):
+        """Keep the custom cover as the image when one is set."""
+        # Metadata syncs overwrite the image with the provider one
+        if self.custom_image:
+            self.image = self.custom_image
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, "image"}
+        super().save(*args, **kwargs)
 
     @classmethod
     def generate_manual_id(cls):
@@ -747,11 +759,11 @@ class MediaManager(models.Manager):
         season_numbers=None,
     ):
         """Return tracked season consumptions for a show."""
-        queryset = self.filter_media_prefetch(
-            user,
-            media_id,
-            MediaTypes.SEASON.value,
-            source,
+        queryset = Season.objects.filter(
+            item__media_type=MediaTypes.SEASON.value,
+            item__source=source,
+            item__media_id=media_id,
+            user=user,
         )
 
         if season_numbers is not None:
@@ -759,6 +771,12 @@ class MediaManager(models.Manager):
             if not season_numbers:
                 return queryset.none()
             queryset = queryset.filter(item__season_number__in=season_numbers)
+
+        queryset = self._apply_prefetch_related(
+            queryset.select_related("item"),
+            MediaTypes.SEASON.value,
+        )
+        self.annotate_max_progress(queryset, MediaTypes.SEASON.value)
 
         return queryset
 
@@ -857,8 +875,10 @@ class MediaManager(models.Manager):
             params["item__season_number"] = season_number
             params["user"] = user
         elif media_type == MediaTypes.EPISODE.value:
-            params["item__season_number"] = season_number
-            params["item__episode_number"] = episode_number
+            if season_number is not None:
+                params["item__season_number"] = season_number
+            if episode_number is not None:
+                params["item__episode_number"] = episode_number
             params["related_season__user"] = user
         else:
             params["user"] = user

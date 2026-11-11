@@ -325,6 +325,33 @@
             </div>
           </div>
 
+          {# Custom cover #}
+          {% if can_change_cover %}
+            <div x-data="{ coverOpen: false }">
+              <button class="w-full flex items-center gap-x-3 px-4 py-3 text-sm text-gray-200 hover:bg-[#343a40] transition-colors duration-200 cursor-pointer"
+                      title="Choose a cover among the available images"
+                      hx-get="{% media_view_url 'cover_modal' media %}"
+                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                      hx-target="#{% component_id 'cover' media %}"
+                      hx-trigger="click once"
+                      @click="coverOpen = true">
+                <span class="flex items-center justify-center w-8 h-8 rounded-md bg-sky-600/15 text-sky-400 shrink-0">
+                  {% include "app/icons/image.svg" with classes="w-4 h-4" %}
+                </span>
+                <span class="font-medium">Change cover</span>
+              </button>
+
+              <div x-show="coverOpen"
+                   @keydown.escape.window="coverOpen = false"
+                   class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div class="w-full max-w-3xl max-h-[90vh] px-4 relative z-60"
+                     @click.outside="coverOpen = false">
+                  <div id="{% component_id 'cover' media %}"></div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
           {# Activity History #}
           <div x-data="{ historyOpen: false }">
             <button class="w-full flex items-center gap-x-3 px-4 py-3 text-sm text-gray-200 hover:bg-[#343a40] transition-colors duration-200 cursor-pointer"

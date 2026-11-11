@@ -170,6 +170,11 @@ class YamtrackImporter:
         ):
             return
 
+        defaults = {"title": row["title"], "image": row["image"]}
+        # Exports made before custom covers existed have no custom_image column
+        if row.get("custom_image"):
+            defaults["custom_image"] = row["custom_image"]
+
         # "new" mode doesn't replace the metadata of existing items with the file's
         get_item = (
             app.models.Item.objects.get_or_create
@@ -182,10 +187,7 @@ class YamtrackImporter:
             media_type=media_type,
             season_number=season_number,
             episode_number=episode_number,
-            defaults={
-                "title": row["title"],
-                "image": row["image"],
-            },
+            defaults=defaults,
         )
 
         model = apps.get_model(app_label="app", model_name=media_type)

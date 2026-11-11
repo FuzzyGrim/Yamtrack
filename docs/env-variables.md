@@ -17,6 +17,7 @@ This page outlines the environment variables used in the YamTrack project.
 | `IGDB_NSFW`     | Default to `False`. Set to `True` to include adult content in game searches.                                                                                                                                                                          |
 | `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
+| `FANART_API`    | Fanart.tv API key for extra movie and TV artwork (posters, backgrounds and logos). Optional, no default key is provided: get one with a free [Fanart.tv](https://fanart.tv/get-an-api-key/) account.                                                  |
 
 ## Media Import
 

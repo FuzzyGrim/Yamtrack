@@ -1,0 +1,221 @@
+# Endpoints
+
+!!! warning
+    The API is still in development and may change at any time.
+
+!!! warning
+    This page is still a WIP
+
+- [ ] `/api/v1/admin/users/`
+    - [ ] GET: List users
+    - [ ] POST: Create a user
+- [ ] `/api/v1/admin/users/{user_id}/`
+    - [ ] DELETE: Delete a user
+    - [ ] GET: Get a user
+    - [ ] PATCH: Edit a user (e.g. make or remove admin, deactivate)
+- [x] `/api/v1/calendar/`
+    - [x] GET: List upcoming calendar events
+- [x] `/api/v1/calendar/update/`
+    - [x] POST: Update calendar events
+- [x] `/api/v1/changes_history/{media_type}/{history_id}/`
+    - [x] DELETE: Delete specific changes history entry
+    - [x] GET: Get specific changes history entry
+- [ ] `/api/v1/export/`
+    - [ ] GET: Export the tracked media as CSV
+- [ ] `/api/v1/home/`
+    - [ ] GET: Home / "up next" list, honouring the `home_sort` and `home_hide_unreleased` preferences
+- [ ] `/api/v1/imports/`
+    - [ ] GET: List the imports and their status (progress and result)
+    - [ ] POST: Trigger an import (Trakt, Simkl, MAL, AniList, Kitsu, Yamtrack, HLTB, Steam, IMDb, Goodreads)
+- [ ] `/api/v1/imports/{import_id}/`
+    - [ ] GET: Get the status of an import
+- [ ] `/api/v1/imports/schedules/`
+    - [ ] GET: List the recurring import schedules
+- [ ] `/api/v1/imports/schedules/{schedule_id}/`
+    - [ ] DELETE: Delete a recurring import schedule
+- [ ] `/api/v1/journal/`
+    - [ ] GET: Global activity feed (keyset pagination)
+- [ ] `/api/v1/journal/activity/`
+    - [ ] GET: Activity heatmap data
+- [x] `/api/v1/lists/`
+    - [x] GET: List all user & shared lists
+    - [x] POST: Create new list
+- [x] `/api/v1/lists/{list_id}/`
+    - [x] DELETE: Delete specific list
+    - [x] GET: Get specific list
+    - [x] PATCH: Edit list properties (maybe also content)
+- [x] `/api/v1/lists/{list_id}/items/`
+    - [x] GET: List items in list
+- [x] `/api/v1/lists/{list_id}/items/{item_id}/`
+    - [x] DELETE: Delete item from list
+    - [x] GET: Get tracked item
+- [x] `/api/v1/me/`
+    - [x] GET: Get the authenticated user, with the general preferences
+    - [x] PATCH: Update the username or the profile visibility
+- [ ] `/api/v1/me/calendar-feed/`
+    - [ ] GET: Get the token-based `.ics` calendar URL
+- [ ] `/api/v1/me/integrations/`
+    - [ ] GET: Get the integration settings (Plex usernames, Jellyfin webhook events, webhook URLs)
+    - [ ] PATCH: Update the integration settings
+- [ ] `/api/v1/me/notifications/`
+    - [ ] GET: Get the notification settings (Apprise URLs, release notifications, daily digest)
+    - [ ] PATCH: Update the notification settings
+- [ ] `/api/v1/me/notifications/excluded-items/`
+    - [ ] GET: List the items excluded from notifications
+    - [ ] POST: Exclude an item from notifications
+- [ ] `/api/v1/me/notifications/excluded-items/{item_id}/`
+    - [ ] DELETE: Include an item in notifications again
+- [ ] `/api/v1/me/notifications/test/`
+    - [ ] POST: Send a test notification
+- [x] `/api/v1/me/password/`
+    - [x] POST: Change the password (signs out the web sessions)
+- [x] `/api/v1/me/preferences/`
+    - [x] GET: Get the general preferences (enabled media types, week start, watch provider region, home)
+    - [x] PATCH: Update the general preferences
+- [x] `/api/v1/me/preferences/webui/`
+    - [x] GET: Get the preferences that only affect the web UI (layouts, sorting, date and time formats, ...)
+    - [x] PATCH: Update the web UI preferences
+- [x] `/api/v1/me/search-cache/`
+    - [x] DELETE: Clear the search cache
+- [ ] `/api/v1/me/sessions/`
+    - [ ] DELETE: Sign out all the sessions
+    - [ ] GET: List the sessions (type, provider, login time, device)
+- [ ] `/api/v1/me/sessions/{session_id}/`
+    - [ ] DELETE: Sign out a session
+- [x] `/api/v1/me/token/`
+    - [x] POST: Regenerate the API token
+- [x] `/api/v1/media/`
+    - [x] GET: List tracked media
+- [x] `/api/v1/media/{media_type}/`
+    - [x] GET: List tracked media of type
+    - [x] POST: Track media of type
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/`
+    - [x] DELETE: Delete tracked item
+    - [x] GET: Get tracked item
+    - [x] PATCH: Edit last consumption of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/cast/`
+    - [x] GET: Get cast of a movie or tv serie (TMDB), or voice actors of an anime (MAL, via AniList) in the `language` chosen (default: japanese)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/changes_history/`
+    - [x] GET: Get changes history of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/characters/`
+    - [x] GET: Get characters of an anime or manga (MAL, via AniList) or comic (ComicVine)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/companies/`
+    - [x] GET: Get companies involved in a game (IGDB) or publishers of a board game (BGG), optionally filtered by `role`
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/cover/`
+    - [x] DELETE: Reset the cover to the provider image
+    - [x] GET: Get the current cover
+    - [x] PUT: Set one of the media images as the cover for every user of the server
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/creators/`
+    - [x] GET: Get creators of a manga (MAL via AniList, MangaUpdates), book (Open Library, Hardcover), comic (ComicVine) or board game (BGG)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/crew/`
+    - [x] GET: Get crew of a movie or tv serie (TMDB), optionally filtered by `department`, or staff of an anime (MAL, via AniList)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/`
+    - [x] GET: Get consumption history of tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/history/{consumption_id}/`
+    - [x] DELETE: Delete specific consumption entry
+    - [x] GET: Get specific consumption entry
+    - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/images/`
+    - [x] GET: Get images of any media type except manual items: movie and tv serie (posters, backdrops, logos), game (cover, artworks, screenshots), comic (volume and issue covers), anime, manga, book and board game (covers), optionally filtered by `type`
+        - Extra artwork is added from Fanart.tv for movies and tv series (only when `FANART_API` is set), from AniList for anime and manga, and from MangaDex for manga. Each image has a `source`.
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/`
+    - [x] GET: Lists where the tracked item is in
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/lists/{list_id}/`
+    - [x] DELETE: Delete tracked item from specific list
+    - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/providers/`
+    - [x] GET: Get where to watch a movie or tv serie (no charge and paid providers)
+- [ ] `/api/v1/media/{media_type}/{source}/{media_id}/progress/`
+    - [ ] POST: Increase or decrease the progress of a tracked item (also updates seasons and episodes)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/recommendations/`
+    - [x] GET: Get recommendations based on tracked item
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/seasons/`
+    - [x] GET: List seasons of tracked tv serie if media is tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/sync/`
+    - [x] POST: Update metadata of tracked item
+- [ ] `/api/v1/media/{media_type}/{source}/{media_id}/watch-providers/`
+    - [ ] GET: Where to watch it, for the `watch_provider_region` of the user
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/`
+    - [x] DELETE: Delete tracked season if media is tv serie
+    - [x] GET: Get tracked season if media is tv serie
+    - [x] PATCH: Edit last consumption of tracked season
+    - [x] POST: Track a season of a tracked tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/cover/`
+    - [x] DELETE: Reset the season cover to the provider image
+    - [x] GET: Get the current season cover
+    - [x] PUT: Set one of the season images as the cover for every user of the server
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/episodes/`
+    - [x] GET: List episodes of tracked season if media is tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/changes_history/`
+    - [x] GET: Get changes history of tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/history/`
+    - [x] GET: Get consumption history of tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/history/{consumption_id}/`
+    - [x] DELETE: Delete specific consumption entry
+    - [x] GET: Get specific consumption entry
+    - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/images/`
+    - [x] GET: Get posters of a season if media is tv serie
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/lists/`
+    - [x] GET: Lists where the tracked item is in
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/lists/{list_id}/`
+    - [x] DELETE: Delete tracked item from specific list
+    - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/providers/`
+    - [x] GET: Get where to watch a season if media is tv serie (no charge and paid providers)
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/sync/`
+    - [x] POST: Update metadata of tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/`
+    - [x] DELETE: Delete tracked episode if media is tv serie
+    - [x] GET: Get tracked episode if media is tv serie
+    - [x] PATCH: Edit last consumption of tracked episode
+    - [x] POST: Track an episode (a new watch) of a tracked season
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/changes_history/`
+    - [x] GET: Get changes history of tracked episode
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/history/`
+    - [x] GET: Get consumption history of tracked episode
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/history/{consumption_id}/`
+    - [x] DELETE: Delete specific consumption entry
+    - [x] GET: Get specific consumption entry
+    - [x] PATCH: Edit specific consumption entry
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/lists/`
+    - [x] GET: Lists where the tracked item is in
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/lists/{list_id}/`
+    - [x] DELETE: Delete tracked item from specific list
+    - [x] PUT: Add tracked item to specific list
+- [x] `/api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/sync/`
+    - [x] POST: Update metadata of tracked episode (season)
+- [x] `/api/v1/people/search/`
+    - [x] GET: Search for people (`search` query parameter)
+- [x] `/api/v1/people/{source}/{person_id}/`
+    - [x] GET: Get person details
+- [x] `/api/v1/people/{source}/{person_id}/images/`
+    - [x] GET: Get profile images of a person
+- [x] `/api/v1/people/{source}/{person_id}/known_for/`
+    - [x] GET: Get movies and tv series a person is known for as cast or crew, optionally filtered by `media_type` (`movie` or `tv`) and `department`
+- [ ] `/api/v1/search/`
+    - [ ] GET: Search across all media types
+- [ ] `/api/v1/search/tracked/`
+    - [ ] GET: Search the already tracked media (by `item_id` and tracked fields)
+- [x] `/api/v1/search/{media_type}/`
+    - [x] GET: Search for media using the specified provider
+- [x] `/api/v1/statistics/`
+    - [x] GET: Get user statistics
+- [x] `/api/v1/users/{username}/`
+    - [x] GET: Get a public profile
+- [x] `/api/v1/users/{username}/media/{media_type}/`
+    - [x] GET: List the media of a public profile
+- [ ] `/api/v1/webhooks/`
+    - [ ] GET: List the webhooks
+    - [ ] POST: Create a webhook
+- [ ] `/api/v1/webhooks/{webhook_id}/`
+    - [ ] DELETE: Delete a webhook
+    - [ ] PATCH: Edit a webhook
+- [x] `/api/v1/health/`
+    - [x] GET: Health check endpoint
+- [x] `/api/v1/info/`
+    - [x] GET: Get application info and version
+- [x] `/api/v1/schema/`
+    - [x] GET: Get the OpenAPI schema (only if the Swagger docs are enabled)
+- [x] `/api/v1/docs/`
+    - [x] GET: Swagger documentation (only if the Swagger docs are enabled)

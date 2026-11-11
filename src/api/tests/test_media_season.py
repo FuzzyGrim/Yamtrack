@@ -1,9 +1,12 @@
 from unittest.mock import patch
 
-from app.models import MediaTypes, Sources
+from django.utils import timezone
+
+from app.models import Episode, MediaTypes, Season, Sources
 
 from .base import YamtrackApiTestCase
 from .helpers import (
+    WATCH_PROVIDERS_RESPONSE,
     check_changes_history_entry_structure,
     check_complete_media_structure,
     check_consumption_structure,
@@ -88,6 +91,12 @@ class MediaSeasonTests(YamtrackApiTestCase):
                 None,
             ),
             (
+                "get",
+                "api_media_season_providers",
+                ("movie", "tmdb", 1, 1),
+                None,
+            ),
+            (
                 "post",
                 "api_media_season_sync",
                 ("movie", "tmdb", 1, 1),
@@ -104,6 +113,50 @@ class MediaSeasonTests(YamtrackApiTestCase):
                 headers=self.auth_headers,
             )
             self.assertEqual(response.status_code, 400)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_season_providers_returns_grouped_providers(self, mock_metadata):
+        """Season providers endpoint should group providers by tier."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        mock_metadata.return_value = {"providers": WATCH_PROVIDERS_RESPONSE}
+
+        response = self.call_api(
+            "get",
+            "api_media_season_providers",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            params={"region": "US"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["region"], "US")
+        self.assertEqual(
+            [p["provider_name"] for p in payload["no_charge"]],
+            ["Tubi TV", "Netflix"],
+        )
+        self.assertEqual(
+            [p["provider_name"] for p in payload["paid"]],
+            ["Apple TV"],
+        )
+        mock_metadata.assert_called_once_with(
+            MediaTypes.SEASON.value,
+            tv_item.media_id,
+            tv_item.source,
+            ["1"],
+        )
+
+    def test_season_providers_without_region_returns_bad_request(self):
+        """Season providers endpoint should require a region."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        response = self.call_api(
+            "get",
+            "api_media_season_providers",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
 
     def test_season_detail_delete_tracked_season_returns_204(self):
         """Season delete of tracked season should return 204."""
@@ -161,7 +214,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_season_detail_get_returns_expected_shape(self, mock_metadata):
         """Season detail GET should return complete serialized payload."""
         source = "tmdb"
@@ -528,7 +581,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.services.get_media_metadata")
     def test_season_detail_patch_updates_season_fields(self, mock_metadata):
         """Season detail PATCH should update season fields."""
         status = 2
@@ -933,7 +986,86 @@ class MediaSeasonTests(YamtrackApiTestCase):
         for episode in payload["results"]:
             check_media_structure(self, episode)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata")
+    def test_season_episodes_get_uses_episode_names(self, mock_metadata):
+        """Episode titles should be the episode names, tracked or not."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        mock_metadata.return_value = {
+            "episodes": [
+                {
+                    "show_id": tv_item.media_id,
+                    "season_number": 1,
+                    "episode_number": number,
+                    "name": name,
+                    "still_path": None,
+                }
+                for number, name in ((1, "Pilot"), (2, "Theseus"), (4, "Untracked"))
+            ],
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_season_episodes",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual(
+            [(episode["tracked"], episode["item"]["title"]) for episode in results],
+            [(True, "Pilot"), (True, "Theseus"), (False, "Untracked")],
+        )
+        # The saved episode records keep the show title used by the web app
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+        episode_item.refresh_from_db()
+        self.assertEqual(episode_item.title, "TV Show 1")
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_season_episodes_return_tracked_notes_and_dates(self, mock_metadata):
+        """Tracked episode output should use its notes and actual watch date."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode = self.episode_medias[0]
+        Episode.objects.filter(pk=episode.pk).update(
+            end_date=timezone.now(),
+            notes="episode watch notes",
+        )
+        mock_metadata.return_value = {
+            "episodes": [
+                {
+                    "episode_number": episode.item.episode_number,
+                    "season_number": season_item.season_number,
+                    "show_id": tv_item.media_id,
+                    "name": episode.item.title,
+                    "still_path": None,
+                },
+            ],
+        }
+
+        response = self.call_api(
+            "get",
+            "api_media_season_episodes",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+            ),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        serialized_episode = response.json()["results"][0]
+        self.assertEqual(serialized_episode["notes"], "episode watch notes")
+        self.assertIsNone(serialized_episode["start_date"])
+        self.assertEqual(
+            serialized_episode["progressed_at"],
+            serialized_episode["end_date"],
+        )
+        self.assertIsNotNone(serialized_episode["end_date"])
+
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_episodes_get_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -956,7 +1088,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_episodes_get_invalid_season_number_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1452,8 +1584,8 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch("api.views.tmdb.process_episodes", return_value=[])
-    @patch("api.views.services.get_media_metadata")
+    @patch("app.providers.tmdb.process_episodes", return_value=[])
+    @patch("app.providers.services.get_media_metadata")
     def test_season_sync_returns_accepted_and_updates_item(
         self,
         mock_metadata,
@@ -1488,7 +1620,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
         self.assertEqual(season_item.title, "TV Show 1 - Season 1 Synced")
         self.assertEqual(season_item.image, "https://example.com/season-1-synced.jpg")
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_sync_invalid_media_id_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1503,7 +1635,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
-    @patch("api.views.services.get_media_metadata", side_effect=Exception("boom"))
+    @patch("app.providers.services.get_media_metadata", side_effect=Exception("boom"))
     def test_season_sync_invalid_season_number_returns_internal_server_error(
         self,
         _mock_metadata,
@@ -1525,6 +1657,133 @@ class MediaSeasonTests(YamtrackApiTestCase):
             "post",
             "api_media_season_sync",
             args=(MediaTypes.TV.value, Sources.MANUAL.value, 701, 1),
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_season_detail_post_tracks_season(self, mock_metadata):
+        """Season detail POST should track a season of a tracked tv serie."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][1]
+        season_number = 1
+        mock_metadata.return_value = {
+            "media_id": tv_item.media_id,
+            "source": tv_item.source,
+            "media_type": MediaTypes.SEASON.value,
+            "title": tv_item.title,
+            "image": "https://example.com/new-season.jpg",
+            "season_number": season_number,
+            "max_progress": 2,
+            "related": {"seasons": [], "recommendations": []},
+            "episodes": [],
+        }
+
+        response = self.call_api(
+            "post",
+            "api_media_season_detail",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, season_number),
+            payload={"status": 1, "score": 8.5, "notes": "First season"},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        check_media_structure(self, payload)
+        self.assertEqual(payload["item"]["media_type"], MediaTypes.SEASON.value)
+        self.assertEqual(payload["item"]["media_id"], tv_item.media_id)
+        self.assertEqual(payload["item"]["season_number"], season_number)
+        self.assertEqual(payload["status"], 1)
+        self.assertEqual(payload["score"], 8.5)
+        self.assertEqual(payload["notes"], "First season")
+        self.assertTrue(payload["tracked"])
+        self.assertEqual(
+            Season.objects.filter(
+                user=self.user1,
+                item__media_id=tv_item.media_id,
+                item__season_number=season_number,
+            ).count(),
+            1,
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_season_detail_post_without_body_defaults_to_planning(
+        self,
+        mock_metadata,
+    ):
+        """Season detail POST without a body should track the season as planning."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][1]
+        mock_metadata.return_value = {
+            "title": tv_item.title,
+            "image": "https://example.com/new-season.jpg",
+        }
+
+        response = self.call_api(
+            "post",
+            "api_media_season_detail",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            payload={},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["status"], 0)
+
+    def test_season_detail_post_invalid_payload_returns_bad_request(self):
+        """Season detail POST with an invalid score should return 400."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][1]
+
+        response = self.call_api(
+            "post",
+            "api_media_season_detail",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            payload={"score": 11},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_season_detail_post_untracked_tv_returns_bad_request(self):
+        """Season detail POST should fail if the user does not track the tv serie."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+
+        response = self.call_api(
+            "post",
+            "api_media_season_detail",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id, 1),
+            payload={},
+            headers=self.auth_headers2,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_season_detail_post_already_tracked_returns_conflict(self):
+        """Season detail POST should return 409 if the season is already tracked."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+
+        response = self.call_api(
+            "post",
+            "api_media_season_detail",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+            ),
+            payload={},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 409)
+
+    def test_season_detail_post_non_tv_returns_bad_request(self):
+        """Season detail POST should reject media types other than tv."""
+        response = self.call_api(
+            "post",
+            "api_media_season_detail",
+            args=(MediaTypes.MOVIE.value, Sources.TMDB.value, 701, 1),
+            payload={},
             headers=self.auth_headers,
         )
 

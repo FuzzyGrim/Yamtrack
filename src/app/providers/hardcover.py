@@ -260,3 +260,79 @@ def get_image_url(response):
     if response.get("image") and response["image"].get("url"):
         return response["image"]["url"]
     return settings.IMG_NONE
+
+
+def book_extras(media_id):
+    """Return the cover and the contributors of a book from Hardcover."""
+    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_extras"
+    data = cache.get(cache_key)
+
+    if data is None:
+        query = """
+        query GetBookExtras($book_id: Int!) {
+          books_by_pk(id: $book_id) {
+            cached_image
+            cached_contributors
+          }
+        }
+        """
+
+        try:
+            response = services.api_request(
+                Sources.HARDCOVER.value,
+                "POST",
+                base_url,
+                params={"query": query, "variables": {"book_id": int(media_id)}},
+                headers={"Authorization": settings.HARDCOVER_API},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        book_data = response["data"]["books_by_pk"]
+        if not book_data:
+            services.raise_not_found_error(
+                Sources.HARDCOVER.value,
+                media_id,
+                "book",
+            )
+
+        posters = []
+        cover = book_data.get("cached_image") or {}
+        if cover.get("url"):
+            posters.append(
+                helpers.build_image_entry(
+                    cover["url"],
+                    width=cover.get("width"),
+                    height=cover.get("height"),
+                ),
+            )
+
+        # A contributor can be credited more than once, e.g. author and narrator
+        creators = {}
+        for contributor in book_data.get("cached_contributors") or []:
+            author = contributor.get("author") or {}
+            if not author.get("name"):
+                continue
+            entry = creators.setdefault(
+                author.get("id") or author["name"],
+                {
+                    "id": author.get("id"),
+                    "name": author["name"],
+                    "roles": [],
+                    "image": (author.get("image") or {}).get("url"),
+                    "issue_count": None,
+                    "source_url": (
+                        f"https://hardcover.app/authors/{author['slug']}"
+                        if author.get("slug")
+                        else None
+                    ),
+                },
+            )
+            role = contributor.get("contribution") or "Author"
+            if role not in entry["roles"]:
+                entry["roles"].append(role)
+
+        data = {"images": {"posters": posters}, "creators": list(creators.values())}
+        cache.set(cache_key, data)
+
+    return data

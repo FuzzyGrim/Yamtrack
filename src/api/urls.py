@@ -1,4 +1,9 @@
+from django.conf import settings
 from django.urls import re_path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+)
 
 from . import views
 
@@ -32,6 +37,24 @@ urlpatterns = [
         views.ListItemView.as_view(),
         name="api_list_remove_item",
     ),
+    re_path(r"^me/?$", views.MeView.as_view(), name="api_me"),
+    re_path(r"^me/password/?$", views.MePasswordView.as_view(), name="api_me_password"),
+    re_path(
+        r"^me/preferences/?$",
+        views.MePreferencesView.as_view(),
+        name="api_me_preferences",
+    ),
+    re_path(
+        r"^me/preferences/webui/?$",
+        views.MeWebUIPreferencesView.as_view(),
+        name="api_me_preferences_webui",
+    ),
+    re_path(
+        r"^me/search-cache/?$",
+        views.MeSearchCacheView.as_view(),
+        name="api_me_search_cache",
+    ),
+    re_path(r"^me/token/?$", views.MeTokenView.as_view(), name="api_me_token"),
     re_path(r"^media/?$", views.MediaListView.as_view(), name="api_media_list"),
     re_path(
         r"^media/(?P<media_type>[^/]+)/?$",
@@ -44,9 +67,39 @@ urlpatterns = [
         name="api_media_detail",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/cast/?$",
+        views.MediaCastView.as_view(),
+        name="api_media_cast",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/changes_history/?$",
         views.MediaChangesHistoryView.as_view(),
         name="api_media_changes_history",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/characters/?$",
+        views.MediaCharactersView.as_view(),
+        name="api_media_characters",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/companies/?$",
+        views.MediaCompaniesView.as_view(),
+        name="api_media_companies",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/cover/?$",
+        views.MediaCoverView.as_view(),
+        name="api_media_cover",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/creators/?$",
+        views.MediaCreatorsView.as_view(),
+        name="api_media_creators",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/crew/?$",
+        views.MediaCrewView.as_view(),
+        name="api_media_crew",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/history/?$",
@@ -59,6 +112,11 @@ urlpatterns = [
         name="api_media_consumption_entry_detail",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/images/?$",
+        views.MediaImagesView.as_view(),
+        name="api_media_images",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/lists/?$",
         views.MediaListsView.as_view(),
         name="api_media_lists",
@@ -66,7 +124,12 @@ urlpatterns = [
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/lists/(?P<list_id>\d+)/?$",
         views.MediaListDetailView.as_view(),
-        name="api_media_lists",
+        name="api_media_list_detail",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/providers/?$",
+        views.MediaWatchProvidersView.as_view(),
+        name="api_media_providers",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/recommendations/?$",
@@ -94,6 +157,11 @@ urlpatterns = [
         name="api_media_season_changes_history",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/cover/?$",
+        views.MediaSeasonCoverView.as_view(),
+        name="api_media_season_cover",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/episodes/?$",
         views.MediaSeasonEpisodesView.as_view(),
         name="api_media_season_episodes",
@@ -109,6 +177,11 @@ urlpatterns = [
         name="api_media_season_consumption_entry_detail",
     ),
     re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/images/?$",
+        views.MediaSeasonImagesView.as_view(),
+        name="api_media_season_images",
+    ),
+    re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/lists/?$",
         views.MediaSeasonListsView.as_view(),
         name="api_media_season_lists",
@@ -117,6 +190,11 @@ urlpatterns = [
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/lists/(?P<list_id>\d+)/?$",
         views.MediaSeasonListDetailView.as_view(),
         name="api_media_season_list_detail",
+    ),
+    re_path(
+        r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/providers/?$",
+        views.MediaSeasonWatchProvidersView.as_view(),
+        name="api_media_season_providers",
     ),
     re_path(
         r"^media/(?P<media_type>[^/]+)/(?P<source>[^/]+)/(?P<media_id>[^/]+)/(?P<season_number>\d+)/sync/?$",
@@ -159,9 +237,49 @@ urlpatterns = [
         name="api_media_episode_sync",
     ),
     re_path(
+        r"^people/search/?$",
+        views.PeopleSearchView.as_view(),
+        name="api_people_search",
+    ),
+    re_path(
+        r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/?$",
+        views.PersonDetailView.as_view(),
+        name="api_person_detail",
+    ),
+    re_path(
+        r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/images/?$",
+        views.PersonImagesView.as_view(),
+        name="api_person_images",
+    ),
+    re_path(
+        r"^people/(?P<source>[^/]+)/(?P<person_id>\d+)/known_for/?$",
+        views.PersonKnownForView.as_view(),
+        name="api_person_known_for",
+    ),
+    re_path(
         r"^search/(?P<media_type>[^/]+)/?$",
         views.SearchProviderView.as_view(),
         name="api_search_provider",
     ),
     re_path(r"^statistics/?$", views.StatisticsView.as_view(), name="api_statistics"),
+    re_path(
+        r"^users/(?P<username>[^/]+)/?$",
+        views.UserProfileView.as_view(),
+        name="api_user_profile",
+    ),
+    re_path(
+        r"^users/(?P<username>[^/]+)/media/(?P<media_type>[^/]+)/?$",
+        views.UserMediaTypeListView.as_view(),
+        name="api_user_media_type_list",
+    ),
 ]
+
+if settings.SPECTACULAR_ENABLE_SERVE:
+    urlpatterns += [
+        re_path(r"^schema/?$", SpectacularAPIView.as_view(), name="api_schema"),
+        re_path(
+            r"^docs/?$",
+            SpectacularSwaggerView.as_view(url_name="api_schema"),
+            name="api_docs",
+        ),
+    ]

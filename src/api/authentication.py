@@ -3,15 +3,19 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from users.models import User
 
+AUTHORIZATION_HEADER = "Authorization"
+API_KEY_HEADER = "X-API-Key"
+
 
 class BearerAuthentication(BaseAuthentication):
     """Bearer Authentication."""
 
     keyword = "Bearer"
+    header_name = AUTHORIZATION_HEADER
 
     def authenticate(self, request):
         """Authenticate the user with Bearer token."""
-        auth = request.headers.get("Authorization")
+        auth = request.headers.get(self.header_name)
         if not auth:
             return None
         parts = auth.split()
@@ -25,13 +29,19 @@ class BearerAuthentication(BaseAuthentication):
             raise AuthenticationFailed(msg) from None
         return (user, None)
 
+    def authenticate_header(self, request):  # noqa: ARG002
+        """Return the WWW-Authenticate header, so DRF responds with 401."""
+        return self.keyword
+
 
 class APIKeyAuthentication(BaseAuthentication):
     """API Key Authentication."""
 
+    header_name = API_KEY_HEADER
+
     def authenticate(self, request):
         """Authenticate the user with API Key."""
-        auth = request.headers.get("X-API-Key")
+        auth = request.headers.get(self.header_name)
         if not auth:
             return None
         try:
@@ -40,3 +50,7 @@ class APIKeyAuthentication(BaseAuthentication):
             msg = "Invalid token"
             raise AuthenticationFailed(msg) from None
         return (user, None)
+
+    def authenticate_header(self, request):  # noqa: ARG002
+        """Return the WWW-Authenticate header, so DRF responds with 401."""
+        return f'APIKey header="{self.header_name}"'
