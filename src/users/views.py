@@ -16,6 +16,7 @@ from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
 from app.providers import tmdb
+from app.ratings import apply_weight_post, weight_form_rows
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import (
     WATCH_PROVIDER_REGION_UNSET,
@@ -235,6 +236,7 @@ def preferences(request):
                 "time_format_choices": TimeFormatChoices.choices,
                 "week_start_day_choices": WeekStartDayChoices.choices,
                 "watch_provider_choices": watch_provider_regions,
+                "rating_weights": weight_form_rows(request.user),
             },
         )
 
@@ -271,6 +273,7 @@ def preferences(request):
         request.user.language = language
 
     request.user.show_adult_titles = "show_adult_titles" in request.POST
+    apply_weight_post(request.user, request.POST)
 
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 

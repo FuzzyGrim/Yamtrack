@@ -251,3 +251,30 @@ class SidebarViewTests(TestCase):
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.language, "it-it")
+
+    def test_public_rating_weights_save(self):
+        """Posted weights are saved, and a missing source keeps its default."""
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "rating_weight_imdb": "3",
+                "rating_weight_letterboxd": "10",
+                "rating_weight_tmdb": "0",
+                "media_types_checkboxes": [MediaTypes.MOVIE.value],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.rating_weight_imdb, 3)
+        self.assertEqual(self.user.rating_weight_letterboxd, 10)
+        self.assertEqual(self.user.rating_weight_tmdb, 0)
+        self.assertEqual(self.user.rating_weight_rotten_tomatoes, 1)
+        self.assertEqual(self.user.rating_weight_metacritic, 2)
+
+    def test_preferences_call_the_section_public_score(self):
+        """The preferences heading uses the public-score name."""
+        response = self.client.get(reverse("preferences"))
+
+        self.assertContains(response, "Public score")
+        self.assertNotContains(response, "Public rating")

@@ -29,7 +29,8 @@
       {% endif %}
 
       {% if media.score|show_media_score:user %}
-        <div class="absolute {% if from_grid %}sm:top-2 sm:right-2 sm:left-auto{% endif %} top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+        <div class="absolute {% if from_grid %}sm:top-2 sm:right-2 sm:left-auto{% endif %} top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md"
+             title="{% trans 'My rating' %}">
           {% include "app/icons/star.svg" with classes="w-4 h-4 text-yellow-400 mr-1 fill-current" %}
           <span class="text-sm text-white">{{ media.formatted_score }}</span>
         </div>
@@ -49,6 +50,13 @@
       <div class="absolute sm:bottom-2 sm:right-2 sm:left-auto bottom-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         {% include "app/icons/repeat.svg" with classes="w-4 h-4 text-slate-200 mr-1" %}
         <span class="text-sm text-white">{{ media.repeats }}</span>
+      </div>
+    {% endif %}
+
+    {% if media|has_public_rating %}
+      <div class="absolute right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md shadow-md {% if media.repeats > 1 %}sm:bottom-10 bottom-2{% else %}bottom-2{% endif %}"
+           title="{% trans 'Public score' %}">
+        <span class="text-sm text-white">{{ media|public_rating_text }}</span>
       </div>
     {% endif %}
 

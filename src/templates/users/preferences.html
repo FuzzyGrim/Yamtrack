@@ -278,6 +278,33 @@
 
       <div class="border-t border-gray-600 my-5"></div>
 
+      {# Public score weights #}
+      <div class="mb-5">
+        <div class="flex items-center mb-4">
+          {% include "app/icons/star.svg" with classes="w-5 h-5 text-indigo-400 mr-2 fill-current" %}
+          <h3 class="text-lg font-semibold">{% trans "Public score" %}</h3>
+        </div>
+        <p class="text-gray-400 mb-4 text-sm">
+          {% trans "Weight each public source from 0 to 10. A weight of 0 ignores that source. The score is a weighted average of the sources that have a value. Letterboxd counts only when a score is entered." %}
+        </p>
+        <div class="grid gap-3 md:grid-cols-2">
+          {% for weight in rating_weights %}
+            <label class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+              <span class="text-sm text-gray-200">{{ weight.label }}</span>
+              <input type="number"
+                     name="{{ weight.name }}"
+                     min="0"
+                     max="10"
+                     step="1"
+                     value="{{ weight.value }}"
+                     class="ml-4 w-16 p-2 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="border-t border-gray-600 my-5"></div>
+
       {# Media Types Settings #}
       <div class="mb-5">
         <div class="flex items-center mb-4">
