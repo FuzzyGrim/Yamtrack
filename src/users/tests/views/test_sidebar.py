@@ -270,4 +270,4 @@ class SidebarViewTests(TestCase):
         self.assertEqual(self.user.rating_weight_letterboxd, 10)
         self.assertEqual(self.user.rating_weight_tmdb, 0)
         self.assertEqual(self.user.rating_weight_rotten_tomatoes, 1)
-        self.assertEqual(self.user.rating_weight_metacritic, 1)
+        self.assertEqual(self.user.rating_weight_metacritic, 2)

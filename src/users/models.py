@@ -373,7 +373,7 @@ class User(AbstractUser):
 
     # Weights for the aggregated public rating. 0 excludes that source.
     rating_weight_imdb = models.PositiveSmallIntegerField(
-        default=1,
+        default=3,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
         help_text=_("Weight of the IMDb score in the public rating"),
     )
@@ -383,7 +383,7 @@ class User(AbstractUser):
         help_text=_("Weight of the Rotten Tomatoes score in the public rating"),
     )
     rating_weight_metacritic = models.PositiveSmallIntegerField(
-        default=1,
+        default=2,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
         help_text=_("Weight of the Metacritic score in the public rating"),
     )
@@ -393,7 +393,7 @@ class User(AbstractUser):
         help_text=_("Weight of the TMDB score in the public rating"),
     )
     rating_weight_letterboxd = models.PositiveSmallIntegerField(
-        default=0,
+        default=2,
         validators=[MinValueValidator(0), MaxValueValidator(10)],
         help_text=_("Weight of the Letterboxd score in the public rating"),
     )

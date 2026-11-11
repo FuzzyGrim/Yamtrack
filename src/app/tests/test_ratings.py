@@ -75,6 +75,24 @@ class RatingMathTests(TestCase):
 
         self.assertEqual(weighted_average(normalized, weights), Decimal("65.0"))
 
+    def test_new_user_gets_the_default_weights(self):
+        """IMDb 3, Metacritic 2, Rotten Tomatoes 1, TMDB 1, Letterboxd 2."""
+        user = get_user_model().objects.create_user(
+            username="weight-defaults",
+            password="test-pass",  # noqa: S106
+        )
+
+        self.assertEqual(
+            user_weights(user),
+            {
+                "imdb": 3,
+                "rotten_tomatoes": 1,
+                "metacritic": 2,
+                "tmdb": 1,
+                "letterboxd": 2,
+            },
+        )
+
     def test_weighted_average_is_empty_when_nothing_counts(self):
         """No present, weighted source means there is no aggregate."""
         normalized = {"imdb": None, "tmdb": Decimal(80)}
@@ -145,6 +163,12 @@ class PublicRatingSortTests(TestCase):
 
     def test_null_source_is_not_treated_as_zero(self):
         """A missing source is skipped. A stored zero still counts."""
+        self.user.rating_weight_imdb = 1
+        self.user.rating_weight_rotten_tomatoes = 1
+        self.user.rating_weight_metacritic = 0
+        self.user.rating_weight_tmdb = 0
+        self.user.rating_weight_letterboxd = 0
+        self.user.save()
         skipped = self._movie("4", "Skipped", Status.PLANNING.value)
         zeroed = self._movie("5", "Zeroed", Status.PLANNING.value)
         ItemRating.objects.create(
@@ -199,7 +223,9 @@ class PublicRatingSortTests(TestCase):
         )
 
     def test_zero_weight_drops_that_source(self):
-        """Letterboxd's default weight of 0 leaves it out of the aggregate."""
+        """A weight of 0 leaves that source out of the aggregate."""
+        self.user.rating_weight_letterboxd = 0
+        self.user.save(update_fields=["rating_weight_letterboxd"])
         item = self._movie("6", "Weighted", Status.PLANNING.value)
         ItemRating.objects.create(
             item=item,
@@ -218,6 +244,23 @@ class PublicRatingSortTests(TestCase):
                 user_weights(self.user),
             ),
         )
+
+    def test_empty_letterboxd_does_not_count_at_its_default_weight(self):
+        """Letterboxd's default weight applies only after a score is entered."""
+        blank = self._movie("10", "Blank", Status.PLANNING.value)
+        filled = self._movie("11", "Filled", Status.PLANNING.value)
+        ItemRating.objects.create(item=blank, imdb_normalized=Decimal("60.0"))
+        ItemRating.objects.create(
+            item=filled,
+            imdb_normalized=Decimal("60.0"),
+            letterboxd_normalized=Decimal("100.0"),
+        )
+
+        by_title = {entry.item.title: entry.public_rating for entry in self._sorted()}
+
+        self.assertEqual(self.user.rating_weight_letterboxd, 2)
+        self.assertEqual(by_title["Blank"], Decimal("60.0"))
+        self.assertEqual(by_title["Filled"], Decimal("76.0"))
 
     def _sorted(self):
         return MediaManager().get_media_list(
