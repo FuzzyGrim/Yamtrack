@@ -759,11 +759,11 @@ class MediaManager(models.Manager):
         season_numbers=None,
     ):
         """Return tracked season consumptions for a show."""
-        queryset = self.filter_media_prefetch(
-            user,
-            media_id,
-            MediaTypes.SEASON.value,
-            source,
+        queryset = Season.objects.filter(
+            item__media_type=MediaTypes.SEASON.value,
+            item__source=source,
+            item__media_id=media_id,
+            user=user,
         )
 
         if season_numbers is not None:
@@ -771,6 +771,12 @@ class MediaManager(models.Manager):
             if not season_numbers:
                 return queryset.none()
             queryset = queryset.filter(item__season_number__in=season_numbers)
+
+        queryset = self._apply_prefetch_related(
+            queryset.select_related("item"),
+            MediaTypes.SEASON.value,
+        )
+        self.annotate_max_progress(queryset, MediaTypes.SEASON.value)
 
         return queryset
 

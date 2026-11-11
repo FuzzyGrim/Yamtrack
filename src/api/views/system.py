@@ -9,6 +9,7 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 from health_check.views import HealthCheckView
+from redis.asyncio import Redis as RedisClient
 from rest_framework import views as drf_views
 from rest_framework.response import Response
 
@@ -30,7 +31,15 @@ class HealthView(drf_views.APIView):
     permission_classes = []
     serializer_class = HealthResponseSerializer
 
-    checks = HealthCheckView.checks
+    checks = [
+        "health_check.Cache",
+        "health_check.Database",
+        "health_check.contrib.celery.Ping",
+        (
+            "health_check.contrib.redis.Redis",
+            {"client_factory": lambda: RedisClient.from_url(settings.REDIS_URL)},
+        ),
+    ]
 
     def get_checks(self):
         """Return instantiated health checks using the installed library."""
