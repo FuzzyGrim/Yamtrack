@@ -26,6 +26,7 @@ from app.models import (
     Music,  # FORK: fork-only media type
     Podcast,  # FORK: fork-only media type
     PodcastPlay,
+    PodcastShowTracker,
     Season,
     Status,
 )
@@ -1020,7 +1021,7 @@ class MediaSerializer(serializers.ModelSerializer):
 
         return {
             "id": item.id if item is not None else None,
-            "consumption_id": instance.id,
+            "consumption_id": None if isinstance(instance, PodcastShowTracker) else instance.id,
             "item": _ITEM_SERIALIZER.to_representation(item)
             if item is not None
             else None,
@@ -1202,6 +1203,7 @@ serializer_map = {
     Movie: MediaSerializer,
     Music: MediaSerializer,  # FORK
     Podcast: MediaSerializer,  # FORK
+    PodcastShowTracker: MediaSerializer,
     Season: MediaSerializer,
     TV: MediaSerializer,
 }

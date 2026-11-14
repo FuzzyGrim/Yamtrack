@@ -245,6 +245,19 @@ def _get_list_completed_counts(user, list_ids):
                 status=Status.COMPLETED.value,
             ).values("item_id"),
         )
+    from django.db.models import Exists, OuterRef
+
+    from app.models import PodcastShowTracker
+
+    show_tracker = PodcastShowTracker.objects.filter(
+        user=user,
+        status=Status.COMPLETED.value,
+        show__podcast_uuid=OuterRef("media_id"),
+        show__source=OuterRef("source"),
+    )
+    completed |= Q(item_id__in=Item.objects.filter(
+        media_type=MediaTypes.PODCAST.value,
+    ).filter(Exists(show_tracker)).values("pk"))
     return dict(
         CustomListItem.objects.filter(completed, custom_list_id__in=list_ids)
         .order_by()
@@ -841,6 +854,9 @@ def _attach_media_with_aggregation(item_list, media_user):
                 media_manager._aggregate_item_data(display_media, entries)
             media_by_item_id[item_id] = display_media
 
+    from app.services.podcast_list_tracking import podcast_show_trackers_for_items
+
+    media_by_item_id.update(podcast_show_trackers_for_items(media_user, item_list))
     for item in item_list:
         item.media = media_by_item_id.get(item.id)
     from app.media_list_filters import attach_card_collection_platforms

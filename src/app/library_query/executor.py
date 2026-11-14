@@ -86,7 +86,10 @@ class LibraryQueryExecutor:
             filter_registry.TypeContext(
                 user=self.user,
                 media_type=media_type,
-                sources=tuple(tracker_sources(self.user, media_type, self.query.routing)),
+                sources=tuple(tracker_sources(
+                    self.user, media_type, self.query.routing,
+                    include_podcast_shows=self.query.include_podcast_shows,
+                )),
                 today=self.today,
                 provider_region=self.query.provider_region,
                 pinned_providers=self.query.pinned_providers,
@@ -744,6 +747,12 @@ def _attach_media(
             current = latest.get(media.item_id)
             if current is None or media.created_at > current.created_at:
                 latest[media.item_id] = media
+        if media_type == MediaTypes.PODCAST.value:
+            from app.services.podcast_list_tracking import (
+                podcast_show_trackers_for_items,
+            )
+
+            latest.update(podcast_show_trackers_for_items(user, [candidate.item for candidate in candidates]))
         tracked = []
         for candidate in candidates:
             candidate.media = latest.get(candidate.item.pk)

@@ -292,6 +292,8 @@ System theme resolution uses the React Native-supported `auto` override on iOS a
 
 ### MEDIA-CARD — Canonical card and metadata lines
 
+Custom-list cards and table rows receive podcast show tracking state from the list adapter; episode rows retain their existing tracker data. Smart-list rules resolve show trackers through provider identity. The shared presentation and its consumers are unchanged. Browser: isolated before/after list captures cover grid and table at desktop and phone widths. iOS and Android runtime verification remains pending. Retirement conditions are unchanged.
+
 Shared MediaCard preserves the accepted status-specific icon shapes and colors, with provider icons as a fallback for unknown statuses. Native action hosts and progress renderers remain supplied by adapters. Ownership and remaining server consumers are unchanged; browser and native verification are recorded independently.
 
 - PeopleScreen consumes canonical person/studio credit models through MediaCardSlot and the opt-in `shouldShowMediaCardLine` / `shouldShowMediaCardCorner` hover metadata policy; dormant lines remain visible at rest and runtime/count chips wait for reveal. Existing web adapter ownership and other consumers remain unchanged. Browser: final Person check confirmed the outlined Completed icon and no runtime overlap; minor title truncation and toolbar spacing remain. Studio navigation, badge, count and layout checked. Native readiness: `Primitives`; iOS and Android not verified. Retirement requires the remaining web fallbacks to adopt the shared card contract.

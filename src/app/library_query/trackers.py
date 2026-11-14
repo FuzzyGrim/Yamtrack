@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from django.apps import apps
 from django.db import models
-from django.db.models import Case, F, OuterRef, Q, When
+from django.db.models import Case, F, OuterRef, Q, Subquery, When
 
 from app.library_query.spec import ROUTING_MODEL
 from app.models.choices import MediaTypes, Status
@@ -99,7 +99,31 @@ def _source(media_type: str, item_q: Q | None = None) -> TrackerSource:
     )
 
 
-def tracker_sources(user, media_type: str, routing: str) -> list[TrackerSource]:
+@dataclass(frozen=True)
+class PodcastShowSource(TrackerSource):
+    """Relate show trackers to list items through their provider identity."""
+
+    def item_rows(self, user, outer_ref: str = "pk"):
+        """Find the show tracker for the outer item identity."""
+        return self.rows(user).filter(
+            show__podcast_uuid=OuterRef("media_id"), show__source=OuterRef("source"),
+        )
+
+    def item_ids(self, user, row_q: Q | None = None):
+        """Resolve matching show trackers to their existing item ids."""
+        from app.models import Item
+
+        rows = self.rows(user)
+        if row_q is not None:
+            rows = rows.filter(row_q)
+        item = Item.objects.filter(
+            media_type=MediaTypes.PODCAST.value,
+            media_id=OuterRef("show__podcast_uuid"), source=OuterRef("show__source"),
+        ).values("pk")[:1]
+        return rows.annotate(_item_id=Subquery(item)).values("_item_id")
+
+
+def tracker_sources(user, media_type: str, routing: str, *, include_podcast_shows=False) -> list[TrackerSource]:
     """Return the tracker sources that make up ``media_type``'s library.
 
     Anime a user tracks as TV lives on TV rows with an anime library bucket.
@@ -107,6 +131,10 @@ def tracker_sources(user, media_type: str, routing: str) -> list[TrackerSource]:
     those rows appear in the Anime library, the TV library, or both, exactly
     as the media list does. With ``model`` routing they stay on TV.
     """
+    if media_type == MediaTypes.PODCAST.value and include_podcast_shows:
+        from app.models import PodcastShowTracker
+
+        return [PodcastShowSource(PodcastShowTracker, "user", "status", Q()), _source(media_type)]
     if routing == ROUTING_MODEL:
         return [_source(media_type)]
     anime_bucket = Q(library_media_type=MediaTypes.ANIME.value)

@@ -6,10 +6,11 @@ one JSON object mapping a page name to its path; pages a branch lacks are left
 out.
 """
 
-# ruff: noqa: INP001, T201
+# ruff: noqa: T201
 import json
 from datetime import UTC, datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import NoReverseMatch, reverse
 from django.utils.text import slugify
@@ -22,10 +23,14 @@ from app.models import (
     MediaTypes,
     Movie,
     Music,
+    Podcast,
+    PodcastShow,
+    PodcastShowTracker,
     Sources,
     Status,
     Track,
 )
+from lists.models import CustomList, CustomListItem
 
 USERNAME = "shots"
 PASSWORD = "shots-pass-12345"  # noqa: S105 - throwaway local database
@@ -33,6 +38,31 @@ PASSWORD = "shots-pass-12345"  # noqa: S105 - throwaway local database
 user, _ = get_user_model().objects.get_or_create(username=USERNAME)
 user.set_password(PASSWORD)
 user.save()
+
+podcast_list = CustomList.objects.create(name="Podcast status review", owner=user)
+podcast_show = PodcastShow.objects.create(podcast_uuid="shots-podcast-show", title="Example Podcast")
+podcast_show_item = Item.objects.create(
+    media_id=podcast_show.podcast_uuid, source=podcast_show.source,
+    media_type=MediaTypes.PODCAST.value, title=podcast_show.title, image=settings.IMG_NONE,
+    release_datetime=datetime(2025, 1, 1, tzinfo=UTC),
+)
+PodcastShowTracker.objects.create(
+    user=user, show=podcast_show, status=Status.IN_PROGRESS.value, score=8,
+)
+CustomListItem.objects.create(custom_list=podcast_list, item=podcast_show_item)
+for identity, title, status in (
+    ("shots-podcast-playing", "Episode in progress", Status.IN_PROGRESS.value),
+    ("shots-podcast-played", "Completed episode", Status.COMPLETED.value),
+    ("shots-podcast-untracked", "Untracked episode", None),
+):
+    item = Item.objects.create(
+        media_id=identity, source=podcast_show.source,
+        media_type=MediaTypes.PODCAST.value, title=title, image=settings.IMG_NONE,
+        release_datetime=datetime(2025, 1, 1, tzinfo=UTC),
+    )
+    CustomListItem.objects.create(custom_list=podcast_list, item=item)
+    if status:
+        Podcast.objects.create(user=user, item=item, show=podcast_show, status=status)
 
 now = datetime.now(UTC)
 for index, title in enumerate(
@@ -109,6 +139,7 @@ paths = {
     "home": resolve("home"),
     "library": resolve("medialist", media_type="movie"),
     "history": resolve("history"),
+    "podcast-list": resolve("list_detail", list_reference=podcast_list.pk),
     "appearance": resolve("appearance"),
     "home-screen-settings": resolve("home_screen"),
     "tile-settings": resolve("tiles"),
