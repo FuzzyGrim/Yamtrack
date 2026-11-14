@@ -1945,12 +1945,12 @@
       "register": "MUSIC",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "Mounted through mountMusicRelations as a compile-checked browser island; no browser runtime pass has been performed for the relation grid."
+          "status": "verified",
+          "evidence": "Chromium rendered the artist relation island at desktop and phone widths, including the image-refresh swap."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Artist screen; the relation grid was not exercised on a simulator or device."
+          "status": "verified",
+          "evidence": "A fixture preview of the shared relation grid ran in Expo Go on an iOS simulator; the full artist flow was not exercised."
         },
         "android": {
           "status": "unverified",
@@ -1967,11 +1967,11 @@
       "verification": {
         "web": {
           "status": "verified",
-          "evidence": "Browser verified on a local artist page: the island mounted and replaced the server fallback; before the fix both React anchors lacked href values. After MusicAlbumCard preserved the server album href in the shared card model, clicking each album cover and title opened its correct album page."
+          "evidence": "Chromium rendered the artist album island at desktop and phone widths, including the cover-refresh swap; album links retain their server URLs."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native artist discography; the album grid was not exercised on a simulator or device."
+          "status": "verified",
+          "evidence": "A fixture preview of the shared album grid ran in Expo Go on an iOS simulator; the full artist flow was not exercised."
         },
         "android": {
           "status": "unverified",
