@@ -1054,7 +1054,14 @@ class SettingsCardsBrowserTests(SerialStaticLiveServerTestCase):
           let count = 0;
           function sample() {
             const style = getComputedStyle(card);
-            if (card.matches(':hover')) providerHoverFrames.push({color:style.outlineColor, width:style.outlineWidth});
+            if (card.matches(':hover')) {
+              // Chromium can report a default 3px outline width even when
+              // the outline is not painted. Compare visible outlines only.
+              const visible = style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0;
+              providerHoverFrames.push(visible
+                ? {color: style.outlineColor, width: style.outlineWidth, style: style.outlineStyle}
+                : {color: null, width: '0px', style: 'none'});
+            }
             if (providerHoverRecording && ++count < 120) requestAnimationFrame(sample);
           }
           requestAnimationFrame(sample);
@@ -1064,7 +1071,9 @@ class SettingsCardsBrowserTests(SerialStaticLiveServerTestCase):
         frames = self.page.evaluate("providerHoverRecording=false; providerHoverFrames")
         self.assertTrue(frames)
         self.assertTrue(all(frame == frames[-1] for frame in frames), frames)
-        self.assertEqual(frames[-1]["width"], "1px")
+        # The shared React card draws its own rounded border. Hover should
+        # not add an outer outline; keyboard focus has a separate focus ring.
+        self.assertEqual(frames[-1], {"color": None, "width": "0px", "style": "none"})
         self.open_cards("connection")
         for control in (
             self.page.get_by_role("button", name="Save personal key", exact=True),

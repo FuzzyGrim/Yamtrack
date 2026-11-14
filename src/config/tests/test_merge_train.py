@@ -260,6 +260,10 @@ class MergeTrainTests(TestCase):
         self.assertEqual(action, "update")
         self.assertIn("never started", notes[0])
 
+    def test_partially_missing_required_checks_eventually_park(self):
+        partial = pr(1, checks=passed()[:-1], committed=timedelta(hours=3))
+        self.assertEqual(train.choose([partial], {1: 0}, NOW)[0], "stuck")
+
     def test_green_pr_github_just_has_not_merged_yet_is_in_flight(self):
         """All green for a few minutes: auto-merge is about to land it."""
         green = pr(1, state="CLEAN", checks=passed(minutes_ago=3))
@@ -365,7 +369,7 @@ class MainTests(TestCase):
         old["_latest_oid"] = LATEST_SHA
         old["_latest_date"] = "2026-10-05T10:00:00Z"
         old["body"] += f"\n<!-- merge-train-base:{LATEST_SHA} -->"
-        self.assertEqual(train.judge(old, 2, NOW)[0], "wait")
+        self.assertEqual(train.judge(old, 2, NOW)[0], "skip")
 
     def test_failed_fork_update_records_refusal_and_actionable_fallback(self):
         old = pr(
@@ -523,4 +527,59 @@ class WorkflowTests(TestCase):
         steps = self.workflow["jobs"]["merge-train"]["steps"]
         for step in steps:
             if str(step.get("uses", "")).startswith("actions/checkout"):
-                self.assertNotIn("ref", step.get("with", {}))
+                self.assertEqual(step.get("with", {}).get("ref"), "latest")
+
+class BatchTests(TestCase):
+    def test_migrations_never_enter_batch_even_on_rename(self):
+        self.assertFalse(train._batch_safe_files([
+            {"filename": "src/app/migrations/0207_one.py"},
+        ], 100))
+        self.assertFalse(train._batch_safe_files([
+            {"filename": "elsewhere.py", "previous_filename": "src/users/migrations/0009_old.py"},
+        ], 100))
+        self.assertFalse(train._batch_safe_files([
+            {"filename": ".github/workflows/app-tests.yml"},
+        ], 100))
+        self.assertTrue(train._batch_safe_files([{"filename": "src/app/views.py"}], 100))
+        self.assertFalse(train._batch_safe_files([{"filename": "file.py"}] * 100, 100))
+
+    def test_batch_requires_green_approved_owner_pr(self):
+        p = pr(1, checks=passed())
+        p["author"] = {"login": "owner"}
+        p["headRefName"] = "feature"
+        self.assertTrue(train._batch_eligible(p, "owner", {1: 3}))
+        self.assertFalse(train._batch_eligible(p, "owner", {1: 0}))
+        p["isCrossRepository"] = True
+        self.assertFalse(train._batch_eligible(p, "owner", {1: 3}))
+
+    def test_batch_identity_and_invalidation(self):
+        a, b = pr(1), pr(2)
+        for p, sha in ((a, "b" * 40), (b, "c" * 40)):
+            p["author"] = {"login": "owner"}
+            p["headRefOid"] = sha
+        data = train._batch_manifest(LATEST_SHA, [a, b])
+        candidate = pr(99)
+        candidate["author"] = {"login": "owner"}
+        candidate["headRefName"] = train._batch_branch(data)
+        candidate["body"] = "<!-- merge-train-batch: " + json.dumps(data) + " -->"
+        self.assertEqual(train._read_batch(candidate, "owner"), data)
+        self.assertTrue(train._batch_valid(data, [a, b], LATEST_SHA, "owner"))
+        self.assertFalse(train._batch_valid(data, [a, b], "d" * 40, "owner"))
+        b["autoMergeRequest"] = None
+        self.assertFalse(train._batch_valid(data, [a, b], LATEST_SHA, "owner"))
+
+    def test_protected_ruleset_required(self):
+        rule = {
+            "enforcement": "active",
+            "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+            "rules": [{"type": "required_status_checks", "parameters": {
+                "strict_required_status_checks_policy": True,
+                "required_status_checks": [
+                    {"context": name, "integration_id": 15368} for name in train.REQUIRED_CHECKS
+                ],
+            }}],
+        }
+        with patch.object(train, "_batch_api", return_value=rule):
+            self.assertTrue(train._batch_policy("o/r"))
+            rule["rules"][0]["parameters"]["strict_required_status_checks_policy"] = False
+            self.assertFalse(train._batch_policy("o/r"))
