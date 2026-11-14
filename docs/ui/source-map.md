@@ -1386,6 +1386,7 @@ Track dialog layout restore: `TrackForm.jsx`, `TrackFormTabs.jsx`, `SelectField.
 - `frontend/ui/Reveal.jsx`
 - `frontend/ui/Reveal.native.jsx`
 - `frontend/ui/Reveal.web.jsx`
+- Sidebar's web Reveal clips a transform-animated panel, while its native counterpart keeps the measured-height animation. The shared Sidebar and its web and Expo consumers retain their existing ownership and fallback retirement conditions; browser regression and native runtime evidence are recorded separately in the component register.
 - `frontend/ui/SearchResultCard.jsx`
 - `frontend/ui/SearchResultCard.native.jsx`
 - `frontend/ui/SearchResultCard.web.jsx`

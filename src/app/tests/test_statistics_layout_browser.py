@@ -152,6 +152,34 @@ class StatisticsLayoutTests(SerialStaticLiveServerTestCase):
                 )
                 self.assertTrue(inside)
 
+    def test_explore_reveal_reverses_and_respects_reduced_motion(self):
+        page = self.open_statistics(1280, height=450)
+        button = page.get_by_role("button", name="Explore")
+        reveal = page.locator(".sidebar-reveal")
+        expect(button).to_have_attribute("aria-expanded", "false")
+        self.assertTrue(reveal.locator("..").evaluate("el => el.inert"))
+
+        button.click()
+        expect(button).to_have_attribute("aria-expanded", "true")
+        expect(reveal.get_by_role("link", name="Statistics", exact=True)).to_be_visible()
+        self.assertFalse(reveal.locator("..").evaluate("el => el.inert"))
+        self.assertEqual(reveal.evaluate("el => getComputedStyle(el).transitionProperty"), "transform")
+        self.assertTrue(reveal.evaluate("""el => [...el.querySelectorAll('div')].some(
+            child => getComputedStyle(child).overflowY === 'auto' && child.scrollHeight > child.clientHeight
+        )"""))
+
+        # Reverse before the transition ends; the last click must win.
+        button.click()
+        button.click()
+        page.wait_for_timeout(300)
+        expect(button).to_have_attribute("aria-expanded", "true")
+        self.assertEqual(reveal.evaluate("el => getComputedStyle(el).transform"), "matrix(1, 0, 0, 1, 0, 0)")
+        page.emulate_media(reduced_motion="reduce")
+        button.click()
+        expect(button).to_have_attribute("aria-expanded", "false")
+        self.assertLess(float(reveal.evaluate("el => parseFloat(getComputedStyle(el).transitionDuration)")), 0.001)
+        self.assertTrue(reveal.locator("..").evaluate("el => el.inert"))
+
     def test_boosted_sidebar_navigation_initialises_the_page(self):
         # hx-boost swaps the body, and Alpine used to run before the externally
         # loaded date-range.js, leaving the whole component uninitialised (#1667).

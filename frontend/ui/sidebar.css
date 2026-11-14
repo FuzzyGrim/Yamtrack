@@ -3,6 +3,19 @@
   display: contents;
 }
 
+.sidebar-reveal {
+  transform: translateY(100%);
+  transition: transform var(--sidebar-reveal-duration) ease-in-out;
+}
+
+.sidebar-reveal[data-open="true"] {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-reveal { transition: none; }
+}
+
 /* Keep a keyboard ring, but do not leave a focus ring after a pointer click. */
 [data-sidebar-root] :focus:not(:focus-visible) {
   outline: none !important;

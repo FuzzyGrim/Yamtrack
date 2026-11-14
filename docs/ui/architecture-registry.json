@@ -4653,11 +4653,11 @@
       "components": [
         "Reveal"
       ],
-      "purpose": "Animate the sidebar Explore block open and closed with the release's 200 ms height reveal on the browser; the native counterpart keeps the same open/closed contract.",
+      "purpose": "Animate Sidebar Explore with a clipped 200 ms transform on web, avoiding per-frame height layout; native retains its measured-height implementation.",
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Compiled into the browser sidebar; the reveal is being rechecked against the release behavior."
+          "evidence": "Targeted Chromium regression exercises the mounted sidebar, rapid reversal, scrolling and reduced motion; visual comparison remains pending."
         },
         "ios": {
           "status": "unverified",
