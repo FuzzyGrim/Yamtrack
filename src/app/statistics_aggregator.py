@@ -1,6 +1,7 @@
 """Range-level statistics aggregator — extracted from statistics_cache.py."""
 
 import calendar
+import copy
 import heapq
 import itertools
 import logging
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta
 
 from django.apps import apps
 from django.core.cache import cache
+from django.db.models import Model
 from django.utils import timezone
 from django.utils.translation import gettext_noop
 
@@ -421,6 +423,51 @@ def _fetch_media_objects(media_refs):
     return media_objects
 
 
+def _detached_copy(instance):
+    """Copy a loaded row and the related rows it carries.
+
+    A range sets per-range attributes on its rows (``aggregated_score``), so a
+    row shared by several ranges, or by two cards of one range, is handed out
+    as a copy. Related rows (the item, a season's show) are copied too, so a
+    copy never shares an object with another card. Prefetched collections are
+    shared; nothing writes to them.
+    """
+    clone = copy.copy(instance)
+    fields_cache = clone._state.fields_cache
+    for name, related in fields_cache.items():
+        if isinstance(related, Model):
+            fields_cache[name] = _detached_copy(related)
+    return clone
+
+
+def _shared_rows(memo, kind, refs, load):
+    """Return ``{ref: row}`` for ``refs``, loading only refs not seen before.
+
+    ``memo`` lives for one sync pass (or one aggregate): every range of the
+    pass asks for many of the same rows, and loading a row does not depend on
+    the range. ``load(refs)`` returns ``{ref: row}`` and may leave out refs it
+    cannot find; those are remembered as absent. The stored rows are never
+    handed out, only copies of them.
+    """
+    store = memo.setdefault(kind, {})
+    missing = [ref for ref in refs if ref not in store]
+    if missing:
+        loaded = load(missing)
+        for ref in missing:
+            store[ref] = loaded.get(ref)
+    return {ref: _detached_copy(store[ref]) for ref in refs if store[ref] is not None}
+
+
+def _shared_media_objects(memo, media_refs):
+    """``_fetch_media_objects`` through the pass memo."""
+    refs = {
+        (media_type, media_id)
+        for media_type, media_id in media_refs
+        if media_type and media_id
+    }
+    return _shared_rows(memo, "media_rows", refs, _fetch_media_objects)
+
+
 def _aggregate_minutes_per_media_type_from_days(user, day_list, *, build_missing=False):
     minutes_by_type = defaultdict(float)
     if not day_list:
@@ -685,12 +732,15 @@ def _aggregate_statistics_from_days(
 
     ``pass_memo`` is an in-memory dict the caller keeps for one sync pass so
     its ranges share lookups that do not depend on the range (History index
-    and days). It is never cached or published. ``build_days(days)`` builds
+    and days, and the tracker rows the cards show, loaded and annotated once
+    per pass and handed to each range as copies). It is never cached or
+    published. ``build_days(days)`` builds
     and caches a batch of missing days and returns their credit hints; with it
     a missing day is found by the read that would have fetched it anyway.
     """
     clock = _PhaseClock(timings)
     history_memo = {} if pass_memo is None else pass_memo
+    row_memo = history_memo
     is_all_time_query = start_date is None and end_date is None
     items_by_type = defaultdict(dict)
     top_played_by_type = defaultdict(dict)
@@ -1322,17 +1372,23 @@ def _aggregate_statistics_from_days(
             (meta.get("media_type"), meta.get("media_id")) for meta in metas
         )
 
-    media_map = _fetch_media_objects(set(media_refs))
-    # The overall list and the per-type lists mostly name the same rows.
-    # Annotate each row once (the annotation re-reads the row and looks up
-    # its progress total) and let both lists share the result.
+    media_map = _shared_media_objects(row_memo, media_refs)
+    # The overall list and the per-type lists mostly name the same rows, and
+    # so do the ranges of a pass. Annotate each row once per pass (the
+    # annotation re-reads the row and looks up its progress total); both
+    # lists of this range share one copy of it.
     annotated_refs = [ref for ref in dict.fromkeys(media_refs) if media_map.get(ref)]
-    annotated_map = dict(
-        zip(
-            annotated_refs,
-            stats._annotate_top_rated_media([media_map[ref] for ref in annotated_refs]),
-            strict=True,
-        )
+    annotated_map = _shared_rows(
+        row_memo,
+        "top_rated_rows",
+        annotated_refs,
+        lambda refs: dict(
+            zip(
+                refs,
+                stats._annotate_top_rated_media([media_map[ref] for ref in refs]),
+                strict=True,
+            )
+        ),
     )
     top_rated_media = [
         annotated_map[ref]
@@ -1415,7 +1471,7 @@ def _aggregate_statistics_from_days(
         for entry in entries:
             media_refs.append((media_type, entry.get("media_id")))
 
-    media_map = _fetch_media_objects(set(media_refs))
+    media_map = _shared_media_objects(row_memo, media_refs)
     for media_type, entries in top_played.items():
         enriched = []
         for entry in entries:
@@ -1842,8 +1898,9 @@ def _aggregate_statistics_from_days(
     top_daily_avg_games = sorted(
         game_data, key=lambda x: x["daily_average"], reverse=True
     )[:STATISTICS_TOP_N]
-    game_media_map = _fetch_media_objects(
-        {(MediaTypes.GAME.value, item["media_id"]) for item in top_daily_avg_games}
+    game_media_map = _shared_media_objects(
+        row_memo,
+        {(MediaTypes.GAME.value, item["media_id"]) for item in top_daily_avg_games},
     )
     top_daily_avg_payload = []
     for item in top_daily_avg_games:
@@ -2063,7 +2120,7 @@ def _aggregate_statistics_from_days(
             for entry in top_entries
             if entry.get("media_id")
         }
-        top_media_map = _fetch_media_objects(top_media_refs)
+        top_media_map = _shared_media_objects(row_memo, top_media_refs)
         top_items = []
         for entry in top_entries:
             media = top_media_map.get((media_type, entry.get("media_id")))
