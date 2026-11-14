@@ -6,8 +6,9 @@ latest requires a pull request to be up to date before it merges, and GitHub's
 merge queue is not available on a personal repository. Auto-merge alone then stalls:
 after any merge every other waiting PR is behind and nothing updates it. This script
 is the queue. Among open PRs that have auto-merge switched on (the owner's approval),
-it walks them in the order auto-merge was enabled and acts on the first one that can
-still merge:
+it prefers already-current green or running candidates, then stale green
+branches over newer unproven branches. Older non-failing candidates eventually
+get FIFO priority; previously failed checks eligible for a refresh go last:
 
 - behind latest: merge latest into it (this restarts CI, and auto-merge lands it),
 - up to date and its checks are running or about to merge: it is the one in flight
@@ -48,6 +49,7 @@ HUNG_AFTER = timedelta(hours=2)  # a required check this old and still pending i
 # got CI (for example a change CI ignores); one green this long that GitHub still has
 # not merged is stuck on something else. Either would hold the queue forever.
 STALLED_AFTER = timedelta(minutes=30)
+FAIRNESS_AFTER = timedelta(hours=2)  # Bound bypasses of non-failing stale PRs.
 UNKNOWN_RETRIES = 3  # GitHub recalculates mergeability on request; ask again
 UNKNOWN_WAIT_SECONDS = 10
 ATTEMPT_MARKER = re.compile(r"<!-- merge-train-base:([0-9a-f]{40})(?::(refused))? -->")
@@ -124,6 +126,13 @@ def _attempt_marker(pr: dict) -> tuple[str, str | None] | None:
     return (match.group(1), match.group(2)) if match else None
 
 
+def _all_required_passed(pr: dict) -> bool:
+    checks = _checks(pr, REQUIRED_CHECKS)
+    return {c["name"] for c in checks} == REQUIRED_CHECKS and all(
+        c["status"] == "COMPLETED" and c["conclusion"] in PASSED for c in checks
+    )
+
+
 def _up_to_date_verdict(pr: dict, now: datetime) -> tuple[str, str]:
     """Judge a PR whose head already contains latest: in flight, or stuck."""
     checks = _checks(pr, REQUIRED_CHECKS)
@@ -135,7 +144,7 @@ def _up_to_date_verdict(pr: dict, now: datetime) -> tuple[str, str]:
                 "ignores, such as docs only, needs a manual merge)"
             )
         return "wait", "required checks are queued or running"
-    if all(c["status"] == "COMPLETED" and c["conclusion"] in PASSED for c in checks):
+    if _all_required_passed(pr):
         finished = max(_time(c["completedAt"]) for c in checks)
         if now - finished > STALLED_AFTER:
             return "skip", (
@@ -197,12 +206,31 @@ def choose(
     notes: list[str] = []
     chosen: tuple[str, int] | None = None
     manual_only = bool(queue)
-    for pr in queue:
+    # Evaluate every candidate; FIFO is the tie-breaker within a priority.
+    decisions = [
+        (pr, *judge(pr, behind.get(pr["number"]), now)) for pr in queue
+    ]
+
+    def priority(item: tuple[dict, str, str]) -> int:
+        pr, verdict, _ = item
+        if verdict == "wait":
+            if behind.get(pr["number"]) == 0 and _all_required_passed(pr):
+                return 0
+            return 1  # Avoid invalidating an integration run already in flight.
+        if _old_non_migration_failure(pr):
+            return 5
+        if now - _time(pr["autoMergeRequest"]["enabledAt"]) >= FAIRNESS_AFTER:
+            return 2
+        if _all_required_passed(pr):
+            return 3
+        return 4
+
+    candidates = [item for item in decisions if item[1] != "skip"]
+    if candidates:
+        selected, verdict, _ = min(candidates, key=priority)
+        chosen = (verdict, selected["number"])
+    for pr, verdict, reason in decisions:
         number = pr["number"]
-        if chosen:
-            notes.append(f"#{number} queued behind #{chosen[1]}")
-            continue
-        verdict, reason = judge(pr, behind.get(number), now)
         if verdict == "skip":
             notes.append(f"#{number} skipped: {reason}")
             # Only an external fork permission boundary is a healthy manual
@@ -216,9 +244,10 @@ def choose(
                 )
             ):
                 manual_only = False
-        else:
+        elif chosen and number == chosen[1]:
             notes.append(f"#{number} {verdict}: {reason}")
-            chosen = (verdict, number)
+        elif chosen:
+            notes.append(f"#{number} queued behind #{chosen[1]}")
     if chosen:
         return chosen[0], chosen[1], notes
     if not queue:
@@ -321,6 +350,16 @@ def main(argv: list[str]) -> int:
     dry_run = "--dry-run" in argv
     owner, name = os.environ["GH_REPO"].split("/")
     prs, latest = _fetch(owner, name)
+    # Ignore failures on unrelated or superseded PR heads.
+    failed_head = os.environ.get("FAILED_CI_HEAD")
+    if failed_head and not any(
+        p["headRefOid"] == failed_head
+        and not p["isDraft"]
+        and p["autoMergeRequest"]
+        for p in prs
+    ):
+        _report(["CI failure is not on a current approved PR head; ignored"], False)
+        return 0
     for _ in range(UNKNOWN_RETRIES):
         if not unsettled(prs):
             break
@@ -359,7 +398,8 @@ def main(argv: list[str]) -> int:
                 continue
         try:
             _gh(
-                "api", "-X", "PUT", f"repos/{owner}/{name}/pulls/{number}/update-branch"
+                "api", "-X", "PUT", f"repos/{owner}/{name}/pulls/{number}/update-branch",
+                "-f", f"expected_head_sha={pr['headRefOid']}",
             )
         except subprocess.CalledProcessError as error:
             if retrying_failed_checks:
