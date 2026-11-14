@@ -435,8 +435,15 @@ structurally smaller. Whether the request stops approaching the 400 MiB
 recycle ceiling is a Docker measurement.
 
 **Statistics FINISH: profiled, partly reduced.** `_aggregate_statistics_from_days`
-now times its phases and `stats_range_summary` logs them as `phases_ms`, so a
-slow range names its own cause. The profile was taken on a synthetic library
+is a short sequence of phases in `statistics_aggregator.py`: the day walk
+(`_walk_days`, merging each payload into one `_RangeAccumulators` with
+`_merge_day`), then undated rows, status and scores with top rated
+(`_build_scores_and_top_rated`), top played, activity and play charts, games,
+reading (`_build_reading_consumption` per type), History highlights, summary
+cards, top talent, and packing the per-type metric cards. Each phase is a
+function that reads the accumulators and returns its part of the payload, and
+`stats_range_summary` logs each one's wall time in `phases_ms` under the same
+names, so a slow range names its own cause. The profile was taken on a synthetic library
 (one user, 3,414 active days, about 15,000 items; production is about 9,570
 days and 250,000 items), with day payloads warm:
 
