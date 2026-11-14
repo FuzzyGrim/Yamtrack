@@ -20,7 +20,7 @@ from integrations.models import MylarInstance
 from integrations.safe_fetch import SelfHostedUrlError, send_to_self_hosted
 from integrations.source_sync import (
     prune_collection_source_states,
-    upsert_collection_source_state,
+    sync_collection_source_state,
 )
 
 logger = logging.getLogger(__name__)
@@ -177,14 +177,18 @@ class MylarImporter:
                     imported_counts["skipped_missing_ids"] += 1
                     continue
                 owned_item_ids.add(item.id)
-                upsert_collection_source_state(
+                _entry, changed = sync_collection_source_state(
                     user=self.user,
                     item=item,
                     source=self.source,
                     source_instance_id=self.instance.pk,
                 )
-                imported_counts["collection"] += 1
-                imported_counts["updated"] += 1
+                # An unchanged copy is not an import (see radarr.py).
+                if changed:
+                    imported_counts["collection"] += 1
+                    imported_counts["updated"] += 1
+                else:
+                    imported_counts["unchanged"] += 1
         except MediaImportError as error:
             connection_health.record_failure(
                 self.instance,

@@ -117,21 +117,62 @@ def upsert_collection_source_state(
     source_instance_id: int | None = None,
 ):
     """Persist a source snapshot and reconcile the durable collection entry."""
-    if source_updated_at is None:
-        source_updated_at = timezone.now()
+    entry, _changed = sync_collection_source_state(
+        user=user,
+        item=item,
+        source=source,
+        quality_label=quality_label,
+        source_updated_at=source_updated_at,
+        source_instance_id=source_instance_id,
+    )
+    return entry
+
+
+def sync_collection_source_state(
+    *,
+    user,
+    item,
+    source: str,
+    quality_label: str = "",
+    source_updated_at=None,
+    source_instance_id: int | None = None,
+):
+    """Persist a source snapshot; return ``(entry, changed)``.
+
+    ``source_updated_at`` is the source's own timestamp for the copy, or None
+    when it sends none. A snapshot the source reports exactly as before is
+    left alone, so a scheduled sync of an unchanged library writes nothing;
+    the collection entry is still reconciled, which repairs drift and writes
+    only what differs.
+    """
+    quality_label = quality_label or ""
 
     def _upsert_state():
-        CollectionSourceState.objects.update_or_create(
+        state = CollectionSourceState.objects.filter(
             user=user,
             item=item,
             source=source,
             source_instance_id=source_instance_id,
-            defaults={
-                "quality_label": quality_label or "",
-                "last_source_updated_at": source_updated_at,
-            },
+        ).first()
+        changed = state is None or state.quality_label != quality_label or (
+            source_updated_at is not None
+            and state.last_source_updated_at != source_updated_at
         )
-        return _reconcile_collection_entry(user=user, item=item)
+        if changed:
+            CollectionSourceState.objects.update_or_create(
+                user=user,
+                item=item,
+                source=source,
+                source_instance_id=source_instance_id,
+                defaults={
+                    "quality_label": quality_label,
+                    # No source timestamp: first seen now, then kept.
+                    "last_source_updated_at": source_updated_at
+                    or (state.last_source_updated_at if state else None)
+                    or timezone.now(),
+                },
+            )
+        return _reconcile_collection_entry(user=user, item=item), changed
 
     return retry_on_lock(_upsert_state)
 

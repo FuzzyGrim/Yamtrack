@@ -520,14 +520,27 @@ class AudiobookshelfImporter:
         ).first()
         if book is None:
             return False
+        session_id = str(row.get("id") or started_ms)
+        values = {
+            "started_at": datetime.fromtimestamp(started_ms / 1000, tz=UTC),
+            "minutes": minutes,
+            "position_minutes": position_minutes,
+        }
+        # Each run re-reads the newest page of sessions. Re-saving one that
+        # has not changed would refresh History and Statistics for its day and
+        # mark Discover stale on every scheduled run.
+        existing = app.models.BookListeningSession.objects.filter(
+            book=book,
+            session_id=session_id,
+        ).first()
+        if existing and all(
+            getattr(existing, field) == value for field, value in values.items()
+        ):
+            return False
         _, created = app.models.BookListeningSession.objects.update_or_create(
             book=book,
-            session_id=str(row.get("id") or started_ms),
-            defaults={
-                "started_at": datetime.fromtimestamp(started_ms / 1000, tz=UTC),
-                "minutes": minutes,
-                "position_minutes": position_minutes,
-            },
+            session_id=session_id,
+            defaults=values,
         )
         return created
 
