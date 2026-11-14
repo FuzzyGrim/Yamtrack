@@ -808,10 +808,11 @@ TrackForm keeps the accepted tabbed dialog and field composition. Date shortcuts
 - Native presentation: `StatisticsPreferencesButton`, `StatisticsPreferencesModal` (built on `SelectField`) and `StatisticsBanner` (Building/Refreshing notice), all in `StatisticsPreferences.jsx` saves through PATCH `/api/v1/statistics/preferences/`, now carrying activity view, duration format, week start, rating scale and the anime split. Consumer: native `StatisticsScreen` only; the web keeps its Alpine modal. Verification: browser (Expo web) only; iOS and Android not verified.
 
 ### STATISTICS — Dashboard, charts and taste/talent
+- `StatisticsMediaTypeOverview` uses width-constrained shared panel cells so long titles stay inside stacked cards. The web overview islands and native `StatisticsView` consume it; legacy server overview fragments remain fallbacks until their hosts retire. Browser: populated phone and desktop layouts verified. iOS: Expo Go preview inspected on iPhone 16 Pro. Android: emulator did not respond to capture. No platform carve-out.
 - Native presentation: the native screen loads real data through its transport; all demo fixtures removed; loading/empty/error and signed-out states verified in the Expo web build. iOS/Android not run. Details: docs/ui/expo-parity-audit.md.
 
 - Purpose/usage: statistics, comparison, activity/highlights and featured repeats.
-- Status: `Legacy`. Server templates with Chart.js and plain JavaScript; no React component.
+- Status: `Partial/coexisting`. Shared React presentation is mounted in web islands and the native screen; server templates, Chart.js and plain JavaScript remain as fallbacks and page infrastructure.
 - Implementation: `src/templates/app/statistics.html`, statistics/taste/role/studio/featured fragments; `src/static/js/statistics-charts.js`, `stats-media-merge.js`, `date-range.js`, Chart.js/datalabels.
 - Contract: media/range/comparison, dates/units, charts/heatmaps/order, refresh/errors and teardown; avoid drift in server/JS media visual mappings.
 - Data: `src/app/statistics_views.py`, snapshots/[statistics sync](../architecture/statistics-sync.md).

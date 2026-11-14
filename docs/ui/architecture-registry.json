@@ -1515,11 +1515,11 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "The shared comparison, taste/talent, role/studio leader and per-media overview presentation is not mounted in the browser; the existing server/Alpine Statistics page remains the web owner and no browser pass was performed."
+          "evidence": "Web islands mount shared per-media overview and talent presentation alongside server fallbacks. Populated overview panels with long titles were checked at phone width; legacy fallbacks remain until their hosts retire."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Statistics screen; no comparison mode, sort control, person selection, media-type filter or empty state was exercised on a simulator or device."
+          "evidence": "StatisticsMediaTypeOverview with long titles was inspected in an Expo Go preview on iPhone 16 Pro; other Statistics interactions were not verified in this pass."
         },
         "android": {
           "status": "unverified",
