@@ -3,15 +3,16 @@ name: Merge Train
 # latest requires pull requests to be up to date before they merge, and GitHub's
 # merge queue is not available on a personal repository, so auto-merge alone
 # stalls once the first PR lands. This keeps the next approved PR (one with
-# auto-merge on) up to date, one at a time, so auto-merge can finish it. See
+# auto-merge on) up to date, one at a time, preferring green work with an
+# aging rule, so auto-merge can finish it. See
 # scripts/merge_train.py for the rules. Run it by hand with "dry run" ticked to
 # see what it would do without touching anything.
 #
 # It runs when latest moves, or a pull request's auto-merge, readiness, head,
 # or closed state changes. GitHub auto-merge already responds to required CI
-# completing, so workflow_run completion triggers only spawn extra train runs
-# for unrelated PRs, including on every failing test retry. The 15 minute
-# schedule is only a safety net: GitHub delays and drops scheduled runs (about
+# completing successfully. Failed required CI must wake the train because
+# no push or PR event is guaranteed to follow. Ignore unrelated/obsolete heads.
+# The 15 minute schedule is only a safety net: GitHub delays and drops scheduled runs (about
 # 5 of 96 ran on 2026-10-19). Pull request and CI events from forks run this
 # workflow as it is on latest, never the fork's copy, and nothing from the pull
 # request is checked out or run: the script only reads the GitHub API.
@@ -39,6 +40,9 @@ on:
       - synchronize
       - reopened
       - closed
+  workflow_run:
+    workflows: ["App Tests", "Lint", "Migration Order"]
+    types: [completed]
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
@@ -48,15 +52,21 @@ on:
         type: boolean
         default: true
 
-concurrency:
-  group: merge-train
-  cancel-in-progress: false
-
 permissions:
   contents: read
 
 jobs:
   merge-train:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.event == 'pull_request' &&
+       contains(fromJSON('["failure","timed_out","cancelled","action_required","startup_failure"]'),
+                github.event.workflow_run.conclusion))
+    # Skipped successful/unrelated workflow_run jobs must not replace a
+    # pending train job in the concurrency group.
+    concurrency:
+      group: merge-train
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -69,6 +79,7 @@ jobs:
           GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN }}
           GH_REPO: ${{ github.repository }}
           DRY_RUN: ${{ inputs.dry_run }}
+          FAILED_CI_HEAD: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::AUTO_MERGE_TOKEN secret is not set."

@@ -766,7 +766,7 @@ Status: `Legacy`
 
 - `StatisticsMediaTypeOverview` is shared by web overview islands and the native Statistics screen; its stacked list panels constrain their width and truncate long titles. Server overview fragments remain fallbacks. Browser phone and desktop layouts and an iOS Expo Go preview were inspected; Android capture did not respond.
 
-Status: `Partial/coexisting` — shared React islands and native presentation coexist with the server sources below.
+Status: `Partial / coexisting` — shared React islands and native presentation coexist with the server sources below.
 
 - `src/static/js/date-range.js`
 - `src/static/js/libraries/chartjs-4.4.9.min.js`

@@ -132,6 +132,40 @@ class MergeTrainTests(TestCase):
         prs = [pr(1), pr(2, enabled="2026-10-05T02:00:00Z")]
         self.assertEqual(train.choose(prs, {1: 0, 2: 4}, NOW)[:2], ("wait", 1))
 
+    def test_current_green_pr_takes_precedence_over_older_stale_branch(self):
+        prs = [pr(1), pr(2, checks=passed(), state="CLEAN")]
+        self.assertEqual(train.choose(prs, {1: 3, 2: 0}, NOW)[:2], ("wait", 2))
+
+    def test_current_running_pr_takes_precedence_over_stale_green(self):
+        prs = [pr(1, checks=passed()), pr(2)]
+        self.assertEqual(train.choose(prs, {1: 3, 2: 0}, NOW)[:2], ("wait", 2))
+
+    def test_green_stale_pr_bypasses_recent_pending_pr(self):
+        prs = [
+            pr(1, enabled="2026-10-05T11:15:00Z"),
+            pr(2, enabled="2026-10-05T11:30:00Z", checks=passed()),
+        ]
+        self.assertEqual(train.choose(prs, {1: 3, 2: 2}, NOW)[:2], ("update", 2))
+
+    def test_aging_rule_prevents_starving_old_pending_pr(self):
+        prs = [
+            pr(1, enabled="2026-10-05T09:45:00Z"),
+            pr(2, enabled="2026-10-05T11:30:00Z", checks=passed()),
+        ]
+        self.assertEqual(train.choose(prs, {1: 3, 2: 2}, NOW)[:2], ("update", 1))
+
+    def test_old_red_retry_does_not_hold_up_green_stale_pr(self):
+        old = pr(1, checks=[
+            ("lint", "COMPLETED", "FAILURE", _iso(timedelta(hours=3)), _iso(timedelta(hours=3))),
+        ])
+        old["_latest_date"] = "2026-10-05T10:00:00Z"
+        prs = [old, pr(2, checks=passed())]
+        self.assertEqual(train.choose(prs, {1: 3, 2: 2}, NOW)[:2], ("update", 2))
+
+    def test_newer_current_green_pr_takes_precedence_over_running_pr(self):
+        prs = [pr(1), pr(2, checks=passed(), state="CLEAN")]
+        self.assertEqual(train.choose(prs, {1: 0, 2: 0}, NOW)[:2], ("wait", 2))
+
     def test_stale_branch_is_updated_whatever_github_calls_the_state(self):
         """A head missing latest commits is behind even if the state is not BEHIND."""
         for state in ("BLOCKED", "UNKNOWN", "UNSTABLE", "BEHIND"):
@@ -351,6 +385,19 @@ class MainTests(TestCase):
         code, fake = self.run_train([pr(1)], {1: 2}, argv=["--dry-run"])
         self.assertEqual((code, fake.updated), (0, []))
 
+    def test_ci_failure_on_obsolete_or_unapproved_head_is_ignored(self):
+        for head in ("obsolete", "sha2"):
+            with self.subTest(head=head), patch.dict("os.environ", {"FAILED_CI_HEAD": head}):
+                code, fake = self.run_train([pr(1), pr(2, enabled=None)], {1: 2})
+                self.assertEqual((code, fake.updated), (0, []))
+
+    def test_ci_failure_on_current_head_advances_next_pr(self):
+        done = _iso(timedelta(minutes=5))
+        failed = pr(1, checks=[("test (3.12)", "COMPLETED", "FAILURE", done, done)])
+        with patch.dict("os.environ", {"FAILED_CI_HEAD": "sha1"}):
+            code, fake = self.run_train([failed, pr(2, checks=passed())], {1: 0, 2: 2})
+        self.assertEqual((code, fake.updated), (0, [2]))
+
     def test_empty_queue_succeeds(self):
         """Nothing approved is a healthy, idle train."""
         self.assertEqual(self.run_train([pr(1, enabled=None)], {})[0], 0)
@@ -458,11 +505,15 @@ class WorkflowTests(TestCase):
             {"push", "schedule", "pull_request_target", "workflow_dispatch"},
             set(self.triggers),
         )
-        self.assertNotIn(
-            "workflow_run",
-            self.triggers,
-            "CI completions should not launch redundant merge-train runs",
+        self.assertEqual(self.triggers["workflow_run"]["types"], ["completed"])
+        self.assertEqual(
+            set(self.triggers["workflow_run"]["workflows"]),
+            {"App Tests", "Lint", "Migration Order"},
         )
+        gate = self.workflow["jobs"]["merge-train"]["if"]
+        self.assertIn("github.event.workflow_run.event == 'pull_request'", gate)
+        self.assertIn('"failure"', gate)
+        self.assertNotIn('"success"', gate)
         self.assertIn(
             "auto_merge_enabled", self.triggers["pull_request_target"]["types"]
         )
