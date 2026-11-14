@@ -36,6 +36,9 @@ export function HomeView({
   renderActionIcon,
   railComponent,
   onLoadRow,
+  watchRow,
+  rowHeights,
+  progressHeight,
   onLoadMore,
   onSortRow,
   onRefreshCovers,
@@ -72,6 +75,9 @@ export function HomeView({
       renderActionIcon={renderActionIcon}
       railComponent={railComponent}
       onLoadRow={onLoadRow}
+      watchRow={watchRow}
+      rowHeights={rowHeights}
+      progressHeight={progressHeight}
       onLoadMore={onLoadMore}
       onSortRow={onSortRow}
       onRefreshCovers={onRefreshCovers}

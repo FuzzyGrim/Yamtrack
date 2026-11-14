@@ -726,9 +726,12 @@ class IntegrationTest(SerialStaticLiveServerTestCase):
                 "button", name="Add", exact=True,
             ).click()
         save_request.value.response()
-        self.page.goto(f"{self.live_server_url}/medialist/tv")
+        # List cards no longer print their status; the Completed filter shows it.
+        self.page.goto(f"{self.live_server_url}/medialist/tv?status=Completed")
+        expect(
+            self.page.get_by_role("button", name="Status: Completed", exact=True),
+        ).to_be_visible()
         expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
-        expect(self.page.get_by_role("main")).to_contain_text("Completed")
 
     def test_season_completed(self):
         """Test the completed status of a season."""
@@ -744,6 +747,7 @@ class IntegrationTest(SerialStaticLiveServerTestCase):
         self.page.get_by_role("button", name="Add to tracker").click()
         track_form = self.page.locator("#track-season-1396-1")
         expect(track_form).to_contain_text("Score")
+        self.pick_track_status(self.shared_dialog(), "Completed")
         with self.page.expect_request(
             lambda request: request.method == "POST" and "/media_save" in request.url,
         ) as save_request:
@@ -751,8 +755,12 @@ class IntegrationTest(SerialStaticLiveServerTestCase):
                 "button", name="Add", exact=True,
             ).click()
         save_request.value.response()
-        self.page.goto(f"{self.live_server_url}/medialist/season")
-        expect(self.page.get_by_role("main")).to_contain_text("Completed")
+        # List cards no longer print their status; the Completed filter shows it.
+        self.page.goto(f"{self.live_server_url}/medialist/season?status=Completed")
+        expect(
+            self.page.get_by_role("button", name="Status: Completed", exact=True),
+        ).to_be_visible()
+        expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
 
     def test_tv_manual(self):
         """Test the manual creation of a TV show."""

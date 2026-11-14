@@ -1253,6 +1253,15 @@ else:
         "DISCOVER_WARMUP_ON_STARTUP",
         cast=bool,
     )
+# A tracked write rebuilds Discover in the background only for someone who
+# opened Discover (or called the recommendations API) in the last this many
+# days; for everyone else the tab is marked stale and rebuilt on the next visit.
+# 0 rebuilds after every write for everyone (the previous behaviour).
+DISCOVER_EAGER_REBUILD_DAYS = config(
+    "DISCOVER_EAGER_REBUILD_DAYS",
+    default=3,
+    cast=int,
+)
 
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 

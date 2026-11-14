@@ -4154,6 +4154,28 @@
           "evidence": "Implemented in Expo with React Native primitives and native SVG adapters. Current emulator visual and interaction comparison pending."
         }
       }
+    },
+    "frontend/ui/homeRowLoading.js": {
+      "components": [
+        "rowProximity",
+        "rowsToStart",
+        "rowPriority"
+      ],
+      "register": "HOME",
+      "verification": {
+        "web": {
+          "status": "verified",
+          "evidence": "node --test scripts/homeRowLoading.test.mjs (visible, near and far bands, start order, priority, queued row scrolled into view goes next); Chromium Home load counted below in the HOME register entry."
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "Pure JavaScript with no platform API; shared with the Expo Home screen through HomeShelves and homeRowWatcherCore. Simulator evidence is recorded in the HOME register entry."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Pure JavaScript with no platform API; not run on an emulator or device."
+        }
+      }
     }
   },
   "platform": {
@@ -5758,6 +5780,10 @@
     "frontend/settings/pose.web.js": {
       "register": "DETAIL",
       "purpose": "Browser adapter that writes the PWA device pose (data-pose on <html>) from the window size and keeps it current on resize and rotation."
+    },
+    "frontend/ui/homeRowWatcher.web.js": {
+      "register": "HOME",
+      "purpose": "Browser adapter that reports where each waiting Home row sits (on screen, within one and a half screens, or further) with IntersectionObserver, so shared HomeShelves requests only rows near the viewport. Native counterpart: native-proof/app/data/homeRowWatcherCore.js."
     }
   }
 }

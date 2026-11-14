@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'r
 import { MediaCard } from './MediaCard.jsx';
 import { Rail } from './Rail';
 import { createFetchGate } from './fetchGate.js';
+import { ROW_WATCH_FALLBACK_MS, rowPriority, rowsToStart } from './homeRowLoading.js';
 import { sectionSpacing } from './sectionSpacing.js';
 
 // Web and native shelves must pick the same card width. Web computes it from
@@ -56,9 +57,9 @@ function mergeLabels(labels) {
 }
 
 const ROW_LOAD_RETRIES = 3;
-// A page asks for every row at once; the server has a handful of threads shared
-// with every other request, so only a few row loads run at a time and the rest
-// start as those finish. Shared component: web and native behave the same.
+// The server has a handful of threads shared with every other request, so only
+// a few row loads run at a time and the rest start as those finish, rows on
+// screen first. Shared component: web and native behave the same.
 const ROW_FETCH_CONCURRENCY = 3;
 
 // Image loading is first-come on every platform, so prefetches queue ahead of the
@@ -172,10 +173,32 @@ const RailRow = React.memo(function RailRow({
     </View>} />;
 });
 
-function DeferredRow({ labels, palette, itemWidth = 176 }) {
-  return <View style={styles.skeleton}
+// A waiting row takes the height its loaded row will have, so rows arriving
+// do not push the page around. The height is measured from loaded rows of the
+// same media type and card width (and remembered by the platform between
+// visits when it can); until one has loaded it is estimated from the rail's
+// header, the card and the platform's progress control.
+const RAIL_HEADER_HEIGHT = 28;
+const RAIL_HEADER_GAP = 8;
+const RAIL_LIST_PADDING = 8;
+const PROGRESS_MARGIN = 8;
+const POSTER_ASPECT = 1.5;
+
+export function estimatedRowHeight(itemWidth, progressHeight = 0) {
+  return RAIL_HEADER_HEIGHT + RAIL_HEADER_GAP + Math.round(itemWidth * POSTER_ASPECT)
+    + (progressHeight > 0 ? PROGRESS_MARGIN + progressHeight : 0) + RAIL_LIST_PADDING;
+}
+
+export function rowHeightKey(mediaType, itemWidth) {
+  return `${mediaType || ''}:${Math.round(itemWidth)}`;
+}
+
+function DeferredRow({ labels, palette, itemWidth = 176, rowRef, height }) {
+  return <View ref={rowRef} style={[styles.skeleton, height ? { height } : null]}
     accessibilityRole="progressbar" accessibilityLabel={labels.loadingRow || 'Loading row'}>
-    <View style={[styles.skeletonTitle, { backgroundColor: palette.surfaceStrong }]} />
+    <View style={styles.skeletonHeader}>
+      <View style={[styles.skeletonTitle, { backgroundColor: palette.surfaceStrong }]} />
+    </View>
     <View style={styles.skeletonCards}>
       {[0, 1, 2, 3].map(index => <View key={index}
         style={[styles.skeletonCard, { backgroundColor: palette.surface, width: itemWidth }]} />)}
@@ -208,6 +231,16 @@ export function HomeShelves({
   onSortRow,
   onLoadMore,
   onLoadRow,
+  // `watchRow(id, node, onChange)` is the platform's report of where a waiting
+  // row sits: it calls `onChange('visible' | 'near' | 'far')` and returns a
+  // function that stops watching. Web uses IntersectionObserver, native measures
+  // on scroll. Without it every row loads, as before.
+  watchRow,
+  // Waiting-row sizes. `rowHeights` ({ get(key), set(key, height) }) lets the
+  // platform remember measured heights between visits; `progressHeight` is
+  // the height of the control its `renderProgress` draws under a card.
+  rowHeights,
+  progressHeight = 0,
   onRefreshCovers,
   onOpenSettings,
   testID,
@@ -231,14 +264,64 @@ export function HomeShelves({
   const firstPoll = useRef(true);
   const loadRowRef = useRef(null);
   const pollRowsRef = useRef([]);
+  const lazy = typeof watchRow === 'function';
+  const watchRowRef = useRef(watchRow);
+  watchRowRef.current = watchRow;
+  // Where each waiting row sits ('visible' | 'near' | 'far'), as last reported.
+  const proximity = useRef(new Map());
+  const watchReported = useRef(false);
+  const rowRefs = useRef(new Map());
+  const flushTimer = useRef(null);
+
+  // Measured heights of loaded rows, by media type and card width.
+  const [measuredHeights, setMeasuredHeights] = useState({});
+  const rowHeightsRef = useRef(rowHeights);
+  rowHeightsRef.current = rowHeights;
+  const noteRowHeight = useCallback((mediaType, height) => {
+    if (!(height > 0)) return;
+    const key = rowHeightKey(mediaType, itemWidth);
+    const rounded = Math.round(height);
+    setMeasuredHeights(current => (current[key] === rounded ? current : { ...current, [key]: rounded }));
+    try {
+      if (rowHeightsRef.current?.get?.(key) !== rounded) rowHeightsRef.current?.set?.(key, rounded);
+    } catch (error) {
+      // Remembering sizes is only a convenience.
+    }
+  }, [itemWidth]);
+  const placeholderHeight = mediaType => {
+    const key = rowHeightKey(mediaType, itemWidth);
+    if (measuredHeights[key]) return measuredHeights[key];
+    let remembered;
+    try {
+      remembered = Number(rowHeightsRef.current?.get?.(key));
+    } catch (error) {
+      remembered = 0;
+    }
+    if (remembered > 0) return remembered;
+    return estimatedRowHeight(itemWidth, renderProgress ? progressHeight : 0);
+  };
 
   const deferredKey = useMemo(
     () => deferredGroups.map(group => `${group.mediaType}:${(group.rowIds || []).join(',')}`).join('|'),
     [deferredGroups],
   );
+  const deferredIds = useMemo(
+    () => deferredGroups.flatMap(group => group.rowIds || []),
+    [deferredKey],
+  );
+  const deferredIdsRef = useRef(deferredIds);
+  deferredIdsRef.current = deferredIds;
 
+  // A new set of rows (a reload) may be requested again. Not on mount: native
+  // can report row positions before this component's effects run, and a reset
+  // then would drop those reports.
+  const seenDeferredKey = useRef(deferredKey);
+  const flushStartsRef = useRef(null);
   useEffect(() => {
+    if (seenDeferredKey.current === deferredKey) return;
+    seenDeferredKey.current = deferredKey;
     startedRows.current = new Set();
+    flushStartsRef.current?.();
   }, [deferredKey]);
 
   useEffect(() => {
@@ -263,9 +346,12 @@ export function HomeShelves({
   );
   pollRowsRef.current = pollRows;
   const pollIdsKey = pollRows.map(row => rowKey(row)).join(',');
-  const unresolved = deferredGroups.flatMap(group => (group.rowIds || [])
+  // Rows still to arrive keep the artwork poll alive. With lazy rows only rows
+  // already requested count, so rows nobody scrolled to start no polling.
+  const unresolved = deferredIds
     .filter(id => !Object.prototype.hasOwnProperty.call(loadedRows, String(id))
-      && !rowErrors[String(id)])).length;
+      && !rowErrors[String(id)]
+      && (!lazy || pendingRows[String(id)])).length;
 
   const loadRow = useCallback(async id => {
     const key = String(id);
@@ -282,7 +368,8 @@ export function HomeShelves({
       let row;
       for (let attempt = 0; ; attempt += 1) {
         try {
-          row = await rowGate.current(() => onLoadRow(id));
+          // Read when a slot frees, so a queued row scrolled into view goes next.
+          row = await rowGate.current(() => onLoadRow(id), () => rowPriority(proximity.current.get(key)));
           break;
         } catch (error) {
           if (attempt >= ROW_LOAD_RETRIES) throw error;
@@ -293,6 +380,8 @@ export function HomeShelves({
       setLoadedRows(current => ({ ...current, [key]: row || null }));
     } catch (error) {
       startedRows.current.delete(key);
+      // A failed row waits for its Try again button, not the next scroll.
+      proximity.current.delete(key);
       setRowErrors(current => ({ ...current, [key]: true }));
     } finally {
       setPendingRows(current => {
@@ -305,18 +394,74 @@ export function HomeShelves({
 
   loadRowRef.current = loadRow;
 
+  const startRow = useCallback(id => {
+    const key = String(id);
+    if (startedRows.current.has(key)) return;
+    startedRows.current.add(key);
+    loadRowRef.current?.(id);
+  }, []);
+
+  // Without a position report every row is requested, a little apart.
   useEffect(() => {
-    if (!onLoadRow) return undefined;
+    if (!onLoadRow || lazy) return undefined;
     const timers = [];
-    const ids = deferredGroups.flatMap(group => group.rowIds || []);
-    ids.forEach((id, index) => {
+    deferredIds.forEach((id, index) => {
       const key = String(id);
       if (startedRows.current.has(key)) return;
       startedRows.current.add(key);
       timers.push(setTimeout(() => { loadRowRef.current?.(id); }, index * deferredDelayMs));
     });
     return () => timers.forEach(timer => clearTimeout(timer));
-  }, [deferredKey, deferredDelayMs, onLoadRow]);
+  }, [deferredKey, deferredDelayMs, onLoadRow, lazy]);
+
+  // Lazy rows: if the platform never reports a position, load them all anyway.
+  // Keyed on whether a loader exists, not its identity, so re-renders do not
+  // keep pushing the deadline back.
+  const hasLoadRow = !!onLoadRow;
+  useEffect(() => {
+    if (!hasLoadRow || !lazy || !deferredIds.length) return undefined;
+    const timer = setTimeout(() => {
+      if (!watchReported.current) deferredIdsRef.current.forEach(startRow);
+    }, ROW_WATCH_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [deferredKey, hasLoadRow, lazy, startRow]);
+
+  useEffect(() => () => { if (flushTimer.current) clearTimeout(flushTimer.current); }, []);
+
+  // Position reports arrive one row at a time; start the batch together so
+  // rows on screen take the first request slots, then nearby ones.
+  const flushStarts = useCallback(() => {
+    if (!lazy || flushTimer.current) return;
+    flushTimer.current = setTimeout(() => {
+      flushTimer.current = null;
+      rowsToStart(deferredIdsRef.current, proximity.current, startedRows.current).forEach(startRow);
+    }, 0);
+  }, [lazy, startRow]);
+  flushStartsRef.current = flushStarts;
+
+  const reportProximity = useCallback((key, level) => {
+    watchReported.current = true;
+    proximity.current.set(key, level);
+    if (level !== 'far') flushStarts();
+  }, [flushStarts]);
+
+  // One stable ref callback per waiting row, so a re-render does not re-watch it.
+  const rowRefFor = useCallback(key => {
+    let entry = rowRefs.current.get(key);
+    if (entry) return entry.ref;
+    entry = { stop: null };
+    entry.ref = node => {
+      if (entry.stop) {
+        entry.stop();
+        entry.stop = null;
+      }
+      const watch = watchRowRef.current;
+      if (!node || typeof watch !== 'function') return;
+      entry.stop = watch(key, node, level => reportProximity(key, level)) || null;
+    };
+    rowRefs.current.set(key, entry);
+    return entry.ref;
+  }, [reportProximity]);
 
   const applyRow = useCallback(row => {
     if (!row) return;
@@ -410,8 +555,10 @@ export function HomeShelves({
     };
   }, [applyRow, onRefreshCovers, pollIdsKey, pollReady, refreshDelayMs, refreshIntervalMs, unresolved]);
 
-  function renderBuiltRows(rows) {
-    return (rows || []).map(row => <RailRow key={rowKey(row)} row={effectiveRow(row)}
+  function renderBuiltRows(rows, mediaType) {
+    return (rows || []).map(row => <View key={rowKey(row)}
+      onLayout={event => noteRowHeight(mediaType || row.mediaType, event.nativeEvent.layout.height)}>
+      <RailRow row={effectiveRow(row)}
       labels={labels} palette={palette} readOnly={readOnly} itemWidth={itemWidth}
       loadingMore={!!loadingMore[rowKey(row)]}
       sorting={!!sorting[rowKey(row)]}
@@ -420,14 +567,15 @@ export function HomeShelves({
       RailComponent={railComponent}
       onOpenCard={onOpenCard} onOpenLink={onOpenLink} onOpenRowTitle={onOpenRowTitle} canOpenRowTitle={canOpenRowTitle} onAction={onAction} onRate={onRate}
       onSortRow={onSortRow ? sortRow : undefined}
-      onLoadMore={onLoadMore ? loadMore : undefined} />);
+      onLoadMore={onLoadMore ? loadMore : undefined} />
+    </View>);
   }
 
   function renderDeferredRow(group, id) {
     const key = String(id);
     if (Object.prototype.hasOwnProperty.call(loadedRows, key)) {
       const row = loadedRows[key];
-      return row ? renderBuiltRows([row])[0] : null;
+      return row ? renderBuiltRows([row], group.mediaType)[0] : null;
     }
     if (rowErrors[key]) {
       return <View key={`error-${key}`} style={[styles.error, { borderColor: palette.border }]}>
@@ -443,7 +591,8 @@ export function HomeShelves({
       </View>;
     }
     return <DeferredRow key={`pending-${key}`} group={group} rowId={id} labels={labels}
-      palette={palette} itemWidth={itemWidth} />;
+      palette={palette} itemWidth={itemWidth} rowRef={lazy ? rowRefFor(key) : undefined}
+      height={placeholderHeight(group.mediaType)} />;
   }
 
   function sectionHeader(group) {
@@ -475,7 +624,7 @@ export function HomeShelves({
   return <View style={[styles.stack, { gap: sectionGap }]} testID={testID}>
     {groups.map(group => <View key={group.mediaType} style={styles.group}>
       {sectionHeader(group)}
-      {renderBuiltRows(group.rows)}
+      {renderBuiltRows(group.rows, group.mediaType)}
     </View>)}
     {deferredGroups.map(group => {
       const ids = group.rowIds || [];
@@ -500,11 +649,12 @@ const styles = StyleSheet.create({
   group: { gap: 12 },
   groupHeader: { borderBottomWidth: 1, paddingBottom: 10 },
   groupTitle: { fontSize: 24, fontWeight: '600', lineHeight: 30 },
-  skeleton: { gap: 8 },
+  skeleton: { gap: RAIL_HEADER_GAP, overflow: 'hidden' },
+  skeletonHeader: { height: RAIL_HEADER_HEIGHT, justifyContent: 'center' },
   skeletonTitle: { width: 160, height: 18, borderRadius: 4 },
   skeletonCards: { flexDirection: 'row', gap: 16, overflow: 'hidden' },
   cardStack: { gap: 0 },
-  progress: { marginTop: 8, alignItems: 'center', justifyContent: 'center' },
+  progress: { marginTop: PROGRESS_MARGIN, alignItems: 'center', justifyContent: 'center' },
   skeletonCard: { width: 176, aspectRatio: 2 / 3, borderRadius: 8 },
   error: { borderWidth: 1, borderRadius: 8, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   errorText: { flex: 1, fontSize: 13 },

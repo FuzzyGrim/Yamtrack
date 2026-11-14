@@ -2,9 +2,13 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { palette, spacing } from '../theme';
 
-export function Screen({ title, subtitle, children, scroll = true, onBack, chrome = true, contentStyle, scrollStyle, floating, artworkBleed = false }) {
+// `onScroll` and `onContentSizeChange` pass through to the scrolling body (Home
+// uses them to load shelves near the screen).
+export function Screen({ title, subtitle, children, scroll = true, onBack, chrome = true, contentStyle, scrollStyle, floating, artworkBleed = false, onScroll, onContentSizeChange }) {
   const body = scroll
     ? <ScrollView style={[artworkBleed ? styles.bleed : null, scrollStyle]}
+      onScroll={onScroll} scrollEventThrottle={onScroll ? 100 : undefined}
+      onContentSizeChange={onContentSizeChange}
       contentContainerStyle={[styles.content, contentStyle]} keyboardShouldPersistTaps="handled">{children}</ScrollView>
     : <View style={[styles.content, contentStyle]}>{children}</View>;
   return <View style={[styles.screen, artworkBleed && styles.bleed]}>

@@ -37,6 +37,22 @@ MEDIA_TYPE_TO_MODEL = {
 }
 
 
+def _item_identity_keys(queryset) -> set[tuple[str, str, str]]:
+    """Return the (media_type, source, media_id) of each row's item.
+
+    Reads the three columns only. Building a model instance per row (and its
+    field tracker) cost a third of a movie tab rebuild on a large library.
+    """
+    return {
+        (str(media_type), str(source), str(media_id))
+        for media_type, source, media_id in queryset.values_list(
+            "item__media_type",
+            "item__source",
+            "item__media_id",
+        )
+    }
+
+
 def get_tracked_keys_by_media_type(
     user,
     media_type: str,
@@ -50,26 +66,9 @@ def get_tracked_keys_by_media_type(
 
     model = apps.get_model("app", model_name)
     target_statuses = statuses or DEFAULT_BLOCKED_STATUSES
-    rows = (
-        model.objects.filter(user=user, status__in=target_statuses)
-        .select_related("item")
-        .only(
-            "item__media_type",
-            "item__source",
-            "item__media_id",
-            "status",
-        )
+    return _item_identity_keys(
+        model.objects.filter(user=user, status__in=target_statuses),
     )
-
-    return {
-        (
-            str(row.item.media_type),
-            str(row.item.source),
-            str(row.item.media_id),
-        )
-        for row in rows
-        if row.item_id
-    }
 
 
 def get_feedback_keys_by_media_type(
@@ -79,49 +78,20 @@ def get_feedback_keys_by_media_type(
     feedback_type: str = DiscoverFeedbackType.NOT_INTERESTED.value,
 ) -> set[tuple[str, str, str]]:
     """Return hidden Discover feedback identities for a media type."""
-    rows = (
+    return _item_identity_keys(
         DiscoverFeedback.objects.filter(
             user=user,
             item__media_type=media_type,
             feedback_type=feedback_type,
-        )
-        .select_related("item")
-        .only(
-            "item__media_type",
-            "item__source",
-            "item__media_id",
-            "feedback_type",
-        )
+        ),
     )
-
-    return {
-        (
-            str(row.item.media_type),
-            str(row.item.source),
-            str(row.item.media_id),
-        )
-        for row in rows
-        if row.item_id
-    }
 
 
 def get_owned_keys_by_media_type(user, media_type: str) -> set[tuple[str, str, str]]:
     """Return identity keys for items already in the user's owned collection."""
-    rows = (
-        CollectionEntry.objects.filter(user=user, item__media_type=media_type)
-        .select_related("item")
-        .only("item__media_type", "item__source", "item__media_id")
+    return _item_identity_keys(
+        CollectionEntry.objects.filter(user=user, item__media_type=media_type),
     )
-
-    return {
-        (
-            str(row.item.media_type),
-            str(row.item.source),
-            str(row.item.media_id),
-        )
-        for row in rows
-        if row.item_id
-    }
 
 
 def exclude_owned_items(

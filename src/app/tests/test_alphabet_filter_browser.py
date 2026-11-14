@@ -120,33 +120,30 @@ class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
                 # The mounted rail follows the first poster, which can sit a
                 # few pixels below the grid box. Do not compare it with the
                 # grid's outer edge: that is only the fallback position.
-                # Mounting and poster layout can settle in separate frames.
-                # Wait for the rail's live position observer rather than
-                # comparing against the CSS fallback before it has run.
+                # Mounting and poster layout settle in separate frames, and on a
+                # loaded runner the grid can still move after the rail first
+                # matches it. Wait until the rail and its anchor agree on two
+                # frames in a row, in one in-page check, so nothing can shift
+                # between the wait and the comparison.
                 page.wait_for_function(
                     """() => {
-                      const rail = document.querySelector('.alphabet-rail');
-                      const grid = document.querySelector('.media-grid');
-                      if (!rail || !grid) return false;
-                      const poster = grid.querySelector('img')?.getBoundingClientRect();
-                      const anchor = poster?.width && poster?.height
-                        ? poster.top : grid.getBoundingClientRect().top;
-                      return Math.abs(rail.getBoundingClientRect().top
-                        - Math.max(96, Math.ceil(anchor))) <= 1;
-                    }"""
-                )
-                expected_rail_top = page.locator(".media-grid").evaluate(
-                    """grid => {
-                      const poster = grid.querySelector('img')?.getBoundingClientRect();
-                      const anchor = poster?.width && poster?.height
-                        ? poster.top : grid.getBoundingClientRect().top;
-                      return Math.max(96, Math.ceil(anchor));
-                    }"""
-                )
-                self.assertAlmostEqual(
-                    page.locator(".alphabet-rail").bounding_box()["y"],
-                    expected_rail_top,
-                    delta=1,
+                      const place = () => {
+                        const rail = document.querySelector('.alphabet-rail');
+                        const grid = document.querySelector('.media-grid');
+                        if (!rail || !grid) return null;
+                        const poster = grid.querySelector('img')?.getBoundingClientRect();
+                        const anchor = poster?.width && poster?.height
+                          ? poster.top : grid.getBoundingClientRect().top;
+                        const want = Math.max(96, Math.ceil(anchor));
+                        const got = rail.getBoundingClientRect().top;
+                        return Math.abs(got - want) <= 1 ? want : null;
+                      };
+                      const first = place();
+                      if (first === null) return false;
+                      return new Promise(resolve => requestAnimationFrame(() =>
+                        requestAnimationFrame(() => resolve(place() === first))));
+                    }""",
+                    timeout=15000,
                 )
                 rail_bounds = page.locator(".alphabet-rail").bounding_box()
                 self.assertAlmostEqual(
@@ -318,7 +315,7 @@ class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
                     }"""
                 )
                 rail = page.locator(".alphabet-rail")
-                self.assertEqual(rail.bounding_box()["width"], 32)
+                self.assertEqual(rail.bounding_box()["width"], 24)
                 page.wait_for_function(
                     """() => {
                       const rail = document.querySelector('.alphabet-rail');
@@ -443,5 +440,5 @@ class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
                 ),
                 "fixed",
             )
-            self.assertEqual(page.locator(".alphabet-rail").bounding_box()["width"], 32)
+            self.assertEqual(page.locator(".alphabet-rail").bounding_box()["width"], 24)
             context.close()

@@ -2,6 +2,10 @@
 from http import HTTPStatus as HTTP  # noqa: N814
 from unittest.mock import patch
 
+from django.core.cache import cache
+from django.test import override_settings
+
+from app.discover import tab_cache
 from app.discover.schemas import CandidateItem, RowResult
 from app.models import CollectionEntry, DiscoverFeedback, Item, MediaTypes, Sources
 from app.providers import services
@@ -485,6 +489,19 @@ class RecommendationsTests(FloppyApiTestCase):
         self.assertEqual(results[0]["ids"], {"tmdb": "701", "imdb": "tt0111161"})
         self.assertEqual(results[1]["ids"], {"imdb": "tt9999999", "tmdb": "9001"})
         mock_metadata.assert_called_once()
+
+    @override_settings(DISCOVER_EAGER_REBUILD_DAYS=3)
+    def test_a_call_counts_as_using_discover(self):
+        """A plugin reading picks keeps the user's Discover rebuilding after writes."""
+        cache.clear()
+        self.assertFalse(tab_cache.recently_used(self.user1.id))
+
+        # The tab is cold: the request queues its build and returns no picks.
+        with patch("app.discover.tab_cache.schedule_tab_refresh", return_value=True):
+            response = self._get({"media_type": MediaTypes.MOVIE.value})
+
+        self.assertEqual(response.status_code, HTTP.OK)
+        self.assertTrue(tab_cache.recently_used(self.user1.id))
 
     def test_tv_ids_include_tvdb(self):
         """TV picks carry the TVDB id a media-server plugin matches on."""

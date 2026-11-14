@@ -35,10 +35,8 @@ class MediaListColumnsBrowserTests(SerialStaticLiveServerTestCase):
             page.get_by_placeholder("Enter your password").fill("12345")
             page.get_by_role("button", name="Sign in").click()
             page.goto(f"{self.live_server_url}/medialist/game?status=In%20progress")
-            page.get_by_role("button", name="In Progress", exact=True).click()
-            all_buttons = page.get_by_role("button", name="All", exact=True)
-            expect(all_buttons).to_have_count(2)
-            all_buttons.last.click()
+            page.get_by_role("button", name="Status: In Progress", exact=True).click()
+            page.get_by_text("Clear status filter", exact=True).click()
             expect(page.get_by_text("Finished", exact=True)).to_be_visible()
             page.get_by_role("button", name="View settings").first.click()
             page.get_by_role("menuitem", name="Grid View").first.click()  # names the current view; it switches to the table

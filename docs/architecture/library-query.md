@@ -242,10 +242,19 @@ switched over. They are intentional:
   SQL-narrowed candidates.
   - For shows, Home's orders and the caught-up filter are O(n) in value rows,
     not in models: one item per candidate is all a scan builds.
-  - Each scan reads its own facts and released-episode counts, for its own
-    candidates. Sharing one whole-library copy between Home's shelves was
-    measured and rejected: it made a shelf built on its own several times
-    slower and multiplied its memory, for no reliable gain on a full Home.
-  - Season shelves still hydrate each candidate season.
+  - Home's shelves share their shows' facts and released-episode counts
+    (`app.tv_show_facts.SharedShows`, opted into with
+    `LibraryQueryExecutor(share_shows=True)`). Records are kept per
+    candidate show, not for the whole library: the first shelf computes the
+    shows it ranks, later shelves read them and add only shows they have not
+    seen. Plain values, one cache entry per user under the Home registry
+    (any tracker write clears it), lifetime `HOME_ROW_RELEASED_CACHE_TTL`
+    because released counts move with air dates. Measured on a cold Home of
+    10,000 shows: each later TV shelf asks 14 queries instead of 62, the
+    whole Home 618 instead of 797, and a shelf built alone costs what it did.
+    An earlier whole-library copy was rejected for making a lone shelf
+    several times slower; computing only the candidates avoids that.
+  - Season shelves and the TV `next_episode_air_date` order still hydrate
+    each candidate; on that Home they are about two thirds of the cold CPU.
 - `ids()` for smart-list sync is O(n) by definition and runs in the
   background.
