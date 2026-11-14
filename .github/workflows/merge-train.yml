@@ -52,10 +52,6 @@ on:
         type: boolean
         default: true
 
-concurrency:
-  group: merge-train
-  cancel-in-progress: false
-
 permissions:
   contents: read
 
@@ -66,6 +62,11 @@ jobs:
       (github.event.workflow_run.event == 'pull_request' &&
        contains(fromJSON('["failure","timed_out","cancelled","action_required","startup_failure"]'),
                 github.event.workflow_run.conclusion))
+    # Skipped successful/unrelated workflow_run jobs must not replace a
+    # pending train job in the concurrency group.
+    concurrency:
+      group: merge-train
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
