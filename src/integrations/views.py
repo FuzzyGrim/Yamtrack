@@ -6702,7 +6702,7 @@ def _match_review(source_item, preview):
             "id": row_id,
             "key": row["key"],
             "season": row["season"],
-            "code": f"S{row['season']}E{row['episode']}",
+            "code": f"S{int(row['season']):02d}E{int(row['episode']):02d}",
             "title": row["title"],
             "selected": selected,
             "kind": kind,

@@ -82,6 +82,7 @@ VIEW_SCOPES: dict[str, dict[str, str]] = {
     "api.fork_views_discover.RecommendationsView": {"GET": "catalog:read"},
     "api.fork_views_discover.DiscoverStatusView": {"GET": "catalog:read"},
     "api.fork_views_search.SearchSourcesView": {"GET": "catalog:read"},
+    "api.fork_views_search.SearchTypeView": {"PUT": "catalog:write"},
     "api.fork_views_search.SearchSuggestionsView": {"GET": "catalog:read"},
     "api.fork_views_search.SearchResultsView": {"GET": "catalog:read"},
     "api.fork_views_search.SearchParentsView": {"GET": "catalog:read"},

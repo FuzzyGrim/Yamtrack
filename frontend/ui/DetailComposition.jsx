@@ -3,6 +3,7 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowD
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { DetailBackdrop } from './DetailBackdrop';
+import { DetailActivitySubtitle } from './DetailActivitySubtitle';
 import { detailHeroLayout } from './detailHeroLayout';
 
 const defaultLabels = {
@@ -88,7 +89,7 @@ export function DetailHeader({ model, labels, palette, showArtwork = false, onPr
         <Badge label={text.publicView} tone="outline"
           palette={{ outline: { color: colors.textSecondary, borderColor: colors.border, borderWidth: 1 } }} />
       </View> : null}
-      {compact && model?.activityText ? <Text style={[styles.mobileHeroMeta, { color: colors.textMuted, textShadowRadius: 0 }]}>{model.activityText}</Text> : null}
+      {compact && model?.activityText ? <DetailActivitySubtitle text={model.activityText} color={colors.textMuted} style={[styles.mobileHeroMeta, { color: colors.textMuted, textShadowRadius: 0 }]} /> : null}
       {compact && model?.mobileMeta ? <Text style={[styles.mobileHeroMeta, { color: colors.textMuted, textShadowRadius: 0 }]}>{model.mobileMeta}</Text> : null}
       {!compact && facts.length ? <View style={styles.facts}>
         {facts.map((fact, index) => <View key={`${fact.label}-${index}`} style={styles.fact}>
@@ -151,21 +152,26 @@ export function DetailMobileHero({ model, palette, onOpenItem, actions, viewport
   const colors = resolvePalette(palette);
   const [seasonsOpen, setSeasonsOpen] = useState(false);
   const { width, height } = useWindowDimensions();
-  const [logoAspect, setLogoAspect] = useState(0);
+  const [logoAspect, setLogoAspect] = useState(model?.artwork?.logoAspect || 0);
+  const [sharpEnd, setSharpEnd] = useState(null);
   const layout = detailHeroLayout(viewport || { width, height }, logoAspect);
   const artwork = model?.artwork || {};
   const backdrop = artwork.backdrop || artwork.gallery?.hero?.url || artwork.gallery?.overview?.url;
   const logo = artwork.logo || artwork.gallery?.hero?.logo_url || artwork.gallery?.overview?.logo_url;
   if (!backdrop) return null;
   return <View style={[styles.mobileHero, { marginLeft: -layout.gutterLeft, marginRight: -layout.gutterRight }]}>
-    <DetailBackdrop source={backdrop} layout={layout} background={colors.background} />
+    <DetailBackdrop key={backdrop} source={backdrop} layout={layout} background={colors.background} onSharpEnd={setSharpEnd}
+      initialAspect={artwork.backdropAspect} />
+    {/* Native action rows use a 12-point gap; web's action gap is 8px. */}
     <View style={[styles.mobileHeroContent, { paddingLeft: layout.gutterLeft, paddingRight: layout.gutterRight,
-      paddingTop: Math.max(0, layout.line - (logo ? layout.logoHeight : 70)) }]}>
+      paddingTop: Math.max(0, (logo && sharpEnd != null ? sharpEnd - layout.topBleed - 6 : layout.line) - (logo ? layout.logoHeight : 70)) }]}>
       {logo ? <Image source={{ uri: logo }} resizeMode="contain"
-        style={{ width: layout.logoWidth, height: layout.logoHeight }}
+        style={{ width: layout.logoWidth, height: layout.logoHeight, marginBottom: 4 }}
         onLoad={event => { const size = event.nativeEvent?.source; if (size?.width && size?.height) setLogoAspect(size.width / size.height); }}
         accessibilityLabel={`${model.title} logo`} /> :
         <Text accessibilityRole="header" style={[styles.mobileHeroTitle, { minHeight: 70 }]}>{model.title}</Text>}
+      {model.activityText ? <DetailActivitySubtitle text={model.activityText} color="#fff" style={styles.mobileHeroMeta} /> : null}
+      {model.mobileMeta ? <Text style={styles.mobileHeroMeta}>{model.mobileMeta}</Text> : null}
       {model.seasonLabel ? <View style={styles.seasonSelector}>
         <Pressable accessibilityRole="button" accessibilityLabel="Select season"
           accessibilityState={{ expanded: seasonsOpen }} onPress={() => setSeasonsOpen(value => !value)}
@@ -179,8 +185,6 @@ export function DetailMobileHero({ model, palette, onOpenItem, actions, viewport
           </Pressable>)}
         </View> : null}
       </View> : null}
-      {model.activityText ? <Text style={styles.mobileHeroMeta}>{model.activityText}</Text> : null}
-      {model.mobileMeta ? <Text style={styles.mobileHeroMeta}>{model.mobileMeta}</Text> : null}
       {actions ? <View style={styles.mobileHeroActions}>{actions}</View> : <DetailActions model={model} palette={colors} />}
     </View>
   </View>;

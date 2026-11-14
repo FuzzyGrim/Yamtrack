@@ -1,5 +1,8 @@
+import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
+import { KeyboardOverlapContext } from '../ui/keyboardOverlapContext';
+import { useKeyboardOverlap } from '../ui/keyboardOverlap.web';
 
 // React Native Web gives every Text and TextInput its own system font stack
 // (-apple-system, Segoe UI, Roboto...). The release pages inherit the Tailwind
@@ -25,7 +28,7 @@ export function mountRoot(host, element) {
   const fallback = [...host.childNodes].map((node) => node.cloneNode(true));
   const root = createRoot(host);
   try {
-    flushSync(() => root.render(element));
+    flushSync(() => root.render(createElement(KeyboardOverlapContext.Provider, { value: useKeyboardOverlap }, element)));
   } catch (error) {
     root.unmount();
     host.replaceChildren(...fallback);

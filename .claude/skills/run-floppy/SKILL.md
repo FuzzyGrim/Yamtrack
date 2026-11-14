@@ -10,6 +10,14 @@ Celery workers, and beat, all under supervisord. Locally you run the pieces
 directly, and three things break in ways whose error messages point somewhere
 misleading. This skill exists mostly to save you from rediscovering those.
 
+## Always bind 0.0.0.0
+
+Serve on all interfaces by default so Daniel can open the app from his phone on the same network. The dev
+server on port 8000 is `uv run --project .. --no-sync python manage.py runserver 0.0.0.0:8000` from `src/`;
+`serve.sh` binds `0.0.0.0` too (override with `FLOPPY_LOCAL_HOST`). `ALLOWED_HOSTS` in `.env` must list the
+Mac's LAN address (`ipconfig getifaddr en0`); add it if the phone gets a 400. Tell him the URL
+(`http://<LAN address>:8000`) when you start or restart a server. Never bind to localhost only.
+
 ## The short version
 
 ```bash

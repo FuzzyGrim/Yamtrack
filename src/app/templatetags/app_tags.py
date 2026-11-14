@@ -2541,6 +2541,7 @@ def global_search_react(context, search_type):
             ],
             "barcodeTypes": ["all", "book", "manga", "comic", "comicissue"],
             "suggestionsUrl": reverse("search_suggestions"),
+            "typeUrl": reverse("api_search_type"),
             "labels": {
                 "inputLabel": str(_("Search your library or online")),
                 "search": str(_("Search")),

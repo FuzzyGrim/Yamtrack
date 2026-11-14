@@ -1,121 +1,22 @@
-
 {% load i18n %}
 {% load app_tags %}
 {% load user_tags %}
 
 {% if activity_subtitle %}
-  <div class="@container mb-3 text-center text-sm font-medium text-[var(--color-text-muted)] md:text-start">
-    <button type="button"
-            aria-haspopup="dialog"
-            title="{% translate "View play history" %}"
+  <div class="mb-3 text-center text-sm font-medium text-[var(--color-text-muted)] md:text-start">
+    <button type="button" aria-haspopup="dialog" title="{% translate "View play history" %}"
             aria-label="{% translate "View play history" %}"
-            class="{% if activity_subtitle.duration_text %}flex w-full items-center justify-center gap-0.5 whitespace-nowrap text-[13px] tracking-[-0.01em] @max-[26rem]:flex-col md:hidden{% else %}flex w-full flex-wrap items-center justify-center gap-y-1 @max-[26rem]:flex-col md:hidden{% endif %} group cursor-pointer hover:text-[var(--color-text)] hover:underline"
+            class="flex w-full flex-wrap items-center justify-center md:justify-start group cursor-pointer hover:text-[var(--color-text)] hover:underline"
             hx-get="{% url 'activity_sessions_modal' %}?{% if media_type == MediaTypes.SEASON.value %}media_type={{ MediaTypes.TV.value }}&media_id={{ media.media_id|urlencode }}&source={{ media.source|urlencode }}&season_number={{ media.season_number }}{% elif media_type == MediaTypes.TV.value %}media_type={{ MediaTypes.TV.value }}&media_id={{ media.media_id|urlencode }}&source={{ media.source|urlencode }}{% elif media_type == MediaTypes.PODCAST.value and podcast_show %}media_type={{ MediaTypes.PODCAST.value }}&podcast_show={{ podcast_show.id }}{% else %}media_type={{ media_type }}&media_id={{ media.media_id|urlencode }}&source={{ media.source|urlencode }}{% endif %}{% if media_type == MediaTypes.GAME.value or media_type == MediaTypes.BOARDGAME.value %}&logging_style=sessions{% endif %}"
             hx-target="#session-history-modal-host"
             hx-swap="innerHTML"
             @click="$dispatch('open-session-history')">
-      {% if activity_subtitle.duration_text %}
-        <span class="inline-flex items-center">
-          <span>
-            {{ activity_subtitle.duration_text|cut:" watched"|cut:" played"|cut:" listened"|cut:" read" }}{% if activity_subtitle.primary_text %} ({{ activity_subtitle.primary_text|cut:"Progress: "|translate_activity_text:media_type }}){% endif %}
-          </span>
-          {% with year=media.details|release_year runtime=media.details.runtime %}
-            {% if year or runtime %}
-              <span class="detail-activity-mobile-meta hidden"><span class="mx-1 text-gray-600">·</span>{% if year %}{{ year }}{% endif %}{% if year and runtime %} · {% endif %}{% if runtime %}{{ runtime }}{% endif %}</span>
-            {% endif %}
-          {% endwith %}
-        </span>
-        {% if activity_subtitle.date_start or activity_subtitle.date_end %}
-          <span class="mx-1 text-gray-600 @max-[26rem]:hidden">•</span>
-          <span>
-            {% if activity_subtitle.date_start and activity_subtitle.date_end %}
-              {% if activity_subtitle.collapse_same_day or activity_subtitle.date_start == activity_subtitle.date_end %}
-                {{ activity_subtitle.date_start|user_date_format:user }}
-              {% else %}
-                {{ activity_subtitle.date_start|user_date_format:user }} - {{ activity_subtitle.date_end|user_date_format:user }}
-              {% endif %}
-            {% elif activity_subtitle.date_start %}
-              {{ activity_subtitle.date_start|user_date_format:user }}
-            {% else %}
-              {{ activity_subtitle.date_end|user_date_format:user }}
-            {% endif %}
-          </span>
-        {% endif %}
-      {% else %}
-        {% if activity_subtitle.primary_text %}
-          <span>{{ activity_subtitle.primary_text }}</span>
-        {% endif %}
-        {% if activity_subtitle.date_start or activity_subtitle.date_end %}
-          <span class="mx-2 text-gray-600 @max-[26rem]:hidden">•</span>
-          <span>
-            {% if activity_subtitle.date_start and activity_subtitle.date_end %}
-              {% if activity_subtitle.collapse_same_day or activity_subtitle.date_start == activity_subtitle.date_end %}
-                {{ activity_subtitle.date_start|user_date_format:user }}
-              {% else %}
-                {{ activity_subtitle.date_start|user_date_format:user }} - {{ activity_subtitle.date_end|user_date_format:user }}
-              {% endif %}
-            {% elif activity_subtitle.date_start %}
-              {{ activity_subtitle.date_start|user_date_format:user }}
-            {% else %}
-              {{ activity_subtitle.date_end|user_date_format:user }}
-            {% endif %}
-          </span>
-        {% endif %}
-      {% endif %}
-      {% if not activity_subtitle.duration_text %}
-        {% with year=media.details|release_year runtime=media.details.runtime %}
-          {% if year or runtime %}
-            <span class="detail-activity-mobile-meta hidden"><span class="mx-1 text-gray-600">·</span>{% if year %}{{ year }}{% endif %}{% if year and runtime %} · {% endif %}{% if runtime %}{{ runtime }}{% endif %}</span>
-          {% endif %}
-        {% endwith %}
-      {% endif %}
-    </button>
-    <button type="button"
-            aria-haspopup="dialog"
-            title="{% translate "View play history" %}"
-            aria-label="{% translate "View play history" %}"
-            class="hidden w-full flex-wrap items-center justify-center gap-y-1 md:flex md:justify-start group cursor-pointer hover:text-[var(--color-text)] hover:underline"
-            hx-get="{% url 'activity_sessions_modal' %}?{% if media_type == MediaTypes.SEASON.value %}media_type={{ MediaTypes.TV.value }}&media_id={{ media.media_id|urlencode }}&source={{ media.source|urlencode }}&season_number={{ media.season_number }}{% elif media_type == MediaTypes.TV.value %}media_type={{ MediaTypes.TV.value }}&media_id={{ media.media_id|urlencode }}&source={{ media.source|urlencode }}{% elif media_type == MediaTypes.PODCAST.value and podcast_show %}media_type={{ MediaTypes.PODCAST.value }}&podcast_show={{ podcast_show.id }}{% else %}media_type={{ media_type }}&media_id={{ media.media_id|urlencode }}&source={{ media.source|urlencode }}{% endif %}{% if media_type == MediaTypes.GAME.value or media_type == MediaTypes.BOARDGAME.value %}&logging_style=sessions{% endif %}"
-            hx-target="#session-history-modal-host"
-            hx-swap="innerHTML"
-            @click="$dispatch('open-session-history')">
-      {% if activity_subtitle.primary_text %}
-        <span class="detail-activity-progress-text">
-          {{ activity_subtitle.primary_text|translate_activity_text:media_type }}
-        </span>
-      {% endif %}
-      {% if activity_subtitle.date_start or activity_subtitle.date_end %}
-          <span class="detail-activity-progress-separator mx-2 text-gray-600">•</span>
-        <span>
-          {% if activity_subtitle.date_start and activity_subtitle.date_end %}
-            {% if activity_subtitle.collapse_same_day or activity_subtitle.date_start == activity_subtitle.date_end %}
-              {{ activity_subtitle.date_start|user_date_format:user }}
-            {% else %}
-              {{ activity_subtitle.date_start|user_date_format:user }} - {{ activity_subtitle.date_end|user_date_format:user }}
-            {% endif %}
-          {% elif activity_subtitle.date_start %}
-            {{ activity_subtitle.date_start|user_date_format:user }}
-          {% else %}
-            {{ activity_subtitle.date_end|user_date_format:user }}
-          {% endif %}
-        </span>
-      {% endif %}
-      {% if activity_subtitle.duration_text %}
-        <span class="detail-activity-duration-separator {% if not activity_subtitle.date_start and not activity_subtitle.date_end %}detail-activity-duration-separator--progress-only{% endif %} mx-2 text-gray-600">•</span>
-        <span>
-          {% if " watched" in activity_subtitle.duration_text %}
-            {{ activity_subtitle.duration_text|cut:" watched" }} {% translate "watched" %}
-          {% elif " played" in activity_subtitle.duration_text %}
-            {{ activity_subtitle.duration_text|cut:" played" }} {% translate "played" %}
-          {% elif " listened" in activity_subtitle.duration_text %}
-            {{ activity_subtitle.duration_text|cut:" listened" }} {% translate "listened" %}
-          {% elif " read" in activity_subtitle.duration_text %}
-            {{ activity_subtitle.duration_text|cut:" read" }} {% translate "read" %}
-          {% else %}
-            {% translate activity_subtitle.duration_text %}
-          {% endif %}
-        </span>
-      {% endif %}
+      <span data-detail-activity-subtitle-root
+            data-dates="{% if activity_subtitle.date_start %}{{ activity_subtitle.date_start|user_date_format:user }}{% if activity_subtitle.date_end and not activity_subtitle.collapse_same_day and activity_subtitle.date_start != activity_subtitle.date_end %} - {{ activity_subtitle.date_end|user_date_format:user }}{% endif %}{% elif activity_subtitle.date_end %}{{ activity_subtitle.date_end|user_date_format:user }}{% endif %}"
+            data-duration="{% if activity_subtitle.duration_text %}{% if ' watched' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' watched' }} {% translate 'watched' %}{% elif ' played' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' played' }} {% translate 'played' %}{% elif ' listened' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' listened' }} {% translate 'listened' %}{% elif ' read' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' read' }} {% translate 'read' %}{% else %}{{ activity_subtitle.duration_text }}{% endif %}{% endif %}"
+            data-primary="{{ activity_subtitle.primary_text|default:''|translate_activity_text:media_type }}">
+        {% if activity_subtitle.date_start %}{{ activity_subtitle.date_start|user_date_format:user }}{% if activity_subtitle.date_end and not activity_subtitle.collapse_same_day and activity_subtitle.date_start != activity_subtitle.date_end %} - {{ activity_subtitle.date_end|user_date_format:user }}{% endif %}{% elif activity_subtitle.date_end %}{{ activity_subtitle.date_end|user_date_format:user }}{% endif %}{% if activity_subtitle.duration_text %}{% if activity_subtitle.date_start or activity_subtitle.date_end %}<span style="color: white"> • </span>{% endif %}{% if ' watched' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' watched' }} {% translate 'watched' %}{% elif ' played' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' played' }} {% translate 'played' %}{% elif ' listened' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' listened' }} {% translate 'listened' %}{% elif ' read' in activity_subtitle.duration_text %}{{ activity_subtitle.duration_text|cut:' read' }} {% translate 'read' %}{% else %}{{ activity_subtitle.duration_text }}{% endif %}{% elif not activity_subtitle.date_start and not activity_subtitle.date_end %}{{ activity_subtitle.primary_text|translate_activity_text:media_type }}{% endif %}
+      </span>
     </button>
   </div>
 {% endif %}

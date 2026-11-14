@@ -35,9 +35,11 @@
     if (window.CacheUpdater) {
       this.cacheUpdater = CacheUpdater.init('history', {
         loggingStyle: this.loggingStyle,
+        onStop: () => { this.cacheRefreshing = false; },
         onRefreshComplete: (success, reason) => {
           console.log('History page: Refresh complete callback', success, reason);
           this.cacheRefreshing = false;
+          window.dispatchEvent(new CustomEvent('history-refresh-end'));
         },
         onUpdate: () => {
           console.log('History page: Update callback called, reloading page');
@@ -49,6 +51,10 @@
           }, 300);
         }
       });
+    }
+    // No poller means nothing can ever clear the indicator.
+    if (!this.cacheUpdater) {
+      this.cacheRefreshing = false;
     }
     if (this.cacheRefreshing && this.cacheUpdater) {
       this.cacheUpdater.wasRefreshing = true;
@@ -64,27 +70,7 @@
       window.removeEventListener('history-refresh-start', this.refreshListener);
     }
   }
-}" x-init="$el.closest('.container')?.classList.add('history-page-container')"
-     @history-refresh-dismiss.window="cacheRefreshing = false; cacheUpdater?.stop()">
-  
-  {# Cache refresh notification banner #}
-  <div x-show="cacheRefreshing"
-       x-cloak
-       x-transition
-       data-history-legacy-chrome
-       class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none mb-4">
-    <div class="w-full max-w-xl px-4 pointer-events-auto">
-      <div class="flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg toast-info opacity-0"
-           x-init="setTimeout(() => $el.classList.add('opacity-100', 'transform-none'), 10); $el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]')">
-        {% include "app/icons/info.svg" with classes="w-4 h-4 text-indigo-300 shrink-0 animate-pulse" %}
-        <p class="text-sm font-medium flex-1">{% translate "Refreshing history in background..." %}</p>
-        <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
-                @click="cacheRefreshing = false; cacheUpdater?.stop();">
-          {% include "app/icons/x.svg" with classes="w-4 h-4" %}
-        </button>
-      </div>
-    </div>
-  </div>
+}" x-init="$el.closest('.container')?.classList.add('history-page-container')">
   
 <div class="history-page">
   {# Month-based navigation header #}
@@ -94,7 +80,7 @@
       {# Left side: Last (back one year) + Older month #}
       <div class="flex items-center gap-1 sm:gap-2">
         {# Last button - go back 1 year from current view #}
-        <a href="?year={{ view_year|add:'-1' }}&m={{ view_month }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
+        <a hx-boost="true" href="?year={{ view_year|add:'-1' }}&m={{ view_month }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
            class="max-[24rem]:hidden flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-strong)] transition-colors cursor-pointer text-sm"
            aria-label="{% translate "Go back one year" %}"
            title="{% translate "Go back one year" %}">
@@ -103,7 +89,7 @@
         </a>
 
         {# Older month button (toward past) #}
-        <a href="?year={{ prev_year }}&m={{ prev_month }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
+        <a hx-boost="true" href="?year={{ prev_year }}&m={{ prev_month }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
            class="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-strong)] transition-colors cursor-pointer text-sm"
            aria-label="{% blocktranslate trimmed with value_1=prev_month_name %}Go to {{ value_1 }}{% endblocktranslate %}">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="m15 18-6-6 6-6"></path></svg>
@@ -112,13 +98,17 @@
       </div>
 
       {# Center: Current month display #}
-      <h2 class="text-base sm:text-xl font-semibold text-[var(--color-text)] text-center whitespace-nowrap px-2 sm:px-4">{{ month_name }}</h2>
+      <div class="flex items-center justify-center gap-2 px-2 sm:px-4">
+        <h2 class="text-base sm:text-xl font-semibold text-[var(--color-text)] text-center whitespace-nowrap">{{ month_name }}</h2>
+        {# Background refresh shows as a spinner, not a banner #}
+        <svg x-show="cacheRefreshing" x-cloak role="status" aria-label="{% translate "Refreshing history in background..." %}" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin text-[var(--color-text-muted)] shrink-0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      </div>
 
       {# Right side: Newer month + First (current month) #}
       <div class="flex items-center gap-1 sm:gap-2">
         {# Newer month button (toward present) #}
         {% if show_next_month %}
-          <a href="?year={{ next_year }}&m={{ next_month }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
+          <a hx-boost="true" href="?year={{ next_year }}&m={{ next_month }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
              class="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-strong)] transition-colors cursor-pointer text-sm"
              aria-label="{% blocktranslate trimmed with value_1=next_month_name %}Go to {{ value_1 }}{% endblocktranslate %}">
             <span>{{ next_month_name }}</span>
@@ -133,7 +123,7 @@
 
         {# First button - go to current month #}
         {% if not is_current_month %}
-          <a href="?year={{ current_year }}&m={{ current_month_num }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
+          <a hx-boost="true" href="?year={{ current_year }}&m={{ current_month_num }}{% if month_nav_query %}&{{ month_nav_query }}{% endif %}"
              class="max-[24rem]:hidden flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-strong)] transition-colors cursor-pointer text-sm"
              aria-label="{% translate "Go to current month" %}"
              title="{% translate "Go to current month" %}">

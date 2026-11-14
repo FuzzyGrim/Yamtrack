@@ -8,6 +8,7 @@ from app.models.choices import MediaTypes
 from users.card_metadata import (
     ABSORBED_PREFERENCE_FIELDS,
     OMIT,
+    _format_episode_code,
     absorbed_preference_value,
     apply_absorbed_preference,
     default_profile,
@@ -18,6 +19,14 @@ from users.card_metadata import (
 
 class CardMetadataTests(SimpleTestCase):
     """The registry round-trips a save and reproduces the movie card."""
+
+    def test_episode_code_padding_and_missing_coordinates(self):
+        for season, episode, expected in (
+            (0, 3, "S00E03"), (3, 3, "S03E03"), (123, 456, "S123E456"),
+            (3, None, "S03"), (None, 3, None),
+        ):
+            with self.subTest(season=season, episode=episode):
+                self.assertEqual(_format_episode_code(season, episode), expected)
 
     def test_default_movie_profile_matches_today(self):
         """A movie card shows the year and progress until the user edits it."""

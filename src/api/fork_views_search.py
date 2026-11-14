@@ -174,6 +174,27 @@ class SearchSourcesView(drf_views.APIView):
         )
 
 
+# /api/v1/search/type/
+class SearchTypeView(drf_views.APIView):
+    """Remember the media type picked in the search bar."""
+
+    @extend_schema(
+        operation_id="updateSearchType",
+        request={"application/json": {"type": "object"}},
+        responses={200: dict, 400: DetailErrorSerializer},
+    )
+    def put(self, request):
+        """Save `{media_type}` as the user's last search type."""
+        media_type = request.data.get("media_type")
+        if media_type not in VALID_SEARCH_TYPES:
+            return Response(
+                {"detail": "media_type is not a searchable type."},
+                status=HTTP.BAD_REQUEST,
+            )
+        saved = request.user.update_preference("last_search_type", media_type)
+        return Response({"media_type": saved}, status=HTTP.OK)
+
+
 # /api/v1/search/suggestions/
 class SearchSuggestionsView(drf_views.APIView):
     """Typeahead suggestions from the user's saved library."""

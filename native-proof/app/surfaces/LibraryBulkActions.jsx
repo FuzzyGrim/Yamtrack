@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Text, TextInput, View } from 'react-native';
 import { BulkActionDialog, BulkOptionRow, BulkToolbar } from '../../../frontend/ui/BulkActions';
-import { Button } from '../../../frontend/ui/Button';
 import { palette, radius, spacing } from '../theme';
 
 const STATUSES = [
@@ -81,8 +80,8 @@ export default function LibraryBulkActions({ rows, selectedRows, transport, sele
     }
   }
 
-  if (!selecting) return <Button label="Select items" tone="surface" onPress={onToggleSelect}
-    palette={buttonPalette} />;
+  // Select Items now lives in the screen's settings gear menu.
+  if (!selecting) return null;
 
   const title = dialog === 'status' ? 'Update status'
     : dialog === 'list' ? 'Add to list'
@@ -145,13 +144,6 @@ export default function LibraryBulkActions({ rows, selectedRows, transport, sele
     </BulkActionDialog>
   </View>;
 }
-
-const buttonPalette = {
-  primary: { background: palette.accentStrong, pressed: '#4338ca', hovered: '#4338ca', text: '#ffffff', border: 'transparent' },
-  surface: { background: palette.surfaceStrong, pressed: palette.surfaceMuted, hovered: palette.surfaceMuted, text: palette.text, border: palette.border },
-  radius: radius.sm,
-  focusStyle: {},
-};
 
 const styles = {
   input: { flex: 1, minWidth: 100, color: palette.text, backgroundColor: palette.surface,

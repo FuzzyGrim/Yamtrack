@@ -284,6 +284,14 @@ and `coalesce_import_changes` drops the full sweep it requested up front.
 A write that moves rows between libraries (Stremio promoting a show to grouped
 anime) calls `helpers.note_full_refresh()`, which falls back to the blanket drop.
 
+A poll whose upstream has not changed must write nothing and count nothing as
+imported: `coalesce_import_changes` then restores the generation it bumped up
+front, and the task skips its calendar reload. Count only rows the run actually
+wrote; report rows it looked at and left alone as `unchanged`, a metric key
+that is not imported media. `integrations/tests/test_recurring_sync_no_change.py`
+(tagged `slow`) runs every recurring importer twice against the same fake
+upstream and holds that line.
+
 Not in the list: Trakt (its durable, resumable import publishes through
 `durable.publish_pending`, which still drops everything) and the one-off file
 importers, where a full refresh after a big upload is what the user expects.

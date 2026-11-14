@@ -28,6 +28,7 @@ import { formatUserDate } from '../data/userDate';
 import {
   endDateStamp,
   flattenAlbums,
+  loadArtistWithRelations,
   mapAlbumPayload,
   mapArtistPayload,
   mapBrowseList,
@@ -205,8 +206,14 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
     if (!serverMode || !artistId) return undefined;
     let active = true;
     setLoadingArtist(true);
-    transport.loadArtist({ artistId }).then(payload => {
-      if (active) setArtist(mapArtistPayload(payload));
+    loadArtistWithRelations(transport, artistId).then(({ artist: payload, relations }) => {
+      if (!active) return;
+      const next = mapArtistPayload(payload);
+      if (next && relations) next.relations = {
+        members: (relations.members || []).map(relationModel),
+        alsoIn: (relations.also_in || []).map(relationModel),
+      };
+      setArtist(next);
     }).catch(error => {
       if (active) {
         setArtist(null);
@@ -214,18 +221,6 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
       }
     }).finally(() => {
       if (active) setLoadingArtist(false);
-    });
-    transport.loadArtistRelations({ artistId }).then(payload => {
-      if (!active || !payload) return;
-      setArtist(current => (current ? {
-        ...current,
-        relations: {
-          members: (payload.members || []).map(relationModel),
-          alsoIn: (payload.also_in || []).map(relationModel),
-        },
-      } : current));
-    }).catch(() => {
-      // Relations stay empty; the sync members action can refill them.
     });
     return () => { active = false; };
   }, [artistId, reloadToken, serverMode, transport]);
@@ -356,7 +351,11 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
   function reloadArtist() {
     if (!serverMode || !artistRemoteId) return Promise.resolve();
     return transport.loadArtist({ artistId: artistRemoteId })
-      .then(payload => setArtist(mapArtistPayload(payload)))
+      .then(payload => setArtist(current => {
+        const next = mapArtistPayload(payload);
+        if (next && current?.id === next.id) next.relations = current.relations;
+        return next;
+      }))
       .catch(error => setTransportError(error?.message || 'The artist could not be reloaded.'));
   }
 

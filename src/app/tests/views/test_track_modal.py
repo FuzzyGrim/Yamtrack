@@ -823,8 +823,8 @@ class TrackModalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["title"], "Failure's Contagious")
-        self.assertEqual(response.context["title_subtitle"], "Titled Show · S1E2")
-        self.assertContains(response, "Titled Show · S1E2")
+        self.assertEqual(response.context["title_subtitle"], "Titled Show · S01E02")
+        self.assertContains(response, "Titled Show · S01E02")
 
     @patch("app.providers.services.get_media_metadata")
     def test_track_modal_titles_untracked_episode_by_episode_name(
@@ -849,7 +849,7 @@ class TrackModalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["title"], "Failure's Contagious")
-        self.assertEqual(response.context["title_subtitle"], "Titled Show · S1E2")
+        self.assertEqual(response.context["title_subtitle"], "Titled Show · S01E02")
 
     @patch("app.providers.services.get_media_metadata")
     def test_track_modal_untracked_episode_survives_episode_lookup_404(
@@ -891,7 +891,7 @@ class TrackModalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["title"], "Failure's Contagious")
-        self.assertEqual(response.context["title_subtitle"], "Titled Show · S1E2")
+        self.assertEqual(response.context["title_subtitle"], "Titled Show · S01E02")
 
     @patch("app.providers.services.get_media_metadata")
     def test_track_modal_episode_title_falls_back_to_show_and_number(
@@ -918,7 +918,7 @@ class TrackModalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["title"], "Titled Show S1E2")
+        self.assertEqual(response.context["title"], "Titled Show S01E02")
         self.assertEqual(response.context["title_subtitle"], "")
 
     def test_track_modal_view_renders_release_date_shortcuts_for_existing_media(self):

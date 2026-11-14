@@ -7,6 +7,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from celery import Celery
 from django.conf import settings
@@ -16,8 +17,55 @@ from kombu.serialization import loads
 
 
 class CelerySerializationTests(SimpleTestCase):
+    def test_control_ping_wire_format_and_pickle_rejection(self):
+        # Two publishers share the same broker and control exchange, as during
+        # a mixed-version deployment. Only the JSON message may reach a worker.
+        worker = Celery("control-worker", broker="memory://", set_as_current=False)
+        old = Celery("old-publisher", broker="memory://", set_as_current=False)
+        self.addCleanup(worker.close)
+        self.addCleanup(old.close)
+        worker.conf.update(
+            task_serializer=settings.CELERY_TASK_SERIALIZER,
+            accept_content=settings.CELERY_ACCEPT_CONTENT,
+        )
+        old.conf.update(task_serializer="pickle")
+        received = []
+        with worker.connection_for_read() as connection:
+            node = worker.control.mailbox.Node(
+                "serialization-test", channel=connection.default_channel
+            )
+            consumer = node.Consumer()
+            consumer.register_callback(lambda body, message: received.append(body))
+            with consumer:
+                worker.control.broadcast("ping")
+                connection.drain_events(timeout=1)
+                self.assertEqual(received[0]["method"], "ping")
+                old.control.broadcast("ping")
+                with self.assertRaises(ContentDisallowed):
+                    connection.drain_events(timeout=1)
+        self.assertEqual(len(received), 1)
+
+    def test_health_check_uses_floppy_celery_app(self):
+        from celery import _state
+        from health_check.contrib.celery_ping import backends
+
+        from config.celery import app
+
+        self.assertIs(_state.default_app, app)
+        self.assertEqual(backends.app.control.mailbox.serializer, "json")
+        self.assertEqual(backends.app.control.mailbox.accept, ["json"])
+        with (
+            patch("api.health.cache.get", return_value=None),
+            patch("api.health.cache.set"),
+            patch.object(app.control, "ping", return_value=[{"worker": {"ok": "pong"}}]) as ping,
+        ):
+            check = backends.CeleryPingHealthCheck()
+            check.check_status()
+            ping.assert_called_once()
+            self.assertFalse(check.errors)
+
     def test_json_task_publishes_and_decodes_without_eager_mode(self):
-        app = Celery("security-test", broker="memory://")
+        app = Celery("security-test", broker="memory://", set_as_current=False)
         self.addCleanup(app.close)
         app.conf.update(
             task_serializer=settings.CELERY_TASK_SERIALIZER,

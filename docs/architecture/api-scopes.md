@@ -413,6 +413,7 @@ protected guide/copy URLs for bearer credentials without denying configuration.
 | `/api/v1/search/results/` | GET | `catalog:read` |
 | `/api/v1/search/sources/` | GET | `catalog:read` |
 | `/api/v1/search/suggestions/` | GET | `catalog:read` |
+| `/api/v1/search/type/` | PUT | `catalog:write` |
 | `/api/v1/statistics/featured-person/` | POST | `statistics:write` |
 | `/api/v1/statistics/overview/` | GET | `statistics:read` |
 | `/api/v1/statistics/preferences/` | GET PATCH | GET `statistics:read`; PATCH `statistics:write` |

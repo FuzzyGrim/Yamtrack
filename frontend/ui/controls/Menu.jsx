@@ -1,6 +1,7 @@
 import { Modal, ModalCloseButton } from '../Modal';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Icon } from '../Icon';
 import { SelectField } from '../SelectField';
 
 const FALLBACK_PALETTE = {
@@ -29,7 +30,6 @@ export function ActionMenu({
   items = [],
   empty,
   disabled = false,
-  align = 'start',
   secondary = true,
   icon,
   palette = {},
@@ -94,8 +94,7 @@ export function ActionMenu({
       statusBarTranslucent
       onRequestClose={close}>
       <View style={[styles.overlay, compact ? styles.overlayCompact : styles.overlayWide,
-        { backgroundColor: colors.overlay },
-        !compact && { alignItems: align === 'end' ? 'flex-end' : 'flex-start' }]}>
+        { backgroundColor: colors.overlay }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={closeLabel}
@@ -120,6 +119,9 @@ export function ActionMenu({
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
             {items.map((item, index) => {
               const key = `${item.key || item.label || 'item'}-${index}`;
+              if (item.separator) {
+                return <View key={key} accessibilityRole="none" style={[styles.separator, { backgroundColor: colors.textMuted, opacity: 0.4 }]} />;
+              }
               if (item.heading) {
                 return <Text key={key} accessibilityRole="header" style={[styles.heading, { color: colors.textMuted }]}>{item.heading}</Text>;
               }
@@ -160,6 +162,7 @@ export function ActionMenu({
                   pressed && !item.disabled && { backgroundColor: colors.surfaceStrong },
                   item.disabled && styles.disabled,
                 ]}>
+                {item.icon ? <Icon spec={item.icon} size={16} color={colors.textSecondary} /> : null}
                 <Text style={[styles.itemText, { color: colors.textSecondary }]}>{item.label}</Text>
               </Pressable>;
             })}
@@ -206,7 +209,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   overlay: { flex: 1 },
   overlayCompact: { justifyContent: 'flex-end' },
-  overlayWide: { justifyContent: 'center', padding: 24 },
+  overlayWide: { justifyContent: 'center', alignItems: 'center', padding: 24 },
   backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   sheet: { overflow: 'hidden', borderWidth: 1 },
   sheetCompact: {
@@ -249,7 +252,8 @@ const styles = StyleSheet.create({
   groupActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   groupAction: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   groupActionText: { fontSize: 13, fontWeight: '600' },
-  item: { paddingHorizontal: 16, paddingVertical: 12 },
+  separator: { height: 1, marginVertical: 6 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
   itemText: { fontSize: 14 },
   empty: { fontSize: 13, lineHeight: 18, paddingHorizontal: 16, paddingVertical: 12 },
 });

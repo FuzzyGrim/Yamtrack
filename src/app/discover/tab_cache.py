@@ -37,6 +37,7 @@ DISCOVER_TAB_REFRESH_LOCK_PREFIX = f"{DISCOVER_TAB_PREFIX}_refresh_lock"
 DISCOVER_TAB_ACTIVITY_VERSION_PREFIX = f"{DISCOVER_TAB_PREFIX}_activity_version"
 DISCOVER_TAB_REFRESH_SCHEDULED_PREFIX = f"{DISCOVER_TAB_PREFIX}_refresh_scheduled"
 DISCOVER_TAB_ACTIVE_PREFIX = f"{DISCOVER_TAB_PREFIX}_active"
+DISCOVER_RECENTLY_USED_PREFIX = f"{DISCOVER_TAB_PREFIX}_recently_used"
 DISCOVER_ACTION_UNDO_PREFIX = "discover_action_undo_v1"
 DISCOVER_TAB_TIMEOUT = 60 * 60 * 24 * 7  # 7 days; staleness is tracked separately
 DISCOVER_TAB_STALE_AFTER = timedelta(minutes=15)
@@ -195,6 +196,10 @@ def _rebuild_cooldown_key(user_id: int, media_type: str, *, show_more: bool) -> 
 
 def _active_key(user_id: int) -> str:
     return f"{DISCOVER_TAB_ACTIVE_PREFIX}_{user_id}"
+
+
+def _recently_used_key(user_id: int) -> str:
+    return f"{DISCOVER_RECENTLY_USED_PREFIX}_{user_id}"
 
 
 def _request_warmup_key(user_id: int) -> str:
@@ -397,11 +402,16 @@ def clear_provider_cache_for_media_type(media_type: str) -> int:
 def clear_lower_level_cache(user_id: int, media_type: str) -> tuple[int, int]:
     """Delete lower-level row and taste-profile caches for a user/media type."""
     deleted_rows = clear_row_cache(user_id, media_type)
+    return deleted_rows, clear_taste_profile(user_id, media_type)
+
+
+def clear_taste_profile(user_id: int, media_type: str) -> int:
+    """Delete the cached taste profile for a user/media type."""
     deleted_profiles, _ = DiscoverTasteProfile.objects.filter(
         user_id=user_id,
         media_type=_normalize_media_type(media_type),
     ).delete()
-    return int(deleted_rows), int(deleted_profiles)
+    return int(deleted_profiles)
 
 
 def clear_row_cache(user_id: int, media_type: str) -> int:
@@ -437,7 +447,42 @@ def mark_active(
         },
         timeout=DISCOVER_TAB_ACTIVE_TTL,
     )
+    mark_recently_used(user_id)
     return context
+
+
+def _eager_rebuild_days() -> int:
+    return max(0, int(getattr(settings, "DISCOVER_EAGER_REBUILD_DAYS", 0) or 0))
+
+
+def mark_recently_used(user_id: int) -> None:
+    """Record that the user opened Discover, for the eager-rebuild window."""
+    days = _eager_rebuild_days()
+    if days:
+        _cache_set(_recently_used_key(user_id), 1, timeout=days * 24 * 60 * 60)
+
+
+def recently_used(user_id: int) -> bool | None:
+    """Return whether the user opened Discover within the eager-rebuild window.
+
+    None means the cache could not answer; callers treat that as "yes", which
+    is the behaviour from before the window existed.
+    """
+    key = _recently_used_key(user_id)
+    try:
+        present = cache.has_key(key)
+    except Exception as exc:
+        _log_cache_failure("has_key", key, exc)
+        return None
+    # django-redis answers None when it swallowed a connection error.
+    return None if present is None else bool(present)
+
+
+def _rebuilds_eagerly(user_id: int) -> bool:
+    """Return whether a tracked write should queue this user's tab rebuilds."""
+    if not _eager_rebuild_days():
+        return True
+    return recently_used(user_id) is not False
 
 
 def get_active_context(user_id: int) -> ActiveDiscoverContext | None:
@@ -809,6 +854,39 @@ def schedule_tab_refresh(
         return False
 
 
+def _tab_changed_since_built(
+    user_id: int,
+    media_type: str,
+    activity_version: str,
+    *,
+    show_more: bool,
+) -> bool:
+    payload = _cache_get(_tab_cache_key(user_id, media_type, show_more=show_more))
+    if not isinstance(payload, dict):
+        return True
+    return str(payload.get("activity_version") or "") != activity_version
+
+
+def _clear_rows_built_before(user_id: int, media_type: str, activity_version: str) -> int:
+    """Delete cached rows not built for this activity version.
+
+    Keeps a row a row refresh rebuilt moments ago for the current version.
+    """
+    from app.discover.row_cache_schema import ROW_CACHE_ACTIVITY_VERSION_META_KEY
+
+    deleted_rows, _ = (
+        DiscoverRowCache.objects.filter(
+            user_id=user_id,
+            media_type=_normalize_media_type(media_type),
+        )
+        .exclude(
+            **{f"payload__meta__{ROW_CACHE_ACTIVITY_VERSION_META_KEY}": activity_version},
+        )
+        .delete()
+    )
+    return int(deleted_rows)
+
+
 def refresh_tab_cache(
     user,
     media_type: str,
@@ -828,6 +906,11 @@ def refresh_tab_cache(
     try:
         if force:
             clear_row_cache(user.id, media_type)
+        elif _tab_changed_since_built(
+            user.id, media_type, build_activity_version, show_more=show_more
+        ):
+            # A write that did not queue a rebuild left its rows in place.
+            _clear_rows_built_before(user.id, media_type, build_activity_version)
         if clear_provider_cache:
             clear_provider_cache_for_media_type(media_type)
 
@@ -1351,18 +1434,36 @@ def _invalidate_targets(
     *,
     debounce_seconds: int,
     countdown: int,
+    gate_on_recent_use: bool,
 ) -> list[str]:
     active_context = get_active_context(user_id)
     targets = get_user_target_media_types_for_change(user_id, media_type)
+    # Someone who has not opened Discover lately gets the tab marked stale
+    # (the version bump below) instead of a rebuild: the next visit serves the
+    # stale rows and rebuilds at once, as it does for any stale tab.
+    rebuild_in_background = not gate_on_recent_use or _rebuilds_eagerly(user_id)
     for target_media_type in targets:
         bump_activity_version(user_id, target_media_type)
-        clear_lower_level_cache(user_id, target_media_type)
 
         prioritized = (
             active_context is not None
             and active_context.media_type == target_media_type
         )
         prioritized_show_more = active_context.show_more if prioritized else False
+        if not prioritized and not rebuild_in_background:
+            # The cached rows stay: every read checks them against the version
+            # bumped above, and the tab's next rebuild deletes them first
+            # (refresh_tab_cache). The taste profile has readers outside a tab
+            # rebuild (feeds, row refreshes) that check no version, so it goes.
+            clear_taste_profile(user_id, target_media_type)
+            logger.debug(
+                "discover_tab_refresh_deferred user_id=%s media_type=%s "
+                "reason=not_recently_used",
+                user_id,
+                target_media_type,
+            )
+            continue
+        clear_lower_level_cache(user_id, target_media_type)
         if not prioritized and _cache_get(
             _rebuild_cooldown_key(user_id, target_media_type, show_more=False)
         ):
@@ -1406,14 +1507,17 @@ def invalidate_for_media_change(user_id: int, media_type: str) -> list[str]:
         media_type,
         debounce_seconds=DISCOVER_DEFAULT_REFRESH_DEBOUNCE_SECONDS,
         countdown=DISCOVER_DEFAULT_REFRESH_COUNTDOWN,
+        gate_on_recent_use=True,
     )
 
 
 def invalidate_for_feedback_change(user_id: int, media_type: str) -> list[str]:
     """Invalidate Discover immediately after hidden feedback changes."""
+    # Feedback is a Discover action itself, so it always rebuilds.
     return _invalidate_targets(
         user_id,
         media_type,
         debounce_seconds=DISCOVER_PRIORITY_REFRESH_DEBOUNCE_SECONDS,
         countdown=DISCOVER_PRIORITY_REFRESH_COUNTDOWN,
+        gate_on_recent_use=False,
     )

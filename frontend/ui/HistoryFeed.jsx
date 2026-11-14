@@ -1,6 +1,6 @@
 import { Modal, ModalCloseButton } from './Modal';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { actionIcons } from './actionIcons';
 import { Badge } from './Badge';
 import { Button } from './Button';
@@ -806,7 +806,6 @@ export function HistoryFeed({
   onRetry,
   onRetryDay,
   onRefresh,
-  onDismissRefresh,
   filtersOpen: controlledOpen,
   onFiltersOpenChange,
   filterVariant = 'chips',
@@ -821,21 +820,16 @@ export function HistoryFeed({
   const setFiltersOpen = onFiltersOpenChange || setOwnOpen;
   // The web template hides the year jumps below 24rem.
   const showYears = viewportWidth >= 384;
-  const [refreshDismissed, setRefreshDismissed] = useState(false);
-  useEffect(() => { if (model.refreshing) setRefreshDismissed(false); }, [model.refreshing]);
   const mode = model.mode || 'activity';
   const days = model.days || [];
   const nav = model.nav || {};
   const filters = model.filters || {};
   const options = model.options || {};
   const activeCount = filters.activeCount ?? 0;
-  const showRefresh = chrome && model.refreshing && !refreshDismissed;
+  // A background refresh shows as a small spinner by the month, not a banner.
+  const showRefresh = chrome && model.refreshing && days.length > 0;
 
   return <View style={styles.feed}>
-    {showRefresh ? <RefreshNotice state="loading" message={copy.refreshing}
-      labels={{ dismiss: copy.dismiss }} palette={colors}
-      background={colors.surfaceStrong} border={colors.border} color={colors.text}
-      onDismiss={() => { setRefreshDismissed(true); onDismissRefresh?.(); }} /> : null}
     {chrome && model.refreshError ? <RefreshNotice state="error" message={copy.refreshFailed}
       labels={{ retry: copy.retryRefresh }} palette={colors} background={colors.surface}
       border={colors.danger} color={colors.text} onRetry={() => onRefresh?.()} /> : null}
@@ -850,7 +844,10 @@ export function HistoryFeed({
           icon={actionIcons.chevronLeft} colors={colors} disabled={nav.previousMonth.disabled}
           onPress={() => onNavigate?.({ kind: 'month', direction: -1, url: nav.previousMonth.url })} /> : null}
       </View>
-      <Text accessibilityRole="header" numberOfLines={1} style={[styles.monthLabel, { color: colors.text }]}>{nav.monthLabel}</Text>
+      <View style={styles.monthTitle}>
+        <Text accessibilityRole="header" numberOfLines={1} style={[styles.monthLabel, { color: colors.text }]}>{nav.monthLabel}</Text>
+        {showRefresh ? <ActivityIndicator size="small" color={colors.textMuted} accessibilityLabel={copy.refreshing} /> : null}
+      </View>
       <View style={styles.monthNavSide}>
         {nav.nextMonth ? <MonthButton label={nav.nextMonth.label || copy.nextMonth} trailing
           icon={actionIcons.chevronRight} colors={colors} disabled={nav.nextMonth.disabled}
@@ -916,7 +913,8 @@ const styles = StyleSheet.create({
   monthNavSide: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   monthButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 6 },
   monthButtonText: { fontSize: 14 },
-  monthLabel: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '600' },
+  monthTitle: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  monthLabel: { flexShrink: 1, textAlign: 'center', fontSize: 16, fontWeight: '600' },
   fab: { position: 'absolute', right: 24, bottom: 24, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 6, shadowColor: 'black', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   fabBadge: { position: 'absolute', top: -4, right: -4, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   fabBadgeText: { fontSize: 12, fontWeight: '700' },

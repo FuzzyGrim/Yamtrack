@@ -153,6 +153,7 @@ export function TrackDialog({
   labels = {},
   palette: suppliedPalette,
   tabs = [],
+  generalPrefix,
   onChange,
   onSubmit,
   onDelete,
@@ -251,6 +252,7 @@ export function TrackDialog({
     labels={labels}
     palette={palette}
     tabs={tabs}
+    generalPrefix={generalPrefix}
     activeTab={activeTab}
     onTabChange={setActiveTab}
     onChange={change}

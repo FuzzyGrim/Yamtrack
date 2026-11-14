@@ -167,6 +167,14 @@ export function mapArtistPayload(payload) {
   };
 }
 
+export async function loadArtistWithRelations(transport, artistId) {
+  const [artist, relations] = await Promise.all([
+    transport.loadArtist({ artistId }),
+    transport.loadArtistRelations({ artistId }).catch(() => null),
+  ]);
+  return { artist, relations };
+}
+
 export function mapTracksPayload(payload) {
   const results = Array.isArray(payload?.results)
     ? payload.results

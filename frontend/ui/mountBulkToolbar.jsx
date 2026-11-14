@@ -91,7 +91,7 @@ function Toolbar({ config }) {
         csrfToken: config.csrfToken,
         tags: config.tagOptions || config.tags.map(name => ({ id: name, name })),
       }) },
-    { key: 'more', icon: 'more', label: 'More actions', align: 'end',
+    { key: 'more', icon: 'more', label: 'More actions',
       items: [{ label: 'Add Plays to History', onSelect: () => open({ kind: 'plays' }) }] },
   ];
 

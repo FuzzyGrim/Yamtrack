@@ -3587,25 +3587,33 @@ class MediaListViewTests(TestCase):
         self.assertNotIn(movie_item.id, movie_ids)
 
     def test_media_list_layout_toggle_uses_shared_filter_serializer(self):
-        """Grid/table links should reuse the shared serializer instead of manual query strings."""
+        """The settings menu island switches layout through the page's shared serializer, not a query string of its own."""
         response = self.client.get(reverse("medialist", args=[MediaTypes.MOVIE.value]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response,
-            ":href=\"layoutHref(layout === 'grid' ? 'table' : 'grid')\"",
-        )
+        self.assertContains(response, "data-settings-menu-root")
         self.assertContains(
             response,
             "layoutHref(nextLayout) { return buildMediaListHref(this.mediaListUrl, document.getElementById('filter-form'), { layout: nextLayout }); }",
         )
-        self.assertContains(
-            response,
-            '@click="$el.href = layoutHref(layout === \'grid\' ? \'table\' : \'grid\'); open = false"',
-        )
         self.assertNotContains(
             response, "layout = layout === 'grid' ? 'table' : 'grid'"
         )
+
+    def test_filters_status_and_sort_are_the_shared_filter_bar_island(self):
+        """The three toolbar dropdowns mount the shared FilterBar, which groups the date options under Date."""
+        response = self.client.get(reverse("medialist", args=[MediaTypes.MOVIE.value]))
+
+        self.assertContains(response, "data-filter-bar-root")
+        self.assertContains(response, '"date": "Date"')
+        self.assertContains(response, '"releaseDate": "Release date"')
+        self.assertContains(response, '"addedDate": "Added date"')
+        self.assertContains(response, '"completedDate": "Completed date"')
+        self.assertContains(response, '"releaseStatus": "Release status"')
+        for key in ("year", "release"):
+            self.assertContains(response, f'"key": "{key}"')
+        for key in ("releaseDate", "dateAdded", "completedDate"):
+            self.assertContains(response, f'"key": "{key}"')
 
     def test_comic_media_list_can_switch_to_issue_subview(self):
         """Comic media list should reuse the music-style subview switch for issues."""

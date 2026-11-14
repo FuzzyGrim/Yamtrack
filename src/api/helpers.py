@@ -630,9 +630,21 @@ def paginate_list_items(request, user, user_list):
         )
         items = items[offset : offset + limit]
 
+    items = list(items)
+    from app.services.music import album_trackers_for_list_items
+    from app.services.podcast_list_tracking import podcast_show_trackers_for_items
+
+    show_trackers = podcast_show_trackers_for_items(user, items)
+    album_trackers = album_trackers_for_list_items(user, items)
     media_objects = []
     prefetch_groups = {}
     for item in items:
+        if item.pk in album_trackers:
+            media_objects.append(album_trackers[item.pk])
+            continue
+        if item.pk in show_trackers:
+            media_objects.append(show_trackers[item.pk])
+            continue
         # Shows info about the last consumption of the media if it's tracked
         queryset = BasicMedia.objects.filter_media_prefetch(
             user,

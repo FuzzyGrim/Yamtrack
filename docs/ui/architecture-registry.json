@@ -624,6 +624,26 @@
         }
       }
     },
+    "frontend/ui/SettingsMenu.jsx": {
+      "components": [
+        "SettingsMenu"
+      ],
+      "register": "FORM-CONTROLS",
+      "verification": {
+        "web": {
+          "status": "unverified",
+          "evidence": "Mounted by frontend/ui/mountSettingsMenu.jsx on the media list; the gear menu opened and rendered in Chromium."
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "Not exercised on a device."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Android runtime has not been exercised."
+        }
+      }
+    },
     "frontend/ui/DropdownMenu.jsx": {
       "components": [
         "DropdownMenu"
@@ -1133,7 +1153,7 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered in the shared TrackDialog by mountTrackForm for card, detail and episode Track popups; General fields, date/status/progress coupling, notes, repeat identity, validation and htmx save/delete/rewatch are wired. The web bundle builds and targeted Django tests pass, but no browser interaction pass was run."
+          "evidence": "Rendered in the shared TrackDialog by mountTrackForm for card, detail and episode Track popups. Song and podcast dialogs receive server-owned preview and history through the adapter while their fallback is hidden. The web bundle builds; runtime evidence is recorded separately."
         },
         "ios": {
           "status": "unverified",
@@ -1153,7 +1173,7 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered by mountTrackForm as the web Track dialog for card, detail, album/artist and podcast-show popups with General, Tags, Status history and Discover shared; the Metadata, Collection and Episode plays bodies are moved in from the server. The web bundle builds and targeted Django tests pass, but no browser interaction pass was run."
+          "evidence": "Rendered by mountTrackForm as the web Track dialog for card, detail, album/artist and podcast-show popups. Song and podcast preview and history remain server-owned and are moved into the form; their legacy shell remains a fallback. Runtime evidence is recorded separately."
         },
         "ios": {
           "status": "unverified",
@@ -1495,11 +1515,11 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "The shared comparison, taste/talent, role/studio leader and per-media overview presentation is not mounted in the browser; the existing server/Alpine Statistics page remains the web owner and no browser pass was performed."
+          "evidence": "Web islands mount shared per-media overview and talent presentation alongside server fallbacks. Populated overview panels with long titles were checked at phone width; legacy fallbacks remain until their hosts retire."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Statistics screen; no comparison mode, sort control, person selection, media-type filter or empty state was exercised on a simulator or device."
+          "evidence": "StatisticsMediaTypeOverview with long titles was inspected in an Expo Go preview on iPhone 16 Pro; other Statistics interactions were not verified in this pass."
         },
         "android": {
           "status": "unverified",
@@ -1925,12 +1945,12 @@
       "register": "MUSIC",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "Mounted through mountMusicRelations as a compile-checked browser island; no browser runtime pass has been performed for the relation grid."
+          "status": "verified",
+          "evidence": "Chromium rendered the artist relation island at desktop and phone widths, including the image-refresh swap."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Artist screen; the relation grid was not exercised on a simulator or device."
+          "status": "verified",
+          "evidence": "A fixture preview of the shared relation grid ran in Expo Go on an iOS simulator; the full artist flow was not exercised."
         },
         "android": {
           "status": "unverified",
@@ -1947,11 +1967,11 @@
       "verification": {
         "web": {
           "status": "verified",
-          "evidence": "Browser verified on a local artist page: the island mounted and replaced the server fallback; before the fix both React anchors lacked href values. After MusicAlbumCard preserved the server album href in the shared card model, clicking each album cover and title opened its correct album page."
+          "evidence": "Chromium rendered the artist album island at desktop and phone widths, including the cover-refresh swap; album links retain their server URLs."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native artist discography; the album grid was not exercised on a simulator or device."
+          "status": "verified",
+          "evidence": "A fixture preview of the shared album grid ran in Expo Go on an iOS simulator; the full artist flow was not exercised."
         },
         "android": {
           "status": "unverified",
@@ -3622,6 +3642,17 @@
         }
       }
     },
+    "frontend/ui/DetailActivitySubtitle.jsx": {
+      "kind": "presentation",
+      "components": ["DetailActivitySubtitle"],
+      "register": "DETAIL",
+      "purpose": "Render activity dates and duration consistently across detail surfaces.",
+      "verification": {
+        "web": {"status": "verified", "evidence": "Mobile PWA on iPhone Duo compared with Expo; desktop appearance pending."},
+        "ios": {"status": "verified", "evidence": "Expo on iPhone Duo compared with the mobile PWA."},
+        "android": {"status": "unverified", "evidence": "Shared presentation and data tests pass; Android runtime appearance pending."}
+      }
+    },
     "frontend/ui/DetailBackdrop.jsx": {
       "components": [
         "DetailBackdrop"
@@ -3629,12 +3660,12 @@
       "register": "DETAIL",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "PWA remains the server-owned reference; shared header and synopsis mounts coexist. Current composition comparison and browser regression checks pending."
+          "status": "verified",
+          "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Implemented in Expo with React Native primitives and native SVG adapters. Current simulator visual and interaction comparison pending."
+          "status": "verified",
+          "evidence": "Expo on iPhone Duo compared before and after."
         },
         "android": {
           "status": "unverified",
@@ -3936,6 +3967,48 @@
         }
       }
     },
+    "frontend/ui/keyboardOverlapContext.js": {
+      "components": [
+        "KeyboardOverlapContext"
+      ],
+      "register": "SEARCH",
+      "verification": {
+        "web": {
+          "status": "unverified",
+          "evidence": "Provided by the web mountRoot; not exercised with a keyboard."
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "Provided by ThemeRoot; user accepted dropdown animation on a physical Duo, but recording was not inspected."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Android runtime has not been exercised."
+        }
+      }
+    },
+    "frontend/ui/devicePose.js": {
+      "components": [
+        "resolvePose",
+        "poseValue",
+        "isPose"
+      ],
+      "register": "DETAIL",
+      "verification": {
+        "web": {
+          "status": "unverified",
+          "evidence": "Unit tests cover every pose and the no-hinge size rule; the PWA reads it through frontend/settings/pose.web.js."
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "Unit tests only; not yet read on the Duo hardware."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Android runtime has not been exercised."
+        }
+      }
+    },
     "frontend/ui/dropdownMetrics.js": {
       "components": [
         "DROPDOWN"
@@ -4079,6 +4152,28 @@
         "android": {
           "status": "unverified",
           "evidence": "Implemented in Expo with React Native primitives and native SVG adapters. Current emulator visual and interaction comparison pending."
+        }
+      }
+    },
+    "frontend/ui/homeRowLoading.js": {
+      "components": [
+        "rowProximity",
+        "rowsToStart",
+        "rowPriority"
+      ],
+      "register": "HOME",
+      "verification": {
+        "web": {
+          "status": "verified",
+          "evidence": "node --test scripts/homeRowLoading.test.mjs (visible, near and far bands, start order, priority, queued row scrolled into view goes next); Chromium Home load counted below in the HOME register entry."
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "Pure JavaScript with no platform API; shared with the Expo Home screen through HomeShelves and homeRowWatcherCore. Simulator evidence is recorded in the HOME register entry."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Pure JavaScript with no platform API; not run on an emulator or device."
         }
       }
     }
@@ -4580,11 +4675,11 @@
       "components": [
         "Reveal"
       ],
-      "purpose": "Animate the sidebar Explore block open and closed with the release's 200 ms height reveal on the browser; the native counterpart keeps the same open/closed contract.",
+      "purpose": "Animate Sidebar Explore with a clipped 200 ms transform on web, avoiding per-frame height layout; native retains its measured-height implementation.",
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Compiled into the browser sidebar; the reveal is being rechecked against the release behavior."
+          "evidence": "Targeted Chromium regression exercises the mounted sidebar, rapid reversal, scrolling and reduced motion; visual comparison remains pending."
         },
         "ios": {
           "status": "unverified",
@@ -5207,12 +5302,12 @@
       "purpose": "Render sharp artwork and a blurred backdrop with the crop anchored to the inner content strip, allowing native search and rail bleed.",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "PWA remains the server-owned reference; shared header and synopsis mounts coexist. Current composition comparison and browser regression checks pending."
+          "status": "verified",
+          "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Implemented in Expo with React Native primitives and native SVG adapters. Current simulator visual and interaction comparison pending."
+          "status": "verified",
+          "evidence": "Expo on iPhone Duo compared before and after."
         },
         "android": {
           "status": "unverified",
@@ -5229,12 +5324,12 @@
       "purpose": "Render sharp artwork and a blurred backdrop with the crop anchored to the inner content strip, allowing native search and rail bleed.",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "PWA remains the server-owned reference; shared header and synopsis mounts coexist. Current composition comparison and browser regression checks pending."
+          "status": "verified",
+          "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Implemented in Expo with React Native primitives and native SVG adapters. Current simulator visual and interaction comparison pending."
+          "status": "verified",
+          "evidence": "Expo on iPhone Duo compared before and after."
         },
         "android": {
           "status": "unverified",
@@ -5360,6 +5455,10 @@
       "register": "SEARCH",
       "purpose": "Django/browser integration for the shared parent picker on the create-entry form."
     },
+    "frontend/ui/mountSettingsMenu.jsx": {
+      "register": "FILTERS",
+      "purpose": "Django/browser integration for the media list settings menu: reads the page Alpine scope (layout, save, share, select) and the entry-grouping form when the menu opens."
+    },
     "frontend/ui/mountSpinner.jsx": {
       "register": "SPINNER",
       "purpose": "Django/browser integration for the registered surface."
@@ -5431,6 +5530,20 @@
     "frontend/ui/mountRatingStars.jsx": {
       "register": "RATING",
       "purpose": "Django/browser integration for the shared star row."
+    },
+    "frontend/ui/mountDetailActivitySubtitle.jsx": {
+      "register": "DETAIL",
+      "purpose": "Mount the shared activity subtitle in the browser history button."
+    },
+    "frontend/ui/mountDetailBackdrop.jsx": {
+      "components": ["WebDetailBackdrop"],
+      "register": "DETAIL",
+      "purpose": "Measure the server hero frame and mount the shared mobile backdrop, retaining the server fallback.",
+      "verification": {
+        "web": {"status": "verified", "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."},
+        "ios": {"status": "verified", "evidence": "Expo on iPhone Duo compared before and after."},
+        "android": {"status": "unverified", "evidence": "Expo uses the native adapter; runtime comparison pending."}
+      }
     },
     "frontend/ui/mountDetailComposition.jsx": {
       "register": "DETAIL",
@@ -5663,6 +5776,14 @@
     "frontend/ui/keyboardOverlap.web.js": {
       "register": "SEARCH",
       "purpose": "Browser adapter that reports how far the on-screen keyboard covers the page, from the visual viewport, for the Search suggestion window."
+    },
+    "frontend/settings/pose.web.js": {
+      "register": "DETAIL",
+      "purpose": "Browser adapter that writes the PWA device pose (data-pose on <html>) from the window size and keeps it current on resize and rotation."
+    },
+    "frontend/ui/homeRowWatcher.web.js": {
+      "register": "HOME",
+      "purpose": "Browser adapter that reports where each waiting Home row sits (on screen, within one and a half screens, or further) with IntersectionObserver, so shared HomeShelves requests only rows near the viewport. Native counterpart: native-proof/app/data/homeRowWatcherCore.js."
     }
   }
 }

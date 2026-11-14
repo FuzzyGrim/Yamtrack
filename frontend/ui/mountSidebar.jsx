@@ -36,6 +36,7 @@ function readPalette() {
     textMuted: color('--color-text-muted', '#adb5bd'),
     surface: color('--color-surface', '#2a2f35'),
     surfaceStrong: color('--color-surface-strong', '#343a40'),
+    surfaceMuted: color('--color-surface-muted', '#343a40'),
     surfaceHover: color('--color-surface-hover', '#3f3f46'),
     hoverDim: color('--color-hover-dim', 'rgba(255, 255, 255, 0.05)'),
     border: color('--color-border', '#343a40'),

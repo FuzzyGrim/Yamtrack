@@ -44,6 +44,11 @@ priority_urlpatterns = [
         name="api_search_sources",
     ),
     re_path(
+        r"^search/type/?$",
+        fork_views_search.SearchTypeView.as_view(),
+        name="api_search_type",
+    ),
+    re_path(
         r"^search/suggestions/?$",
         fork_views_search.SearchSuggestionsView.as_view(),
         name="api_search_suggestions",

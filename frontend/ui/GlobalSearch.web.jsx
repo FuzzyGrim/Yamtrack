@@ -116,6 +116,17 @@ export function GlobalSearch({ host, props }) {
     window.location.assign(url.toString());
   }, [props.action]);
 
+  // Remember the picked type on the server so the next page opens with it.
+  const onTypeChange = useCallback((mediaType) => {
+    const csrf = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+    fetch(new URL(props.typeUrl, window.location.origin), {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({ media_type: mediaType }),
+    }).catch(() => {});
+  }, [props.typeUrl]);
+
   const onSelectSuggestion = useCallback((suggestion) => {
     if (!suggestion?.url) return;
     window.location.assign(new URL(suggestion.url, window.location.origin).toString());
@@ -138,6 +149,7 @@ export function GlobalSearch({ host, props }) {
     dismissSignal={dismissSignal}
     onLoadSuggestions={onLoadSuggestions}
     onSubmit={onSubmit}
+    onTypeChange={props.typeUrl ? onTypeChange : undefined}
     onSelectSuggestion={onSelectSuggestion}
     onBarcodeRequest={onBarcodeRequest}
   />;

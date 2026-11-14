@@ -7,8 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { DROPDOWN } from './dropdownMetrics';
-import { DropdownMenu } from './DropdownMenu';
+import { DropdownItem, DropdownMenu } from './DropdownMenu';
 import { Reveal } from './Reveal';
 
 // The signed-in sidebar as shared React Native presentation. The browser
@@ -21,6 +20,7 @@ const defaultPalette = {
   textMuted: '#adb5bd',
   surface: '#2a2f35',
   surfaceStrong: '#343a40',
+  surfaceMuted: '#343a40',
   surfaceHover: '#3f3f46',
   hoverDim: 'rgba(255, 255, 255, 0.05)',
   border: '#343a40',
@@ -128,14 +128,9 @@ function EllipsisButton({ label, expanded, onOpen, palette, icons, renderIcon })
 }
 
 function MenuButton({ label, onPress, palette, danger = false, icon, glyph, renderIcon }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
-    style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: palette.surfaceHover }]}>
-    {icon || glyph ? <IconSlot spec={icon} glyph={glyph} renderIcon={renderIcon} size={16}
-      color={danger ? palette.danger : palette.textSecondary} /> : null}
-    <Text style={[styles.menuItemText, { color: danger ? palette.danger : palette.textSecondary }]}>
-      {label}
-    </Text>
-  </Pressable>;
+  return <DropdownItem label={label} onPress={onPress} accessibilityRole="button" danger={danger} palette={palette}
+    icon={icon || glyph ? <IconSlot spec={icon} glyph={glyph} renderIcon={renderIcon} size={16}
+      color={danger ? palette.danger : palette.textSecondary} /> : null} />;
 }
 
 function PinMenu({ pinKey, pins, palette, labels, icons, renderIcon }) {
@@ -565,7 +560,4 @@ const styles = StyleSheet.create({
   exploreReserved: { opacity: 0, pointerEvents: 'none' },
   bottomLink: { flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', gap: DROPDOWN.itemGap,
-    paddingHorizontal: DROPDOWN.itemPaddingHorizontal, paddingVertical: DROPDOWN.itemPaddingVertical },
-  menuItemText: { fontSize: DROPDOWN.fontSize },
 });

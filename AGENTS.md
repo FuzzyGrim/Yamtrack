@@ -65,6 +65,13 @@ next to the code, not only in a PR. Also list the carve-out in the register entr
   Extend those; do not build a second system. Open the images and look at them. On a
   Mac, `docs/agents/native_cloud_runtimes.md` is the recipe for real iOS and Android
   frames (`scripts/native_shots.sh <label>`).
+- Provide the user a review artifact for every user-facing change: a clearly labeled
+  before/after comparison that shows the affected state and is linked or displayed in
+  the completion message (and in the PR description when preparing a PR). Use the
+  existing screenshot workflow for visual changes; use an appropriate recording or
+  concrete before/after output for behavior that still images cannot show. Keep task
+  artifacts out of tracked documentation. If either side cannot be captured, provide
+  the available evidence, state the blocker and do not claim the comparison is complete.
 - The v26.10.29 web release is the visual baseline for React and React Native components.
   Treat a layout or visual change from it as a regression unless a redesign is documented.
 - Report one evidence level per platform (web, iOS, Android), never a combined pass:
@@ -81,6 +88,15 @@ next to the code, not only in a PR. Also list the carve-out in the register entr
   level for an applicable platform as a gap to report, not to assume.
 
 ## Operating Principles
+
+Do not stop an authorized task merely because it requires a migration, unfamiliar
+architecture, or verification work. Implement the necessary changes and use the
+available devices and tools; report incomplete work only after making a sustained
+attempt and identifying a concrete blocker that prevents further progress.
+When the user demonstrates a defect or asks you to inspect it in the course of a
+fix, treat the demonstration as part of the work: investigate, implement the fix,
+and verify it. Do not end with findings alone when a fix is within the authorized
+task and can be made safely.
 
 When the user supplies a plan and asks for the work, execute it through implementation and verification; do not stop after restating the scope. Continue until complete or an evidenced external blocker prevents further progress.
 
@@ -392,6 +408,7 @@ Models/migrations and divergent UI normally require manual adaptation. Provider 
 - `docs/agents/view_authentication.md`: guide for view authentication and declaring public route exemptions.
 - `docs/agents/pr_screenshots.md`: `scripts/pr_screenshots.py` captures before/after screenshots of a PR and posts them to its description.
 - `docs/agents/native_cloud_runtimes.md`: how to get real iOS and Android screenshots: locally with Expo Go, the booted simulators and `scripts/native_shots.sh` (tested), or hosted via a contributor's own Expo account (opt-in; nothing runs in CI).
+- `docs/architecture/device-poses.md`: the six Duo poses (closed, open, partial; vertical, horizontal), how a device with no hinge gets one from its size, and how Expo and the PWA read and address them.
 - `docs/architecture/log-redaction.md`: the log boundary contract — where credentials are removed, what the rules match, and what they do not cover.
 - `docs/architecture/log-levels.md`: what each log level means, the start/progress/finish lines every long-running process must write so a hang is visible, and what the Settings > Advanced downloads include.
 - `docs/architecture/theming.md`: the theme resolution contract and the six theme states any colour change must hold.
@@ -408,6 +425,7 @@ Models/migrations and divergent UI normally require manual adaptation. Provider 
 - `docs/architecture/local-covers.md`: covers a person uploads, links or picks — where the files live, what is accepted, how they are fetched, who may change and see them.
 - `docs/architecture/media-card.md`: the one media card and its surfaces — what may differ between pages and why, how a page loads the viewer's rating and status, and the test that catches a grid that drifts.
 - `docs/architecture/history-memory.md`: what a History request costs a web worker — the item columns history must not load, which paths are bounded by the response and which are still bounded by the history.
+- `docs/architecture/in-place-navigation.md`: how to make a link swap the page in place with `hx-boost` instead of a full reload — what the app guarantees, what a page must clean up, when not to use it, and how to check it.
 - `docs/architecture/view-caches.md`: the media list, Home and time-left caches — the one function that clears them, what each kind of change clears, and which write paths must call it.
 - `docs/integrations/nuvio-client-guide.md`: what a third-party tracking client implements, with `api.tests.test_nuvio_conformance` as its runnable half.
 - `docs/integrations/flexget.md`: how a download tool (FlexGet's `floppy_list`, or `curl`) reads lists and reports owned media by provider id, with `api.tests.test_fork_media_collection` as its runnable half.

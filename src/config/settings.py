@@ -1253,6 +1253,15 @@ else:
         "DISCOVER_WARMUP_ON_STARTUP",
         cast=bool,
     )
+# A tracked write rebuilds Discover in the background only for someone who
+# opened Discover (or called the recommendations API) in the last this many
+# days; for everyone else the tab is marked stale and rebuilt on the next visit.
+# 0 rebuilds after every write for everyone (the previous behaviour).
+DISCOVER_EAGER_REBUILD_DAYS = config(
+    "DISCOVER_EAGER_REBUILD_DAYS",
+    default=3,
+    cast=int,
+)
 
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
@@ -1291,6 +1300,7 @@ SHARED_DEFAULT_CREDENTIALS = {
     "IGDB_ID": "8wqmm7x1n2xxtnz94lb8mthadhtgrt",
     "BGG_API_TOKEN": "92f43ab1-d1d5-4e18-8b82-d1f56dc12927",
     "COMICVINE_API": "cdab0706269e4bca03a096fbc39920dadf7e4992",
+    "WETRAKR_CLIENT_ID": "84fcb12dd6f78fc0efc0f279d5fea165",
 }
 
 TMDB_API = config(
@@ -1344,14 +1354,15 @@ MAL_API_SECRET = config(
     ),
 )
 
-# The application key a WeTrakr account is connected with. WeTrakr issues these
-# on request, so each user or instance brings their own (Settings > Metadata);
-# nothing ships with the image.
+# The application key every WeTrakr account is connected with. WeTrakr issued it
+# to Floppy as an app-owned developer key (no client secret, no redirect URI:
+# login is a device code), so it ships as a shared default. An instance or member
+# can still supply their own (Settings > Providers > WeTrakr).
 WETRAKR_CLIENT_ID = config(
     "WETRAKR_CLIENT_ID",
     default=secret(
         "WETRAKR_CLIENT_ID_FILE",
-        "",
+        SHARED_DEFAULT_CREDENTIALS["WETRAKR_CLIENT_ID"],
     ),
 )
 

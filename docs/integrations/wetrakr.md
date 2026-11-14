@@ -18,7 +18,7 @@ SECRET=test-only scripts/test.sh integrations.tests.test_wetrakr
 shape in `wetrakr_api.py` and `state/adapters/wetrakr.py` comes from an
 unofficial transcription of WeTrakr's documentation (2026-10-01), and the tests
 run against a mocked WeTrakr. Do not call this integration complete until a
-WeTrakr application key and a consenting test account have confirmed:
+consenting test account has confirmed, using the bundled key:
 
 - the device-login field name (`code` or `device_code`; Floppy tries both);
 - the exact reply buckets (`added`, `notFound`, `errored`) and `play_id`;
@@ -27,9 +27,17 @@ WeTrakr application key and a consenting test account have confirmed:
 
 ## Connecting
 
-1. Get an application key from WeTrakr and set `WETRAKR_CLIENT_ID`, or paste it
-   under Settings > Providers > WeTrakr > Connection. Floppy ships no shared key.
-2. Integrations > WeTrakr > Connect. Floppy shows a code; approve it on
+1. Nothing to set up: Floppy ships WeTrakr's app-owned key (a shared default,
+   like the TMDB key), sent as the `wetrakr-api-key` header. It is public by
+   design and every install shares its quota. WeTrakr issues the key to the app,
+   so members cannot get their own and Settings offers no key field. A rebrand or
+   public host with its own key sets `WETRAKR_CLIENT_ID` in the environment.
+
+   Running Floppy yourself, including with small changes of your own, needs
+   nothing more. If you rebrand Floppy, make a major departure from it, or host
+   it as a public service for other people, ask WeTrakr for your own key so your
+   users are counted separately from Floppy's.
+2. Providers > WeTrakr > Connection > Connect WeTrakr. Floppy shows a code; approve it on
    wetrakr.com. Floppy stores the tokens encrypted and refreshes them under a
    lock, because WeTrakr rotates refresh tokens.
 3. Connecting sends nothing. Plays, statuses and ratings each have a switch,

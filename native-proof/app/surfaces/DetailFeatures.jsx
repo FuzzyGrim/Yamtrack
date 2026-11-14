@@ -83,6 +83,7 @@ import {
   unwatchEpisode,
 } from './mediaCardTransport';
 import { badgePalette, mediaCardPalette, palette as themePalette, progressDetailPalette, ratingPalette, spacing } from '../theme';
+import { loadDetailHeader } from '../data/loadDetailHeader.mjs';
 
 // The detail page's own controls on top of the server page payload: the track
 // dialog and check-in, tags, notes, lists, activity history, the progress card,
@@ -332,7 +333,7 @@ function SeerrDialog({ open, state, busy, error, onRequest, onClose }) {
   const seasons = state?.seasons || [];
   return <MediaCardActionHost open={open} action={{ title: 'Request in Seerr' }} palette={palette} onClose={onClose}>
     {error ? <Text style={[styles.dialogText, { color: palette.danger }]}>{error}</Text> : null}
-    {!state ? <ActivityIndicator color={palette.accent} /> : null}
+    {!state && !error ? <ActivityIndicator color={palette.accent} /> : null}
     {state && seasons.length ? seasons.map(season => <View key={season.number} style={styles.playRow}>
       <Text style={[styles.dialogText, styles.playBody, { color: palette.text }]}>{season.name}</Text>
       {season.requestable
@@ -352,7 +353,7 @@ function SeerrDialog({ open, state, busy, error, onRequest, onClose }) {
  * @param version bumps when the screen reloaded the page model
  * @param refresh reloads the page model after a write
  */
-export function useDetailFeatures({ model, ready, version, refresh, navigate, onOpenItem, onOpenExternal, shelfWidth }) {
+export function useDetailFeatures({ model, ready, dataReady, version, refresh, navigate, onOpenItem, onOpenExternal, shelfWidth }) {
   const { width } = useWindowDimensions();
   const [ratingOpen, setRatingOpen] = useState(false);
   const identityKey = JSON.stringify(featureIdentity(model));
@@ -368,6 +369,7 @@ export function useDetailFeatures({ model, ready, version, refresh, navigate, on
   const [progress, setProgress] = useState({ data: null, open: false });
   const [scores, setScores] = useState({ chips: [], graphs: {}, gameLengths: null });
   const [checkin, setCheckin] = useState([]);
+  const [headerReadyKey, setHeaderReadyKey] = useState(null);
   const [seerr, setSeerr] = useState({ available: false, state: null });
   const [episodes, setEpisodes] = useState({ rows: [], status: 'idle', error: '', order: 'asc' });
   const [issues, setIssues] = useState({ rows: [], total: 0, status: 'idle', error: '', layout: 'grid' });
@@ -378,17 +380,36 @@ export function useDetailFeatures({ model, ready, version, refresh, navigate, on
   const isSeason = identity?.mediaType === 'season';
   const isAnime = identity?.mediaType === 'anime';
   const isComic = identity?.mediaType === 'comic';
+  const canRequest = identity?.source === 'tmdb' && (identity.mediaType === 'movie' || identity.mediaType === 'tv');
   const reload = useCallback(() => { setLocal(value => value + 1); refresh?.(); }, [refresh]);
   const stamp = `${version}:${local}`;
 
   useEffect(() => {
-    if (!enabled) { setTracking(NO_TRACKING); return undefined; }
+    if (!enabled) return undefined;
     let cancelled = false;
-    loadDetailTracking(identity)
-      .then(next => { if (!cancelled) setTracking(next); })
-      .catch(() => { if (!cancelled) setTracking(NO_TRACKING); });
+    // The native page reveals its header together; web's server-rendered
+    // header already arrives with its tracking state and uses separate slots.
+    loadDetailHeader(identity, { tracking: loadDetailTracking, progress: loadProgressCard,
+      scores: loadScores, checkin: loadCheckIn }, NO_TRACKING).then(next => {
+      if (cancelled) return;
+      setTracking(next.tracking);
+      setProgress({ data: next.progress, open: false });
+      setScores(next.scores);
+      setCheckin(next.checkin);
+      setHeaderReadyKey(identityKey);
+    });
     return () => { cancelled = true; };
-  }, [enabled, identity, stamp]);
+  }, [enabled, identity, identityKey, stamp, canRequest]);
+
+  // Older servers lack the capability flag; keep their existing discovery path
+  // without holding the detail page on an optional external service.
+  useEffect(() => {
+    if (!enabled || !dataReady || !canRequest || model?.seerrConfigured !== undefined) return undefined;
+    let cancelled = false;
+    loadSeerr(identity).then(state => { if (!cancelled) setSeerr({ available: Boolean(state), state }); })
+      .catch(() => { if (!cancelled) setSeerr({ available: false, state: null }); });
+    return () => { cancelled = true; };
+  }, [enabled, identity, canRequest, dataReady, model?.seerrConfigured]);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -400,43 +421,6 @@ export function useDetailFeatures({ model, ready, version, refresh, navigate, on
       });
     return () => { cancelled = true; };
   }, [enabled, identity, stamp]);
-
-  useEffect(() => {
-    if (!enabled) return undefined;
-    let cancelled = false;
-    setProgress(current => ({ ...current, open: false }));
-    loadProgressCard(identity)
-      .then(data => { if (!cancelled) setProgress({ data, open: false }); })
-      .catch(() => { if (!cancelled) setProgress({ data: null, open: false }); });
-    return () => { cancelled = true; };
-  }, [enabled, identity, stamp]);
-
-  useEffect(() => {
-    if (!enabled) return undefined;
-    let cancelled = false;
-    loadScores(identity).then(next => { if (!cancelled) setScores(next); });
-    return () => { cancelled = true; };
-  }, [enabled, identity]);
-
-  // The web split button: Check-in (and its Pause, Finish, Stop) ahead of Edit.
-  useEffect(() => {
-    if (!enabled || !tracking.tracked) { setCheckin([]); return undefined; }
-    let cancelled = false;
-    loadCheckIn(identity)
-      .then(data => { if (!cancelled) setCheckin(data?.actions || []); })
-      .catch(() => { if (!cancelled) setCheckin([]); });
-    return () => { cancelled = true; };
-  }, [enabled, identity, tracking.tracked, stamp]);
-
-  const canRequest = identity?.source === 'tmdb' && (identity.mediaType === 'movie' || identity.mediaType === 'tv');
-  useEffect(() => {
-    if (!enabled || !canRequest) { setSeerr({ available: false, state: null }); return undefined; }
-    let cancelled = false;
-    loadSeerr(identity)
-      .then(state => { if (!cancelled) setSeerr({ available: Boolean(state), state }); })
-      .catch(() => { if (!cancelled) setSeerr({ available: false, state: null }); });
-    return () => { cancelled = true; };
-  }, [enabled, identity, canRequest]);
 
   // Anime episodes come from their own preview endpoint; the page payload lists none.
   const episodesRef = useRef(episodes);
@@ -839,7 +823,14 @@ export function useDetailFeatures({ model, ready, version, refresh, navigate, on
     { key: 'tags', label: 'Tags', icon: 'tag', onPress: () => openTags() },
     { key: 'notes', label: 'Notes', icon: 'page', onPress: () => openNotes() },
     { key: 'lists', label: 'Add to list', icon: 'listAdd', onPress: () => openLists() },
-    seerr.available ? { key: 'seerr', label: 'Request in Seerr', icon: 'download', onPress: () => setDialog({ ...NO_DIALOG, kind: 'seerr', data: seerr.state }) } : null,
+    (model?.seerrConfigured ?? seerr.available) ? { key: 'seerr', label: 'Request in Seerr', icon: 'download', onPress: () => {
+      setDialog({ ...NO_DIALOG, kind: 'seerr', data: seerr.state });
+      if (!seerr.state) loadSeerr(identity).then(state => {
+        setSeerr({ available: Boolean(state), state });
+        setDialog(current => current.kind === 'seerr' ? { ...current, data: state } : current);
+      }).catch(cause => setDialog(current => current.kind === 'seerr'
+        ? { ...current, error: cause?.message || 'Seerr could not be loaded.' } : current));
+    } } : null,
     historyItem,
     identity.source !== 'manual' ? { key: 'sync', label: 'Sync metadata', icon: 'sync', onPress: runSync } : null,
   ].filter(Boolean);
@@ -849,7 +840,8 @@ export function useDetailFeatures({ model, ready, version, refresh, navigate, on
 
   const actions = isEpisode ? {
     primary: {
-      label: tracking.plays > 0 ? 'Watched' : 'Mark Watched',
+      label: tracking.unavailable ? 'Tracking unavailable' : tracking.plays > 0 ? 'Watched' : 'Mark Watched',
+      disabled: Boolean(tracking.unavailable),
       icon: tracking.plays > 0 ? 'eye' : 'eyeClosed',
       onPress: () => openTrack(false),
     },
@@ -864,7 +856,8 @@ export function useDetailFeatures({ model, ready, version, refresh, navigate, on
       icon: trackActions[0].icon,
       onPress: trackActions[0].onPress,
     } : {
-      label: !tracking.tracked ? 'Add to tracker' : (offersNewEntry ? 'Add new entry' : (statusText || 'Edit')),
+      label: tracking.unavailable ? 'Tracking unavailable' : !tracking.tracked ? 'Add to tracker' : (offersNewEntry ? 'Add new entry' : (statusText || 'Edit')),
+      disabled: Boolean(tracking.unavailable),
       icon: tracking.tracked && !offersNewEntry ? 'edit' : 'plus',
       onPress: () => openTrack(Boolean(offersNewEntry)),
     },
@@ -1183,6 +1176,7 @@ export function useDetailFeatures({ model, ready, version, refresh, navigate, on
 
   return {
     enabled: true,
+    headerReady: headerReadyKey === identityKey,
     pageType: isSeason ? 'tv' : isEpisode ? null : identity.mediaType,
     headerSlot,
     actionsSlot: <DetailActionBar primary={actions.primary} edit={actions.edit} quick={actions.quick} palette={palette} inlineAt={isEpisode ? 640 : 768} />,

@@ -148,6 +148,7 @@ export function TrackForm({
   closeRef,
   nativeID,
   tabs = [],
+  generalPrefix,
   activeTab,
   onTabChange,
   onRetryTabs,
@@ -320,6 +321,7 @@ export function TrackForm({
     disabled={busy} onPress={submit} palette={palette} />;
 
   const generalBody = <View style={sidebar ? styles.generalSide : styles.stack}>
+    {generalPrefix}
     {sidebar ? <View style={styles.grid}>{cells}</View> : cells}
     {notes}
     {sidebar ? <View style={styles.footer}>

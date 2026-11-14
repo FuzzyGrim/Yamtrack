@@ -346,8 +346,7 @@ function Adapter({ host, props }) {
     onRequestOptions={loadFilterOptions}
     onRetry={() => assign(props.baseUrl || window.location.pathname)}
     onRetryDay={loadDay}
-    onRefresh={() => assign(props.baseUrl || window.location.pathname)}
-    onDismissRefresh={() => window.dispatchEvent(new CustomEvent('history-refresh-dismiss'))}>
+    onRefresh={() => assign(props.baseUrl || window.location.pathname)}>
     <HistoryActivityDialog
       entry={activityEntry}
       labels={props.labels}

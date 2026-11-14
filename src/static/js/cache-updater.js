@@ -32,6 +32,8 @@ class CacheUpdater {
         this.lastBuiltAt = null; // Track built_at to detect fresh builds even if lock lingers
         this.onUpdateCallback = options.onUpdate || null;
         this.onRefreshCompleteCallback = options.onRefreshComplete || null;
+        // Runs whenever polling ends by any path, so a page indicator can never outlive the poller.
+        this.onStopCallback = options.onStop || null;
         // Remember which page started this updater so an orphaned poll loop
         // can't reload an unrelated page after boosted navigation away.
         this.pagePath = window.location.pathname;
@@ -87,6 +89,7 @@ class CacheUpdater {
      * Stop polling
      */
     stop() {
+        const wasPolling = this.isPolling;
         this.isPolling = false;
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
@@ -100,6 +103,9 @@ class CacheUpdater {
         window.removeEventListener('offline', this.handleOffline);
         window.removeEventListener('pagehide', this.handlePageHide);
         this.offlineSince = null;
+        if (wasPolling && this.onStopCallback) {
+            this.onStopCallback();
+        }
     }
 
     schedulePoll(delay = this.pollInterval) {

@@ -43,7 +43,7 @@ export function BulkActionBar({ count, actions = [], disabled = false, deselectD
     <div className="ui-bulk-buttons">
       {actions.map(action => action.items
         ? <ActionMenu key={action.key} icon={glyphs[action.icon]} label={action.label} disabled={disabled}
-          align={action.align} items={action.items} empty={action.empty} palette={menuPalette} />
+          items={action.items} empty={action.empty} palette={menuPalette} />
         : <Button key={action.key} type="button" secondary disabled={disabled}
           aria-label={action.label} title={action.label} onClick={action.onSelect}>{glyphs[action.icon]}</Button>)}
     </div>

@@ -585,6 +585,8 @@ class DiscoverTabCacheTests(TestCase):
 
         movie_version = tab_cache._get_activity_version(self.user.id, "movie")
         all_version = tab_cache._get_activity_version(self.user.id, "all")
+        # Someone who opened Discover lately: their tabs rebuild in the background.
+        tab_cache.mark_recently_used(self.user.id)
 
         targets = tab_cache.invalidate_for_media_change(self.user.id, "movie")
 

@@ -91,6 +91,7 @@ export default function SearchSlot({
   onOpenSearch,
   onOpenSuggestion,
   onSubmit,
+  onTypeChange,
   dismissSignal = 0,
 }) {
   const { width } = useWindowDimensions();
@@ -128,6 +129,12 @@ export default function SearchSlot({
     return { suggestions: suggestionsFromPayload(payload, session?.serverUrl || '') };
   }, [transport, session]);
 
+  // Remember the picked type on the server (as the web does) and in the shell.
+  function changeType(mediaType) {
+    onTypeChange?.(mediaType);
+    transport.saveType?.({ mediaType })?.catch?.(() => {});
+  }
+
   function openSuggestion(suggestion) {
     // Typeahead rows without an item identity (artists, podcast shows) open as a search.
     const typeaheadWithoutItem = Boolean(suggestion.href) && !suggestion.identity;
@@ -143,6 +150,7 @@ export default function SearchSlot({
       compact={compact}
       query={initialQuery}
       selectedType={selectedType}
+      onTypeChange={changeType}
       mediaTypes={mediaTypes}
       barcodeTypes={['all', 'book', 'manga', 'comic', 'comicissue']}
       labels={labels}

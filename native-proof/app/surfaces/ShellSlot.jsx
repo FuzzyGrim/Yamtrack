@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useHinge } from 'expo-hinge';
+import { useDevicePose } from '../data/useDevicePose';
 import { useVerticalBarEdgeIOS } from 'expo-status-bar';
 import { getActiveAuthSession, subscribeAuthSession } from '../data/authSession';
 import { configureSidebarListPins, getSidebarListPins, removeSidebarListPin, subscribeSidebarListPins } from '../data/sidebarListPins';
@@ -159,7 +159,7 @@ export default function ShellSlot({
   const [pinned, setPinned] = useState([]);
   const [detailViewport, setDetailViewport] = useState({ width: 0, height: 0 });
   const [detailHeaderHeight, setDetailHeaderHeight] = useState(64);
-  const hinge = useHinge();
+  const pose = useDevicePose();
   const railEdge = useVerticalBarEdgeIOS();
   const insets = useSafeAreaInsets();
 
@@ -189,6 +189,10 @@ export default function ShellSlot({
     auth.request('/api/v1/user/navigation/')
       .then(model => {
         if (cancelled) return;
+        // A host that is not a Floppy server (for example Metro's own dev page) answers with HTML.
+        if (!model || !Array.isArray(model.primary) || !Array.isArray(model.pinKeys)) {
+          throw new Error('This address did not return a Floppy navigation menu.');
+        }
         setServerModel(absoluteLogo(model, auth.serverUrl));
         setModelSession(auth);
         setNavError(null);
@@ -229,7 +233,8 @@ export default function ShellSlot({
 
   const model = serverModel ? markActive(withGlyphs(serverModel), activeHref) : null;
   const routeMediaType = activeHref.match(/^\/medialist\/([^/?#]+)/)?.[1];
-  const searchType = pageType || routeMediaType || lastSubmittedType || serverModel?.lastSearchType || 'all';
+  // The type the user last picked wins on every screen (as on web); the page's own type is only the fallback.
+  const searchType = lastSubmittedType || serverModel?.lastSearchType || pageType || routeMediaType || 'all';
   const pins = {
     pinned,
     pinnedLists: listPins,
@@ -249,7 +254,7 @@ export default function ShellSlot({
   };
 
   const navigationPadding = horizontalContentPadding(insets, 16);
-  const adaptivePalette = Platform.OS === 'ios' && (hinge || railEdge)
+  const adaptivePalette = Platform.OS === 'ios' && (pose.hasHinge || railEdge)
     ? { ...shellPalette, navRowHeight: 44, navContentPaddingTop: 25,
       navContentPaddingLeft: navigationPadding.paddingLeft,
       navContentPaddingRight: navigationPadding.paddingRight,
@@ -290,6 +295,7 @@ export default function ShellSlot({
     key={searchType}
     expanded
     initialMediaType={searchType}
+    onTypeChange={setLastSubmittedType}
     dismissSignal={dismissSignal}
     onOpenSearch={params => {
       setDismissSignal(value => value + 1);

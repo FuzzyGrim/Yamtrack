@@ -2,7 +2,6 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { AccessibilityInfo, LayoutAnimation, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Stack } from 'expo-router';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { useHinge } from 'expo-hinge';
 import { ArrangementView, Host, RNHostView } from '@expo/ui/swift-ui';
 import { arrangementViewStyle, frame } from '@expo/ui/swift-ui/modifiers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +9,7 @@ import { ReservedRegionsProvider, useReservedRegions } from 'react-native-reserv
 import { useVerticalBarEdgeIOS } from 'expo-status-bar';
 import { RailModalHost, RailModalProvider, useRailModal } from '../../../frontend/ui/Modal';
 import { menuGeometry } from './menuGeometry.mjs';
+import { useDevicePose } from '../data/useDevicePose';
 import { horizontalContentPadding } from '../safeAreaSpacing.mjs';
 import { ShellLayoutContext } from './shellContext';
 
@@ -20,9 +20,9 @@ function MenuLayout({ open, sidebar, search, children, palette, division, reduce
   const [arrangement, setArrangement] = useState(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [searchHeight, setSearchHeight] = useState(96);
-  const hinge = useHinge();
+  const pose = useDevicePose();
   const measuredDivision = division?.frame || (arrangement?.containerWidth === contentWidth ? arrangement : null);
-  const target = menuGeometry(contentWidth || width, hinge?.status, measuredDivision);
+  const target = menuGeometry(contentWidth || width, pose, measuredDivision);
   const [geometry, setGeometry] = useState(target);
   // The panel is part of one shape with the side rail: it reaches the screen edge through the
   // safe-area insets (the rail on a full-width menu) and slides in with the panel, so the rail
@@ -30,13 +30,13 @@ function MenuLayout({ open, sidebar, search, children, palette, division, reduce
   const bleed = { top: insets.top, left: insets.left, right: geometry.full ? insets.right : 0 };
   useLayoutEffect(() => {
     if (geometry.full === target.full && geometry.menuWidth === target.menuWidth && geometry.gap === target.gap) return;
-    if (open && !reduceMotion && (hinge?.status === 'fullyOpen' || hinge?.status === 'partiallyOpen')) {
+    if (open && !reduceMotion && (pose.hinged && pose.fold !== 'closed')) {
       LayoutAnimation.configureNext({ duration: 220, update: { type: LayoutAnimation.Types.easeOut } });
     }
     setGeometry(target);
-  }, [geometry, target.full, target.menuWidth, target.gap, hinge?.status, open, reduceMotion]);
+  }, [geometry, target.full, target.menuWidth, target.gap, pose.fold, open, reduceMotion]);
   return <View style={styles.row} onLayout={event => setContentWidth(event.nativeEvent.layout.width)}>
-    {Constants.executionEnvironment === ExecutionEnvironment.StoreClient && hinge?.status === 'partiallyOpen'
+    {Constants.executionEnvironment === ExecutionEnvironment.StoreClient && pose.fold === 'partial'
       ? <Host pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
         style={StyleSheet.absoluteFill}>
         <ArrangementView modifiers={[arrangementViewStyle('split', { axes: 'horizontal' }), frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
@@ -75,18 +75,18 @@ function MeasuredNativeShell(props) {
   const regions = useReservedRegions();
   const division = regions.find(region => region.kind === 'division'
     && region.frame.height > region.frame.width && region.frame.x > 0);
-  const hinge = useHinge();
+  const pose = useDevicePose();
   const railEdge = useVerticalBarEdgeIOS();
-  const hasRail = Boolean(hinge || railEdge);
+  const hasRail = Boolean(pose.hasHinge || railEdge);
   return <RailModalProvider enabled={hasRail}>
     <ShellWithRail {...props} division={division} hasRail={hasRail} />
   </RailModalProvider>;
 }
 
 function StoreClientNativeShell(props) {
-  const hinge = useHinge();
+  const pose = useDevicePose();
   const railEdge = useVerticalBarEdgeIOS();
-  const hasRail = Boolean(hinge || railEdge);
+  const hasRail = Boolean(pose.hasHinge || railEdge);
   return <RailModalProvider enabled={hasRail}>
     <ShellWithRail {...props} hasRail={hasRail} />
   </RailModalProvider>;

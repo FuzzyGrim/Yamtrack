@@ -36,12 +36,13 @@ function settled(result) {
  * the controls that depend on it then stay hidden.
  */
 export async function loadDetailTracking(identity) {
-  await loadDatePreferences(call);
+  const datePreferences = loadDatePreferences(call);
   const path = mediaPath(identity);
   const [metadata, state] = await Promise.allSettled([
     call(`${path}/metadata/`),
     call(`${path}/state/`),
   ]);
+  await datePreferences;
   return trackingFromPayloads({ identity, metadata: settled(metadata), state: settled(state) });
 }
 

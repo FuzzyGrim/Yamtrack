@@ -1,5 +1,6 @@
 import { Modal, ModalCloseButton } from './Modal';
-import React, { useMemo, useState } from 'react';
+import { DropdownBackItem, DropdownField, DropdownHeading, DropdownItem, DropdownMenu, DropdownSeparator } from './DropdownMenu';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -16,6 +17,7 @@ const defaultPalette = {
   surface: '#27272a',
   surfaceStrong: '#3f3f46',
   surfaceHover: '#52525b',
+  surfaceMuted: '#52525b',
   border: '#52525b',
   text: '#fafafa',
   textSecondary: '#d4d4d8',
@@ -47,6 +49,13 @@ const defaultLabels = {
   clearRange: 'Clear',
   close: 'Close',
   mediaType: 'Media type',
+  date: 'Date',
+  addedDate: 'Added date',
+  completedDate: 'Completed date',
+  releaseDate: 'Release date',
+  releaseStatus: 'Release status',
+  startDate: 'Start date',
+  airDate: 'Air date',
   statusHeading: 'Status',
   range: 'Range',
   ascending: 'ascending',
@@ -204,6 +213,9 @@ function filterSummary(filters, options, copy = defaultLabels) {
   return parts.length === 1 ? parts[0] : `${parts[0]} +${parts.length - 1}`;
 }
 
+// The sorts that order by a date (date added, release date, start, end and air dates).
+const isDateSort = (option) => /date/.test(String(option.value));
+
 function optionLabel(options, value) {
   const match = (options || []).find((item) => item.value === value);
   return match ? match.label : value;
@@ -218,6 +230,7 @@ export function FilterBar({
   disabled = false,
   resultCount,
   variant = 'full',
+  showClear = true,
   trailing = null,
   onChange,
   onClear,
@@ -228,7 +241,13 @@ export function FilterBar({
   const copy = mergeLabels(labels);
   const colors = { ...defaultPalette, ...(palette || {}) };
   const styles = useMemo(() => createStyles(colors, compact), [colors, compact]);
+  const menuPalette = { ...colors, surfaceMuted: colors.surfaceMuted || colors.surfaceHover };
   const [openSheet, setOpenSheet] = useState(null);
+  // The toolbar's three dropdowns open as the app's standard anchored dropdown; the sheet stays for the
+  // drill-ins (a section's options, a range) and for the full variant.
+  const [menu, setMenu] = useState(null);
+  const [panelSearch, setPanelSearch] = useState('');
+  const triggerNodes = { filters: useRef(null), status: useRef(null), sort: useRef(null) };
   const [rangeDraft, setRangeDraft] = useState(null);
   const ranges = options.ranges || [];
   const savedViews = options.savedViews || [];
@@ -249,10 +268,34 @@ export function FilterBar({
 
   function closeSheet() {
     setOpenSheet(null);
+    setMenu(null);
     setRangeDraft(null);
   }
 
-  function openRange(range) {
+  // A press outside the open dropdown closes it. When that press lands on another trigger, that trigger's
+  // dropdown opens in the same press, so moving between them takes one click, not two.
+  function closeMenu(event) {
+    const openKey = menu?.key;
+    const point = event?.nativeEvent;
+    setMenu(null);
+    if (point?.pageX == null || point?.pageY == null) return;
+    for (const key of ['filters', 'status', 'sort']) {
+      if (key === openKey) continue;
+      triggerNodes[key].current?.measureInWindow?.((x, y, width, height) => {
+        if (point.pageX >= x && point.pageX <= x + width && point.pageY >= y && point.pageY <= y + height) {
+          pressTrigger(key, { x, y, width, height });
+        }
+      });
+    }
+  }
+
+  // A trigger opens the dropdown under itself (toolbar) or the sheet (full variant); a second press closes it.
+  function pressTrigger(key, anchor) {
+    if (toolbar) setMenu(current => (current?.key === key ? null : { key, anchor }));
+    else setOpenSheet(openSheet === key ? null : key);
+  }
+
+  function openRange(range, parent = null) {
     const current = (filters.ranges || {})[range.key] || {};
     setRangeDraft({
       from: current.from || '',
@@ -260,7 +303,21 @@ export function FilterBar({
       within: current.within || '',
       unit: current.unit || (range.units && range.units[0] ? range.units[0].value : 'days'),
     });
-    setOpenSheet(`range:${range.key}`);
+    if (toolbar) {
+      setMenu(current => ({ ...(current || { key: 'filters', anchor: null }), panel: `range:${range.key}`, parent }));
+    } else {
+      setOpenSheet(`range:${range.key}`);
+    }
+  }
+
+  function openSection(section, parent = null) {
+    setRangeDraft(null);
+    setPanelSearch('');
+    if (toolbar) {
+      setMenu(current => ({ ...(current || { key: 'filters', anchor: null }), panel: `section:${section.key}`, parent }));
+    } else {
+      setOpenSheet(`section:${section.key}`);
+    }
   }
 
   function updateDraft(key, value) {
@@ -280,6 +337,7 @@ export function FilterBar({
   function clearAll() {
     emit({ type: 'clear' });
     onClear?.();
+    setMenu(null);
     closeSheet();
   }
 
@@ -312,34 +370,147 @@ export function FilterBar({
     ? ranges.find((range) => `range:${range.key}` === openSheet)
     : null;
 
+  const panel = menu?.panel || '';
+  const panelSection = panel.startsWith('section:') ? sections.find((section) => `section:${section.key}` === panel) : null;
+  const panelRange = panel.startsWith('range:') ? ranges.find((range) => `range:${range.key}` === panel) : null;
+  // A level opened from the Date level goes back to it; every other level goes back to the root list.
+  const goBack = () => { setRangeDraft(null); setMenu(current => ({ ...current, panel: current?.parent || null, parent: null })); };
+
+  // The date options live under one Date row: release state, release date (range and year together),
+  // completed date and date added. Everything else keeps its own row.
+  const yearSection = sections.find((section) => section.key === 'year');
+  const releaseSection = sections.find((section) => section.key === 'release');
+  const releaseRange = ranges.find((range) => range.key === 'releaseDate');
+  const completedRange = ranges.find((range) => range.key === 'completedDate');
+  const addedRange = ranges.find((range) => range.key === 'dateAdded');
+  const hasDate = Boolean(yearSection || releaseSection || releaseRange || completedRange || addedRange);
+  const rangeText = (range) => (range && isRangeActive((filters.ranges || {})[range.key])
+    ? rangeSummary(range, (filters.ranges || {})[range.key]) : '');
+  const sectionText = (section) => (section ? sectionSummary(section, filters) : '');
+  const releaseDateText = rangeText(releaseRange) || sectionText(yearSection);
+  const dateParts = [sectionText(releaseSection), releaseDateText, rangeText(completedRange), rangeText(addedRange)].filter(Boolean);
+  const dateDetail = dateParts.length ? (dateParts.length === 1 ? dateParts[0] : `${dateParts[0]} +${dateParts.length - 1}`) : copy.any;
+  const dateKeys = ['year', 'release'];
+  const dateRangeNames = { dateAdded: copy.addedDate, completedDate: copy.completedDate, releaseDate: copy.releaseDate };
+  // The sort Date level uses the same names and order as the filter one: added, completed, release, start, air.
+  const dateSortNames = { date_added: copy.addedDate, end_date: copy.completedDate, release_date: copy.releaseDate,
+    start_date: copy.startDate, next_episode_air_date: copy.airDate };
+  const dateSortOrder = Object.keys(dateSortNames);
+  const dateSorts = (options.sorts || []).filter(isDateSort)
+    .map((option) => ({ ...option, label: dateSortNames[option.value] || option.label }))
+    .sort((a, b) => {
+      const rank = (option) => (dateSortOrder.includes(option.value) ? dateSortOrder.indexOf(option.value) : dateSortOrder.length);
+      return rank(a) - rank(b);
+    });
+  const rootRanges = ranges.filter((range) => !['releaseDate', 'completedDate', 'dateAdded'].includes(range.key));
+
+  // The rows of a section's options: any/all modes, a search field when long, a clear row, then the options.
+  const sectionRows = (section) => {
+    const isMulti = section.type === 'multi';
+    const value = sectionValue(filters, section);
+    const mode = (filters.modes || {})[section.key] || section.modeValue;
+    const clearValue = sectionClearValue(section);
+    const all = section.options || [];
+    const term = panelSearch.trim().toLowerCase();
+    const visible = term ? all.filter((option) => String(option.label).toLowerCase().includes(term)) : all;
+    const hasClearOption = all.some((option) => String(option.value) === String(clearValue));
+    const selectedValues = isMulti ? (Array.isArray(value) ? value : []) : [];
+    const clear = () => {
+      emit({ type: 'clearField', key: section.key });
+      if (!isMulti) setMenu(null);
+    };
+    return <>
+      {(section.modes || []).map((item) => <DropdownItem key={item.value} accessibilityRole="radio"
+        label={item.label} checked={mode === item.value} palette={menuPalette}
+        onPress={() => emit({ type: 'fieldMode', key: section.key, value: item.value })} />)}
+      {section.modes?.length ? <DropdownSeparator palette={menuPalette} /> : null}
+      {section.searchable && all.length > 8 ? <DropdownField label={copy.searchOptions} value={panelSearch}
+        onChangeText={setPanelSearch} placeholder={copy.searchOptions} palette={menuPalette} /> : null}
+      {isMulti ? <DropdownItem accessibilityRole="checkbox" label={copy.all} checked={selectedValues.length === 0}
+        palette={menuPalette} onPress={clear} /> : !hasClearOption ? <DropdownItem accessibilityRole="radio"
+        label={copy.any} checked={!sectionIsActive(section, value)} palette={menuPalette} onPress={clear} /> : null}
+      {visible.map((option) => <DropdownItem key={option.value} accessibilityRole={isMulti ? 'checkbox' : 'radio'}
+        label={option.label} disabled={option.disabled} palette={menuPalette}
+        checked={isMulti ? selectedValues.some((item) => String(item) === String(option.value)) : String(value) === String(option.value)}
+        onPress={() => {
+          emit({ type: isMulti ? 'toggleField' : 'field', key: section.key, value: option.value });
+          if (!isMulti) setMenu(null);
+        }} />)}
+      {!visible.length ? <DropdownItem label={copy.noOptions} disabled palette={menuPalette} /> : null}
+    </>;
+  };
+
+  // The fields of a range: how recent, a unit, From and To, then Apply and Clear.
+  const rangeRows = (range) => <>
+    {range.relative ? <>
+      <DropdownField label={copy.within} value={String(rangeDraft.within || '')} keyboardType="number-pad" placeholder="7"
+        accessibilityLabel={`${range.label} ${copy.within}`} onChangeText={(value) => updateDraft('within', value)}
+        palette={menuPalette} />
+      {(range.units || []).map((unit) => <DropdownItem key={unit.value} accessibilityRole="radio" label={unit.label}
+        checked={rangeDraft.unit === unit.value} palette={menuPalette} onPress={() => updateDraft('unit', unit.value)} />)}
+      <DropdownSeparator palette={menuPalette} />
+    </> : null}
+    <DropdownField label={copy.from} value={String(rangeDraft.from || '')} placeholder={range.placeholder || ''}
+      inputMode={range.type === 'number' ? 'decimal' : 'text'} accessibilityLabel={`${range.label} ${copy.from}`}
+      onChangeText={(value) => updateDraft('from', value)} palette={menuPalette} />
+    <DropdownField label={copy.to} value={String(rangeDraft.to || '')} placeholder={range.placeholder || ''}
+      inputMode={range.type === 'number' ? 'decimal' : 'text'} accessibilityLabel={`${range.label} ${copy.to}`}
+      onChangeText={(value) => updateDraft('to', value)} palette={menuPalette} />
+    <DropdownSeparator palette={menuPalette} />
+    <DropdownItem label={copy.apply} accessibilityRole="button" palette={menuPalette} onPress={() => applyRange(range)} />
+    <DropdownItem label={copy.clearRange} accessibilityRole="button" palette={menuPalette} onPress={() => clearRange(range)} />
+  </>;
+
   return <View style={styles.bar}>
     <View style={styles.triggers}>
       <Trigger
         label={`${copy.filters}: ${filterSummary(filters, options, copy)}`}
         value={filterSummary(filters, options, copy)}
-        expanded={openSheet === 'filters'}
+        expanded={toolbar ? menu?.key === 'filters' : openSheet === 'filters'}
         plain={toolbar}
         disabled={isDisabled}
-        onPress={() => setOpenSheet(openSheet === 'filters' ? null : 'filters')}
+        onPress={(anchor) => pressTrigger('filters', anchor)}
+        nodeRef={triggerNodes.filters}
         styles={styles} />
 
       <Trigger
         label={`${copy.status}: ${statusSummary(filters, options, copy)}`}
         value={statusSummary(filters, options, copy)}
-        expanded={openSheet === 'status'}
+        expanded={toolbar ? menu?.key === 'status' : openSheet === 'status'}
         plain={toolbar}
         disabled={isDisabled}
-        onPress={() => setOpenSheet(openSheet === 'status' ? null : 'status')}
+        onPress={(anchor) => pressTrigger('status', anchor)}
+        nodeRef={triggerNodes.status}
         styles={styles} />
 
-      <Trigger
+      {toolbar ? <View style={styles.sortControl}>
+        <Trigger
+          label={`${copy.sort}: ${optionLabel(options.sorts, filters.sort)}`}
+          value={optionLabel(options.sorts, filters.sort)}
+          expanded={menu?.key === 'sort'}
+          plain
+          caret={false}
+          disabled={isDisabled}
+          onPress={(anchor) => pressTrigger('sort', anchor)}
+          nodeRef={triggerNodes.sort}
+          styles={styles} />
+        {/* The arrow is its own control: it flips the direction, so the dropdown has no direction rows. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${copy.sort} ${filters.direction === 'asc' ? copy.descending : copy.ascending}`}
+          accessibilityState={{ disabled: isDisabled }}
+          disabled={isDisabled}
+          onPress={() => emit({ type: 'set', key: 'direction', value: filters.direction === 'asc' ? 'desc' : 'asc' })}
+          style={({ pressed }) => [styles.sortArrow, pressed && styles.pressed]}>
+          <View style={filters.direction === 'asc' ? styles.caretUp : styles.caret} />
+        </Pressable>
+      </View> : <Trigger
         label={`${copy.sort}: ${optionLabel(options.sorts, filters.sort)} ${filters.direction === 'asc' ? copy.ascending : copy.descending}`}
-        value={toolbar ? optionLabel(options.sorts, filters.sort) : sortValue}
+        value={sortValue}
         expanded={openSheet === 'sort'}
-        plain={toolbar}
         disabled={isDisabled}
-        onPress={() => setOpenSheet(openSheet === 'sort' ? null : 'sort')}
-        styles={styles} />
+        onPress={(anchor) => pressTrigger('sort', anchor)}
+        styles={styles} />}
 
       {!toolbar && (views.length || savedViews.length) ? <Trigger
         label={`${copy.view}: ${viewValue || copy.savedViews}`}
@@ -357,7 +528,7 @@ export function FilterBar({
         onPress={() => openRange(ranges[0])}
         styles={styles} /> : null}
 
-      {count > 0 ? <Pressable
+      {showClear && count > 0 ? <Pressable
         accessibilityRole="button"
         accessibilityLabel={copy.clearAll}
         accessibilityState={{ disabled: isDisabled }}
@@ -377,6 +548,113 @@ export function FilterBar({
         {resultCount} {copy.items}
       </Text> : null}
     </View>}
+
+    {toolbar ? <DropdownMenu open={Boolean(menu)} anchor={menu?.anchor} align="start" palette={menuPalette} closeLabel={copy.close}
+      estimatedHeight={420} onClose={closeMenu}>
+      <ScrollView keyboardShouldPersistTaps="handled">
+        {menu?.key === 'filters' && panel === 'mediaTypes' ? <>
+          <DropdownBackItem label={copy.mediaType} palette={menuPalette} onPress={goBack} />
+          <DropdownSeparator palette={menuPalette} />
+          {(options.mediaTypes || []).map((option) => <DropdownItem key={option.value} accessibilityRole="checkbox"
+            label={option.label} checked={(filters.mediaTypes || []).includes(option.value)} disabled={option.disabled}
+            palette={menuPalette} onPress={() => toggleMulti('mediaTypes', option.value)} />)}
+        </> : null}
+        {menu?.key === 'filters' && !panel ? <>
+          {(options.mediaTypes || []).length ? <DropdownItem label={copy.mediaType} chevron palette={menuPalette}
+            detail={typeSummary(filters, options, copy)}
+            onPress={() => setMenu(current => ({ ...current, panel: 'mediaTypes' }))} /> : null}
+          {(options.mediaTypes || []).length && (sections.length || hasDate) ? <DropdownSeparator palette={menuPalette} /> : null}
+          {(() => {
+            let dateShown = false;
+            const rows = [];
+            const dateRow = <DropdownItem key="date" label={copy.date} chevron palette={menuPalette} detail={dateDetail}
+              onPress={() => setMenu(current => ({ ...current, panel: 'date', parent: null }))} />;
+            sections.forEach((section) => {
+              if (dateKeys.includes(section.key)) {
+                if (hasDate && !dateShown) { rows.push(dateRow); dateShown = true; }
+                return;
+              }
+              rows.push(<DropdownItem key={section.key} label={section.label} palette={menuPalette}
+                detail={sectionSummary(section, filters) || section.idleLabel || copy.any}
+                chevron onPress={() => openSection(section)} />);
+            });
+            if (hasDate && !dateShown) rows.push(dateRow);
+            return rows;
+          })()}
+          {rootRanges.length ? <DropdownSeparator palette={menuPalette} /> : null}
+          {rootRanges.map((range) => <DropdownItem key={range.key} palette={menuPalette}
+            label={sections.some((section) => section.label === range.label) ? `${range.label} range` : range.label}
+            chevron detail={rangeSummary(range, (filters.ranges || {})[range.key])} onPress={() => openRange(range)} />)}
+          <DropdownSeparator palette={menuPalette} />
+          <DropdownItem label={copy.clearAll} palette={menuPalette} onPress={clearAll} />
+        </> : null}
+        {menu?.key === 'filters' && panel === 'date' ? <>
+          <DropdownBackItem label={copy.date} palette={menuPalette} onPress={goBack} />
+          <DropdownSeparator palette={menuPalette} />
+          {addedRange ? <DropdownItem label={copy.addedDate} chevron palette={menuPalette}
+            detail={rangeText(addedRange) || copy.any} onPress={() => openRange(addedRange, 'date')} /> : null}
+          {completedRange ? <DropdownItem label={copy.completedDate} chevron palette={menuPalette}
+            detail={rangeText(completedRange) || copy.any} onPress={() => openRange(completedRange, 'date')} /> : null}
+          {releaseRange || yearSection ? <DropdownItem label={copy.releaseDate} chevron palette={menuPalette}
+            detail={releaseDateText || copy.any}
+            onPress={() => (releaseRange ? openRange(releaseRange, 'date') : openSection(yearSection, 'date'))} /> : null}
+          {releaseSection ? <DropdownItem label={copy.releaseStatus} chevron palette={menuPalette}
+            detail={sectionText(releaseSection) || copy.any} onPress={() => openSection(releaseSection, 'date')} /> : null}
+        </> : null}
+        {menu?.key === 'filters' && panelSection ? <>
+          <DropdownBackItem label={panelSection.key === 'year' ? copy.releaseDate : panelSection.key === 'release' ? copy.releaseStatus : panelSection.label} palette={menuPalette}
+            onPress={goBack} />
+          <DropdownSeparator palette={menuPalette} />
+          {sectionRows(panelSection)}
+        </> : null}
+        {menu?.key === 'filters' && panelRange && rangeDraft ? <>
+          <DropdownBackItem label={dateRangeNames[panelRange.key] || panelRange.label} palette={menuPalette}
+            onPress={goBack} />
+          <DropdownSeparator palette={menuPalette} />
+          {rangeRows(panelRange)}
+          {panelRange.key === 'releaseDate' && yearSection ? <>
+            <DropdownSeparator palette={menuPalette} />
+            <DropdownHeading palette={menuPalette}>{yearSection.label}</DropdownHeading>
+            {sectionRows(yearSection)}
+          </> : null}
+        </> : null}
+        {menu?.key === 'status' ? <>
+          {(options.statuses || []).map((option) => <DropdownItem key={option.value} accessibilityRole="checkbox"
+            label={option.label} checked={(filters.statuses || []).includes(option.value)} disabled={option.disabled}
+            palette={menuPalette} onPress={() => toggleMulti('statuses', option.value)} />)}
+          <DropdownSeparator palette={menuPalette} />
+          <DropdownItem label={copy.clearStatus} palette={menuPalette}
+            onPress={() => { emit({ type: 'set', key: 'statuses', value: [] }); setMenu(null); }} />
+        </> : null}
+        {menu?.key === 'sort' && panel === 'sortDate' ? <>
+          <DropdownBackItem label={copy.date} palette={menuPalette} onPress={goBack} />
+          <DropdownSeparator palette={menuPalette} />
+          {dateSorts.map((option) => <DropdownItem key={option.value} accessibilityRole="radio" label={option.label}
+            checked={filters.sort === option.value} disabled={option.disabled} palette={menuPalette}
+            onPress={() => { chooseSingle('sort', option.value); setMenu(null); }} />)}
+        </> : null}
+        {menu?.key === 'sort' && !panel ? (() => {
+          // The date-based sorts sit under one Date row, in the place of the first of them.
+          let dateShown = false;
+          const rows = [];
+          (options.sorts || []).forEach((option) => {
+            if (isDateSort(option)) {
+              if (!dateShown) {
+                dateShown = true;
+                rows.push(<DropdownItem key="date" label={copy.date} chevron palette={menuPalette}
+                  detail={dateSorts.find((item) => item.value === filters.sort)?.label}
+                  onPress={() => setMenu(current => ({ ...current, panel: 'sortDate' }))} />);
+              }
+              return;
+            }
+            rows.push(<DropdownItem key={option.value} accessibilityRole="radio" label={option.label}
+              checked={filters.sort === option.value} disabled={option.disabled} palette={menuPalette}
+              onPress={() => { chooseSingle('sort', option.value); setMenu(null); }} />);
+          });
+          return rows;
+        })() : null}
+      </ScrollView>
+    </DropdownMenu> : null}
 
     <Modal
       visible={Boolean(openSheet)}
@@ -469,16 +747,26 @@ export function FilterBar({
   </View>;
 }
 
-function Trigger({ label, value, expanded, disabled, onPress, styles, plain = false }) {
+function Trigger({ label, value, expanded, disabled, onPress, styles, plain = false, caret = true, nodeRef }) {
+  const ref = useRef(null);
+  // The plain (toolbar) triggers report their window rectangle so the dropdown opens under them.
+  const press = () => {
+    if (plain && ref.current?.measureInWindow) {
+      ref.current.measureInWindow((x, y, width, height) => onPress({ x, y, width, height }));
+    } else {
+      onPress(null);
+    }
+  };
   return <Pressable
+    ref={(node) => { ref.current = node; if (nodeRef) nodeRef.current = node; }}
     accessibilityRole="button"
     accessibilityLabel={label}
     accessibilityState={{ expanded, disabled }}
     disabled={disabled}
-    onPress={onPress}
+    onPress={press}
     style={({ pressed }) => [styles.trigger, plain && styles.triggerPlain, expanded && !plain && styles.triggerOpen, pressed && styles.pressed]}>
     <Text numberOfLines={1} style={[styles.triggerText, plain && styles.triggerTextPlain]}>{value}</Text>
-    {plain ? <View style={styles.caret} /> : <Text style={styles.chevron}>▾</Text>}
+    {plain ? (caret ? <View style={styles.caret} /> : null) : <Text style={styles.chevron}>▾</Text>}
   </Pressable>;
 }
 
@@ -797,6 +1085,18 @@ function createStyles(colors, compact) {
       borderLeftColor: 'transparent',
       borderRightColor: 'transparent',
       borderTopColor: colors.textSecondary,
+    },
+    sortControl: { flexDirection: 'row', alignItems: 'center' },
+    sortArrow: { minWidth: 32, minHeight: 36, alignItems: 'center', justifyContent: 'center' },
+    caretUp: {
+      width: 0,
+      height: 0,
+      borderLeftWidth: 5,
+      borderRightWidth: 5,
+      borderBottomWidth: 6,
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderBottomColor: colors.textSecondary,
     },
     triggerOpen: { borderColor: colors.accent, backgroundColor: colors.surfaceStrong },
     triggerText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },

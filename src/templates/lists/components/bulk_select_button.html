@@ -6,7 +6,7 @@
           class="h-10 inline-flex items-center gap-2 px-3 rounded-md border border-gray-700 bg-[var(--color-surface-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors cursor-pointer whitespace-nowrap"
           :aria-pressed="selectMode.toString()"
           @click="toggleSelectMode()">
-    {% include "app/icons/tag.svg" with classes="w-4 h-4" %}
+    {% include "app/icons/circle-check.svg" with classes="w-4 h-4" %}
     <span x-text="selectMode ? '{% translate "Cancel Select" %}' : '{% translate "Select Items" %}'"></span>
   </button>
 {% endif %}

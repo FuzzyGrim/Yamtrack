@@ -2166,23 +2166,24 @@ class DetailActivitySubtitleTemplateTests(SimpleTestCase):
             },
         )
 
-    def test_duration_subtitle_stacks_when_its_box_is_narrow(self):
+    def test_duration_subtitle_uses_shared_presentation(self):
         html = self._render(
             duration_text="52h 42min watched",
             primary_text="Progress: 35/44",
             date_start=None,
             date_end=None,
         )
-        self.assertIn("@container", html)
-        self.assertIn("@max-[26rem]:flex-col", html)
+        self.assertIn("data-detail-activity-subtitle-root", html)
+        self.assertIn('data-duration="52h 42min watched"', html)
 
-    def test_bullet_is_hidden_while_stacked(self):
+    def test_dates_precede_duration_and_bullet_is_white(self):
         html = self._render(
             duration_text="1h watched",
             date_start=date(2020, 10, 10),
             date_end=date(2026, 9, 26),
         )
-        self.assertIn("text-gray-600 @max-[26rem]:hidden", html)
+        self.assertIn('style="color: white"', html)
+        self.assertIn('data-duration="1h watched"', html)
 
 
 class EntrySourceLabelTests(TestCase):

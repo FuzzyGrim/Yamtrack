@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import logging
 from collections.abc import Iterable
 from itertools import batched
 
@@ -15,6 +16,8 @@ from django.utils import timezone
 
 from app.models import CollectionEntry, Item, MediaTypes, Sources, Status
 from app.providers import tmdb
+
+logger = logging.getLogger(__name__)
 
 SMART_FILTER_KEYS = (
     "status",
@@ -903,6 +906,90 @@ def sync_smart_lists_for_item(owner, item: Item) -> dict[str, int]:
         "added": len(pending_adds),
         "removed": len(pending_removals),
     }
+
+
+# Ids per membership question. Well under every backend's parameter limit,
+# leaving room for the parameters the list's own rules add.
+SET_SYNC_ID_BATCH = 900
+
+
+def sync_smart_lists_for_items(owner, items) -> dict[str, int]:
+    """Sync the owner's smart lists for many changed items, one question per list.
+
+    Gives every item the membership ``sync_smart_lists_for_item`` would, but
+    each list's rules are normalized once and asked which of the items match
+    in one set query, instead of once per item. A list that fails is logged
+    and skipped so the others still sync.
+    """
+    zero = {"checked": 0, "added": 0, "removed": 0}
+    item_ids = sorted({item.id for item in items or [] if item and getattr(item, "id", None)})
+    if not owner or not item_ids:
+        return zero
+
+    from app.library_query import LibraryQueryExecutor
+    from lists.models import CustomList, CustomListItem
+
+    smart_lists = list(
+        CustomList.objects.filter(owner=owner, is_smart=True).only(
+            "id",
+            "owner_id",
+            "smart_media_types",
+            "smart_excluded_media_types",
+            "smart_filters",
+        ),
+    )
+    if not smart_lists:
+        return zero
+
+    batch_size = min(SET_SYNC_ID_BATCH, _id_batch_size(len(item_ids)))
+    existing: dict[int, set[int]] = {custom_list.id: set() for custom_list in smart_lists}
+    for id_batch in batched(item_ids, batch_size):
+        for list_id, item_id in CustomListItem.objects.filter(
+            custom_list_id__in=existing.keys(),
+            item_id__in=id_batch,
+        ).values_list("custom_list_id", "item_id"):
+            existing[list_id].add(item_id)
+
+    added = removed = 0
+    for custom_list in smart_lists:
+        try:
+            normalized_rules = normalize_list_rules(custom_list)
+            target_media_types = _target_media_types(
+                owner,
+                normalized_rules.get("media_types", []),
+            )
+            query = _library_query(owner, normalized_rules, target_media_types)
+            matched = LibraryQueryExecutor(owner, query).matching_among(
+                item_ids,
+                chunk_size=batch_size,
+            )
+            current = existing[custom_list.id]
+            to_add = sorted(matched - current)
+            to_remove = sorted(current - matched)
+            if to_add:
+                CustomListItem.objects.bulk_create(
+                    [
+                        CustomListItem(custom_list=custom_list, item_id=item_id, added_by=owner)
+                        for item_id in to_add
+                    ],
+                    ignore_conflicts=True,
+                )
+            for id_batch in batched(to_remove, batch_size):
+                CustomListItem.objects.filter(
+                    custom_list_id=custom_list.id,
+                    item_id__in=id_batch,
+                ).delete()
+        except Exception:
+            logger.exception(
+                "Smart list sync failed for owner_id=%s list_id=%s",
+                owner.id,
+                custom_list.id,
+            )
+            continue
+        added += len(to_add)
+        removed += len(to_remove)
+
+    return {"checked": len(smart_lists), "added": added, "removed": removed}
 
 
 def build_rule_filter_data(

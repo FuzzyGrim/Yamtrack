@@ -210,7 +210,7 @@ test('hero duration, progress, metadata and dates follow the PWA order', () => {
     date_start: '2026-01-18',
     date_end: '2026-01-20',
   }, { first_air_date: '2024-06-02', runtime: '42min' }), {
-    activityText: '2h 48min (4/6) · 2024 · 42min • Jan. 18, 2026 - Jan. 20, 2026',
+    activityText: 'Jan. 18, 2026 - Jan. 20, 2026 • 2h 48min watched',
     mobileMeta: '',
   });
   assert.deepEqual(detailHeaderText({
@@ -218,7 +218,7 @@ test('hero duration, progress, metadata and dates follow the PWA order', () => {
     date_start: '2026-01-18',
     date_end: '2026-01-20',
   }, { first_air_date: '2024-06-02', runtime: '42min' }), {
-    activityText: 'Progress: 4/6 • Jan. 18, 2026 - Jan. 20, 2026 · 2024 · 42min',
+    activityText: 'Jan. 18, 2026 - Jan. 20, 2026',
     mobileMeta: '',
   });
 });
@@ -231,13 +231,13 @@ test('hero dates use the server timezone and user format and collapse a local da
       primary_text: 'Played once',
       date_start: '2026-11-11T01:00:00Z',
       date_end: '2026-11-11T04:00:00Z',
-    }), { activityText: 'Played once • 10/11/2026', mobileMeta: '' });
+    }), { activityText: '10/11/2026', mobileMeta: '' });
     assert.equal(detailHeaderText({
       primary_text: 'Played once',
       date_start: '2026-11-11T01:00:00Z',
       date_end: '2026-11-12T04:00:00Z',
       collapse_same_day: true,
-    }).activityText, 'Played once • 10/11/2026');
+    }).activityText, '10/11/2026');
   } finally {
     setDatePreferences(previous);
   }
@@ -248,13 +248,13 @@ test('hero omits missing or invalid dates without raw timestamps or duplicate me
     activityText: '', mobileMeta: '2012 · 1h 30min',
   });
   assert.deepEqual(detailHeaderText({ primary_text: 'Read once', date_end: 'not-a-date' }, { year: 2021 }), {
-    activityText: 'Read once · 2021', mobileMeta: '',
+    activityText: 'Read once', mobileMeta: '',
   });
   assert.deepEqual(detailHeaderText({ date_start: '2026-01-18' }), {
     activityText: 'Jan. 18, 2026', mobileMeta: '',
   });
   for (const verb of ['watched', 'played', 'listened', 'read']) {
-    assert.equal(detailHeaderText({ duration_text: `45min ${verb}` }).activityText, '45min');
+    assert.equal(detailHeaderText({ duration_text: `45min ${verb}` }).activityText, `45min ${verb}`);
   }
   assert.deepEqual(detailHeaderText({}, { start_year: 1997 }), {
     activityText: '', mobileMeta: '1997',

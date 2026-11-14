@@ -387,11 +387,11 @@
           {# Top bar #}
           <div class="app-topbar sticky top-0 z-50 pt-[var(--header-safe-top)] bg-[var(--color-sidebar)] border-b border-[var(--color-border)] shadow-md">
             <div class="app-topbar__inner container mx-auto max-lg:max-w-none pl-[max(1rem,var(--safe-left))] pr-[max(1rem,var(--safe-right))]">
-              {# Define search type from current media type (if it exists) or last search type #}
+              {# The type the user last picked or searched wins on every page; the page's own type is only the fallback #}
               {% if media_type == MediaTypes.SEASON.value %}
-                {% firstof MediaTypes.TV.value as search_type %}
+                {% firstof user.last_search_type MediaTypes.TV.value as search_type %}
               {% else %}
-                {% firstof media_type user.last_search_type as search_type %}
+                {% firstof user.last_search_type media_type as search_type %}
               {% endif %}
               {% shell_topbar_react as shell_topbar %}{% if shell_topbar.props %}{{ shell_topbar.props|json_script:shell_topbar.id }}{% endif %}<div data-shell-root data-props-id="{{ shell_topbar.id }}">
               <div class="flex items-center justify-between lg:justify-center gap-2 h-16 min-w-0">

@@ -141,8 +141,14 @@ def import_preferences(request, slug, context=None):
     }
 
 
+def device_login(code, url, interval, expires_at=None):
+    """Describe a pending device-code login so the page resumes it after a reload."""
+    return {"kind": "device", "userCode": code, "verificationUrl": url, "openUrl": url, "interval": int(interval or 5),
+            "expiresAt": expires_at.isoformat() if expires_at else None}
+
+
 def account_connection(request, *, connected, saved, attention, fields, messages, follow_up, connect_url, disconnect_url,
-                       instances=None, description="", summary=None):
+                       instances=None, description="", summary=None, device=None, link_slug="", link_label=""):
     """Describe an account form without serializing saved URLs or credentials.
 
     ``instances`` lists connections that can coexist (one row per saved server);
@@ -151,7 +157,11 @@ def account_connection(request, *, connected, saved, attention, fields, messages
     return {
         "connected": connected, "saved": saved, "attention": attention, "fields": fields, "messages": messages, "followUp": follow_up,
         "connectUrl": connect_url, "disconnectUrl": disconnect_url, "instances": instances, "description": description,
-        "summary": summary,
+        "summary": summary, "device": device,
+        # Providers that sign in with a device code share the app's link flow
+        # (ProviderLinkCard) instead of a plain connect form.
+        "link": {"label": link_label, **{key: reverse(f"api_provider_connect_{key}", kwargs={"slug": link_slug}) for key in ("start", "poll", "cancel")}}
+            if link_slug else None,
         "csrf": get_token(request), "next": request.get_full_path(),
         "labels": {text: _(text) for text in (
             "Connection settings", "Account connection", "Connected", "Not connected", "Needs attention",
@@ -249,22 +259,43 @@ def anilist_overview(user):
     }
 
 
-def overview_cards(user, provider, overview=None):
-    """Describe supported tabs once; every provider uses the same card renderer."""
+def _credential_line(user, slug):
+    """Say whose API credentials are in use, or nothing when users cannot manage them."""
+    spec = credentials.REGISTRY.get(slug)
+    if not spec or spec.bundled_only:
+        return ""
+    sources = {credentials.source_of(slug, field.name, user) for field in spec.fields if field.required}
+    if credentials.SOURCE_USER in sources:
+        return _("Personal credentials active")
+    return _("Bundled credentials active") if sources == {credentials.SOURCE_DEFAULT} else _("Instance credentials active")
+
+
+def _connection_card(user, provider, overview, base):
+    """Describe the Connection card; a linked account and API credentials are different things."""
     slug = provider["slug"]
-    base = reverse("provider_detail", args=[slug])
-    cards = []
-    if provider.get("connection"):
-        state = provider["state"]
+    state = provider["state"]
+    tooltip = ""
+    detail = ""
+    if state["account_linkable"]:
+        # The card answers "is my account linked?". Credentials only support that
+        # and appear as a second line, never as the headline.
+        linked = state["account_saved"] and state["connection_tone"] != "warning"
+        subtitle = _({
+            "Needs attention": "Account needs attention",
+            "Awaiting authorization": "Waiting for you to approve",
+            "Webhook events received": "Receiving events",
+        }.get(state["connection"], "Account linked" if state["account_saved"] else "Account not linked"))
+        active = linked or state["connection"] == "Webhook events received"
+        tone = "warning" if state["connection_tone"] == "warning" else "info" if active else "neutral"
+        if state["credentials_available"]:
+            detail = _credential_line(user, slug)
+    else:
         active = state["connection_tone"] == "success"
         subtitle = _(state["connection"])
-        tooltip = ""
-        spec = credentials.REGISTRY.get(slug)
-        if state["credentials_available"] and spec:
-            sources = {credentials.source_of(slug, field.name, user) for field in spec.fields if field.required}
-            subtitle = _("Personal credentials active") if credentials.SOURCE_USER in sources else (
-                _("Bundled credentials active") if sources == {credentials.SOURCE_DEFAULT} else _("Instance credentials active")
-            )
+        tone = "warning" if state["connection_tone"] == "warning" else "info" if active else "neutral"
+        if state["credentials_available"] and credentials.REGISTRY.get(slug):
+            subtitle = _credential_line(user, slug) or subtitle
+            sources = {credentials.source_of(slug, field.name, user) for field in credentials.REGISTRY[slug].fields if field.required}
             if credentials.SOURCE_USER in sources and sources - {credentials.SOURCE_USER}:
                 tooltip = _("Uses instance fallback for fields without a personal value.")
         if overview is not None:
@@ -275,9 +306,18 @@ def overview_cards(user, provider, overview=None):
             )
             if not active:
                 tooltip = _("Public username imports do not require provider credentials.")
-        cards.append({"key": "connection", "title": _("Connection"), "url": f"{base}?tab=connection",
-                      "tone": "warning" if state["connection_tone"] == "warning" else "info" if active else "neutral",
-                      "badge": _("Active") if active else _("Inactive"), "subtitle": subtitle, "detail": "", "tooltip": tooltip})
+            tone = "warning" if state["connection_tone"] == "warning" else "info" if active else "neutral"
+    return {"key": "connection", "title": _("Connection"), "url": f"{base}?tab=connection", "tone": tone,
+            "badge": _("Active") if active else _("Inactive"), "subtitle": subtitle, "detail": detail, "tooltip": tooltip}
+
+
+def overview_cards(user, provider, overview=None):
+    """Describe supported tabs once; every provider uses the same card renderer."""
+    slug = provider["slug"]
+    base = reverse("provider_detail", args=[slug])
+    cards = []
+    if provider.get("connection"):
+        cards.append(_connection_card(user, provider, overview, base))
     latest = None
     if provider.get("import"):
         if overview is not None:

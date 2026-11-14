@@ -918,6 +918,11 @@ class DetailPageView(drf_views.APIView):
             "read_only": public_view or not is_authenticated,
             "public_view": public_view or not is_authenticated,
             "capabilities": {
+                "can_request_seerr": bool(
+                    is_authenticated and not public_view
+                    and media_type in (app_models.MediaTypes.MOVIE.value, app_models.MediaTypes.TV.value)
+                    and source == "tmdb" and _seerr_configured(request.user)
+                ),
                 "can_track": (
                     is_authenticated
                     and can_write

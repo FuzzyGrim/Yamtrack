@@ -13,6 +13,12 @@
   - Floppy
 {% endblock title %}
 
+{% block extra_head %}
+  {{ block.super }}
+  {% if initial_carousel.hero.url %}<link rel="preload" as="image" href="{{ initial_carousel.hero.url }}" media="(max-width: 767px)" fetchpriority="high">{% endif %}
+  {% if initial_carousel.hero.logo_url %}<link rel="preload" as="image" href="{{ initial_carousel.hero.logo_url }}" media="(max-width: 767px)" fetchpriority="high">{% endif %}
+{% endblock extra_head %}
+
 {% block content %}
   {% if music_detail_kind == "artist" %}
     {% include "app/components/detail_music_artist.html" %}
@@ -26,6 +32,7 @@
       {% if carousel_supported %}
         {# Phones get the compact header, or the backdrop hero once the carousel fragment brings one (reserved up front for movies and TV so the page does not jump); md+ gets the two-row carousel layout. See .detail-carousel-grid in input.css. #}
         <div class="detail-carousel-grid{% if not initial_carousel and media_type != MediaTypes.GAME.value %} detail-hero-pending{% endif %}">
+          {% if initial_carousel.hero or not initial_carousel and media_type != MediaTypes.GAME.value %}<script>if (matchMedia('(max-width: 767px)').matches) { const grid = document.currentScript.parentElement; grid.classList.add('detail-hero-waiting'); setTimeout(() => grid.classList.remove('detail-hero-waiting', 'detail-hero-pending'), 2500); }</script>{% endif %}
           <div class="detail-carousel-grid__poster w-full max-w-[250px] mx-auto md:mx-0">
             {% if media_type == MediaTypes.VIDEO.value %}
               <img data-media-artwork alt="{{ media|display_title:user }}" class="md:hidden w-full rounded-lg shadow-lg object-cover" src="{{ media.image|image_url }}">
@@ -43,9 +50,9 @@
             {# Warm galleries render immediately; cold lookups stay deferred. Keep the empty wrapper free of whitespace for the CSS :empty layout hook. #}
             <div id="detail-carousel-wrap"{% if not initial_carousel %}
                  hx-get="{{ detail_carousel_fragment_url }}"
-                 hx-trigger="load delay:100ms"
+                 hx-trigger="load"
                  hx-swap="innerHTML"
-                 hx-on::after-settle="this.closest('.detail-carousel-grid').classList.remove('detail-hero-pending')"{% endif %}>{% if initial_carousel %}{% include "app/components/detail_carousel_fragment.html" with carousel=initial_carousel inline=True %}{% elif media_type != MediaTypes.GAME.value %}<div class="detail-carousel-content detail-carousel-pending" aria-hidden="true"><div class="detail-carousel-preview detail-carousel-preview--bounded"></div><div class="detail-carousel-strip-wrap"></div></div>{% endif %}</div>
+                 hx-on::after-settle="if (!this.querySelector('[data-detail-backdrop-root]')) this.closest('.detail-carousel-grid').classList.remove('detail-hero-pending', 'detail-hero-waiting')"{% endif %}>{% if initial_carousel %}{% include "app/components/detail_carousel_fragment.html" with carousel=initial_carousel inline=True %}{% elif media_type != MediaTypes.GAME.value %}<div class="detail-carousel-content detail-carousel-pending" aria-hidden="true"><div class="detail-carousel-preview detail-carousel-preview--bounded"></div><div class="detail-carousel-strip-wrap"></div></div>{% endif %}</div>
           </div>
 
           <div class="detail-carousel-grid__header flex flex-col md:flex-row md:flex-wrap md:items-center {% if media_type == MediaTypes.VIDEO.value %}md:justify-start{% else %}md:justify-between{% endif %} gap-4">

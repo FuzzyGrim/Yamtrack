@@ -87,6 +87,9 @@ server-rendered HTML. Anonymous callers receive public, read-only metadata;
 `?public_view=1` suppresses viewer state and actions. Returned action
 capabilities are authoritative; child watch/rating actions are limited to
 signed-in, non-public TV detail views.
+The `can_request_seerr` capability reports whether a private TMDB movie or TV
+detail has a configured Seerr connection; it does not contact Seerr or expose
+connection credentials. Clients fetch the current request state on demand.
 The companion `GET /api/v1/media/{media_type}/{source}/{media_id}/detail/gallery/`
 resolves the deferred title logo, backdrop, gallery photos and trailer.
 

@@ -1,86 +1,10 @@
-
 {% load i18n %}
 {% load media_list_entry_grouping %}
 {% media_list_entry_grouping_control request as entry_grouping %}
+{% library_settings_menu_props request entry_grouping enable_bulk_select as settings_menu_props %}
+{# The gear and its menu are the React SettingsMenu on the shared dropdown; the page's Alpine scope still owns layout, save, share and select. #}
+{% firstof menu_props_id "library-settings-menu-props" as props_id %}
+{{ settings_menu_props|json_script:props_id }}
 <div class="relative filter-control {{ menu_class|default:'' }}"
-     x-data="{ open: false, sharing: false }"
-     @click.outside="open = false"
-     @keydown.escape.window="if (open) { open = false; $refs.trigger.focus(); }">
-  <button class="p-2 rounded-md border border-gray-700 bg-[var(--color-surface-strong)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] transition-colors cursor-pointer"
-          title="{% translate "View settings" %}"
-          aria-label="{% translate "View settings" %}"
-          :aria-expanded="open.toString()"
-          x-ref="trigger"
-          @click="open = !open"
-          type="button">{% include "app/icons/settings.svg" with classes="w-5 h-5" %}</button>
-
-  <div class="absolute right-0 z-40 mt-2 w-64 bg-[var(--color-surface-strong)] rounded-md shadow-lg overflow-hidden border border-gray-700"
-       aria-label="{% translate "View settings" %}"
-       role="group"
-       x-cloak
-       x-show="open"
-       x-transition:enter="transition ease-out duration-100"
-       x-transition:enter-start="transform opacity-0 scale-95"
-       x-transition:enter-end="transform opacity-100 scale-100"
-       x-transition:leave="transition ease-in duration-75"
-       x-transition:leave-start="transform opacity-100 scale-100"
-       x-transition:leave-end="transform opacity-0 scale-95">
-
-    <a :href="layoutHref(layout === 'grid' ? 'table' : 'grid')"
-       class="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
-       @click="$el.href = layoutHref(layout === 'grid' ? 'table' : 'grid'); open = false"
-       @auxclick="$el.href = layoutHref(layout === 'grid' ? 'table' : 'grid')">
-      <span x-show="layout === 'grid'">{% include "app/icons/table.svg" with classes="w-4 h-4" %}</span>
-      <span x-show="layout !== 'grid'">{% include "app/icons/four-square.svg" with classes="w-4 h-4" %}</span>
-      {% translate "Table View" as media_i18n_55 %}{% translate "Grid View" as media_i18n_56 %}<span x-text="layout === 'grid' ? '{{ media_i18n_55|escapejs }}' : '{{ media_i18n_56|escapejs }}'"></span>
-    </a>
-
-    {% if entry_grouping.supported %}
-      <form method="post"
-            action="{% url 'medialist_entry_grouping' media_type %}"
-            class="w-full m-0">
-        {% csrf_token %}
-        <input type="hidden"
-               name="show_separate_entries"
-               value="{{ entry_grouping.next_value }}">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <button class="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
-                type="submit"
-                aria-pressed="{% if entry_grouping.enabled %}true{% else %}false{% endif %}"
-                @click="open = false">
-          {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
-          <span>{% translate "Show matching entries separately" %}</span>
-          <span class="ml-auto text-xs text-[var(--color-text-muted)]">
-            {% translate entry_grouping.state_label %}
-          </span>
-        </button>
-      </form>
-    {% endif %}
-
-    <div class="border-t border-gray-700 my-1" role="separator"></div>
-
-    <button class="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-            type="button"
-            :disabled="sharing"
-            @click="open = false; sharing = true; shareView().finally(() => { sharing = false; })">
-      {% include "app/icons/link.svg" with classes="w-4 h-4" %}
-      {% translate "Sharing…" as media_i18n_57 %}{% translate "Share View" as media_i18n_58 %}<span x-text="sharing ? '{{ media_i18n_57|escapejs }}' : '{{ media_i18n_58|escapejs }}'"></span>
-    </button>
-
-    <button class="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
-            type="button"
-            @click="open = false; saveView()">
-      {% include "app/icons/save.svg" with classes="w-4 h-4" %}
-      <span>{% translate "Save View" %}</span>
-    </button>
-
-    {% if enable_bulk_select %}
-      <button class="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
-              type="button"
-              @click="open = false; toggleSelectMode()">
-        {% include "app/icons/tag.svg" with classes="w-4 h-4" %}
-        {% translate "Cancel Select" as media_i18n_59 %}{% translate "Select Items" as media_i18n_60 %}<span x-text="selectMode ? '{{ media_i18n_59|escapejs }}' : '{{ media_i18n_60|escapejs }}'"></span>
-      </button>
-    {% endif %}
-  </div>
-</div>
+     data-settings-menu-root
+     data-props-id="{{ props_id }}"></div>

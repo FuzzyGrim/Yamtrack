@@ -42,6 +42,19 @@ class DetailPageTests(FloppyApiTestCase):
         self.carousel_patch.stop()
         super().tearDown()
 
+    @patch("api.fork_views_detail._seerr_configured", return_value=True)
+    @patch("api.fork_views_detail.services.get_media_metadata", return_value={"title": "Film"})
+    def test_seerr_capability_is_private_and_does_not_contact_seerr(self, _metadata, configured):
+        item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        path = f"/api/v1/media/movie/{item.source}/{item.media_id}/detail/"
+        with patch("api.fork_views_detail.seerr_api.SeerrClient.for_user") as client:
+            private = self.client.get(path, **self.auth_headers).json()
+            public = self.client.get(path, {"public_view": "1"}, **self.auth_headers).json()
+        self.assertTrue(private["capabilities"]["can_request_seerr"])
+        self.assertFalse(public["capabilities"]["can_request_seerr"])
+        configured.assert_called()
+        client.assert_not_called()
+
     @patch("app.templatetags.app_tags.next_episode_url", return_value="/details/next/")
     def test_detail_season_card_reuses_home_progress_and_next_episode(self, _next):
         self.user1.quick_season_update_mobile = "next_episode"

@@ -425,6 +425,15 @@ def clear_home_row_cache_on_music_podcast_tracker_change(sender, instance, **kwa
     clear_library_view_caches(user_id)
 
 
+@receiver([post_save, post_delete], sender=AlbumTracker)
+def refresh_statistics_on_album_tracker_change(sender, instance, **kwargs):
+    """Rebuild range aggregates when an album's tracking changes."""
+    if kwargs.get("raw") or media_change_side_effects_suppressed():
+        return
+    if instance.user_id:
+        statistics_cache.invalidate_statistics_cache(instance.user_id)
+
+
 @receiver([post_save, post_delete], sender=ItemTag)
 def sync_smart_lists_on_item_tag_change(sender, instance, **kwargs):
     """Incrementally update smart lists when a tag is applied to or removed from an item."""

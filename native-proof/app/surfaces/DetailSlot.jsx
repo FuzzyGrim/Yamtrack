@@ -199,6 +199,7 @@ function detailFromProviderPayload(payload, item, identity) {
     ...detailHeaderText(payload?.activity_subtitle, payload?.media_details),
     publicView,
     readOnly: Boolean(payload?.read_only),
+    seerrConfigured: capabilities.can_request_seerr,
     trackingEntries: trackingEntriesFromPayload(payload),
     viewerRating: payload?.tracking && !publicView && payload?.viewer_rating?.enabled !== false ? {
       value: payload.viewer_rating?.value ?? payload.tracking.score,
@@ -372,9 +373,10 @@ export async function loadDetailModel(item, options = {}) {
   if (!identity) throw new Error('Open a detail from a media item or a Floppy detail link.');
   const request = options.request || getActiveAuthSession()?.request;
   if (typeof request !== 'function') throw new Error('Connect to your Floppy server to load this detail.');
-  await loadDatePreferences(request);
+  const datePreferences = loadDatePreferences(request);
 
   if (identity.musicKind) {
+    await datePreferences;
     if (identity.musicKind === 'artist') {
       const response = await request(`/api/v1/music/artists/${encodeURIComponent(identity.musicId)}/`);
       return fromMusicPayload(response, item, 'artist', identity.publicView);
@@ -394,6 +396,7 @@ export async function loadDetailModel(item, options = {}) {
   }
 
   if (identity.podcastId) {
+    await datePreferences;
     const response = await request(`/api/v1/podcasts/shows/${encodeURIComponent(identity.podcastId)}/`);
     const episodes = await request(`/api/v1/podcasts/shows/${encodeURIComponent(identity.podcastId)}/episodes/?limit=30&offset=0`);
     return {
@@ -423,10 +426,19 @@ export async function loadDetailModel(item, options = {}) {
     episodePage: options.episodePage,
   };
   try {
+    // Start supported gallery lookups alongside detail, rather than waiting
+    // for detail before starting a cold provider request.
+    const mayHaveGallery = (requestIdentity.source === 'tmdb' && ['movie', 'tv'].includes(requestIdentity.mediaType))
+      || (requestIdentity.source === 'igdb' && requestIdentity.mediaType === 'game');
+    const galleryRequest = mayHaveGallery
+      ? request(detailGalleryEndpoint(requestIdentity)).then(result => {
+        options.onGallery?.(result?.gallery);
+        return result;
+      }).catch(() => null) : null;
     const response = await request(detailEndpoint(requestIdentity));
-    if (response?.artwork?.gallery_supported) {
+    if (response?.artwork?.gallery_supported && !response.artwork.backdrop) {
       try {
-        const gallery = await request(detailGalleryEndpoint(requestIdentity));
+        const gallery = galleryRequest ? await galleryRequest : await request(detailGalleryEndpoint(requestIdentity));
         response.artwork.gallery = gallery?.gallery || response.artwork.gallery;
         response.artwork.backdrop = response.artwork.backdrop
           || gallery?.gallery?.hero?.url
@@ -440,6 +452,7 @@ export async function loadDetailModel(item, options = {}) {
         // The detail data remains useful if a provider gallery is unavailable.
       }
     }
+    await datePreferences;
     return detailFromProviderPayload(response, item, requestIdentity);
   } catch (error) {
     if (error?.status === 404 && !/media not found/i.test(error?.message || '')) {

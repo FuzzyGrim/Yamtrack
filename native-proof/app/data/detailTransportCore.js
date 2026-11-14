@@ -418,20 +418,14 @@ export function detailHeaderText(activity, details = {}) {
   if (!activity) return { activityText: '', mobileMeta };
 
   const primary = String(activity.primary_text || '').trim();
-  const duration = String(activity.duration_text || '').replace(/ (watched|played|listened|read)\b/g, '').trim();
-  const body = duration ? activityLineWithWatched(primary, duration) : primary;
+  const duration = String(activity.duration_text || '').trim();
   const start = formatUserDate(activity.date_start);
   const end = formatUserDate(activity.date_end);
   const dates = start && end
     ? (activity.collapse_same_day || start === end ? start : `${start} - ${end}`)
     : start || end;
-  if (!body && !dates) return { activityText: '', mobileMeta };
-
-  // With duration, web puts year/runtime beside that duration and before dates.
-  // Without it, year/runtime follows the primary text and date range.
-  const activityText = duration
-    ? [[body, mobileMeta].filter(Boolean).join(' · '), dates].filter(Boolean).join(' • ')
-    : [[body, dates].filter(Boolean).join(' • '), mobileMeta].filter(Boolean).join(' · ');
+  const activityText = [dates, duration].filter(Boolean).join(' • ') || primary;
+  if (!activityText) return { activityText: '', mobileMeta };
   return { activityText, mobileMeta: '' };
 }
 

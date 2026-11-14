@@ -1179,13 +1179,14 @@ class HistoryMonthViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.context["media_type"])
 
-    def test_history_keeps_a_non_movie_media_type_in_the_search_bar(self):
-        """A game's history link must not leave the search bar on TV shows.
+    def test_history_keeps_the_users_search_type_in_the_search_bar(self):
+        """The search bar shows what the user picked, not the page being browsed.
 
-        Regression for the history button on a game detail page, which links to
-        ?media_type=game&...&logging_style=sessions. Without the media type in
-        context the bar falls back to last_search_type, which defaults to TV.
+        A game's history link goes to ?media_type=game&...&logging_style=sessions;
+        a user who last picked Books keeps Books in the bar.
         """
+        self.user.last_search_type = MediaTypes.BOOK.value
+        self.user.save(update_fields=["last_search_type"])
         response = self.client.get(
             reverse("history"),
             {
@@ -1197,12 +1198,9 @@ class HistoryMonthViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["media_type"], MediaTypes.GAME.value)
-        # base.html renders the navbar's current type into selectedType; the
-        # dropdown list below it always contains every type, so assert on the
-        # selection itself rather than on the presence of "tv" anywhere.
         self.assertContains(
             response,
-            "selectedType: { display: 'Games', value: 'game' }",
+            "selectedType: { display: 'Books', value: 'book' }",
         )
 
     def test_media_type_month_view_uses_cached_month_days(self):

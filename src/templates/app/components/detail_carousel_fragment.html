@@ -15,18 +15,22 @@
     {# Phone-only hero (see .detail-mobile-hero in input.css): the backdrop, blurred below the logo line. Hidden from md up, where the carousel below takes over. #}
     <div class="detail-mobile-hero md:hidden" aria-hidden="true">
       <div class="detail-mobile-hero__backdrop">
+        {{ carousel.hero.url|json_script:"detail-mobile-backdrop-props" }}
+        <div data-detail-backdrop-root data-props-id="detail-mobile-backdrop-props"></div>
         <img data-media-artwork
              class="detail-mobile-hero__blur"
              src="{{ carousel.hero.url }}"
              alt="">
         <img data-media-artwork
              class="detail-mobile-hero__sharp"
+             fetchpriority="high"
              src="{{ carousel.hero.url }}"
              alt="">
       </div>
       {% if carousel.hero.logo_url %}
         <img data-media-artwork
              class="detail-mobile-hero__logo"
+             fetchpriority="high"
              src="{{ carousel.hero.logo_url }}"
              alt="">
       {% endif %}

@@ -1,1 +1,3 @@
-{{ body }}
+{{ props|json_script:props_id }}
+{# The Filters, Status and Sort dropdowns are the shared FilterBar toolbar on the standard dropdown; the legacy toolbar is the fallback until it mounts. #}
+<div data-filter-bar-root data-props-id="{{ props_id }}">{{ body }}</div>

@@ -12,7 +12,7 @@ export function detailHeroLayout({ width, height, headerHeight = 0, insets = {},
   const logoWidth = Math.max(1, innerWidth - gutterLeft - gutterRight) * 0.66;
   const logoHeight = logoAspect > 0 ? Math.min(96, logoWidth / logoAspect) : 96;
   return {
-    innerWidth, innerHeight, topBleed, sideBleed, gutterLeft, gutterRight,
+    innerWidth, innerHeight, headerHeight, topBleed, sideBleed, gutterLeft, gutterRight,
     line, logoWidth, logoHeight,
     width: innerWidth + sideBleed * 2,
     height: innerHeight + topBleed,
@@ -21,13 +21,13 @@ export function detailHeroLayout({ width, height, headerHeight = 0, insets = {},
   };
 }
 
-export function detailArtworkCrop(layout, aspect = 16 / 9) {
-  const height = layout.sharpHeight;
+export function detailArtworkCrop(layout, aspect = 16 / 9, top = 0) {
+  const height = Math.max(1, layout.sharpHeight - top) * 0.8;
   const width = Math.max(layout.width, height * aspect);
   const imageHeight = width / aspect;
   return {
     x: layout.sideBleed + (layout.innerWidth - width) / 2,
-    y: (height - imageHeight) / 2,
+    y: top,
     width,
     height: imageHeight,
   };

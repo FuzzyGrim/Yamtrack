@@ -66,5 +66,6 @@ export const actionIcons = {
   stop: icon([{"tag": "rect", "attrs": {"x": "6", "y": "6", "width": "12", "height": "12", "rx": "2"}, "children": []}]),
   image: icon([{"tag": "rect", "attrs": {"x": "3", "y": "3", "width": "18", "height": "18", "rx": "2"}, "children": []}, {"tag": "circle", "attrs": {"cx": "9", "cy": "9", "r": "2"}, "children": []}, {"tag": "path", "attrs": {"d": "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"}, "children": []}]),
   book: icon([{"tag": "path", "attrs": {"d": "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"}, "children": []}, {"tag": "path", "attrs": {"d": "M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"}, "children": []}]),
-  save: icon([{"tag": "path", "attrs": {"d": "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"}, "children": []}, {"tag": "polyline", "attrs": {"points": "17 21 17 13 7 13 7 21"}, "children": []}, {"tag": "polyline", "attrs": {"points": "7 3 7 8 15 8"}, "children": []}]),
+  share: icon([{ tag: 'path', attrs: { d: 'M12 2v13' }, children: [] }, { tag: 'path', attrs: { d: 'm16 6-4-4-4 4' }, children: [] }, { tag: 'path', attrs: { d: 'M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8' }, children: [] }]),
+save: icon([{"tag": "path", "attrs": {"d": "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"}, "children": []}, {"tag": "polyline", "attrs": {"points": "17 21 17 13 7 13 7 21"}, "children": []}, {"tag": "polyline", "attrs": {"points": "7 3 7 8 15 8"}, "children": []}]),
 };

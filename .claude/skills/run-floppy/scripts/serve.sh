@@ -6,6 +6,8 @@
 set -uo pipefail
 
 PORT="${FLOPPY_LOCAL_PORT:-8299}"
+# Bind all interfaces so a phone on the same network can reach it.
+BIND_HOST="${FLOPPY_LOCAL_HOST:-0.0.0.0}"
 SETTINGS="${DJANGO_SETTINGS_MODULE:-local_serve}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$HERE/../../../../src" && pwd)"
@@ -77,7 +79,7 @@ cmd_start() {
     echo "celery worker started (queues=${FLOPPY_CELERY_QUEUES:-celery})"
   fi
 
-  FLOPPY_PROCESS_ROLE=web nohup gunicorn --bind "localhost:$PORT" \
+  FLOPPY_PROCESS_ROLE=web nohup gunicorn --bind "$BIND_HOST:$PORT" \
     --config python:config.gunicorn config.wsgi:application \
     >"$LOGDIR/gunicorn.log" 2>&1 &
 

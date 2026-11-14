@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { DROPDOWN } from './dropdownMetrics';
+import { DropdownItem } from './DropdownMenu';
 import { Spinner } from './Spinner';
 import { SearchIcon as SearchGlyph } from './Icon';
 
@@ -139,6 +140,7 @@ export function GlobalSearch({
   onLoadSuggestions,
   useKeyboardOverlap = noKeyboardOverlap,
   onSubmit,
+  onTypeChange,
   onSelectSuggestion,
   onBarcodeRequest,
 }) {
@@ -266,6 +268,7 @@ export function GlobalSearch({
 
   function selectType(next) {
     setType(next);
+    onTypeChange?.(next.value);
     setMenuOpen(false);
     setActiveIndex(-1);
     if (trimmed) submit(query, next.value);
@@ -489,13 +492,9 @@ export function GlobalSearch({
         borderRadius: DROPDOWN.radius,
       }]}>
         <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-          {mediaTypes.map(option => <Pressable key={option.value}
-            accessibilityRole="button" accessibilityLabel={option.display}
-            onPress={() => selectType(option)}
-            style={({ hovered, pressed }) => [styles.menuItem,
-              (hovered || pressed || option.value === type.value) && { backgroundColor: palette.surfaceMuted }]}>
-            <Text numberOfLines={1} style={[styles.menuText, { color: palette.textSecondary }]}>{option.display}</Text>
-          </Pressable>)}
+          {mediaTypes.map(option => <DropdownItem key={option.value} accessibilityRole="button" label={option.display}
+            numberOfLines={1} onPress={() => selectType(option)} selected={option.value === type.value}
+            palette={palette} />)}
         </ScrollView>
       </View> : null}
     </View>
@@ -526,8 +525,6 @@ const styles = StyleSheet.create({
   typeButton: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
   typeText: { fontSize: 14, flexShrink: 1 },
   menu: { position: 'absolute', top: 48, right: 0, zIndex: 60, borderWidth: 1, paddingVertical: 4, elevation: 6, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-  menuItem: { paddingHorizontal: DROPDOWN.itemPaddingHorizontal, paddingVertical: DROPDOWN.itemPaddingVertical },
-  menuText: { fontSize: DROPDOWN.fontSize },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: DROPDOWN.itemPaddingHorizontal, paddingVertical: DROPDOWN.itemPaddingVertical },
   optionText: { flex: 1, minWidth: 0 },
   optionTitle: { fontSize: 14 },

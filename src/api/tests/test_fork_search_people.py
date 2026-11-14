@@ -125,6 +125,25 @@ class SearchEndpointTests(FloppyApiTestCase):
         self.assertIn(payload["default_source"], {s["value"] for s in payload["sources"]})
         self.assertIn("book", payload["barcode_types"])
 
+    def test_type_is_remembered_for_the_next_page(self):
+        """Picking a type saves it; an unknown type is rejected."""
+        response = self.call_api(
+            "put",
+            "api_search_type",
+            payload={"media_type": MediaTypes.MOVIE.value},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, HTTP.OK)
+        self.user1.refresh_from_db()
+        self.assertEqual(self.user1.last_search_type, MediaTypes.MOVIE.value)
+        bad = self.call_api(
+            "put",
+            "api_search_type",
+            payload={"media_type": "nope"},
+            headers=self.auth_headers,
+        )
+        self.assertEqual(bad.status_code, HTTP.BAD_REQUEST)
+
     def test_sources_for_all_has_no_pills(self):
         """The library-wide type has no provider pills."""
         response = self.call_api(

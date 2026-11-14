@@ -24,6 +24,25 @@ const rangeFields = {
   },
 };
 
+// The Search media type menu's tokens, so the dropdowns draw like every other app dropdown.
+const menuPalette = {
+  background: 'var(--color-page-bg)',
+  surface: 'var(--color-surface)',
+  surfaceStrong: 'var(--color-surface-strong)',
+  surfaceMuted: 'var(--color-surface-muted)',
+  surfaceHover: 'var(--color-surface-hover)',
+  border: 'var(--color-surface-muted)',
+  text: 'var(--color-text)',
+  textSecondary: 'var(--color-text-secondary)',
+  textMuted: 'var(--color-text-muted)',
+  accent: 'var(--color-accent)',
+  accentStrong: 'var(--color-accent)',
+  accentText: 'var(--color-accent-contrast)',
+  danger: 'var(--color-danger)',
+  disabled: 'var(--color-text-muted)',
+  overlay: 'rgba(0, 0, 0, 0.5)',
+};
+
 function rangeState(data, fields) {
   if (!fields) {
     return { from: '', to: '', within: '', unit: 'days' };
@@ -198,8 +217,8 @@ function Adapter({ host, props }) {
     }, 0);
   }
 
-  return <FilterBar filters={filters} options={props.options} labels={props.labels}
-    palette={props.palette} busy={props.busy} disabled={props.disabled}
+  return <FilterBar variant="toolbar" showClear={false} filters={filters} options={props.options} labels={props.labels}
+    palette={props.palette || menuPalette} busy={props.busy} disabled={props.disabled}
     resultCount={props.resultCount} onChange={commit} />;
 }
 

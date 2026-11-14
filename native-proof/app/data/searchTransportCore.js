@@ -154,6 +154,9 @@ export function createRemoteSearchActions(request, { suggestionsViaWeb = false, 
         query: searchQuery({ search, source, limit, offset }),
       });
     },
+    saveType({ mediaType } = {}) {
+      return request('/api/v1/search/type/', { method: 'PUT', body: { media_type: mediaType } });
+    },
     loadSources({ mediaType = 'all' } = {}) {
       return request('/api/v1/search/sources/', { query: { media_type: mediaType } }).then(data => expectObject(data, 'Search'));
     },

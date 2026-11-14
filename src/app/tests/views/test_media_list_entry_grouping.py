@@ -236,12 +236,12 @@ class MediaListEntryGroupingTests(TestCase):
         self.assertIn(MediaTypes.ANIME.value, called_media_types)
         self.assertIn(MediaTypes.TV.value, called_media_types)
 
-    def test_control_exposes_clear_state_and_keyboard_support(self):
+    def test_control_hands_the_settings_menu_its_entry_grouping_state(self):
+        """The gear is a React island; the server supplies its labels and the grouping form."""
         response = self.client.get(self.movie_url)
 
-        self.assertContains(response, 'aria-label="View settings"')
-        self.assertContains(response, ':aria-expanded="open.toString()"')
-        self.assertContains(response, 'aria-pressed="false"')
+        self.assertContains(response, "data-settings-menu-root")
+        self.assertContains(response, "View settings")
         self.assertContains(response, "Show matching entries separately")
-        self.assertContains(response, "Off")
-        self.assertContains(response, "@keydown.escape.window")
+        self.assertContains(response, '"stateLabel": "Off"')
+        self.assertContains(response, '"nextValue": "true"')

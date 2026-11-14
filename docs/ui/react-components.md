@@ -23,6 +23,23 @@ Structural rules for page parity:
 - Themes resolve through the shared theme contract; do not hardcode a palette
   per screen.
 
+## Keyboard-aware overlays
+
+Use `KeyboardOverlapContext` for shared overlays that must fit above the keyboard.
+The web root supplies visual-viewport overlap; `ThemeRoot` supplies the native
+`useKeyboardOverlap` adapter. Call the supplied hook with `true` for an animated
+overlap value and use it in an `Animated.View` layout style, as `DropdownMenuContent`
+does. Keep the subscription inside the hosted modal content so its layout updates
+reach the visible host directly. A hook without that option returns a numeric overlap.
+
+On iOS, the native adapter starts from keyboard frame notifications and uses the
+reported duration with an ease-out quartic curve. This is an approximation validated
+by the user on a physical iPhone Duo, not the system's exact curve. Height animation
+uses the JavaScript driver because the native driver does not animate layout sizes.
+Android reports the settled keyboard frame and applies it immediately; web uses the
+visual viewport. Verify opening and dismissal on each applicable platform, including
+short and scrollable content, and report runtime evidence separately.
+
 ## Writing a component so it can reach native
 
 Only `AlphabetBar`, `RatingStars`, `SettingsCard` and `Chip` (in `frontend/settings`)

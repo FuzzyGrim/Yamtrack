@@ -73,6 +73,8 @@ class DiscoverInvalidationSignalTests(TestCase):
     ):
         mock_get_media_metadata.return_value = self._movie_metadata()
         item = self._item(MediaTypes.MOVIE.value, "movie-1")
+        # Someone who opened Discover lately: their tabs rebuild in the background.
+        discover_tab_cache.mark_recently_used(self.user.id)
 
         Movie.objects.create(
             user=self.user,
@@ -112,6 +114,7 @@ class DiscoverInvalidationSignalTests(TestCase):
         _mock_sync_owner_smart_lists,
     ):
         tv_item = self._item(MediaTypes.TV.value, "tv-1")
+        discover_tab_cache.mark_recently_used(self.user.id)
         tv = TV.objects.create(user=self.user, item=tv_item)
 
         mock_schedule_tab_refresh.reset_mock()

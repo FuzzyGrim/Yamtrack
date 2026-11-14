@@ -5,8 +5,9 @@
 .alphabet-empty:not([data-react-mounted]) > a { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface); color: var(--color-text); font-size: 12px; line-height: 16px; text-decoration: none; }
 .alphabet-empty a:focus-visible, .alphabet-rail a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 @media (min-width: 768px) {
-  .alphabet-surface { padding-right: 2rem; }
-  .alphabet-rail { --alphabet-letter-size: min(13px, max(1px, calc((100svh - var(--alphabet-top, 213px) - 16px) / 36))); --alphabet-caption-size: min(11px, var(--alphabet-letter-size)); display: block; position: fixed; right: 8px; top: var(--alphabet-top, 213px); bottom: 16px; width: 32px; overflow: hidden; z-index: 20; }
+  /* The rail sits in the page's own right gutter (24px wide, centred with right: 4px), so the grid keeps its full width and matches History. */
+  .alphabet-surface { padding-right: 0; }
+  .alphabet-rail { --alphabet-letter-size: min(13px, max(1px, calc((100svh - var(--alphabet-top, 213px) - 16px) / 36))); --alphabet-caption-size: min(11px, var(--alphabet-letter-size)); display: block; position: fixed; right: 4px; top: var(--alphabet-top, 213px); bottom: 16px; width: 24px; overflow: hidden; z-index: 20; }
   .alphabet-rail nav { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .alphabet-rail a { display: flex; flex: 1; min-height: 0; align-items: center; justify-content: center; text-align: center; font-size: var(--alphabet-letter-size); line-height: 1; background: transparent; color: var(--color-text-muted); text-decoration: none; }
   .alphabet-rail a[data-alphabet-caption] { font-size: var(--alphabet-caption-size); }

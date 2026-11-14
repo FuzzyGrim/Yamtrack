@@ -23,10 +23,11 @@ test('the sharp crop uses the inner image frame and does not zoom or move when b
       assert.equal(a.height, b.height);
     }
     assert.equal(b.x - rail.sideBleed + b.width / 2, rail.innerWidth / 2);
-    assert.equal(b.y + b.height / 2, rail.sharpHeight / 2);
-    assert.ok(b.y <= 0);
-    assert.ok(b.y + b.height >= rail.sharpHeight);
+    assert.equal(b.y, 0);
+    assert.ok(b.width >= rail.width);
+    assert.ok(b.height >= rail.sharpHeight * 0.8);
   }
+  assert.ok(detailArtworkCrop(plain).width < plain.sharpHeight * (16 / 9));
 });
 
 test('logo intrinsic proportions change its height while its bottom stays on the hero line', () => {
@@ -37,6 +38,16 @@ test('logo intrinsic proportions change its height while its bottom stays on the
   assert.equal(tall.logoHeight, 96);
   assert.equal(wide.line, tall.line);
   assert.equal((wide.line - wide.logoHeight) + wide.logoHeight, tall.line);
+});
+
+test('native artwork starts halfway through the overlay, stays centered and covers the rail', () => {
+  const layout = detailHeroLayout({ width: 360, height: 700, headerHeight: 96, insets: { top: 24, right: 80 } });
+  const original = detailArtworkCrop(layout);
+  const crop = detailArtworkCrop(layout, 16 / 9, layout.topBleed - layout.headerHeight / 2);
+  assert.equal(crop.y, 72);
+  assert.ok(crop.width < original.width);
+  assert.ok(crop.width >= layout.width);
+  assert.equal(crop.x - layout.sideBleed + crop.width / 2, layout.innerWidth / 2);
 });
 
 test('short and unfolded viewports stay bounded and preserve the inner framing', () => {

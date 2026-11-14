@@ -129,7 +129,7 @@
           {% include "app/components/table_column_menu.html" with table_column_update_url=media_list_columns_url table_refresh_url=filter_hx_endpoint table_refresh_target=".media-table" table_refresh_include_selector="#filter-form" table_loading_indicator="#loading-indicator" table_type=table_type|default:'media' %}
         </div>
 
-        {% include "app/components/media_settings_menu.html" with menu_class="media-settings-menu-desktop" %}
+        {% include "app/components/media_settings_menu.html" with menu_class="media-settings-menu-desktop" menu_props_id="library-settings-menu-props-desktop" %}
       </div>
     {% endif %}
   </div>

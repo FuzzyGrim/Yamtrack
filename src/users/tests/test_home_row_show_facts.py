@@ -277,9 +277,9 @@ class FactsOptInTests(ShowFactsLibrary):
         attach = executor_module._attach_media
         modes = []
 
-        def record(user, batch, needs, *, show_facts=False):
-            modes.append(show_facts)
-            return attach(user, batch, needs, show_facts=show_facts)
+        def record(user, batch, needs, **kwargs):
+            modes.append(kwargs.get("show_facts", False))
+            return attach(user, batch, needs, **kwargs)
 
         with mock.patch.object(executor_module, "_attach_media", record):
             LibraryQueryExecutor(self.user, query).ranked_ids()
