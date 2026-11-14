@@ -128,6 +128,29 @@ class MigrationOrderTests(TestCase):
             self.assertEqual(order.main(["x", "pr-b", "latest"]), 1)
             self._git("checkout", "-q", "pr-b")
             self._git("merge", "-q", "--no-edit", "latest")
+            self.assertEqual(order.main(["x", "pr-b", "latest"]), 1)
+            self._git("mv", "src/users/migrations/0002_b.py", "src/users/migrations/0003_b.py")
+            self._git("commit", "-q", "-m", "renumber conflicting migration")
             self.assertEqual(order.main(["x", "pr-b", "latest"]), 0)
         finally:
             os.chdir(cwd)
+
+    def test_existing_duplicates_are_grandfathered(self):
+        self._commit("src/users/migrations/0001_historical.py")
+        self._branch_from_latest("pr-new")
+        self._commit("src/users/migrations/0002_new.py")
+        self.assertEqual(order.new_duplicate_numbers("pr-new", "latest", cwd=self.repo), [])
+
+    def test_new_duplicate_in_one_pr_is_rejected(self):
+        self._branch_from_latest("pr-new")
+        self._commit("src/users/migrations/0002_one.py")
+        self._commit("src/users/migrations/0002_two.py")
+        self.assertEqual(
+            order.new_duplicate_numbers("pr-new", "latest", cwd=self.repo),
+            ["src/users/migrations/0002_one.py", "src/users/migrations/0002_two.py"],
+        )
+
+    def test_same_number_in_different_apps_is_allowed(self):
+        self._branch_from_latest("pr-new")
+        self._commit("src/app/migrations/0001_initial.py")
+        self.assertEqual(order.new_duplicate_numbers("pr-new", "latest", cwd=self.repo), [])

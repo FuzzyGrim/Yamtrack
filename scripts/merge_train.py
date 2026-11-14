@@ -30,6 +30,7 @@ Usage: merge_train.py [--dry-run]    (needs GH_TOKEN and GH_REPO)
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -62,6 +63,9 @@ query($owner: String!, $name: String!) {
       nodes {
         number
         body
+        headRefName
+        author { login }
+        createdAt
         isDraft
         isCrossRepository
         maintainerCanModify
@@ -143,6 +147,8 @@ def _up_to_date_verdict(pr: dict, now: datetime) -> tuple[str, str]:
                 "required checks never started on its latest commit (a change CI "
                 "ignores, such as docs only, needs a manual merge)"
             )
+        if since_commit > HUNG_AFTER:
+            return "skip", "some required checks never appeared within the CI timeout"
         return "wait", "required checks are queued or running"
     if _all_required_passed(pr):
         finished = max(_time(c["completedAt"]) for c in checks)
@@ -174,7 +180,7 @@ def judge(pr: dict, behind: int | None, now: datetime) -> tuple[str, str]:
         if marker and marker[0] == latest_oid:
             if marker[1] == "refused":
                 return "skip", "GitHub refused the branch update (HTTP 403 or equivalent); the contributor has to merge latest into the branch themselves"
-            return "wait", "branch update was attempted for this latest commit; waiting for fresh required checks"
+            return "skip", "branch refresh already attempted for this base; failed checks still need attention"
         return "update", f"required check failed before latest advanced; refreshing {behind} commits"
     reason = _failure_reason(pr, now)
     if reason:
@@ -345,6 +351,240 @@ def _report(lines: list[str], problem: bool) -> None:
             handle.write("\n")
 
 
+
+# Batch only previously green, owner-approved same-repository PRs. A single
+# ordinary GitHub PR validates and merges the exact cumulative tree. Migration
+# changes and workflow changes are always left to the serial lane.
+BATCH_PREFIX = "merge-train/batch-"
+BATCH_MARKER = re.compile(r"<!-- merge-train-batch: (\{[^\n]+\}) -->")
+MIGRATION_PATH = re.compile(r"^src/[^/]+/migrations/")
+
+
+def _is_batch(pr: dict) -> bool:
+    return pr.get("headRefName", "").startswith(BATCH_PREFIX)
+
+
+def _batch_safe_files(files: list[dict], limit: int) -> bool:
+    """Fail closed on truncation, renames, migrations or CI policy changes."""
+    if len(files) >= limit:
+        return False
+    return not any(
+        MIGRATION_PATH.match(path) or path.startswith(".github/")
+        or path in {"scripts/merge_train.py", "scripts/check_migration_order.py"}
+        for item in files
+        for path in (item["filename"], item.get("previous_filename", ""))
+    )
+
+
+def _batch_manifest(latest: str, prs: list[dict]) -> dict:
+    return {"base": latest, "members": [
+        {"number": p["number"], "sha": p["headRefOid"]} for p in prs
+    ]}
+
+
+def _batch_branch(manifest: dict) -> str:
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
+    return f"{BATCH_PREFIX}{manifest['base'][:12]}-{digest[:24]}"
+
+
+def _read_batch(pr: dict, owner: str) -> dict | None:
+    if not _is_batch(pr) or pr["isCrossRepository"] or (pr.get("author") or {}).get("login") != owner:
+        return None
+    match = BATCH_MARKER.search(pr.get("body") or "")
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(1))
+        if not re.fullmatch(r"[0-9a-f]{40}", data["base"]):
+            return None
+        members = data["members"]
+        if not 2 <= len(members) <= 5 or len({m["number"] for m in members}) != len(members):
+            return None
+        if any(type(m["number"]) is not int or m["number"] <= 0
+               or not re.fullmatch(r"[0-9a-f]{40}", m["sha"]) for m in members):
+            return None
+        if _batch_branch(data) != pr["headRefName"]:
+            return None
+        return data
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
+def _batch_eligible(p: dict, owner: str, behind: dict) -> bool:
+    return (
+        not _is_batch(p)
+        and not p["isDraft"]
+        and not p["isCrossRepository"]
+        and (p.get("author") or {}).get("login") == owner
+        and p["autoMergeRequest"]
+        and p["mergeable"] == "MERGEABLE"
+        and behind.get(p["number"]) is not None
+        and behind[p["number"]] > 0
+        and _all_required_passed(p)
+    )
+
+
+def _batch_valid(data: dict, prs: list[dict], latest: str, owner: str) -> bool:
+    by_number = {p["number"]: p for p in prs}
+    if data["base"] != latest:
+        return False
+    for member in data["members"]:
+        p = by_number.get(member["number"])
+        if (not p or p["headRefOid"] != member["sha"] or p["isDraft"]
+                or not p["autoMergeRequest"] or p["isCrossRepository"]
+                or (p.get("author") or {}).get("login") != owner):
+            return False
+    return True
+
+
+def _batch_api(repo: str, endpoint: str, *args: str):
+    raw = _gh("api", f"repos/{repo}/{endpoint}", *args)
+    return json.loads(raw) if raw.strip() else None
+
+
+def _close_batch(repo: str, pr: dict, reason: str) -> None:
+    # Closing the batch prevents further native auto-merge; never close source
+    # PRs ourselves. GitHub closes merged originals by commit ancestry.
+    _batch_api(repo, f"pulls/{pr['number']}", "-X", "PATCH", "-f", "state=closed")
+    _report([f"#{pr['number']} retired batch: {reason}"], False)
+
+
+def _batch_policy(repo: str) -> bool:
+    """Verify the real latest ruleset before relying on native auto-merge."""
+    rule = _batch_api(repo, "rulesets/23972869")
+    conditions = rule.get("conditions", {}).get("ref_name", {})
+    if (rule.get("enforcement") != "active"
+            or conditions.get("include") != ["~DEFAULT_BRANCH"]
+            or conditions.get("exclude")):
+        return False
+    checks = [r["parameters"] for r in rule.get("rules", [])
+              if r["type"] == "required_status_checks"]
+    return (
+        len(checks) == 1
+        and checks[0].get("strict_required_status_checks_policy") is True
+        and {(c["context"], c.get("integration_id")) for c in checks[0]["required_status_checks"]}
+        == {(name, 15368) for name in REQUIRED_CHECKS}
+    )
+
+
+def _reconcile_batch(owner: str, name: str, prs: list[dict], latest: str,
+                     behind: dict, now: datetime, dry_run: bool) -> int | None:
+    """Return None for serial fallback; do not force-merge or push latest."""
+    repo = f"{owner}/{name}"
+    originals = [p for p in prs if not _is_batch(p)]
+    active = [p for p in prs if _read_batch(p, owner)]
+    enabled = os.environ.get("MERGE_TRAIN_BATCH") == "true"
+    if dry_run and active:
+        _report([f"Dry run: {len(active)} active cumulative batch(es); no changes"], False)
+        return 0
+    try:
+        # Fail closed if strict protection has changed, or the feature is off.
+        policy = enabled and _batch_policy(repo)
+        for p in active:
+            data = _read_batch(p, owner)
+            invalid = not policy or not _batch_valid(data, originals, latest, owner)
+            failed = _failure_reason(p, now)
+            expired = now - _time(p["createdAt"]) > HUNG_AFTER
+            if invalid or failed or expired or len(active) > 1:
+                _close_batch(repo, p, failed or "base, source approval, policy or timeout changed")
+            else:
+                _report([f"#{p['number']} wait: native auto-merge validating cumulative batch"], False)
+                return 0
+        if active:
+            # Re-read the queue on the next event; do not restage a failed batch.
+            return None
+        if not policy or len(prs) >= 100:
+            return None
+        action, first, _ = choose(originals, behind, now)
+        if action != "update":
+            return None
+        candidates = sorted(
+            (p for p in originals if _batch_eligible(p, owner, behind)),
+            key=lambda p: (p["number"] != first, p["autoMergeRequest"]["enabledAt"]),
+        )
+        if not candidates or candidates[0]["number"] != first:
+            return None
+        depth = max(2, min(5, int(os.environ.get("MERGE_TRAIN_DEPTH", "3"))))
+        selected = []
+        for p in candidates:
+            files = _batch_api(repo, f"pulls/{p['number']}/files?per_page=100")
+            if not _batch_safe_files(files, 100):
+                if p["number"] == first:
+                    return None
+                continue
+            selected.append(p)
+            if len(selected) == depth:
+                break
+        if len(selected) < 2:
+            return None
+        data = _batch_manifest(latest, selected)
+        branch = _batch_branch(data)
+        # Closed/merged candidates are durable tombstones for this exact group.
+        previous = _batch_api(repo, f"pulls?state=all&base=latest&head={owner}:{branch}&per_page=100")
+        if previous:
+            return None
+        numbers = ", ".join(f"#{p['number']}" for p in selected)
+        if dry_run:
+            _report([f"Dry run: would test one cumulative batch of {numbers}"], False)
+            return 0
+        fresh, base = _fetch(owner, name)
+        if not _batch_valid(data, fresh, base, owner):
+            return 0
+        # A transient failure may leave a branch but no PR. Reuse only a ref
+        # created from this exact base; never force update existing refs.
+        try:
+            _batch_api(repo, f"git/ref/heads/{branch}")
+            _report(["Batch branch already exists without an open PR; using serial train"], False)
+            return None
+        except subprocess.CalledProcessError as error:
+            if "HTTP 404" not in error.stderr:
+                raise
+        _batch_api(repo, "git/refs", "-X", "POST", "-f", f"ref=refs/heads/{branch}",
+                   "-f", f"sha={latest}")
+        head = latest
+        for member in data["members"]:
+            try:
+                merged = _batch_api(repo, "merges", "-X", "POST", "-f", f"base={branch}",
+                                    "-f", f"head={member['sha']}",
+                                    "-f", f"commit_message=Merge train batch: #{member['number']}")
+            except subprocess.CalledProcessError as error:
+                if "HTTP 409" not in error.stderr:
+                    raise
+                _report(["Cumulative batch has an internal conflict; falling back to serial"], False)
+                return None
+            if not merged:
+                return None
+            head = merged["sha"]
+        # Check the actual cumulative diff, not just each source PR's file list.
+        diff = _batch_api(repo, f"compare/{latest}...{head}")
+        if diff["behind_by"] != 0 or not _batch_safe_files(diff["files"], 300):
+            _report(["Cumulative diff contains migrations, workflow changes or incomplete data; using serial train"], False)
+            return None
+        for member in data["members"]:
+            included = _batch_api(repo, f"compare/{member['sha']}...{head}")
+            if included["behind_by"] != 0:
+                raise ValueError("original head is not an ancestor of batch")
+        fresh, base = _fetch(owner, name)
+        if not _batch_valid(data, fresh, base, owner):
+            return 0
+        body = (
+            f"Automated cumulative integration of previously approved commits: {numbers}. "
+            "Do not manually merge or update this branch. Required checks and native auto-merge "
+            "will validate the exact combined tree. Original PRs merge by commit ancestry.\n\n"
+            f"<!-- merge-train-batch: {json.dumps(data, sort_keys=True)} -->"
+        )
+        created = _batch_api(repo, "pulls", "-X", "POST", "-f", "base=latest",
+                             "-f", f"head={branch}", "-f", f"title=Merge train batch: {numbers}",
+                             "-f", f"body={body}", "-F", "draft=false")
+        _report([f"#{created['number']} launched cumulative CI for {numbers}"], False)
+        return 0
+    except (subprocess.CalledProcessError, ValueError, KeyError) as error:
+        # An active candidate may still merge. Never start another integration
+        # until reconciliation succeeds.
+        _report([f"Batch reconciliation stopped: {type(error).__name__}"], bool(active))
+        return 1 if active else None
+
+
 def main(argv: list[str]) -> int:
     """Fetch the open PRs, pick one, and update its branch unless this is a dry run."""
     dry_run = "--dry-run" in argv
@@ -355,7 +595,7 @@ def main(argv: list[str]) -> int:
     if failed_head and not any(
         p["headRefOid"] == failed_head
         and not p["isDraft"]
-        and p["autoMergeRequest"]
+        and (p["autoMergeRequest"] or _is_batch(p))
         for p in prs
     ):
         _report(["CI failure is not on a current approved PR head; ignored"], False)
@@ -370,6 +610,11 @@ def main(argv: list[str]) -> int:
         for p in prs
         if not p["isDraft"] and p["autoMergeRequest"]
     }
+    if os.environ.get("MERGE_TRAIN_BATCH") == "true" or any(_is_batch(p) for p in prs):
+        result = _reconcile_batch(owner, name, prs, latest, behind, datetime.now(UTC), dry_run)
+        if result is not None:
+            return result
+    prs = [p for p in prs if not _is_batch(p)]
     failed: list[str] = []  # PRs GitHub refused to update this run
     critical_failures: list[str] = []
     while True:

@@ -1,26 +1,38 @@
-# Merge train throughput: speculative validation follow-up
+# Merge train throughput: cumulative integration batches
 
-The current train preserves strict up-to-date branch checks and GitHub native
-auto-merge. Prefer current green/in-flight PRs, then refresh stale PRs with an
-aging rule. A failed required PR workflow wakes the train.
+The train retains the strict latest ruleset (lint, test (3.12), migration-order)
+and native GitHub auto-merge. The batch lane combines up to three previously
+green stale owner-authored, approved, same-repo PRs into one ordinary
+integration PR. Original head SHAs are preserved as ancestors, so GitHub can
+recognize indirect merges. All required checks run on the combined tree in
+parallel as usual, once per batch rather than once per original PR. The
+original branches are not force-pushed.
 
-A real merge queue must test immutable cumulative trees, not simply update
-several PR heads against the same base. With candidates A, B, C, validate
-latest+A, latest+A+B and latest+A+B+C in parallel (initial depth 3). If A
-changes, fails or is removed, invalidate all descendants; if B fails, invalidate
-B and C only. Track base SHA, ordered PR numbers and head SHAs, candidate tree
-SHA, run IDs and conclusions. Fence promotion by re-reading those identities
-and the rules.
+Migration files (including renames from a migration directory), workflow
+changes and merge-train policy files are excluded from batches. The actual
+combined diff is independently checked for migration files. Migration changes
+and contributor forks stay in the existing serial lane, where the original
+migration-order gate remains required. Do not relax the strict ruleset.
 
-Do not mark required checks successful based on an unrelated candidate SHA,
-disable strict branch protection, run untrusted code with the merge token, or
-merge a candidate directly to latest using a privileged bypass. Native
-auto-merge does not automatically consume a synthetic candidate's checks.
-Establish how GitHub can accept the exact validated cumulative tree without
-losing PR attribution or violating required-check rules before implementing
-promotion. Otherwise retain the serial train or use a supported native queue.
+The candidate is bound to the latest SHA and original approved head SHAs.
+Source changes, approval withdrawal, base advancement, failure or timeout
+cause the train to retire the candidate on its next reconciliation and fall
+back to serial. Native auto-merge is asynchronous, so source approval changes
+cannot be made atomic with a candidate's merge; its creation is approval of
+the immutable snapshot, and closing the candidate directly is the cancellation
+mechanism. Never use the administrator-token immediate merge fallback on a
+batch. Do not manually merge or update batch branches.
 
-Benchmark real queue traces: ready-to-merge wait, throughput, runner minutes,
-discarded speculative runs and failures. Roll out behind a flag; test head/base
-changes, concurrent merges, permission refusals, conflicts, duplicate events,
-queue reconstruction and failed ancestors before enabling.
+Depth defaults to three (MERGE_TRAIN_DEPTH, range 2–5). Set the repository
+variable MERGE_TRAIN_BATCH=false to disable and retire active batches. Strict
+ruleset verification fails closed to serial. Existing in-flight ordinary
+PRs are allowed to finish before a batch starts. The serial scheduler remains
+responsible for conflicts and failed required checks. No synthetic checks
+or direct pushes to latest are used.
+
+This is one cumulative batch, not multiple speculative prefix PRs. It
+deliberately spends one integrated suite per batch. If the combined test
+fails, the ordinary train identifies the failing original individually.
+Track queue wait, batch size, failure rate, merged PRs per hour, and runner
+minutes. Confirm indirect PR closure and native auto-merge on the first
+real batch before considering the rollout validated.

@@ -48,6 +48,26 @@ def migrations_missing_from_head(
     return changed_by_pr, gained_by_base
 
 
+def new_duplicate_numbers(head: str, base: str, cwd: str | None = None) -> list[str]:
+    """Reject new same-app duplicate numbers, grandfather existing history."""
+    base_paths = set(_migration_files(_git("ls-tree", "-r", "--name-only", base, cwd=cwd)))
+    head_paths = set(_migration_files(_git("ls-tree", "-r", "--name-only", head, cwd=cwd)))
+    groups: dict[str, set[str]] = {}
+    for path in head_paths | base_paths:
+        prefix = path.rsplit("/", 1)
+        number = prefix[1].split("_", 1)[0]
+        groups.setdefault(f"{prefix[0]}/{number}", set()).add(path)
+    # A renamed migration (removed from head) is not an additional duplicate
+    # on a current branch. A stale branch is checked separately for missing
+    # base migrations by migrations_missing_from_head.
+    added = head_paths - base_paths
+    return sorted(
+        path for paths in groups.values()
+        if len(paths & head_paths) > 1
+        for path in paths & added
+    )
+
+
 def main(argv: list[str]) -> int:
     """Run the check and print what the PR author must do on failure."""
     head, base = argv[1], argv[2]
@@ -56,7 +76,13 @@ def main(argv: list[str]) -> int:
         print("No migrations in this PR; nothing to order.")
         return 0
     if not gained_by_base:
-        print("This PR has every migration that is on the base branch.")
+        duplicates = new_duplicate_numbers(head, base)
+        if duplicates:
+            print("::error::New migration numbers collide within an app. Renumber and fix dependencies before merging.")
+            for path in duplicates:
+                print(f"  {path}")
+            return 1
+        print("This PR has every migration that is on the base branch, with no new duplicate numbers.")
         return 0
     print(
         "::error::Another pull request added migrations to the base branch after "
