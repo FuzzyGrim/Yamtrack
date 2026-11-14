@@ -22,7 +22,7 @@ from integrations.models import RadarrInstance
 from integrations.safe_fetch import send_to_self_hosted
 from integrations.source_sync import (
     prune_collection_source_states,
-    upsert_collection_source_state,
+    sync_collection_source_state,
 )
 
 logger = logging.getLogger(__name__)
@@ -159,7 +159,7 @@ class RadarrImporter:
                 "quality", {}
             ).get("name") or ""
             updated_at = self._parse_source_timestamp(row)
-            upsert_collection_source_state(
+            _entry, changed = sync_collection_source_state(
                 user=self.user,
                 item=item,
                 source="radarr",
@@ -167,8 +167,13 @@ class RadarrImporter:
                 quality_label=quality_label,
                 source_updated_at=updated_at,
             )
-            imported_counts["collection"] += 1
-            imported_counts["updated"] += 1
+            # An unchanged copy is not an import: counting it would start a
+            # calendar reload and a Statistics rebuild every scheduled run.
+            if changed:
+                imported_counts["collection"] += 1
+                imported_counts["updated"] += 1
+            else:
+                imported_counts["unchanged"] += 1
 
         # The full movie list was read, so anything missing is no longer owned.
         removed = prune_collection_source_states(
@@ -250,4 +255,5 @@ class RadarrImporter:
                 )
             except ValueError:
                 continue
-        return timezone.now()
+        # None: Radarr sent no timestamp, so the stored one stays.
+        return None
