@@ -16,7 +16,7 @@ import { DateTimePicker } from '../ui/DateTimePicker';
 import { MediaCard } from '../ui/MediaCard';
 import { MarkdownNotes } from '../ui/MarkdownNotes';
 import { MusicAlbumGrid } from '../ui/MusicAlbumCard';
-import { MusicRelationCard } from '../ui/MusicRelationCard';
+import { MusicRelationCard, MusicRelationGrid } from '../ui/MusicRelationCard';
 import { ProgressBar } from '../ui/ProgressBar';
 import { RatingChip } from '../ui/RatingChip';
 import { RatingStars } from '../ui/RatingStars';

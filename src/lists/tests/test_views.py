@@ -3920,6 +3920,55 @@ class ListsModalViewTests(TestCase):
         self.assertContains(response, reverse("album_save"))
         mock_get_metadata.assert_not_called()
 
+    def test_list_album_tracker_is_displayed_and_filterable(self):
+        album = Album.objects.create(title="Tracked album", musicbrainz_release_id="album-test")
+        item = Item.objects.create(
+            title=album.title, media_type=MediaTypes.MUSIC.value,
+            source=Sources.MUSICBRAINZ.value, media_id="album-test",
+        )
+        CustomListItem.objects.create(custom_list=self.list1, item=item)
+        tracker = AlbumTracker.objects.create(
+            user=self.user, album=album, status=Status.COMPLETED.value, score=8,
+        )
+        url = reverse("list_detail", args=[self.list1.public_reference])
+        response = self.client.get(url, {"status": Status.COMPLETED.value})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, album.title)
+        from lists.views_helpers import (
+            _attach_media_with_aggregation,
+            _get_completed_item_ids,
+        )
+
+        self.assertEqual(_get_completed_item_ids(self.user, {item.pk}), {item.pk})
+        _attach_media_with_aggregation([item], self.user)
+        self.assertEqual(item.media.pk, tracker.pk)
+        self.assertEqual(item.media.score, 8)
+
+        from api.serializers import serialize_data
+
+        serialized = serialize_data(item.media)
+        self.assertEqual(serialized["score"], 8.0)
+        self.assertIsNone(serialized["consumption_id"])
+        self.assertEqual(serialized["album_id"], album.pk)
+
+    def test_list_album_tracker_resolves_duplicate_release_group(self):
+        group_id = "123e4567-e89b-12d3-a456-426614174100"
+        release_id = "123e4567-e89b-12d3-a456-426614174101"
+        Album.objects.create(title="Album", musicbrainz_release_id=release_id, musicbrainz_release_group_id=group_id)
+        tracked = Album.objects.create(title="Album", musicbrainz_release_group_id=group_id)
+        item = Item.objects.create(title="Album", media_type=MediaTypes.MUSIC.value, source=Sources.MUSICBRAINZ.value, media_id=release_id)
+        AlbumTracker.objects.create(user=self.user, album=tracked, status=Status.COMPLETED.value)
+        from lists.views_helpers import (
+            _attach_media_with_aggregation,
+            _get_completed_item_ids,
+        )
+
+        _attach_media_with_aggregation([item], self.user)
+        self.assertEqual(item.media.album_id, tracked.pk)
+        self.assertEqual(_get_completed_item_ids(self.user, {item.pk}), {item.pk})
+        other = get_user_model().objects.create_user(username="other")
+        self.assertEqual(_get_completed_item_ids(other, {item.pk}), set())
+
     @patch("app.providers.services.get_media_metadata")
     def test_album_id_routes_resolve_to_users_canonical_duplicate(
         self,

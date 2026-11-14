@@ -257,14 +257,15 @@ function CardOverlay({ actions, host, revealed, labels, onAction }) {
 }
 
 // Touch screens show the hover buttons on the first tap, and follow the link on the second.
-function useTapToReveal(cardRef, host, enabled, selecting) {
+function useTapToReveal(cardRef, host, enabled, selecting, clickable) {
   const [revealed, setRevealed] = useState(false);
   const state = useRef({ revealed: false, selecting: false });
   state.current = { revealed, selecting };
   useEffect(() => {
     const element = cardRef?.current ?? host?.current ?? host;
     const card = element?.closest?.('.media-card');
-    if (!card || !enabled) return undefined;
+    // "Hide actions on touch devices" (clickable_media_cards): a tap opens the card directly.
+    if (!card || !enabled || clickable) return undefined;
     const onClick = (event) => {
       const { revealed: open, selecting: busy } = state.current;
       if (open) {
@@ -292,7 +293,7 @@ function useTapToReveal(cardRef, host, enabled, selecting) {
       window.removeEventListener('media-card-revealed', onOther);
       window.removeEventListener('click', onOutside);
     };
-  }, [cardRef, host, enabled]);
+  }, [cardRef, host, enabled, clickable]);
   useEffect(() => {
     const element = cardRef?.current ?? host?.current ?? host;
     element?.closest?.('.media-card')?.classList.toggle('media-card-revealed', revealed);
@@ -448,7 +449,7 @@ export function MediaCard({
   // hover. Surfaces that render their own shell leave it off.
   const grid = variant === 'grid' || variant === 'grid-square';
   const cardRef = useRef(null);
-  const revealed = useTapToReveal(cardRef, host, !!shownActions, !!selection?.active);
+  const revealed = useTapToReveal(cardRef, host, !!shownActions, !!selection?.active, !!shownActions?.clickable);
   const live = useLiveCard(model);
   if (model.layout === 'row') {
     return <MediaRow model={model} slots={slots} labels={copy} actions={shownActions}

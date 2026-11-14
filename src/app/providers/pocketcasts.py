@@ -1,6 +1,7 @@
 """Pocket Casts provider for podcast search using iTunes API."""
 
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -57,7 +58,9 @@ def _directory_candidates(query):
     return [
         (show["title"], show.get("author") or "")
         for show in shows[:POCKETCASTS_MAX_CANDIDATES]
-        if show.get("title")
+        if isinstance(show, dict)
+        and isinstance(show.get("title"), str)
+        and show["title"]
     ]
 
 
@@ -92,28 +95,65 @@ def _merge_directory_matches(query, itunes_items):
     if not candidates:
         return itunes_items
 
+    # A directory title can complete a partial word even when its search ranks
+    # the desired show outside its result limit. Avoid expanding whole words.
+    completed_matches = []
+    if re.fullmatch(r"[^\W\d_]{3,}", query, re.UNICODE):
+        words = [
+            word
+            for title, _ in candidates
+            for word in re.findall(r"[^\W\d_]+", title, re.UNICODE)
+            if word.casefold().startswith(query.casefold())
+        ]
+        if words and not any(word.casefold() == query.casefold() for word in words):
+            completion = words[0]
+            try:
+                response = requests.get(
+                    ITUNES_API_BASE,
+                    params={
+                        "term": completion,
+                        "media": "podcast",
+                        "limit": ITUNES_MAX_RESULTS,
+                    },
+                    headers={"User-Agent": USER_AGENT},
+                    timeout=services.request_timeout(),
+                )
+                response.raise_for_status()
+                completed = response.json().get("results", [])
+                if not isinstance(completed, list):
+                    completed = []
+                completed_matches = [
+                    item
+                    for item in completed
+                    if isinstance(item, dict)
+                    and isinstance(item.get("collectionName"), str)
+                    and item["collectionName"].casefold() == completion.casefold()
+                ]
+            except (requests.RequestException, ValueError, AttributeError):
+                logger.warning("Podcast title completion search failed", exc_info=True)
+
     by_key = {
         _show_key(item.get("collectionName"), item.get("artistName")): item
         for item in reversed(itunes_items)
     }
     missing = [c for c in candidates if _show_key(*c) not in by_key]
     with ThreadPoolExecutor(max_workers=4) as pool:
-        resolved = dict(zip(missing, pool.map(_resolve_in_itunes, missing), strict=True))
+        resolved = dict(
+            zip(missing, pool.map(_resolve_in_itunes, missing), strict=True)
+        )
 
     merged = []
     for candidate in candidates:
         item = by_key.get(_show_key(*candidate)) or resolved.get(candidate)
         if item:
             merged.append(item)
-    return merged + itunes_items
+    return completed_matches + merged + itunes_items
 
 
 @request_timing.timed_provider_call
 def search(query, page):
     """Search for podcasts using iTunes API."""
-    cache_key = (
-        f"search_{Sources.POCKETCASTS.value}_{MediaTypes.PODCAST.value}_{query}_{page}"
-    )
+    cache_key = f"search_v2_{Sources.POCKETCASTS.value}_{MediaTypes.PODCAST.value}_{query}_{page}"
     data = cache.get(cache_key)
 
     if data is None:

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { MediaCard } from './MediaCard';
 
@@ -88,12 +88,15 @@ export function MusicAlbumCard({ album, width, labels, palette, onOpen }) {
 
 export function MusicAlbumGrid({ albums, labels, palette, onOpen, minWidth = 150, maxWidth = 220 }) {
   const { width } = useWindowDimensions();
-  const columns = width >= 1024 ? 6 : width >= 768 ? 4 : width >= 640 ? 3 : 2;
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const gridWidth = availableWidth || width - 32;
+  const columns = Math.max(1, Math.floor((gridWidth + 16) / (minWidth + 16)));
   const cardWidth = Math.floor(Math.min(maxWidth,
-    Math.max(minWidth, (width - 32 - (columns - 1) * 16) / columns)));
-  return <View style={styles.grid}>
-    {albums.map(album => <MusicAlbumCard key={album.id}
-      album={album} width={cardWidth} labels={labels} palette={palette} onOpen={onOpen} />)}
+    (gridWidth - (columns - 1) * 16) / columns));
+  return <View style={styles.grid} onLayout={event => setAvailableWidth(event.nativeEvent.layout.width)}>
+    {albums.map(album => <View key={album.id} style={{ width: cardWidth }}>
+      <MusicAlbumCard album={album} width={cardWidth} labels={labels} palette={palette} onOpen={onOpen} />
+    </View>)}
   </View>;
 }
 

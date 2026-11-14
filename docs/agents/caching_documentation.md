@@ -154,6 +154,12 @@
   - `ItemTag` changes invalidate the tagged item's mapped Discover media type plus `all`.
   - `ItemPersonCredit` changes invalidate `movie + all` or `tv + all` for users tracking the credited item.
   - Invalidation bumps `activity_version` and clears only the lower-level DB caches, so stale Redis tab payloads can still render while the rebuild runs.
+- Rebuilds only for people who use Discover (`DISCOVER_EAGER_REBUILD_DAYS`, default 3):
+  - `mark_active()` (every Discover page load, tab poll and recommendations API call) also writes `discover_tab_v3_recently_used_{user_id}`, kept for that many days.
+  - A tracked-media change queues background tab rebuilds only when that key is present, the tab is the active one, or the cache cannot answer (`has_key` returns None). Otherwise it only bumps `activity_version`; the next visit serves the stale rows and queues an interactive rebuild, as for any stale tab.
+  - On such a deferred change the taste profile is still deleted (feeds and row refreshes read it outside a tab rebuild and check no version), but the cached rows are kept: every read compares their stored `activity_version`, and `refresh_tab_cache()` deletes rows built for an older version before it builds.
+  - Hidden-feedback invalidation and manual refreshes stay eager.
+  - Rollback: `DISCOVER_EAGER_REBUILD_DAYS=0` rebuilds after every change for everyone, the previous behaviour.
 - Active Discover priority mode:
   - Requests that originated from Discover store a short-lived active-tab context from `next` first, then `Referer`.
   - When a later tracked-media mutation affects that active Discover tab:

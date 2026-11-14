@@ -139,13 +139,28 @@ def latest_value(ctx: TypeContext, value_field: str, row_q: Q | None = None):
         if row_q is not None:
             rows = rows.filter(row_q)
         field_name = source.status_field if value_field == "status" else value_field
-        subqueries.append(
-            Subquery(
+        value = Subquery(
                 rows.annotate(_activity=source.activity())
                 .order_by("-_activity", "-id")
                 .values(field_name)[:1],
-            ),
+            )
+        from app.library_query.trackers import AlbumSource
+
+        if isinstance(source, AlbumSource):
+            from django.db.models import Case, When
+
+            value = Case(When(source.item_q, then=value), default=None)
+        subqueries.append(value)
+    if ctx.sort_list_id is not None and ctx.media_type == MediaTypes.PODCAST.value and value_field in {"status", "score"}:
+        from app.models import PodcastShowTracker
+
+        rows = PodcastShowTracker.objects.filter(
+            user=ctx.user, show__podcast_uuid=OuterRef("media_id"),
+            show__source=OuterRef("source"),
         )
+        if row_q is not None:
+            rows = rows.filter(row_q)
+        subqueries.insert(0, Subquery(rows.values(value_field)[:1]))
     if len(subqueries) == 1:
         return subqueries[0]
     return Coalesce(*subqueries)
@@ -165,6 +180,8 @@ def _status_active(values: FilterValues) -> bool:
 
 def _status_row(values: FilterValues, source: TrackerSource, ctx: TypeContext):
     statuses = [value for value in values.statuses if value and value != "all"]
+    if ctx.sort_list_id is not None and ctx.media_type == MediaTypes.PODCAST.value:
+        return None  # The list's podcast show tracker is matched in SQL below.
     if values.status_match == STATUS_MATCH_ANY:
         if statuses and not values.include_no_status:
             return Q(**{f"{source.status_field}__in": statuses})
@@ -253,6 +270,18 @@ def _status_sql(values: FilterValues, ctx: TypeContext):
     statuses = [value for value in values.statuses if value and value != "all"]
     if not statuses and not values.include_no_status:
         return None
+    if ctx.sort_list_id is not None and ctx.media_type == MediaTypes.PODCAST.value and values.status_match == STATUS_MATCH_ANY:
+        from app.models import PodcastShowTracker
+
+        shows = PodcastShowTracker.objects.filter(
+            user=ctx.user, show__podcast_uuid=OuterRef("media_id"),
+            show__source=OuterRef("source"),
+        )
+        matching = any_row(ctx, Q(status__in=statuses)) | Q(Exists(shows.filter(status__in=statuses)))
+        if values.include_no_status:
+            has_status = any_row(ctx, Q(status__isnull=False)) | Q(Exists(shows.filter(status__isnull=False)))
+            matching |= ~has_status
+        return matching
     if values.status_match == STATUS_MATCH_ANY:
         if not values.include_no_status:
             return None  # A row condition; see ``_status_row``.

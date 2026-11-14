@@ -233,7 +233,9 @@ def metadata_context(user, slug=None, related_media=()):
             (
                 _provider_view(spec, user)
                 for spec in credentials.REGISTRY.values()
-                if spec.group == group and (not slug or spec.slug == slug)
+                if spec.group == group
+                and not spec.bundled_only
+                and (not slug or spec.slug == slug)
             ),
             key=lambda provider: provider["label"].casefold(),
         )
@@ -361,8 +363,12 @@ def set_media_type_provider(request, media_type):
 
 
 def _spec_or_none(slug):
-    """Return the registry entry for a slug, or None."""
-    return credentials.get_spec(slug)
+    """Return the registry entry a user may manage, or None.
+
+    A bundled-only key is not manageable from Settings, so it reads as absent.
+    """
+    spec = credentials.get_spec(slug)
+    return None if spec is not None and spec.bundled_only else spec
 
 
 def _reopen_game_groups_if_igdb(slug, user=None):

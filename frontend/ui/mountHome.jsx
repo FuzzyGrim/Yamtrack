@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { HomeView } from '../pages/HomeView';
 import { useShelfCardWidth } from './shelfWidth.web';
 import { MediaCard } from './MediaCard.web';
-import { ProgressChanger } from './ProgressChangerTheme.web';
+import { ProgressChanger, progressControlHeight } from './ProgressChangerTheme.web';
+import { createViewportRowWatcher } from './homeRowWatcher.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -57,6 +58,30 @@ function readPalette() {
   };
 }
 
+// Waiting Home rows take the height loaded rows had on this browser last time.
+const ROW_HEIGHTS_KEY = 'floppy.home.rowHeights';
+let rememberedHeights = null;
+function loadRememberedHeights() {
+  if (rememberedHeights) return rememberedHeights;
+  try {
+    rememberedHeights = JSON.parse(window.localStorage.getItem(ROW_HEIGHTS_KEY) || '{}') || {};
+  } catch (error) {
+    rememberedHeights = {};
+  }
+  return rememberedHeights;
+}
+const rowHeightMemory = {
+  get: key => loadRememberedHeights()[key],
+  set(key, height) {
+    loadRememberedHeights()[key] = height;
+    try {
+      window.localStorage.setItem(ROW_HEIGHTS_KEY, JSON.stringify(rememberedHeights));
+    } catch (error) {
+      // Private windows and blocked storage just estimate again next visit.
+    }
+  },
+};
+
 function assign(url) {
   if (url) window.location.assign(url);
 }
@@ -77,6 +102,10 @@ function mergeRowPage(row, page) {
 function Adapter({ host, props }) {
   const [palette, setPalette] = useState(readPalette);
   const itemWidth = useShelfCardWidth();
+  // Rows below the fold load as they come within reach of the viewport.
+  const [watchRow] = useState(() => createViewportRowWatcher());
+  // The progress control's height follows the same breakpoint as card width.
+  const progressHeight = useMemo(() => progressControlHeight(host), [host, itemWidth]);
 
   useEffect(() => {
     const update = () => setPalette(readPalette());
@@ -157,6 +186,9 @@ function Adapter({ host, props }) {
     onOpenLink={href => assign(href)}
     onOpenRowTitle={href => assign(href)}
     onLoadRow={id => loadRow(id)}
+    watchRow={watchRow}
+    rowHeights={rowHeightMemory}
+    progressHeight={progressHeight}
     onLoadMore={loadMore}
     onSortRow={sortRow}
     onRefreshCovers={refreshCovers}

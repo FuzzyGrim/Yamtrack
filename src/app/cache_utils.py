@@ -341,6 +341,11 @@ def build_home_row_cache_key(user_id: int, row_id: int, items_limit: int) -> str
     return f"{HOME_ROW_CACHE_PREFIX}_{user_id}_{row_id}_{items_limit}"
 
 
+def build_home_tv_shows_cache_key(user_id: int) -> str:
+    """Cache key for the show records Home's TV shelves share (``SharedShows``)."""
+    return f"{HOME_ROW_CACHE_PREFIX}_tv_shows_{user_id}"
+
+
 def _home_row_registry_key(user_id: int) -> str:
     return _HOME_ROW_REGISTRY_TEMPLATE.format(user_id=user_id)
 

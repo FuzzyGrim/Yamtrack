@@ -10,6 +10,7 @@ import {
   homeScreenFromPayload,
   mergeHomeRowPage,
 } from '../data/homeTransport';
+import { createMeasuredRowWatcher, measureInWindow } from '../data/homeRowWatcherCore';
 import { routeCardHref } from '../data/serverCardCore';
 import { getActiveAuthSession, subscribeAuthSession } from '../data/authSession';
 import { useMobileGridLayout } from '../data/useMobileGridLayout';
@@ -28,6 +29,12 @@ export const surface = {
 };
 
 const PAGE_LIMIT = 14;
+// Waiting Home rows take the height loaded rows had earlier in this app session.
+const rememberedRowHeights = new Map();
+const rowHeightMemory = {
+  get: key => rememberedRowHeights.get(key),
+  set: (key, height) => rememberedRowHeights.set(key, height),
+};
 
 const emptyModel = () => ({
   groups: [],
@@ -38,7 +45,10 @@ const emptyModel = () => ({
 });
 
 export default function HomeScreen({ navigate }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  // Shelves below the screen load as scrolling brings them within reach.
+  const [rowWatcher] = useState(() => createMeasuredRowWatcher({ measure: measureInWindow, viewportHeight: height }));
+  useEffect(() => { rowWatcher.setViewportHeight(height); }, [height, rowWatcher]);
   // The same breakpoint helper the web mount uses, so a card is never a
   // different size on one surface.
   const mobileGridLayout = useMobileGridLayout();
@@ -113,7 +123,7 @@ export default function HomeScreen({ navigate }) {
 
   // Restore the reviewed Expo composition: shared shelf cards own their sizing.
   // Web retains its existing in-place controls; the approved native shelf opens Detail.
-  return <Screen chrome={false}>
+  return <Screen chrome={false} onScroll={rowWatcher.check} onContentSizeChange={rowWatcher.check}>
     <HomeView
       notice={serverMode ? null : <View style={[styles.signedOut, { borderColor: palette.border }]}>
         <Text style={[styles.signedOutText, { color: palette.textSecondary }]}>Sign in to your Floppy server to see Home.</Text>
@@ -142,6 +152,8 @@ export default function HomeScreen({ navigate }) {
         if (target) navigate?.('Library', target);
       }}
       onLoadRow={loadRow}
+      watchRow={rowWatcher.watchRow}
+      rowHeights={rowHeightMemory}
       onLoadMore={loadMore}
       onSortRow={sortRow}
       onRefreshCovers={refreshCovers}

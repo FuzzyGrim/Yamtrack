@@ -322,6 +322,8 @@ class AniListImporter:
         )
 
         repeats_count = content["repeat"]
+        # AniList uses zero for an unrated entry; Floppy permits a real zero.
+        score = content["score"] or None
         if content["status"] == "REPEATING" and repeats_count == 0:
             repeats_count = 1
 
@@ -334,7 +336,7 @@ class AniListImporter:
                 instance = model(
                     item=item,
                     user=self.user,
-                    score=content["score"],
+                    score=score,
                     progress=max_progress or 0,
                     status=Status.COMPLETED.value,
                     start_date=self._get_date(content["startedAt"]),
@@ -347,7 +349,7 @@ class AniListImporter:
         instance = model(
             item=item,
             user=self.user,
-            score=content["score"],
+            score=score,
             progress=content["progress"] or 0,
             status=status,
             start_date=self._get_date(content["startedAt"]),

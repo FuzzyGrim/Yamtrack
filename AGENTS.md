@@ -65,6 +65,13 @@ next to the code, not only in a PR. Also list the carve-out in the register entr
   Extend those; do not build a second system. Open the images and look at them. On a
   Mac, `docs/agents/native_cloud_runtimes.md` is the recipe for real iOS and Android
   frames (`scripts/native_shots.sh <label>`).
+- Provide the user a review artifact for every user-facing change: a clearly labeled
+  before/after comparison that shows the affected state and is linked or displayed in
+  the completion message (and in the PR description when preparing a PR). Use the
+  existing screenshot workflow for visual changes; use an appropriate recording or
+  concrete before/after output for behavior that still images cannot show. Keep task
+  artifacts out of tracked documentation. If either side cannot be captured, provide
+  the available evidence, state the blocker and do not claim the comparison is complete.
 - The v26.10.29 web release is the visual baseline for React and React Native components.
   Treat a layout or visual change from it as a regression unless a redesign is documented.
 - Report one evidence level per platform (web, iOS, Android), never a combined pass:

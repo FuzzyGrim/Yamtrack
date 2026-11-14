@@ -24,7 +24,11 @@ library ranking reads from a ``TV`` tracker (Home's shelves and the caught-up
 filter). The library-query engine attaches them instead of the hydrated graph
 when every sort and filter of a query says it reads nothing else.
 
-Nothing here is cached. A caller that stores a result owns its invalidation.
+``SharedShows`` lets the shelves of one Home load share those rows: every
+TV shelf reads the same shows, and each used to compute them again. It stores
+plain values under the user's Home cache registry, so any tracker write clears
+it, with the lifetime Home already gives orders that depend on air dates.
+Nothing else here is cached.
 """
 
 from dataclasses import dataclass, field
@@ -308,16 +312,126 @@ def annotate_released_progress(shows, now=None):
     """Set ``max_progress`` and the released breakdown, as ``annotate_max_progress`` does."""
     if not shows:
         return
-    manager = BasicMedia.objects
-    breakdowns = manager.released_episode_breakdowns(
+    breakdowns = BasicMedia.objects.released_episode_breakdowns(
         {(show.item.media_id, show.item.source) for show in shows},
         now,
     )
     for show in shows:
-        breakdown = breakdowns.get((show.item.media_id, show.item.source), {})
-        show.released_episode_breakdown = breakdown
-        show.max_progress = manager.released_max_progress(
-            show.item,
-            breakdown,
-            show.facts.dropped_season_numbers if breakdown else set(),
-        )
+        _apply_released(show, breakdowns.get((show.item.media_id, show.item.source), {}))
+
+
+def _apply_released(show, breakdown):
+    show.released_episode_breakdown = breakdown
+    show.max_progress = BasicMedia.objects.released_max_progress(
+        show.item,
+        breakdown,
+        show.facts.dropped_season_numbers if breakdown else set(),
+    )
+
+
+# One shared record per show: the tracker columns, its seasons as tuples and,
+# once a shelf has needed it, the released breakdown (None until then).
+_SEASON_FIELDS = (
+    "season_number",
+    "status",
+    "progress",
+    "max_episode_number",
+    "end_date",
+    "media_id",
+    "source",
+)
+
+
+def _record(show, *, released):
+    return (
+        show.pk,
+        show.status,
+        show.created_at,
+        show.active_episode_order_id,
+        tuple(tuple(getattr(season, name) for name in _SEASON_FIELDS) for season in show.facts.seasons),
+        dict(show.released_episode_breakdown) if released else None,
+    )
+
+
+def _show_from_record(item, record, *, released):
+    pk, status, created_at, order_id, seasons, breakdown = record
+    facts = ShowFacts([SeasonFacts(*season) for season in seasons])
+    show = TrackedShow(pk, item, status, created_at, order_id, facts)
+    if released:
+        _apply_released(show, breakdown)
+    return show
+
+
+class SharedShows:
+    """``tracked_shows`` (and their released progress) shared by Home's shelves.
+
+    A Home load ranks several TV shelves over the same shows, each in its own
+    request. The first computes each show's record; the others read it. Only
+    values are stored (no model): the tracker's columns, its seasons' facts
+    and the released breakdown. The candidate's own item is attached on read.
+
+    Lifetime: ``HOME_ROW_RELEASED_CACHE_TTL``, the bound Home already accepts
+    for orders that depend on air dates (a calendar refresh moves them without
+    a user write). Any tracker write clears it with the rest of the user's
+    Home rows. Use one instance per scan and call ``save`` after it.
+    """
+
+    def __init__(self, user):
+        """Prepare to read and extend the user's shared show records."""
+        self.user = user
+        self._records = None
+        self._dirty = False
+
+    @property
+    def key(self):
+        """Return the user's cache key."""
+        from app import cache_utils
+
+        return cache_utils.build_home_tv_shows_cache_key(self.user.id)
+
+    def _load(self):
+        if self._records is None:
+            from django.core.cache import cache
+
+            cached = cache.get(self.key)
+            self._records = dict(cached) if isinstance(cached, dict) else {}
+        return self._records
+
+    def tracked(self, items, *, released):
+        """Return ``{item_id: TrackedShow}`` like ``tracked_shows``, from the shared records.
+
+        With ``released``, each show also carries ``max_progress`` and its
+        released breakdown, as after ``annotate_released_progress``.
+        """
+        records = self._load()
+        missing = [
+            item
+            for item in items
+            if item.pk not in records
+            or (released and records[item.pk] is not None and records[item.pk][5] is None)
+        ]
+        if missing:
+            shows = tracked_shows(self.user, missing)
+            if released:
+                annotate_released_progress(list(shows.values()))
+            for item in missing:
+                show = shows.get(item.pk)
+                records[item.pk] = None if show is None else _record(show, released=released)
+            self._dirty = True
+        return {
+            item.pk: _show_from_record(item, records[item.pk], released=released)
+            for item in items
+            if records.get(item.pk) is not None
+        }
+
+    def save(self):
+        """Store what this scan added, for the next shelf."""
+        if not self._dirty:
+            return
+        from django.core.cache import cache
+
+        from app import cache_utils
+
+        cache.set(self.key, self._records, cache_utils.HOME_ROW_RELEASED_CACHE_TTL)
+        cache_utils.register_home_row_cache_key(self.user.id, self.key)
+        self._dirty = False

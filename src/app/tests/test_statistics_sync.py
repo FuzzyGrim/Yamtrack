@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from app import statistics_cache, statistics_day_builder, statistics_sync
 from app.models import (
+    Anime,
     Item,
     MediaTypes,
     Movie,
@@ -318,6 +319,24 @@ class BulkImportStatisticsTests(StatisticsSyncTestCase):
         self.assertEqual(rebuilt["status"], "done")
         self.assertEqual(old["score_distribution"]["average_score"], 7)
         self.assertEqual(rebuilt["published"]["Today"]["score_distribution"]["average_score"], 9)
+
+    def test_cleared_rating_is_removed_from_cached_statistics(self):
+        item = Item.objects.create(
+            media_id="unrated-anime", source=Sources.MANUAL.value,
+            media_type=MediaTypes.ANIME.value, title="Anime",
+        )
+        anime = Anime.objects.create(
+            user=self.user, item=item, status=Status.COMPLETED.value,
+            end_date=timezone.now(), score=8,
+        )
+        self.full_sync()
+        with self.captureOnCommitCallbacks(execute=True):
+            anime.score = None
+            anime.save(update_fields=["score"])
+        rebuilt = statistics_sync.run_sync(self.user.id, only_ranges=["Today"])
+        distribution = rebuilt["published"]["Today"]["score_distribution"]
+        self.assertEqual(distribution["total_scored"], 1)
+        self.assertEqual(distribution["average_score"], 7)
 
     def test_budget_yields_between_days_without_rebuilding_completed_day(self):
         self.full_sync()

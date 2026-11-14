@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_init
 from django.test import TestCase
 
 from app.discover.filters import (
@@ -90,6 +91,30 @@ class DiscoverFilterTests(TestCase):
         )
         self.assertIn((MediaTypes.MOVIE.value, Sources.TMDB.value, "100"), tracked)
         self.assertIn((MediaTypes.MOVIE.value, Sources.TMDB.value, "101"), tracked)
+
+    def test_identity_lookups_read_columns_without_building_models(self):
+        """A rebuild runs these several times over the whole library."""
+        DiscoverFeedback.objects.create(
+            user=self.user,
+            item=self.item,
+            feedback_type=DiscoverFeedbackType.NOT_INTERESTED.value,
+        )
+        CollectionEntry.objects.create(user=self.user, item=self.item)
+        built = []
+
+        def count(sender, **_kwargs):
+            built.append(sender.__name__)
+
+        post_init.connect(count)
+        self.addCleanup(post_init.disconnect, count)
+
+        tracked = get_tracked_keys_by_media_type(self.user, MediaTypes.MOVIE.value)
+        feedback = get_feedback_keys_by_media_type(self.user, MediaTypes.MOVIE.value)
+        owned = get_owned_keys_by_media_type(self.user, MediaTypes.MOVIE.value)
+
+        identity = {(MediaTypes.MOVIE.value, Sources.TMDB.value, "100")}
+        self.assertEqual((tracked, feedback, owned), (identity, identity, identity))
+        self.assertEqual(built, [])
 
     def test_exclude_tracked_items_filters_candidates(self):
         tracked = get_tracked_keys_by_media_type(self.user, MediaTypes.MOVIE.value)

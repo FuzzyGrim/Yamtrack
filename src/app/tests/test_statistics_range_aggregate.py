@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from app import statistics as stats
 from app import statistics_highlights, statistics_sync
-from app.models import Book, Game, Item, MediaTypes, Movie, Sources, Status
+from app.models import TV, Anime, Book, Game, Item, MediaTypes, Movie, Sources, Status
 from app.statistics_aggregator import _aggregate_statistics_from_days
 from app.statistics_refresh import _get_predefined_range_dates, _resolve_day_list
 from app.statistics_talent import STATISTICS_TOP_N
@@ -176,6 +176,91 @@ class PassEqualityTests(RangeAggregateTestCase):
 
 
 class RangeWorkBoundTests(RangeAggregateTestCase):
+    def test_sync_publishes_when_item_type_differs_from_row_model(self):
+        movie = Movie.objects.filter(user=self.user).order_by("pk").first()
+        Item.objects.filter(pk=movie.item_id).update(media_type=MediaTypes.BOOK.value)
+
+        outcome = statistics_sync.run_sync(self.user.pk)
+
+        self.assertEqual(outcome["status"], "done")
+        cache.clear()
+        snapshot = statistics_sync.load_snapshot(self.user.pk, "All Time")
+        cards = snapshot["data"]["top_rated"]
+        self.assertTrue(any(isinstance(card, Movie) and card.pk == movie.pk for card in cards))
+
+    def test_deleted_row_during_annotation_does_not_shift_other_cards(self):
+        self.warm()
+        original = stats._annotate_top_rated_media
+        deleted = []
+
+        def delete_then_annotate(rows):
+            deleted.append((rows[0]._meta.concrete_model, rows[0].pk))
+            rows[0].delete()
+            return original(rows)
+
+        with patch.object(stats, "_annotate_top_rated_media", side_effect=delete_then_annotate):
+            data = statistics_sync._aggregate_range(self.user, "All Time", 0)
+
+        cards = data["top_rated"]
+        self.assertTrue(cards)
+        self.assertNotIn(deleted[0], [(card._meta.concrete_model, card.pk) for card in cards])
+        self.assertTrue(all(hasattr(card, "aggregated_score") for card in cards))
+
+    def test_annotation_uses_row_model_and_drops_deleted_rows(self):
+        movies = list(Movie.objects.filter(user=self.user).order_by("pk")[:2])
+        movies[0].item.media_type = MediaTypes.BOOK.value
+        movies[0].aggregated_score = 8.5
+        movies[0].route_media_type = MediaTypes.ANIME.value
+        movies[1].delete()
+
+        result = stats._annotate_top_rated_media(movies)
+
+        self.assertEqual([row.pk for row in result], [movies[0].pk])
+        self.assertEqual(result[0].aggregated_score, 8.5)
+        self.assertEqual(result[0].route_media_type, MediaTypes.ANIME.value)
+        self.assertEqual(result[0].max_progress, 1)
+
+    def test_grouped_and_flat_anime_with_same_id_publish_distinct_cards(self):
+        now = timezone.now()
+        anime_item = Item.objects.create(
+            media_id="flat-anime", source=Sources.MANUAL.value,
+            media_type=MediaTypes.ANIME.value, title="Flat anime",
+        )
+        tv_item = Item.objects.create(
+            media_id="grouped-anime", source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value, library_media_type=MediaTypes.ANIME.value,
+            title="Grouped anime",
+        )
+        anime = Anime.objects.create(user=self.user, item=anime_item, score=7)
+        tv = TV.objects.create(pk=anime.pk, user=self.user, item=tv_item, score=9)
+        day = timezone.localdate()
+        entries = {
+            str(item.pk): {
+                "media_type": MediaTypes.ANIME.value, "media_id": row.pk,
+                "score": score, "activity_dt": now.isoformat(),
+            }
+            for item, row, score in [(anime_item, anime, 7), (tv_item, tv, 9)]
+        }
+        data = _aggregate_statistics_from_days(
+            self.user, [day], now, now,
+            prebuilt_days={day: {"items": {MediaTypes.ANIME.value: entries}}},
+        )
+        cards = {card.item_id: card for card in data["top_rated"]}
+        self.assertIsInstance(cards[anime_item.pk], Anime)
+        self.assertIsInstance(cards[tv_item.pk], TV)
+        self.assertEqual(cards[anime_item.pk].aggregated_score, 7)
+        self.assertEqual(cards[tv_item.pk].aggregated_score, 9)
+        self.assertEqual(cards[tv_item.pk].route_media_type, MediaTypes.ANIME.value)
+
+        statistics_sync.publish_snapshot(self.user.pk, "All Time", data, 0)
+        cache.clear()
+        restored = statistics_sync.load_snapshot(self.user.pk, "All Time")["data"]
+        cards = {card.item_id: card for card in restored["top_rated"]}
+        self.assertIsInstance(cards[anime_item.pk], Anime)
+        self.assertIsInstance(cards[tv_item.pk], TV)
+        self.assertEqual(cards[tv_item.pk].aggregated_score, 9)
+        self.assertEqual(cards[tv_item.pk].route_media_type, MediaTypes.ANIME.value)
+
     def test_top_rated_rows_are_annotated_once_and_shared(self):
         self.warm()
         with patch.object(

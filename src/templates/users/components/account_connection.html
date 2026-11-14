@@ -32,6 +32,10 @@
             <button class="ui-button" type="submit">{{ account_connection.submitLabel }}</button>
           </form></details>{% endif %}
           {% if account_connection.attention and account_connection.connectUrl %}<form class="ui-form" method="post" action="{{ account_connection.connectUrl }}">{% csrf_token %}<input type="hidden" name="next" value="{{ account_connection.next }}"><button class="ui-button" type="submit">{{ account_connection.submitLabel }}</button></form>{% endif %}
+        {% elif account_connection.device %}
+          <p>{% translate "Enter this code on the service to approve Floppy." %}</p>
+          <p><strong>{{ account_connection.device.userCode }}</strong></p>
+          <p class="provider-small"><a href="{{ account_connection.device.verificationUrl }}" target="_blank" rel="noopener noreferrer">{{ account_connection.device.verificationUrl }}</a></p>
         {% else %}
           <p>{% if account_connection.attention %}{{ account_connection.messages.attention }}{% else %}{{ account_connection.messages.disconnected }}{% endif %}</p>
           {% if account_connection.connectUrl %}<form class="ui-form" method="post" action="{{ account_connection.connectUrl }}">

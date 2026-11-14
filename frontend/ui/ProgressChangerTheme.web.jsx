@@ -56,6 +56,13 @@ function readAppearance(host, unit) {
   };
 }
 
+// The height this control takes under a card, so Home's waiting rows can
+// reserve it before their cards arrive.
+export function progressControlHeight(host = document.body) {
+  const appearance = readAppearance(host, '');
+  return appearance.showButtons ? appearance.buttonSize : Math.ceil(appearance.fontSize * 1.25);
+}
+
 export function ProgressChanger({ host, props }) {
   const [appearance, setAppearance] = useState(() => readAppearance(host, props.unit));
   const [busy, setBusy] = useState(null);

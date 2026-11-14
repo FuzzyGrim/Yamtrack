@@ -796,6 +796,8 @@ class PodcastWebPlayDateTests(PodcastApiTestCase):
         self.assertEqual(response.status_code, HTTP.FOUND)
         self.assertEqual(podcast.status, Status.COMPLETED.value)
         self.assertEqual(podcast.end_date, completed_at)
+        self.assertIsNotNone(podcast.updated_at)
+        self.assertEqual(podcast.plays.count(), 1)
 
     def test_unreadable_date_records_nothing_and_reports_the_problem(self):
         """An unreadable date must not become "now" behind the user's back.
