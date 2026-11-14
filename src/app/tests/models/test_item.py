@@ -69,6 +69,19 @@ class ItemModel(TestCase):
         """Test the string representation of an Item."""
         self.assertEqual(str(self.item), "Test Movie")
 
+    def test_episode_coordinates_in_item_names(self):
+        item = Item(title="Show")
+        for season, episode, expected in (
+            (0, 3, "Show S00E03"),
+            (3, 3, "Show S03E03"),
+            (123, 456, "Show S123E456"),
+            (3, None, "Show S3"),
+            (None, None, "Show"),
+        ):
+            with self.subTest(season=season, episode=episode):
+                item.season_number, item.episode_number = season, episode
+                self.assertEqual(str(item), expected)
+
     def test_item_with_season_and_episode(self):
         """Test the string representation of an Item with season and episode."""
         item = Item.objects.create(
@@ -80,7 +93,7 @@ class ItemModel(TestCase):
             season_number=1,
             episode_number=2,
         )
-        self.assertEqual(str(item), "Test Show S1E2")
+        self.assertEqual(str(item), "Test Show S01E02")
 
 
 class FetchReleasesBucketTests(TestCase):

@@ -271,7 +271,7 @@ def _item_lines(ctx, media_type):
         and _safe(item, "episode_number") is not None
     ):
         season, episode = _safe(item, "season_number"), _safe(item, "episode_number")
-        lines.append({"parts": [{"text": f"S{season:02d} E{episode:02d}"}]})
+        lines.append({"parts": [{"text": f"S{season:02d}E{episode:02d}"}]})
         return lines
     if ctx.get("use_podcast_show") and show:
         text = show.title

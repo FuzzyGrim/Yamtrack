@@ -170,7 +170,7 @@ class TvProviderSwitchTests(TestCase):
 
         with self._metadata_mock(Sources.TVDB.value, "81189", (1,)):
             preview = preview_tv_provider_switch(self.user, show)
-            self.assertEqual(preview.missing, ["1x2"])
+            self.assertEqual(preview.missing, ["S01E02"])
             self.assertIsNone(preview.plan)
             with self.assertRaises(LibraryMigrationError):
                 switch_tv_provider(self.user, show)
@@ -279,7 +279,7 @@ class TvProviderSwitchTests(TestCase):
         with self._metadata_mock(Sources.TVDB.value, "81189", (1,)):
             response = self.client.get(reverse("switch_tv_provider", args=[show.pk]))
 
-        self.assertContains(response, "1x2")
+        self.assertContains(response, "S01E02")
         self.assertContains(response, "disabled")
 
 

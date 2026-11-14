@@ -171,6 +171,6 @@ class HistoryItemProjectionTests(TestCase):
         self.assertEqual(first["title"], "Projection Episode 1")
         self.assertEqual(first["poster"], "http://example.com/show.jpg")
         self.assertEqual(first["runtime_minutes"], 42)
-        self.assertEqual(first["episode_label"], "1x01")
+        self.assertEqual(first["episode_label"], "S01E01")
         self.assertEqual(first["genres"], ["Drama"])
         self.assertEqual(first["item"]["media_id"], "projection-show")

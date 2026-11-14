@@ -610,12 +610,12 @@ def _rating(item, media, user):
 
 
 def _format_episode_code(season_number, episode_number):
-    """Return ``S01`` or ``S01 E03``."""
+    """Return ``S01`` or ``S01E03``."""
     if season_number is None:
         return None
     if episode_number is None:
         return f"S{int(season_number):02d}"
-    return f"S{int(season_number):02d} E{int(episode_number):02d}"
+    return f"S{int(season_number):02d}E{int(episode_number):02d}"
 
 
 def _show_episode_code(media):

@@ -315,7 +315,7 @@ def preflight_library_move(
                     )
                 if int(episode_number) not in episodes_by_season[int(season_number)]:
                     _migration_error(
-                        f"The destination has no matching episode {season_number}x{episode_number}; nothing was changed."
+                        f"The destination has no matching episode S{int(season_number):02d}E{int(episode_number):02d}; nothing was changed."
                     )
     else:
         if target_source not in {Sources.TMDB.value, Sources.TVDB.value}:
@@ -547,7 +547,7 @@ def _move_grouped(user, source_item: Item, plan: LibraryMigrationPlan) -> Item:
         episode_metadata = _episode_map(season_metadata).get(episode_number)
         if episode_metadata is None:
             _migration_error(
-                f"The destination has no matching episode {season_number}x{episode_number}; nothing was changed."
+                f"The destination has no matching episode S{int(season_number):02d}E{int(episode_number):02d}; nothing was changed."
             )
         destination_episode_item = _episode_item(
             plan,
@@ -827,7 +827,7 @@ def preview_tv_provider_switch(user, item: Item) -> TvProviderSwitch:
             )
         known = episodes_by_season.get(int(season_number))
         if known is not None and int(episode_number) not in known:
-            missing.append(f"{int(season_number)}x{int(episode_number)}")
+            missing.append(f"S{int(season_number):02d}E{int(episode_number):02d}")
 
     plan = None
     if not missing:

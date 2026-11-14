@@ -284,7 +284,7 @@ class TraktCollectionCsvImporter(TraktMetadataResolverMixin):
         )
         if not episode_exists:
             self.warnings.append(
-                f"{title} S{season_number}E{episode_number}: not found in "
+                f"{title} S{int(season_number):02d}E{int(episode_number):02d}: not found in "
                 f"{Sources.TMDB.label} with ID {tmdb_id}.",
             )
             return False

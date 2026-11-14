@@ -1332,3 +1332,5 @@ templates are compatibility/composition sources, not equally active parallel pag
 - `frontend/ui/MarkdownPreview.jsx` and `frontend/ui/MusicParts.jsx`: registered in the architecture registry and source map (they were committed without entries). `MarkdownPreview.jsx` is the shared React Native preview; `.native.jsx` now wraps it like Reveal and `.web.jsx` stays the web adapter. `detail_seasons_row.html` is mapped as a server fallback. Web, iOS and Android: structural only; no new rendering evidence.
 
 DropdownMenu remains shared and partial/coexisting across its existing consumers. Its keyboard-driven sizing runs inside the native modal host, including the Duo rail, with an explicit iOS height animation; Android applies the settled keyboard size; the user accepted the quartic animation on a physical iOS Duo; browser and Android animation remain unverified. Existing fallback retirement conditions are unchanged.
+
+- Episode labels: grid agenda and list share `Event.season_episode_label` ("S39E170"); a season's title drops a trailing "Season N" so the label carries it once.
