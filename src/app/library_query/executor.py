@@ -89,6 +89,7 @@ class LibraryQueryExecutor:
                 sources=tuple(tracker_sources(
                     self.user, media_type, self.query.routing,
                     include_podcast_shows=self.query.include_podcast_shows,
+                    include_albums=self.query.sort_list_id is not None,
                 )),
                 today=self.today,
                 provider_region=self.query.provider_region,
@@ -594,7 +595,7 @@ class LibraryQueryExecutor:
             if not batch:
                 break
             if filter_registry.NEEDS_MEDIA in needs:
-                _attach_media(self.user, batch, needs, show_facts=show_facts)
+                _attach_media(self.user, batch, needs, show_facts=show_facts, include_albums=self.query.sort_list_id is not None)
             for ctx in self.contexts:
                 for definition in self._predicates(ctx):
                     if definition.prepare is not None:
@@ -684,6 +685,7 @@ def _attach_media(
     needs: set[str],
     *,
     show_facts: bool = False,
+    include_albums: bool = False,
 ) -> None:
     """Load each candidate's aggregated tracker row, for this batch only.
 
@@ -753,6 +755,10 @@ def _attach_media(
             )
 
             latest.update(podcast_show_trackers_for_items(user, [candidate.item for candidate in candidates]))
+        if include_albums and media_type == MediaTypes.MUSIC.value:
+            from app.services.music import album_trackers_for_list_items
+
+            latest.update(album_trackers_for_list_items(user, [candidate.item for candidate in candidates]))
         tracked = []
         for candidate in candidates:
             candidate.media = latest.get(candidate.item.pk)

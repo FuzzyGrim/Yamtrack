@@ -1186,6 +1186,42 @@ def _aggregate_statistics_from_days(
 
             items_by_type[media_type][row["item_id"]] = existing
 
+    # Album trackers are separate from Music track plays. Include them in
+    # library/score statistics without inventing plays or listening time.
+    if MediaTypes.MUSIC.value in active_types:
+        AlbumTracker = apps.get_model("app", "AlbumTracker")
+        albums = list(AlbumTracker.objects.filter(user=user).select_related("album").order_by("-updated_at", "-pk"))
+        release_ids = {row.album.musicbrainz_release_id for row in albums if row.album.musicbrainz_release_id}
+        Album = apps.get_model("app", "Album")
+        release_groups = dict(
+            Album.objects.filter(musicbrainz_release_id__in=release_ids)
+            .exclude(musicbrainz_release_group_id__isnull=True)
+            .exclude(musicbrainz_release_group_id="")
+            .values_list("musicbrainz_release_id", "musicbrainz_release_group_id")
+        )
+        seen_albums = set()
+        for tracker in albums:
+            album = tracker.album
+            identity = album.musicbrainz_release_group_id or release_groups.get(album.musicbrainz_release_id) or album.musicbrainz_release_id or f"local:{album.pk}"
+            if identity in seen_albums:
+                continue
+            seen_albums.add(identity)
+            dates = [value for value in (tracker.start_date, tracker.end_date) if value]
+            if not is_all_time_query and not any(
+                (start_date is None or value >= start_date)
+                and (end_date is None or value <= end_date)
+                for value in dates
+            ):
+                continue
+            items_by_type[MediaTypes.MUSIC.value][f"album:{identity}"] = {
+                "item_id": None,
+                "media_id": None,
+                "media_type": MediaTypes.MUSIC.value,
+                "status": tracker.status,
+                "score": float(tracker.score) if tracker.score is not None else None,
+                "activity_dt": tracker.end_date or tracker.start_date or tracker.created_at,
+            }
+
     clock.mark("undated")
     media_count = {"total": 0}
     for media_type in active_types:

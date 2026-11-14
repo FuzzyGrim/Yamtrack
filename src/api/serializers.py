@@ -10,6 +10,7 @@ from app.helpers import build_provider_ids
 from app.history_entry_builders import _serialize_show
 from app.models import (
     TV,
+    AlbumTracker,
     Anime,
     BasicMedia,
     BoardGame,
@@ -1021,7 +1022,7 @@ class MediaSerializer(serializers.ModelSerializer):
 
         return {
             "id": item.id if item is not None else None,
-            "consumption_id": None if isinstance(instance, PodcastShowTracker) else instance.id,
+            "consumption_id": None if isinstance(instance, (PodcastShowTracker, AlbumTracker)) else instance.id,
             "item": _ITEM_SERIALIZER.to_representation(item)
             if item is not None
             else None,
@@ -1204,6 +1205,7 @@ serializer_map = {
     Music: MediaSerializer,  # FORK
     Podcast: MediaSerializer,  # FORK
     PodcastShowTracker: MediaSerializer,
+    AlbumTracker: MediaSerializer,
     Season: MediaSerializer,
     TV: MediaSerializer,
 }

@@ -139,13 +139,18 @@ def latest_value(ctx: TypeContext, value_field: str, row_q: Q | None = None):
         if row_q is not None:
             rows = rows.filter(row_q)
         field_name = source.status_field if value_field == "status" else value_field
-        subqueries.append(
-            Subquery(
+        value = Subquery(
                 rows.annotate(_activity=source.activity())
                 .order_by("-_activity", "-id")
                 .values(field_name)[:1],
-            ),
-        )
+            )
+        from app.library_query.trackers import AlbumSource
+
+        if isinstance(source, AlbumSource):
+            from django.db.models import Case, When
+
+            value = Case(When(source.item_q, then=value), default=None)
+        subqueries.append(value)
     if ctx.sort_list_id is not None and ctx.media_type == MediaTypes.PODCAST.value and value_field in {"status", "score"}:
         from app.models import PodcastShowTracker
 
