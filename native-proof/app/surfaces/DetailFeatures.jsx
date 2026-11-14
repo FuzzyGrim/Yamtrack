@@ -398,6 +398,8 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, o
   const episodesGate = useRef(null);
   if (!episodesGate.current) episodesGate.current = createLatestGate();
   const pendingActions = useRef({ count: 0, scopes: new Set() });
+  // A rating changes the scores listed in the activity history; it reloads when next opened.
+  const historyStale = useRef(false);
 
   const isEpisode = identity?.mediaType === 'episode';
   const isSeason = identity?.mediaType === 'season';
@@ -483,6 +485,11 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, o
     return () => { cancelled = true; };
   }, [enabled, identity, collectionStamp]);
 
+  const refreshStaleHistory = useCallback(() => {
+    if (!historyStale.current) return;
+    historyStale.current = false;
+    reload(['header']);
+  }, [reload]);
   // Anime episodes come from their own preview endpoint; the page payload lists none.
   const episodesRef = useRef(episodes);
   episodesRef.current = episodes;
@@ -506,11 +513,13 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, o
   /** Changes episode rows on screen now; returns a revert that applies while still the latest change. */
   const patchEpisodes = useCallback((change, undo) => {
     const token = episodesGate.current.begin();
+    // This change makes an unfinished load stale, so a revert must restart it.
+    const interrupted = episodesRef.current.status === 'loading';
     setEpisodes(current => ({ ...current, rows: change(current.rows), error: '' }));
     return () => {
       if (!episodesGate.current.isLatest(token)) return false;
       setEpisodes(current => ({ ...current, rows: undo(current.rows) }));
-      return true;
+      return !interrupted;
     };
   }, []);
   useEffect(() => { loadEpisodes(); }, [loadEpisodes]);
@@ -880,7 +889,10 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, o
     },
   }));
   const trackRest = trackActions.slice(1);
-  const openKind = kind => () => setDialog({ ...NO_DIALOG, kind });
+  const openKind = kind => () => {
+    if (kind === 'history') refreshStaleHistory();
+    setDialog({ ...NO_DIALOG, kind });
+  };
   const historyItem = { key: 'history', label: 'View history', icon: 'history', onPress: openKind('history') };
   const canPickCover = tracking.tracked && tracking.catalogItemId && !isEpisode;
   // Keep cover/edition tools available without displacing the PWA's quick actions.
@@ -979,6 +991,7 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, o
       // The rating shows at once; a failed save puts the previous one back.
       const previous = viewerRating.value ?? null;
       setNotice('');
+      if (tracking.tracked) historyStale.current = true;
       const token = optimistic?.apply(current => applyViewerRating(current, score));
       return runOptimistic({
         write: () => saveScore(identity, storedScore(score, viewerRating.scaleMax)),
@@ -1045,7 +1058,7 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, o
     ? <DetailTrackingHistory entries={model.trackingEntries.entries.slice(1)} count={model.trackingEntries.count}
       hasMore={model.trackingEntries.hasMore} title="History" repeatsLabel="Repeats"
       onEdit={entry => openTrack(false, entry.identity)}
-      onOpenHistory={() => setDialog({ ...NO_DIALOG, kind: 'history' })} palette={palette} /> : null;
+      onOpenHistory={() => { refreshStaleHistory(); setDialog({ ...NO_DIALOG, kind: 'history' }); }} palette={palette} /> : null;
   const sectionSlots = { collection: collectionSlot, notes: notesSlot, history: historySlot };
   const sectionsSlot = <>{collectionSlot}{notesSlot}{noticeSlot}</>;
 
