@@ -38,6 +38,47 @@ class ImportMAL(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
     @patch("requests.Session.get")
+    def test_unrated_entries_and_repeats_have_no_score(self, mock_request):
+        responses = []
+        for media_type in ("anime", "manga"):
+            with Path(mock_path / f"import_mal_{media_type}.json").open() as file:
+                response = json.load(file)
+            status = response["data"][0]["list_status"]
+            status["score"] = 0
+            repeat_field = "num_times_rewatched" if media_type == "anime" else "num_times_reread"
+            status[repeat_field] = 1
+            mock_response = MagicMock()
+            mock_response.json.return_value = response
+            responses.append(mock_response)
+        mock_request.side_effect = responses
+
+        mal.importer("bloodthirstiness", self.user, "new")
+
+        for model in (Anime, Manga):
+            self.assertGreaterEqual(
+                model.objects.filter(user=self.user, score__isnull=True).count(), 2
+            )
+
+    @patch("integrations.webhooks.anime_mappings.fetch_mapping_data")
+    def test_unrated_anime_synced_to_movie_has_no_score(self, mock_mapping):
+        mock_mapping.return_value = {"tmdb_movie:99999": {"mal:32253": {}}}
+        item = Item.objects.create(
+            media_id="99999",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie",
+        )
+        Movie.objects.create(user=self.user, item=item, score=5)
+        importer = mal.MyAnimeListImporter("test", self.user, "overwrite")
+        with Path(mock_path / "import_mal_anime.json").open() as file:
+            entry = json.load(file)["data"][0]
+        entry["list_status"]["score"] = 0
+
+        importer._process_entry(entry, MediaTypes.ANIME.value)
+
+        self.assertIsNone(importer.bulk_media[MediaTypes.MOVIE.value][0].score)
+
+    @patch("requests.Session.get")
     def test_import_animelist(self, mock_request):
         """Basic test importing anime and manga from MyAnimeList."""
         with Path(mock_path / "import_mal_anime.json").open(encoding="utf-8") as file:

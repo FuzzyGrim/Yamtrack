@@ -1552,6 +1552,47 @@ class GroupedAnimeStatisticsTests(TestCase):
     def _get_media(self):
         return statistics.get_user_media(self.user, self.start_date, self.end_date)
 
+    def test_rating_statistics_exclude_unrated_anime_but_keep_explicit_zero(self):
+        from app import statistics_sync
+
+        cache.clear()
+        scores = ((None, True), (None, False), (0, True), (8, False))
+        for index, (score, dated) in enumerate(scores):
+            item = Item.objects.create(
+                media_id=f"rating-anime-{index}",
+                source=Sources.MANUAL.value,
+                media_type=MediaTypes.ANIME.value,
+                title=f"Anime {index}",
+            )
+            Anime.objects.create(
+                user=self.user,
+                item=item,
+                status=Status.COMPLETED.value,
+                score=score,
+                end_date=timezone.now() if dated else None,
+            )
+        movie_item = Item.objects.create(
+            media_id="rating-movie",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Rated movie",
+        )
+        Movie.objects.create(user=self.user, item=movie_item, score=6)
+
+        for scale, expected in ((10, 14 / 3), (5, 7 / 3)):
+            self.user.rating_scale = str(scale)
+            self.user.save(update_fields=["rating_scale"])
+            cache.clear()
+            data = statistics_sync._aggregate_range(self.user, "All Time", 0)
+            distribution = data["score_distribution"]
+            anime = next(
+                row for row in distribution["datasets"] if row["label"] == "Anime"
+            )
+            self.assertEqual(sum(anime["data"]), 2)
+            self.assertEqual(anime["data"][0], 1)
+            self.assertEqual(distribution["total_scored"], 3)
+            self.assertEqual(distribution["average_score"], round(expected, 2))
+
     def test_grouped_anime_is_in_anime_bucket_not_tv(self):
         """get_user_media must put grouped anime in 'anime', not 'tv'."""
         user_media, media_count = self._get_media()
