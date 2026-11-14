@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from functools import cached_property
-from itertools import islice
+from itertools import batched, islice
 from typing import TYPE_CHECKING
 
 from django.db.models import Exists, F, OuterRef, Q
@@ -429,6 +429,21 @@ class LibraryQueryExecutor:
         if not self._needs_scan:
             return candidates.exists()
         return bool(self._scan(candidates, with_sort=False))
+
+    def matching_among(self, item_ids, *, chunk_size: int) -> set[int]:
+        """Return which of ``item_ids`` match, asking once per ``chunk_size`` ids.
+
+        The set form of ``contains``: the same conditions, Python filters and
+        cross-provider hiding, so each id gets the answer ``contains`` gives.
+        """
+        matched = set()
+        for chunk in batched(dict.fromkeys(item_ids), max(1, chunk_size)):
+            candidates = self.filtered.filter(pk__in=chunk)
+            if not self._needs_scan:
+                matched.update(candidates.values_list("pk", flat=True))
+            else:
+                matched.update(row[-1] for row in self._scan(candidates, with_sort=False))
+        return matched
 
     def page(
         self,
