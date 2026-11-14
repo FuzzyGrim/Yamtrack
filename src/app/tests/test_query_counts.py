@@ -103,7 +103,7 @@ GAME_LIST_START_DATE_SORT_MAX_QUERIES = (
 HOME_ROW_FRAGMENT_MAX_QUERIES = (
     123  # +2 from the Tags column Prefetch (#457); +1 from the provider-credential read
 )
-CUSTOM_LIST_DETAIL_MAX_QUERIES = 43  # +1 bulk tag options; +1 viewers prefetch; +1 narrow alphabet-glyph lookup; +1 id-first window sort (d95bf59e9); +3 from prefilled release-year metadata;
+CUSTOM_LIST_DETAIL_MAX_QUERIES = 44  # +1 intentional stray-podcast repair lookup (529ae8917); +1 bulk tag options; +1 viewers prefetch; +1 narrow alphabet-glyph lookup; +1 id-first window sort (d95bf59e9); +3 from prefilled release-year metadata;
 # +1 from the custom-list collaborators prefetch; +1 from the sidebar's
 # saved-views read (#413); +3 from the filter menu's options (member ids,
 # member metadata, tag names) on a full page render (#806); +1 from the
