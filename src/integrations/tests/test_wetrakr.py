@@ -1070,7 +1070,7 @@ class ConnectViewTests(TestCase):
         self._approve()
         return WeTrakrAccount.objects.get(user=self.user)
 
-    def test_connecting_without_an_app_key_explains_where_to_add_one(self):
+    def test_connecting_without_an_app_key_says_the_instance_has_none(self):
         with patch(
             "integrations.wetrakr_views.wetrakr_api.client_id_for", return_value=None
         ):
@@ -1299,7 +1299,7 @@ class ConnectViewTests(TestCase):
             reverse("provider_detail", args=["wetrakr"]), {"tab": "connection"},
         )
         self.assertContains(page, "ABCD-1234")
-        self.assertContains(page, "Open WeTrakr and enter this code")
+        self.assertContains(page, "Enter this code on the service to approve Floppy.")
         self.assertNotContains(page, "activeModal === 'send-wetrakr'")
 
     def test_a_connected_card_lists_the_switches(self):

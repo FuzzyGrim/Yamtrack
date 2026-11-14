@@ -340,12 +340,15 @@ export function ProviderSettingsView({
   if (!sections.length) return null;
 
   const colors = { ...defaultPalette, ...palette };
+  // The "Get a key" link is an info chip. Palettes that carry no badge tokens
+  // (the web theme reader) left it with a black border and no fill, so the
+  // indigo info values are the fallback rather than undefined.
   const keyPalette = {
     ...colors,
-    badgeBorder: colors.infoBadgeBorder || colors.badgeBorder,
-    badgeBackground: colors.infoBadgeBackground || colors.badgeBackground,
-    badgeText: colors.infoBadgeText || colors.badgeText,
-    badgeHover: colors.badgeHover,
+    badgeBorder: colors.infoBadgeBorder || 'rgba(99, 102, 241, 0.3)',
+    badgeBackground: colors.infoBadgeBackground || 'rgba(99, 102, 241, 0.1)',
+    badgeText: colors.infoBadgeText || colors.link || '#c7d2fe',
+    badgeHover: colors.infoBadgeHover || 'rgba(99, 102, 241, 0.2)',
   };
   const pageLabels = { ...(model.labels || {}), ...(labels || {}) };
   const credentials = model.credentials;

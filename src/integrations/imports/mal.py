@@ -145,6 +145,8 @@ class MyAnimeListImporter:
     def _process_entry(self, content, media_type):
         """Process a single entry from MyAnimeList."""
         list_status = content["list_status"]
+        # MAL uses zero for an unrated entry; Floppy permits a real zero.
+        score = list_status["score"] or None
         status = self._get_status(list_status["status"])
 
         try:
@@ -204,7 +206,7 @@ class MyAnimeListImporter:
                 instance = model(
                     item=item,
                     user=self.user,
-                    score=list_status["score"],
+                    score=score,
                     progress=max_progress or 0,
                     status=Status.COMPLETED.value,
                     start_date=self._parse_mal_date(list_status.get("start_date")),
@@ -219,7 +221,7 @@ class MyAnimeListImporter:
         instance = model(
             item=item,
             user=self.user,
-            score=list_status["score"],
+            score=score,
             progress=progress,
             status=status,
             start_date=self._parse_mal_date(list_status.get("start_date")),
@@ -276,7 +278,7 @@ class MyAnimeListImporter:
         movie_instance = app.models.Movie(
             item=movie_item,
             user=self.user,
-            score=list_status["score"],
+            score=list_status["score"] or None,
             progress=movie_progress,
             status=status,
             start_date=self._parse_mal_date(list_status.get("start_date")),

@@ -852,7 +852,7 @@ def get_statistics_data(user, start_date, end_date, range_name=None):
         # Missing days are built in the background rather than inline so a
         # cold multi-year range can't block the request for minutes.
         day_list = _resolve_day_list(user, start_date, end_date)
-        if not day_list:
+        if not day_list and not apps.get_model("app", "AlbumTracker").objects.filter(user=user).exists():
             return _get_empty_statistics_data()
         build_missing = _eager_statistics_mode()
         data = _aggregate_statistics_from_days(

@@ -116,7 +116,7 @@ class EventModelTests(TestCase):
         # Season event
         self.assertEqual(
             str(self.season_event),
-            "Test TV Show S1 E1",
+            "Test TV Show S01E01",
         )
 
         # Movie event

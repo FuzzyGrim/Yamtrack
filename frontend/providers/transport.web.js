@@ -148,7 +148,31 @@ export function readThemePalette() {
     success: token('--color-success-text', '#10b981'),
     warning: token('--color-warning-text', '#f59e0b'),
     focus: token('--color-accent', '#6366f1'),
+    infoBadgeText: token('--color-info-text', '#c7d2fe'),
+    // Chips and status badges read these; without them a neutral badge drew a black border.
+    badgeBorder: token('--color-surface-border', '#52525b'),
+    badgeBackground: token('--color-surface-strong', '#3f3f46'),
+    badgeText: token('--color-text-secondary', '#d4d4d8'),
+    badgeHover: token('--color-surface-muted', '#52525b'),
     radius: 'var(--theme-radius, 18px)',
     focusStyle: {},
   };
+}
+
+/** Call the app's own JSON API with the signed-in session, as the device-code link flow does. */
+export async function linkRequest({ url, method = 'POST', csrf }) {
+  const response = await fetch(url, {
+    method,
+    credentials: 'same-origin',
+    headers: { 'X-CSRFToken': csrf || '', Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: method === 'GET' ? undefined : '{}',
+  });
+  let body = {};
+  try { body = await response.json(); } catch { /* an empty reply is handled below */ }
+  if (!response.ok) throw new Error(body.detail || body.error || 'Something went wrong. Try again.');
+  return body;
+}
+
+export function openExternal(url) {
+  if (url) window.open(url, '_blank', 'noopener,noreferrer');
 }

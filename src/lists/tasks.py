@@ -12,22 +12,20 @@ User = get_user_model()
 
 @shared_task(name="Sync Smart Lists For Items")
 def sync_smart_lists_for_items_task(owner_id: int, item_ids: list) -> None:
-    """Sync smart-list membership for a set of items — runs in background after bulk media mutations."""
+    """Sync smart-list membership for a set of items — runs in background after bulk media mutations.
+
+    Each list is asked once which of the items match; a list that fails is
+    logged and the others still sync.
+    """
     from app.models import Item
-    from lists.smart_rules import sync_smart_lists_for_item
+    from lists.smart_rules import sync_smart_lists_for_items
 
     try:
         owner = User.objects.get(pk=owner_id)
     except User.DoesNotExist:
         return
-    items = list(Item.objects.filter(id__in=item_ids))
-    for item in items:
-        try:
-            sync_smart_lists_for_item(owner=owner, item=item)
-        except Exception:
-            logger.exception(
-                "Smart list sync failed for owner_id=%s item_id=%s", owner_id, item.id
-            )
+    # Ids of deleted items match nothing and have no rows, so they are no-ops.
+    sync_smart_lists_for_items(owner, [Item(id=int(item_id)) for item_id in item_ids])
 
 
 @shared_task(name="Sync Smart List Items")

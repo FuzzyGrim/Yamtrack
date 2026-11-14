@@ -414,7 +414,9 @@ class MetadataSettingsPageTests(TestCase):
             for provider in group["providers"]
         ]
 
-        self.assertEqual(len(providers), len(credentials.REGISTRY))
+        # A key that belongs to Floppy (bundled_only) is not offered to anyone.
+        managed = [spec for spec in credentials.REGISTRY.values() if not spec.bundled_only]
+        self.assertEqual(len(providers), len(managed))
         self.assertTrue(all(provider["user_scope"] for provider in providers))
 
     def test_groups_split_metadata_from_account_credentials(self, _probe):

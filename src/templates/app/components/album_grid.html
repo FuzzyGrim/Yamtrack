@@ -5,8 +5,8 @@
 {% music_albums_react all_albums as albums_react %}
 {{ albums_react.props|json_script:albums_react.id }}
 <div{% if grid_id %} id="{{ grid_id }}"{% endif %}
-     data-music-albums-root data-props-id="{{ albums_react.id }}" x-ignore
-     class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+     data-music-albums-root data-props-id="{{ albums_react.id }}" x-ignore>
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
   {% for album in all_albums %}
     <div class="media-card bg-[var(--color-surface)] rounded-lg overflow-hidden shadow-lg relative search-result-card-square hover:ring-2 hover:ring-indigo-500 transition-all group{% card_subtitle_class 'music' %}{% card_title_classes 'music' %}"
          data-media-type="music">
@@ -52,4 +52,5 @@
       </div>
     </div>
   {% endfor %}
+  </div>
 </div>

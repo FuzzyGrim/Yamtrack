@@ -8,8 +8,6 @@ import heapq
 import itertools
 from collections import defaultdict
 
-from django.apps import apps
-
 from app import config
 from app.models import MediaManager
 from app.statistics_cache import STATISTICS_TOP_N, STATISTICS_TOP_RATED_OVERALL
@@ -356,18 +354,16 @@ def _annotate_top_rated_media(top_rated_media):
     if not top_rated_media:
         return top_rated_media
 
-    # Group by media type to batch database operations
-    media_by_type = {}
+    # The item type can differ from the table containing the tracking row.
+    media_by_model = {}
     for media in top_rated_media:
-        media_type = media.item.media_type
-        if media_type not in media_by_type:
-            media_by_type[media_type] = []
-        media_by_type[media_type].append(media)
+        media_by_model.setdefault(media._meta.concrete_model, []).append(media)
 
     media_manager = MediaManager()
 
-    for media_type, media_list in media_by_type.items():
-        model = apps.get_model(app_label="app", model_name=media_type)
+    replacements = {}
+    for model, media_list in media_by_model.items():
+        media_type = model._meta.model_name
         media_ids = [media.id for media in media_list]
 
         # Fetch fresh instances with proper relationships and annotations
@@ -380,15 +376,22 @@ def _annotate_top_rated_media(top_rated_media):
         # Replace original instances with enhanced ones, keeping any route
         # override (e.g. grouped anime fetched as a TV row) that was set on
         # the original instance so links keep using the anime route.
-        for i, media in enumerate(top_rated_media):
-            if media.item.media_type == media_type:
-                replacement = prefetched_media_map[media.id]
-                route_media_type = getattr(media, "route_media_type", None) or (
-                    getattr(media.item, "route_media_type", None)
-                )
-                if route_media_type:
-                    replacement.route_media_type = route_media_type
-                    replacement.item.route_media_type = route_media_type
-                top_rated_media[i] = replacement
+        for media in media_list:
+            replacement = prefetched_media_map.get(media.id)
+            if replacement is None:
+                continue
+            route_media_type = getattr(media, "route_media_type", None) or (
+                getattr(media.item, "route_media_type", None)
+            )
+            if route_media_type:
+                replacement.route_media_type = route_media_type
+                replacement.item.route_media_type = route_media_type
+            if hasattr(media, "aggregated_score"):
+                replacement.aggregated_score = media.aggregated_score
+            replacements[(model, media.pk)] = replacement
 
-    return top_rated_media
+    return [
+        replacements[key]
+        for media in top_rated_media
+        if (key := (media._meta.concrete_model, media.pk)) in replacements
+    ]

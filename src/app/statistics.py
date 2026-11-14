@@ -341,7 +341,7 @@ def get_media_type_distribution(media_count, minutes_per_type=None):
 
     dataset = chart_data["datasets"][0]
 
-    if minutes_per_type:
+    if minutes_per_type is not None:
         dataset["value_label"] = "Hours"
         dataset["value_suffix"] = "h"
         dataset["value_decimals"] = 1

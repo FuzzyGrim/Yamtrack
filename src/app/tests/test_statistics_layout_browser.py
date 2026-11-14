@@ -46,7 +46,7 @@ class StatisticsLayoutTests(SerialStaticLiveServerTestCase):
                 media_id=f"movie-{index}",
                 source=Sources.MANUAL.value,
                 media_type=MediaTypes.MOVIE.value,
-                title=f"Movie {index}",
+                title=(f"Movie {index}: " + "An exceptionally long title about the history of everything"),
                 runtime_minutes=120,
             )
             Movie.objects.create(
@@ -99,6 +99,29 @@ class StatisticsLayoutTests(SerialStaticLiveServerTestCase):
                 )
                 self.assertEqual(spills, [])
 
+    def test_populated_overview_panels_stay_inside_the_page(self):
+        for width in (320, 360, 1280):
+            with self.subTest(width=width):
+                self.check_overview_panels(width)
+
+    def check_overview_panels(self, width):
+        page = self.open_statistics(width)
+        overview = page.locator('[data-statistics-sections-root][data-section="overview"]').filter(
+            has=page.get_by_text("Most Played", exact=True),
+        ).first
+        expect(overview.get_by_text("Most Played", exact=True)).to_be_visible()
+        panels = overview.locator('[data-testid="statistics-overview-panel"]')
+        self.assertGreater(panels.count(), 0)
+        spills = panels.evaluate_all(
+            """panels => panels.filter(panel => {
+              const box = panel.getBoundingClientRect();
+              const parent = panel.closest('[data-statistics-sections-root]').getBoundingClientRect();
+              return box.left < parent.left - 1 || box.right > parent.right + 1;
+            }).map(panel => panel.textContent.slice(0, 80))""",
+        )
+        self.assertEqual(spills, [])
+        self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
+
     def test_summary_values_are_not_broken_mid_word(self):
         for width in NARROW_WIDTHS:
             with self.subTest(width=width):
@@ -128,6 +151,34 @@ class StatisticsLayoutTests(SerialStaticLiveServerTestCase):
                     [card.element_handle(), score.element_handle()],
                 )
                 self.assertTrue(inside)
+
+    def test_explore_reveal_reverses_and_respects_reduced_motion(self):
+        page = self.open_statistics(1280, height=450)
+        button = page.get_by_role("button", name="Explore")
+        reveal = page.locator(".sidebar-reveal")
+        expect(button).to_have_attribute("aria-expanded", "false")
+        self.assertTrue(reveal.locator("..").evaluate("el => el.inert"))
+
+        button.click()
+        expect(button).to_have_attribute("aria-expanded", "true")
+        expect(reveal.get_by_role("link", name="Statistics", exact=True)).to_be_visible()
+        self.assertFalse(reveal.locator("..").evaluate("el => el.inert"))
+        self.assertEqual(reveal.evaluate("el => getComputedStyle(el).transitionProperty"), "transform")
+        self.assertTrue(reveal.evaluate("""el => [...el.querySelectorAll('div')].some(
+            child => getComputedStyle(child).overflowY === 'auto' && child.scrollHeight > child.clientHeight
+        )"""))
+
+        # Reverse before the transition ends; the last click must win.
+        button.click()
+        button.click()
+        page.wait_for_timeout(300)
+        expect(button).to_have_attribute("aria-expanded", "true")
+        self.assertEqual(reveal.evaluate("el => getComputedStyle(el).transform"), "matrix(1, 0, 0, 1, 0, 0)")
+        page.emulate_media(reduced_motion="reduce")
+        button.click()
+        expect(button).to_have_attribute("aria-expanded", "false")
+        self.assertLess(float(reveal.evaluate("el => parseFloat(getComputedStyle(el).transitionDuration)")), 0.001)
+        self.assertTrue(reveal.locator("..").evaluate("el => el.inert"))
 
     def test_boosted_sidebar_navigation_initialises_the_page(self):
         # hx-boost swaps the body, and Alpine used to run before the externally

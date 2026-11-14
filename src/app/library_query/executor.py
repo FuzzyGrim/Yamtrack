@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from functools import cached_property
-from itertools import islice
+from itertools import batched, islice
 from typing import TYPE_CHECKING
 
 from django.db.models import Exists, F, OuterRef, Q
@@ -99,7 +99,11 @@ class LibraryQueryExecutor:
             filter_registry.TypeContext(
                 user=self.user,
                 media_type=media_type,
-                sources=tuple(tracker_sources(self.user, media_type, self.query.routing)),
+                sources=tuple(tracker_sources(
+                    self.user, media_type, self.query.routing,
+                    include_podcast_shows=self.query.include_podcast_shows,
+                    include_albums=self.query.sort_list_id is not None,
+                )),
                 today=self.today,
                 provider_region=self.query.provider_region,
                 pinned_providers=self.query.pinned_providers,
@@ -430,6 +434,21 @@ class LibraryQueryExecutor:
             return candidates.exists()
         return bool(self._scan(candidates, with_sort=False))
 
+    def matching_among(self, item_ids, *, chunk_size: int) -> set[int]:
+        """Return which of ``item_ids`` match, asking once per ``chunk_size`` ids.
+
+        The set form of ``contains``: the same conditions, Python filters and
+        cross-provider hiding, so each id gets the answer ``contains`` gives.
+        """
+        matched = set()
+        for chunk in batched(dict.fromkeys(item_ids), max(1, chunk_size)):
+            candidates = self.filtered.filter(pk__in=chunk)
+            if not self._needs_scan:
+                matched.update(candidates.values_list("pk", flat=True))
+            else:
+                matched.update(row[-1] for row in self._scan(candidates, with_sort=False))
+        return matched
+
     def page(
         self,
         offset: int,
@@ -610,7 +629,7 @@ class LibraryQueryExecutor:
             if not batch:
                 break
             if filter_registry.NEEDS_MEDIA in needs:
-                _attach_media(self.user, batch, needs, show_facts=show_facts, shared=shared)
+                _attach_media(self.user, batch, needs, show_facts=show_facts, shared=shared, include_albums=self.query.sort_list_id is not None)
             for ctx in self.contexts:
                 for definition in self._predicates(ctx):
                     if definition.prepare is not None:
@@ -702,6 +721,7 @@ def _attach_media(
     needs: set[str],
     *,
     show_facts: bool = False,
+    include_albums: bool = False,
     shared=None,
 ) -> None:
     """Load each candidate's aggregated tracker row, for this batch only.
@@ -771,6 +791,16 @@ def _attach_media(
             current = latest.get(media.item_id)
             if current is None or media.created_at > current.created_at:
                 latest[media.item_id] = media
+        if media_type == MediaTypes.PODCAST.value:
+            from app.services.podcast_list_tracking import (
+                podcast_show_trackers_for_items,
+            )
+
+            latest.update(podcast_show_trackers_for_items(user, [candidate.item for candidate in candidates]))
+        if include_albums and media_type == MediaTypes.MUSIC.value:
+            from app.services.music import album_trackers_for_list_items
+
+            latest.update(album_trackers_for_list_items(user, [candidate.item for candidate in candidates]))
         tracked = []
         for candidate in candidates:
             candidate.media = latest.get(candidate.item.pk)

@@ -13,7 +13,14 @@
      data-track-modal-root
      @keydown.escape.window="trackOpen = false"
      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-  <div class="w-[400px] max-h-[90dvh] px-4 md:px-0 relative z-60">
+  {% song_track_form album track music as song_form %}
+  {% if song_form %}
+    {% with song_form.formId|add:"-props" as song_form_props_id %}
+      {{ song_form|json_script:song_form_props_id }}
+      <div data-track-form-root data-props-id="{{ song_form_props_id }}"></div>
+    {% endwith %}
+  {% endif %}
+  <div data-track-fallback class="w-[400px] max-h-[90dvh] px-4 md:px-0 relative z-60">
     <div class="bg-[var(--color-surface)] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-[var(--color-text)]">{% if music and music.item and music.item.media_type == 'podcast' %}{% translate "Track Episode" %}{% else %}{% translate "Track Song" %}{% endif %}</h2>
@@ -23,6 +30,8 @@
         </button>
       </div>
 
+      <div class="space-y-4">
+      <div data-track-tab-section="song-details">
       {# Song/Episode preview data #}
       <div class="bg-[var(--color-surface-muted)] rounded-lg p-4 mb-6">
         <div class="flex items-start gap-4">
@@ -95,7 +104,6 @@
       </div>
 
       {# Song/Episode form #}
-      <div class="space-y-4">
 
         {% if music %}
           {% if music.item and music.item.media_type == 'podcast' %}
@@ -179,20 +187,14 @@
           {% endif %}
         {% endif %}
 
-        {% song_track_form album track music as song_form %}
-        {% if song_form %}
-          {% with song_form.formId|add:"-props" as song_form_props_id %}
-            {{ song_form|json_script:song_form_props_id }}
-            <div data-track-form-root data-props-id="{{ song_form_props_id }}"></div>
-          {% endwith %}
-        {% endif %}
+      </div>
 
         <form id="{% if song_form %}{{ song_form.formId }}{% endif %}"
               data-track-form-legacy
               method="post"
-              action="{% if music and music.item and music.item.media_type == 'podcast' %}{% url 'podcast_save' %}{% else %}{% url 'song_save' %}{% endif %}?next={{ request.path }}"
+              action="{% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}{% url 'podcast_save' %}{% else %}{% url 'song_save' %}{% endif %}?next={{ request.path }}"
               @submit="closeTrackModal($el)"
-              {% if music and music.item and music.item.media_type == 'podcast' %}
+              {% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}
               hx-post="{% url 'podcast_save' %}"
               hx-target="[data-episode-uuid='{% if music.item %}{{ music.item.media_id }}{% elif track.episode_uuid %}{{ track.episode_uuid }}{% endif %}']"
               hx-swap="outerHTML"
@@ -219,10 +221,10 @@
           {% endif %}
 
           <label class="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
-            {% if music and music.item and music.item.media_type == 'podcast' %}{% translate "Play Date" %}{% else %}{% translate "Listen Date" %}{% endif %}
+            {% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}{% translate "Play Date" %}{% else %}{% translate "Listen Date" %}{% endif %}
           </label>
 
-          {% if music and music.item and music.item.media_type == 'podcast' %}
+          {% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}
             {% include "app/components/date_time_picker.html" with field_name="end_date" field_value=music.end_date|default_if_none:"" field_id="podcast-play-date-"|add:track.id field_label=_("Play Date") default_now=True track_time=TRACK_TIME suggestion_label=_("Release Date") suggestion_date=track.published|date:"Y-m-d" runtime_minutes=track.runtime_minutes week_start=user.week_start_day use_12_hour=user|user_uses_12_hour_format only %}
           {% else %}
             {% include "app/components/date_time_picker.html" with field_name="end_date" field_value=music.end_date|default_if_none:"" field_id="listen-date-"|add:track.id field_label=_("Listen Date") default_now=True track_time=TRACK_TIME suggestion_label=_("Release Date") suggestion_date=album.release_date|date:"Y-m-d" runtime_minutes=track.runtime_minutes week_start=user.week_start_day use_12_hour=user|user_uses_12_hour_format only %}
@@ -231,7 +233,7 @@
           <div class="flex justify-end-safe gap-3 mt-6">
             <button type="submit"
                     class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
-              {% if music and music.item and music.item.media_type == 'podcast' %}{% translate "Add play" %}{% else %}{% translate "Add listen" %}{% endif %}
+              {% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}{% translate "Add play" %}{% else %}{% translate "Add listen" %}{% endif %}
             </button>
           </div>
         </form>

@@ -187,11 +187,10 @@ function Overview({ model, colors, onNavigate }) {
         event?.preventDefault?.();
         onNavigate(card.url, card);
       } : undefined}
-      style={({ pressed, focused }) => [styles.cardPressable, {
-        outlineStyle: 'solid',
-        outlineWidth: focused ? 2 : 1,
-        outlineColor: focused ? colors.accent : colors.border,
-      }, pressed && styles.pressed]}>
+      // No outline here: the card draws its own border, and the global
+      // :focus-visible rule in controls.css rings it for keyboard focus. An
+      // always-on outline showed as a square on top of the rounded card.
+      style={({ pressed }) => [styles.cardPressable, pressed && styles.pressed]}>
       <SettingsCard title={card.title} badge={card.badge || undefined}
         palette={tonePalette(colors, card.tone)}>
         <Text style={[styles.cardText, { color: colors.textMuted }]}>{card.subtitle}</Text>
@@ -219,7 +218,7 @@ const styles = StyleSheet.create({
   description: { fontSize: 14, lineHeight: 21, marginTop: 4 },
   linkPressable: { alignSelf: 'flex-start', minWidth: 0 },
   link: { fontSize: 14, lineHeight: 21 },
-  cardPressable: { minWidth: 0, textDecorationLine: 'none' },
+  cardPressable: { minWidth: 0, textDecorationLine: 'none', borderRadius: 18 },
   cardText: { fontSize: 14, lineHeight: 21 },
   pressed: { opacity: 0.85 },
 });
