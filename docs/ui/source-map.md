@@ -950,6 +950,7 @@ Status: `Partial / coexisting`
 - `native-proof/app/screens/ProvidersScreen.jsx`, `native-proof/app/screens/ProviderDetailScreen.jsx`, `native-proof/app/screens/integrationPalette.js` (native SettingsSurface consumers; directory/frame/account-order fixes, medium themed controls; browser comparison remains partial)
 - `native-proof/app/data/providersTransportCore.js` (retains browser account status and binary import payloads; current iOS/Android paths unverified)
 
+Provider account state and bundled keys: `provider_ui._connection_card` and `provider_catalog.provider_state` (`account_linkable`) split a linked account from credentials; `credentials.ProviderCredentialSpec.bundled_only` (WeTrakr) hides every key surface. `mountAccountConnection` mounts the shared `ProviderLinkCard` device-code flow for WeTrakr through `transport.web.linkRequest` (replacing the Alpine connect box in `wetrakr_sync.html`), `ProviderLinkCard.initialDevice` resumes a pending code on web and via `ProviderDetailView` on native, and `ProviderSettingsView`/`readThemePalette` give the key chip and neutral badges real colors. Web verified in Chromium; iOS and Android unverified.
 
 ProviderDetailView consumes portable AccountSettings/ProviderSettingsView, native-only active sign-in slots and CatalogGrantsCard on Stremio Tracking. Existing Django/web adapter bodies coexist until full browser parity and migration acceptance; no platform classification is changed by these native composition edits.
 
@@ -1485,7 +1486,6 @@ Track dialog layout restore: `TrackForm.jsx`, `TrackFormTabs.jsx`, `SelectField.
 - `src/templates/app/components/detail_composition.html`
 - `src/templates/app/components/detail_related.html`
 - `src/templates/app/components/edition_picker.html`
-- `src/templates/app/components/filter_bar.html`
 - `src/templates/app/components/people_hero.html`
 - `src/templates/app/components/people_island.html`
 - `src/templates/app/components/rating_chip.html`

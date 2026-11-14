@@ -236,7 +236,7 @@ export function ProviderDetailView({
   const browserAccount = connection.mode === 'browser' && linkable ? <ProviderLinkCard
     label={page.provider?.label} needsServerUrl={slug === 'storyteller'} palette={palette} buttonPalette={buttonPalette}
     onStart={onStartLink} onPoll={onPollLink} onCancel={onCancelLink} onOpenUrl={onOpenUrl} onCopy={onCopy}
-    onConnected={onLinked}
+    onConnected={onLinked} initialDevice={connection.account?.device || undefined}
     renderIdle={connection.account && slug !== 'storyteller' ? ({ onConnect: connect, error }) => <View style={styles.stack}>
       <AccountSettings model={accountSettingsModel(connection.account, page.labels)}
         onConnect={connect} onDisconnect={onDisconnect} palette={palette} buttonPalette={buttonPalette} />

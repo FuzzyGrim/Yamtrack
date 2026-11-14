@@ -29,14 +29,15 @@ consenting test account has confirmed, using the bundled key:
 
 1. Nothing to set up: Floppy ships WeTrakr's app-owned key (a shared default,
    like the TMDB key), sent as the `wetrakr-api-key` header. It is public by
-   design and every install shares its quota. To use your own, set
-   `WETRAKR_CLIENT_ID` or paste it under Settings > Providers > WeTrakr.
+   design and every install shares its quota. WeTrakr issues the key to the app,
+   so members cannot get their own and Settings offers no key field. A rebrand or
+   public host with its own key sets `WETRAKR_CLIENT_ID` in the environment.
 
    Running Floppy yourself, including with small changes of your own, needs
    nothing more. If you rebrand Floppy, make a major departure from it, or host
    it as a public service for other people, ask WeTrakr for your own key so your
    users are counted separately from Floppy's.
-2. Integrations > WeTrakr > Connect. Floppy shows a code; approve it on
+2. Providers > WeTrakr > Connection > Connect WeTrakr. Floppy shows a code; approve it on
    wetrakr.com. Floppy stores the tokens encrypted and refreshes them under a
    lock, because WeTrakr rotates refresh tokens.
 3. Connecting sends nothing. Plays, statuses and ratings each have a switch,

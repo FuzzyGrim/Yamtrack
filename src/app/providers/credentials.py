@@ -90,6 +90,11 @@ class ProviderCredentialSpec:
     validator: object = None
     user_fields: tuple[str, ...] = dataclass_field(default_factory=tuple)
     setup_hint: str = ""
+    # The key belongs to Floppy, not to its users: the provider only issues it
+    # to the app. No credential form, "Get a key" link or credential status is
+    # shown, nothing can be saved over it from Settings, and only the
+    # environment can replace it (a rebrand or public host with its own key).
+    bundled_only: bool = False
 
     def personal_fields(self):
         """Return the fields a user may override personally."""
@@ -413,7 +418,7 @@ REGISTRY: dict[str, ProviderCredentialSpec] = {
             slug="wetrakr",
             media_tags=("screen",),
             group=GROUP_ACCOUNTS,
-            user_scope=True,
+            bundled_only=True,
             label="WeTrakr",
             description="Sending your plays, statuses and ratings to WeTrakr.",
             docs_url="https://api.wetrakr.com/",
