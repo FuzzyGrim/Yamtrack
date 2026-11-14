@@ -1153,7 +1153,7 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered in the shared TrackDialog by mountTrackForm for card, detail and episode Track popups; General fields, date/status/progress coupling, notes, repeat identity, validation and htmx save/delete/rewatch are wired. The web bundle builds and targeted Django tests pass, but no browser interaction pass was run."
+          "evidence": "Rendered in the shared TrackDialog by mountTrackForm for card, detail and episode Track popups. Song and podcast dialogs receive server-owned preview and history through the adapter while their fallback is hidden. The web bundle builds; runtime evidence is recorded separately."
         },
         "ios": {
           "status": "unverified",
@@ -1173,7 +1173,7 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered by mountTrackForm as the web Track dialog for card, detail, album/artist and podcast-show popups with General, Tags, Status history and Discover shared; the Metadata, Collection and Episode plays bodies are moved in from the server. The web bundle builds and targeted Django tests pass, but no browser interaction pass was run."
+          "evidence": "Rendered by mountTrackForm as the web Track dialog for card, detail, album/artist and podcast-show popups. Song and podcast preview and history remain server-owned and are moved into the form; their legacy shell remains a fallback. Runtime evidence is recorded separately."
         },
         "ios": {
           "status": "unverified",

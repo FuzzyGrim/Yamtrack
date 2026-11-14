@@ -109,3 +109,43 @@ class PodcastHistoryEditBrowserTests(SerialStaticLiveServerTestCase):
         expect(
             self.page.get_by_role("heading", name="Track Episode").locator("visible=true"),
         ).to_have_count(1)
+
+    def test_episode_play_dialog_has_one_owner_and_saves(self):
+        """The React dialog replaces the fallback while retaining episode details."""
+        self.open_show()
+        for episode_id in ("ep-played", "ep-fresh"):
+            row = self.page.locator(f"[data-episode-uuid='{episode_id}']")
+            row.get_by_title("Track Episode").click()
+            dialog = self.page.get_by_role("dialog")
+            expect(dialog).to_have_count(1)
+            expect(dialog.get_by_text("Played Episode" if episode_id == "ep-played" else "Fresh Episode")).to_be_visible()
+            expect(row.locator("[data-track-fallback]")).to_be_hidden()
+            if episode_id == "ep-played":
+                if screenshot := os.environ.get("FLOPPY_TRACK_DIALOG_SCREENSHOT"):
+                    self.page.wait_for_timeout(500)
+                    self.page.screenshot(path=screenshot)
+                self.page.keyboard.press("Escape")
+                expect(dialog).to_have_count(0)
+            else:
+                dialog.get_by_role("button", name="Add play").click()
+                expect(dialog).to_have_count(0)
+        self.assertTrue(PodcastPlay.objects.filter(podcast__episode=self.fresh).exists())
+
+    def test_episode_fallback_saves_when_react_bundle_fails(self):
+        """The server form remains usable when the React adapter cannot load."""
+        cookies = self.context.cookies()
+        self.context.close()
+        self.context = self.browser.new_context(service_workers="block")
+        self.context.add_cookies(cookies)
+        self.page = self.context.new_page()
+        self.page.route("**/static/ui/mountTrackForm-*.js", lambda route: route.abort())
+        self.open_show()
+        row = self.page.locator("[data-episode-uuid='ep-fresh']")
+        row.get_by_title("Track Episode").click()
+        fallback = row.locator("[data-track-fallback]")
+        expect(fallback).to_be_visible()
+        with self.page.expect_response(lambda response: "/podcast/episode/save/" in response.url) as saved:
+            fallback.get_by_role("button", name="Add play").click()
+        self.assertTrue(saved.value.ok)
+        expect(fallback).to_be_hidden()
+        self.assertTrue(PodcastPlay.objects.filter(podcast__episode=self.fresh).exists())

@@ -635,6 +635,8 @@ pending. These checks do not establish complete page parity.
 
 TrackForm keeps the accepted tabbed dialog and field composition. Date shortcuts retain runtime pairing, and mountTrackForm submits the normalized payload and watches episode popup state. SelectField retains its original filter chevron with additive style props for other consumers. Existing ownership and retirement conditions remain; browser interaction coverage and native runtime are distinct checks.
 
+Song and podcast episode tracking uses the shared TrackDialog and TrackForm, with the web adapter moving the server-owned preview and history into the form and hiding the fallback while mounted. The fallback remains for failed or unavailable React mounting; it can retire when those details and history actions are shared presentation. Native uses its existing tracking surfaces and does not mount the web fallback. Browser: podcast open, close, save and fallback tested in Chromium. iOS: runtime unverified. Android: runtime unverified.
+
 - `ManualEntryView` is shared React Native presentation consumed by native `SearchScreen` in create-entry mode. Native shell `/create` navigation opens it; structured options, parent lookup and authenticated writes use the search transport and the existing web forms on the server. The browser manual-entry template and remaining Track popup consumers stay coexisting until complete parity and web adoption. Browser: Expo parent search selected Deep Field and created season 99; temporary entry removed and absence verified. Final layout comparison pending. iOS: Not verified. Android: Not verified.
 
 - Purpose/usage: dialogs and manual creation.
