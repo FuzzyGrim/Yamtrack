@@ -1861,8 +1861,10 @@ CELERY_TASK_ROUTES = {
     # Long-running scheduled tasks — low priority so beat-catch-up bursts don't
     # starve other celery-queue work.
     "Reload calendar": {"priority": CELERY_TASK_PRIORITY_BACKGROUND},
-    # Discover cache rebuilds go to the dedicated discover worker so a post-restart
-    # burst of O(users x tabs) tasks never starves imports or background work.
+    # Discover cache rebuilds have their own queue, but no tier starts a separate
+    # discover worker: the background worker consumes it alongside `celery` (see
+    # celery_queue_plan). Background priority keeps a post-restart burst of
+    # O(users x tabs) rebuilds behind imports and freshness work queued with it.
     "Refresh Discover Tab Cache": {
         "queue": "discover",
         "priority": CELERY_TASK_PRIORITY_BACKGROUND,
