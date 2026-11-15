@@ -2116,8 +2116,8 @@
       "register": "HOME",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "Compact Home shelf cards now use a shared 110 pt width on phone layouts; browser runtime verification after the sizing change remains pending. Expo Home uses the reviewed default shared cards; the web retains its existing renderer and quick progress controls. Native row windowing and API transport remain adapter-owned. Final restoration runtime verification is recorded separately in the component register."
+          "status": "verified",
+          "evidence": "Chromium at 2x with 4x CPU throttle on a copy of real data: Home first load renders each of 128 cards once (803 renders before); before/after screenshots differ by at most 0.02% of pixels."
         },
         "ios": {
           "status": "verified",
@@ -2389,11 +2389,11 @@
         },
         "ios": {
           "status": "unverified",
-          "evidence": "The user captured the previous nested Menu presentation; its replacement with a menu-style Picker and full-card context-menu preview shape have not been runtime verified. Earlier iPhone Duo (iOS 27.2) testing covered compact Home cards and one touch-action path. The new person/studio hover-line behavior has not been run on iOS."
+          "evidence": "The user captured the previous nested Menu presentation; its replacement with a menu-style Picker and full-card context-menu preview shape have not been runtime verified. Earlier iPhone Duo (iOS 27.2) testing covered compact Home cards and one touch-action path. The new person/studio hover-line behavior has not been run on iOS. Render cost (2026-11-14): iPhone 16 Pro simulator, Expo Go: Library after five more pages keeps 45 cards mounted with no re-render of existing cards (180 mounted, 1,380 renders before); layout pixel-identical to the unchanged build."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Quick status and long-press changes are not runtime verified. Neither the shared 24px chip sizing nor Expo Go runtime interaction with the saved touch-action setting has been exercised on Android."
+          "evidence": "Quick status and long-press changes are not runtime verified. Neither the shared 24px chip sizing nor Expo Go runtime interaction with the saved touch-action setting has been exercised on Android. Render cost (2026-11-14): Android API 35 emulator, Expo Go: Library after five more pages keeps 54 cards mounted with no re-render of existing cards (150 mounted, 1,350 renders before); app memory 604 MB to 540 MB."
         }
       }
     },
@@ -2894,12 +2894,12 @@
           "evidence": "The Expo LibraryScreen consumes this shared composition. The browser library remains server-owned with its server table, Alpine filters and htmx pagination; no browser pass was run."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Expo iOS export compiled this view. Runtime verification is blocked because xcrun simctl reports CoreSimulatorService is unavailable."
+          "status": "verified",
+          "evidence": "iPhone 16 Pro simulator, Expo Go: Library after five more pages keeps 45 cards mounted with no re-render of existing cards (180 mounted, 1,380 renders before); layout pixel-identical to the unchanged build."
         },
         "android": {
-          "status": "unverified",
-          "evidence": "Expo Android export compiled this view. Runtime verification is blocked because adb cannot start its local daemon (operation not permitted)."
+          "status": "verified",
+          "evidence": "Android API 35 emulator, Expo Go: Library after five more pages keeps 54 cards mounted with no re-render of existing cards (150 mounted, 1,350 renders before); app memory 604 MB to 540 MB."
         }
       }
     },
@@ -3644,13 +3644,24 @@
     },
     "frontend/ui/DetailActivitySubtitle.jsx": {
       "kind": "presentation",
-      "components": ["DetailActivitySubtitle"],
+      "components": [
+        "DetailActivitySubtitle"
+      ],
       "register": "DETAIL",
       "purpose": "Render activity dates and duration consistently across detail surfaces.",
       "verification": {
-        "web": {"status": "verified", "evidence": "Mobile PWA on iPhone Duo compared with Expo; desktop appearance pending."},
-        "ios": {"status": "verified", "evidence": "Expo on iPhone Duo compared with the mobile PWA."},
-        "android": {"status": "unverified", "evidence": "Shared presentation and data tests pass; Android runtime appearance pending."}
+        "web": {
+          "status": "verified",
+          "evidence": "Mobile PWA on iPhone Duo compared with Expo; desktop appearance pending."
+        },
+        "ios": {
+          "status": "verified",
+          "evidence": "Expo on iPhone Duo compared with the mobile PWA."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Shared presentation and data tests pass; Android runtime appearance pending."
+        }
       }
     },
     "frontend/ui/DetailBackdrop.jsx": {
@@ -4723,7 +4734,7 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Quick status and long-press changes are not runtime verified. The browser adapter places status and next-episode chips in opposing corners, so narrow cards can collide. Compact CSS selects Next and wider cards retain Next ep; generated CSS is checked, but compact-breakpoint browser runtime verification remains pending."
+          "evidence": "Quick status and long-press changes are not runtime verified. The browser adapter places status and next-episode chips in opposing corners, so narrow cards can collide. Compact CSS selects Next and wider cards retain Next ep; generated CSS is checked, but compact-breakpoint browser runtime verification remains pending. Render cost (2026-11-14): Chromium at 2x with 4x CPU throttle on a copy of real data: Home first load renders each of 128 cards once (803 renders before); before/after screenshots differ by at most 0.02% of pixels."
         },
         "ios": {
           "status": "unverified",
@@ -4785,19 +4796,19 @@
       "components": [
         "ArtworkImage"
       ],
-      "purpose": "Render the shared artwork fallback and state contract with React Native Image primitives on iOS and Android.",
+      "purpose": "Render the shared artwork fallback and state contract on iOS and Android through expo-image (memory and disk cache, no transition); the browser keeps its own <img>.",
       "verification": {
         "web": {
           "status": "unverified",
           "evidence": "Not applicable to this native implementation."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through MediaCardView on the native Home, Library, Discover, Search and History screens; no simulator pass."
+          "status": "verified",
+          "evidence": "iPhone 16 Pro simulator, Expo Go: card artwork renders through expo-image (memory and disk cache, no fade-in); posters were on screen on the first frame after an app restart."
         },
         "android": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through MediaCardView on the native Home, Library, Discover, Search and History screens; no emulator pass."
+          "status": "verified",
+          "evidence": "Android API 35 emulator, Expo Go: card artwork renders through expo-image; after a relaunch all visible posters were painted while the unchanged build still showed placeholders."
         }
       }
     },
@@ -5540,13 +5551,24 @@
       "purpose": "Mount the shared activity subtitle in the browser history button."
     },
     "frontend/ui/mountDetailBackdrop.jsx": {
-      "components": ["WebDetailBackdrop"],
+      "components": [
+        "WebDetailBackdrop"
+      ],
       "register": "DETAIL",
       "purpose": "Measure the server hero frame and mount the shared mobile backdrop, retaining the server fallback.",
       "verification": {
-        "web": {"status": "verified", "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."},
-        "ios": {"status": "verified", "evidence": "Expo on iPhone Duo compared before and after."},
-        "android": {"status": "unverified", "evidence": "Expo uses the native adapter; runtime comparison pending."}
+        "web": {
+          "status": "verified",
+          "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."
+        },
+        "ios": {
+          "status": "verified",
+          "evidence": "Expo on iPhone Duo compared before and after."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Expo uses the native adapter; runtime comparison pending."
+        }
       }
     },
     "frontend/ui/mountDetailComposition.jsx": {

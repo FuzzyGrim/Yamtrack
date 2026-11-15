@@ -228,7 +228,15 @@ def rewrite_image_url(url, request=None):
 
 def rewrite_payload_images(payload, request=None):
     """Recursively rewrite image-like response fields without changing shape."""
-    image_keys = {"image", "image_url", "poster", "backdrop", "logo", "artwork"}
+    image_keys = {
+        "image",
+        "card_image",
+        "image_url",
+        "poster",
+        "backdrop",
+        "logo",
+        "artwork",
+    }
     if isinstance(payload, list):
         return [rewrite_payload_images(value, request=request) for value in payload]
     if isinstance(payload, tuple):

@@ -446,11 +446,15 @@ function LibraryPage({ params, navigate }) {
     setSelectedRows(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
   }
 
-  const dynamicGenres = [...new Set(rows.flatMap(row => row.media?.item?.genres || []))].map(value => ({ value, label: value }));
-  const dynamicYears = [...new Set(rows.map(row => {
+  // Walks every loaded row, so only when the rows change, not on every keystroke.
+  const dynamicGenres = useMemo(
+    () => [...new Set(rows.flatMap(row => row.media?.item?.genres || []))].map(value => ({ value, label: value })),
+    [rows],
+  );
+  const dynamicYears = useMemo(() => [...new Set(rows.map(row => {
     const value = row.media?.item?.release_datetime;
     return value ? String(new Date(value).getUTCFullYear()) : '';
-  }).filter(Boolean))].map(value => ({ value, label: value })).sort((a, b) => b.value.localeCompare(a.value));
+  }).filter(Boolean))].map(value => ({ value, label: value })).sort((a, b) => b.value.localeCompare(a.value)), [rows]);
   const musicSubview = entitySubview;
   const filterOptions = {
     mediaTypes: Object.entries(MEDIA_TYPE_LABELS).map(([value, label]) => ({ value, label })),
@@ -569,13 +573,17 @@ function LibraryPage({ params, navigate }) {
         ? 'ready'
         : 'empty';
 
-  return <Screen chrome={false}>
-    {showRail ? <View style={styles.rail}>
-      <AlphabetBar options={ALPHABET.map(option => ({ ...option, selected: option.value === (filters.initial || '') }))}
-        label="Filter by starting character" palette={RAIL_PALETTE}
-        onNavigate={(_event, option) => setFilters(current => ({ ...current, initial: option.value }))} />
-    </View> : null}
-    <LibraryPageView
+  const gridView = filters.view === 'grid';
+  const onRate = (row, score) => transport.update({ identity: row.identity, values: { score } })
+    .then(() => setReloadToken(value => value + 1))
+    .catch(cause => setError(cause?.message || 'Rating could not be saved.'));
+
+  const rail = showRail ? <View style={styles.rail}>
+    <AlphabetBar options={ALPHABET.map(option => ({ ...option, selected: option.value === (filters.initial || '') }))}
+      label="Filter by starting character" palette={RAIL_PALETTE}
+      onNavigate={(_event, option) => setFilters(current => ({ ...current, initial: option.value }))} />
+  </View> : null;
+  const page = scrollProps => <LibraryPageView
       title={title}
       count={total ?? (state === 'ready' ? rows.length : undefined)}
       countLabel={total === 1 ? 'item' : 'items'}
@@ -655,12 +663,13 @@ function LibraryPage({ params, navigate }) {
         </View> : null}
         {notice ? <Text accessibilityRole="alert" style={styles.inlineError}>{notice}</Text> : null}
       </View>}
-      content={filters.view === 'grid'
-        ? <LibraryGrid rows={rows} selecting={selectionMode} selected={selectedRows} onToggle={toggleSelected} groupBy={groupBy}
-          onOpen={openRow} onOpenHistory={() => navigate('History')}
-          onRate={(row, score) => transport.update({ identity: row.identity, values: { score } })
-            .then(() => setReloadToken(value => value + 1))
-            .catch(cause => setError(cause?.message || 'Rating could not be saved.'))} />
+      renderScroll={gridView ? ({ header, footer, ready }) => <LibraryGrid rows={ready ? rows : undefined}
+        selecting={selectionMode} selected={selectedRows} onToggle={toggleSelected} groupBy={groupBy}
+        onOpen={openRow} onOpenHistory={() => navigate('History')} onRate={onRate}
+        header={header} footer={footer} scrollProps={scrollProps}
+        onEndReached={ready && !loading ? loadMore : undefined} /> : undefined}
+      content={gridView
+        ? null
         : <TableSlot rows={rows} onOpenDetail={openRow}
           columnConfig={prefs.columns} onColumnsSave={hasPreferences ? saveColumns : undefined}
           selecting={selectionMode} selectedRows={selectedRows} onToggleSelect={toggleSelected}
@@ -676,7 +685,16 @@ function LibraryPage({ params, navigate }) {
           disabled={loadingMore} onPress={loadMore} palette={buttonPalette} /> : null}
         {loadingMore ? <ActivityIndicator color={palette.accent} /> : null}
       </View>}
-    />
+    />;
+
+  // The grid scrolls itself (a windowed list) with Screen's own scroll settings;
+  // the table keeps the page scroll.
+  // The A to Z rail stays outside the scrolling list: in grid view it goes in
+  // Screen's `floating` slot, beside the list, so its height spans the screen
+  // and it does not scroll away with the header.
+  return <Screen chrome={false} renderScroll={gridView ? page : undefined} floating={gridView ? rail : undefined}>
+    {gridView ? null : rail}
+    {gridView ? null : page()}
   </Screen>;
 }
 

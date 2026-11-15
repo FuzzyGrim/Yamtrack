@@ -23,6 +23,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext
 
+from app.artwork_sizes import card_image_url
 from app.helpers import progress_activity
 from app.library_query import FilterValues, LibraryQuery, LibraryQueryExecutor, SortSpec
 from app.library_query.adapters import (
@@ -3583,8 +3584,9 @@ def _opposite_direction_artwork(user, row, limit: int = 8, *, seed: int = 0) -> 
     normalized = _normalized_filter_payload(row.filters or {}, row.media_type)
     executor = _library_row_executor(user, flipped, normalized, seed=seed)
     items, _total = _row_items(user, flipped, executor, 0, limit, seed=seed)
+    # The same card-size URL the card will load, so the prefetch warms that file.
     return [
-        item.image
+        card_image_url(item.image)
         for item in items
         if item.image and item.image != settings.IMG_NONE and item.image.startswith("http")
     ]

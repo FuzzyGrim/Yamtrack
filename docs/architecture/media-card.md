@@ -220,6 +220,39 @@ first item's ID and image, so changing that item or its artwork bypasses the old
 Only a cold cover uses the per-card HTMX request; page rendering never fetches providers.
 The first eight resolved index covers are eager even on a full document load.
 
+## Card artwork size
+
+A card asks the provider for a file sized for it, not the stored original. One server
+function, `card_image_url` in `src/app/artwork_sizes.py`, rewrites the provider's own
+size token: IGDB `t_original` becomes `t_cover_big_2x` (528 px wide, about a tenth of
+the bytes) and TMDB `original` becomes `w780`. TMDB `w500` posters are already the right
+size for a 2x card and stay as they are. Sizes are only made smaller; other hosts, local
+covers and data URLs pass through unchanged. `card_model`, `history_card_model`,
+`row_card_model`, detail related cards, Home's sort-flip prefetch and the API item's
+`card_image` field (the native Library card) all use it, so web and native load the same
+file. `image` itself, Detail heroes and backdrops keep the stored size. Add a provider
+only after checking its stored URLs follow a size scheme.
+
+With the image cache on, the card size goes through the proxy like any other URL, so
+the proxy keeps a second, much smaller file for a picture that is also shown full size.
+On a sample of IGDB covers the card file averaged 64 KB against 730 KB for the original,
+so a picture opened in Detail costs about 9% more disk, and one only seen on cards
+about 90% less.
+
+On native, `ArtworkImage.native.jsx` draws through `expo-image` (memory and disk cache,
+no fade-in) behind the shared `ArtworkImage` fallback chain, so a card that scrolls
+back or a grid opened again paints without a new download. The browser keeps its
+`<img>`, which the browser already caches.
+
+## Render cost
+
+`MediaCard` is memoized on its props on web and native. A list re-render (a Home
+shelf arriving, a Library page appended) skips cards whose model and callbacks are
+unchanged, so parents pass stable props: `HomeShelves` and `MediaCardSlot` bind card
+callbacks through a ref, and card models are built once per row. A changed model still
+re-renders its card. `npm run test:ui-render` checks both. The native Library grid is
+a windowed `FlatList`; the web keeps server paging and document scroll.
+
 ## Card profiles
 
 Subtitle lines come from `User.card_metadata`, one profile per media type plus `person`.
