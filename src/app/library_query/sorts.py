@@ -10,6 +10,7 @@ between pages.
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,8 @@ from django.db.models import (
     Case,
     CharField,
     Count,
+    DateTimeField,
+    Exists,
     ExpressionWrapper,
     F,
     IntegerField,
@@ -142,6 +145,63 @@ def _tracker_aggregate(sort_key: str):
 def _latest_score(ctx: TypeContext, seed: int):
     """Order by the score on the most recently active scored row."""
     return latest_value(ctx, "score", Q(score__isnull=False))
+
+
+def _stores_progressed_at(model) -> bool:
+    """Return whether ``progressed_at`` on this model is its stored column.
+
+    TV and Season inherit the column but replace the attribute with a value
+    derived from their episodes; Episode reports none. Only the column can be
+    read in SQL.
+    """
+    from functools import cached_property
+
+    stored = any(field.attname == "progressed_at" for field in model._meta.concrete_fields)
+    attribute = inspect.getattr_static(model, "progressed_at", None)
+    return stored and not isinstance(attribute, (property, cached_property))
+
+
+def _progressed_at(ctx: TypeContext, seed: int):
+    """Order by ``progressed_at`` on the row a scan displays.
+
+    That is the item's newest tracker row by ``created_at`` (``_attach_media``
+    keeps it; ``_aggregate_item_data`` leaves the value alone), not the
+    latest ``progressed_at`` across repeat viewings.
+    """
+    from app.library_query.trackers import AlbumSource, PodcastShowSource
+    from app.models import Podcast, PodcastShowTracker
+
+    subqueries = []
+    for source in ctx.sources:
+        if source.is_episode:
+            # An episode card reports no progressed_at.
+            continue
+        if isinstance(source, PodcastShowSource):
+            # Handled below: a show tracker replaces the podcast row.
+            continue
+        if isinstance(source, AlbumSource) or not _stores_progressed_at(source.model):
+            return None
+        value = Subquery(
+            source.item_rows(ctx.user)
+            .order_by("-created_at", "-id")
+            .values("progressed_at")[:1],
+        )
+        if source.model is Podcast:
+            # A tracked show is displayed through its show tracker, which has
+            # no progressed_at.
+            show_tracked = PodcastShowTracker.objects.filter(
+                user=ctx.user,
+                show__podcast_uuid=OuterRef("media_id"),
+                show__source=OuterRef("source"),
+            )
+            value = Case(
+                When(Exists(show_tracked), then=Value(None)),
+                default=value,
+            )
+        subqueries.append(value)
+    if not subqueries:
+        return Value(None, output_field=DateTimeField())
+    return subqueries[0] if len(subqueries) == 1 else Coalesce(*subqueries)
 
 
 def _first_created(ctx: TypeContext, seed: int):
@@ -354,7 +414,8 @@ SORTS: tuple[SortDef, ...] = (
     SortDef(("time_watched",), needs=_MEDIA_RUNTIME),
     SortDef(("time_to_beat",), needs=_MEDIA),
     SortDef(("author",), needs=_MEDIA),
-    SortDef(("updated", "progressed_at"), needs=_MEDIA),
+    # SQL for types that store the column; TV and seasons scan.
+    SortDef(("updated", "progressed_at"), sql=_progressed_at, needs=_MEDIA, tracker=True),
     SortDef(("time_left",), needs=frozenset({NEEDS_MEDIA, NEEDS_MAX_PROGRESS})),
     SortDef(
         ("next_episode_air_date",),
