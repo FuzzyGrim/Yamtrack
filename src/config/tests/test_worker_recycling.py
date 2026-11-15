@@ -116,3 +116,46 @@ print(json.dumps({
         ceilings = [self._limits(tier)["max_memory_per_child"] for tier in TIERS]
 
         self.assertEqual(ceilings, sorted(ceilings))
+
+
+class ChildMemoryMeasureTests(SimpleTestCase):
+    """CELERY_WORKER_MAX_MEMORY_PER_CHILD compares the child's anonymous size.
+
+    billiard's own reading is ru_maxrss, a lifetime peak that includes the
+    memory-mapped database. Once one task read a wide table, every later task
+    ended with the child "over" its ceiling and recycled for page cache.
+    """
+
+    def test_pool_children_measure_anonymous_resident_size(self):
+        import billiard.pool
+
+        from config import celery as celery_config
+
+        original = billiard.pool.mem_rss
+        self.addCleanup(setattr, billiard.pool, "mem_rss", original)
+        celery_config._measure_child_memory_without_page_cache()
+
+        self.assertIs(billiard.pool.mem_rss, celery_config._child_anon_rss_kib)
+
+    def test_the_reading_is_in_kib(self):
+        from unittest.mock import patch
+
+        from config import celery as celery_config
+
+        with patch.object(
+            celery_config, "current_anon_rss_bytes", return_value=150 * 1024 * 1024
+        ):
+            self.assertEqual(celery_config._child_anon_rss_kib(), 150 * 1024)
+
+    def test_an_unreadable_proc_falls_back_to_billiards_figure(self):
+        from unittest.mock import patch
+
+        from billiard import compat
+
+        from config import celery as celery_config
+
+        with (
+            patch.object(celery_config, "current_anon_rss_bytes", return_value=None),
+            patch.object(compat, "mem_rss", return_value=4321),
+        ):
+            self.assertEqual(celery_config._child_anon_rss_kib(), 4321)
