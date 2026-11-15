@@ -431,7 +431,10 @@ function CardRating({ rating, csrfToken, editable, onRate }) {
   </span>;
 }
 
-export function MediaCard({
+// Memoized on its props: a list re-render (a shelf arriving, a page appended)
+// skips cards whose model and callbacks are unchanged. Parents pass stable
+// props for this to hold; a changed model still re-renders the card.
+export const MediaCard = React.memo(function MediaCard({
   model,
   slots,
   labels = {},
@@ -576,4 +579,4 @@ export function MediaCard({
     style={grid ? { '--card-title-rest-lines': '1', '--card-title-hover-lines': '3' } : undefined}>
     <div data-media-card-root="">{card}</div>
   </div>;
-}
+});

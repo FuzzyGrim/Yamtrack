@@ -1,29 +1,52 @@
-import React from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MediaCard } from '../../../frontend/ui/MediaCard';
 import { mediaCardPalette, spacing } from '../theme';
 import { cardActionsFor, mediaCardModelFromRow } from '../data/libraryTransportCore';
 import MediaCardSlot from './MediaCardSlot';
 import { useMobileGridLayout } from '../data/useMobileGridLayout';
 
-export default function LibraryGrid({ rows = [], onOpen, onOpenHistory, onRate, selected = [], selecting = false, onToggle, groupBy = 'item' }) {
+const NO_ROWS = [];
+
+// `header`/`footer` (native Library): the grid is the page's scrolling list
+// and draws the rest of the page above and below it.
+export default function LibraryGrid({
+  rows = NO_ROWS, onOpen, onOpenHistory, onRate, selected = NO_ROWS, selecting = false, onToggle, groupBy = 'item',
+  header, footer, onEndReached, scrollProps,
+}) {
   const { width } = useWindowDimensions();
   const mobileGridLayout = useMobileGridLayout();
+  const scrolls = header !== undefined || footer !== undefined;
+  const itemCards = groupBy === 'item' && !rows.some(row => row.identity?.entityType);
+  // Built once per row set, so appending a page keeps the existing card models
+  // (and their memoized cards) instead of rebuilding every one.
+  const built = useRef(new WeakMap());
+  const items = useMemo(() => (itemCards ? rows.map(row => {
+    let item = built.current.get(row);
+    if (!item) {
+      const model = mediaCardModelFromRow(row.media || row);
+      item = { key: String(row.id), row, model: { ...model, identity: row.identity, actions: cardActionsFor(model.title, row.identity) } };
+      built.current.set(row, item);
+    }
+    return item;
+  }) : NO_ROWS), [rows, itemCards]);
   // Tracked items carry the web card's own actions (tracking, lists, history, rating),
   // so they are handled in place. Artists, albums and shows keep the plain card.
-  if (groupBy === 'item' && !rows.some(row => row.identity?.entityType)) {
+  if (itemCards) {
     return <MediaCardSlot
-      items={rows.map(row => {
-        const model = mediaCardModelFromRow(row.media || row);
-        return { key: String(row.id), row, model: { ...model, identity: row.identity, actions: cardActionsFor(model.title, row.identity) } };
-      })}
+      items={items}
       gridLayout="library"
       mobileGridLayout={mobileGridLayout}
       selectionMode={selecting}
       selectedKeys={selected}
       onToggleSelection={onToggle}
       onOpenDetail={onOpen}
-      onOpenLink={href => { if (String(href) === '/history') onOpenHistory?.(); }} />;
+      onOpenLink={href => { if (String(href) === '/history') onOpenHistory?.(); }}
+      virtualized={scrolls}
+      header={header}
+      footer={footer}
+      onEndReached={onEndReached}
+      scrollProps={scrollProps} />;
   }
   const columns = width < 560 ? 2 : Math.min(5, Math.max(3, Math.floor((width + spacing.md) / 196)));
   const horizontalPadding = spacing.lg * 2;
@@ -40,7 +63,7 @@ export default function LibraryGrid({ rows = [], onOpen, onOpenHistory, onRate, 
   });
   const groups = [...buckets.entries()];
 
-  return <View style={styles.content}>
+  const grouped = <View style={styles.content}>
     {groups.map(([groupName, groupRows]) => <View key={groupName} style={styles.section}>
       {groupBy !== 'item' ? <Text style={styles.groupTitle}>{groupName}</Text> : null}
       <View style={styles.grid}>{groupRows.map(row => {
@@ -66,10 +89,19 @@ export default function LibraryGrid({ rows = [], onOpen, onOpenHistory, onRate, 
       })}</View>
     </View>)}
   </View>;
+  if (!scrolls) return grouped;
+  // Grouped sections and artist/album cards stay fully mounted (sections are
+  // short), inside the same scrolling list so the page above keeps its state.
+  return <FlatList data={NO_ROWS} renderItem={null} {...scrollProps}
+    style={[styles.list, scrollProps?.style]}
+    contentContainerStyle={[scrollProps?.contentContainerStyle, styles.listContent]}
+    ListHeaderComponent={<>{header}{grouped}</>} ListFooterComponent={footer} />;
 }
 
 const styles = StyleSheet.create({
   content: { gap: spacing.lg },
+  list: { flex: 1 },
+  listContent: { gap: 0, rowGap: 0 },
   section: { gap: spacing.sm },
   groupTitle: { color: mediaCardPalette.text, fontSize: 17, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
