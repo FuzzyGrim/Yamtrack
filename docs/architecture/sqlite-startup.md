@@ -12,6 +12,13 @@ The entrypoint treats both as timeouts, retries admission once, then parks if
 the retry also times out. A kernel storage operation in uninterruptible sleep
 cannot be made healthy by a Python or shell deadline.
 
+Because the deadline includes imports, the image ships compiled bytecode for
+the standard library, dependencies and app (`compileall` in the Dockerfile,
+guarded by `config.tests.test_dockerfile_bytecode`). Without it every Python
+start recompiled its imports from source: from a cold disk cache, admission
+took 7 to 11 s and the container 27 to 32 s to answer, against 4 to 5 s and
+12 to 14 s with bytecode (Docker Desktop, 4 CPUs, 20k-item library).
+
 An expired verification, absent record, interrupted scan or previous timeout
 only lets the sliced background verifier continue; a changed image does not. These are not corruption findings. An old record is not proof that
 the current database is entirely healthy; admission checks only accessibility

@@ -482,7 +482,19 @@ def _shared_media_objects(memo, media_refs):
     return _shared_rows(memo, "media_rows", refs, _fetch_media_objects)
 
 
-def _aggregate_minutes_per_media_type_from_days(user, day_list, *, build_missing=False):
+def _aggregate_minutes_per_media_type_from_days(
+    user,
+    day_list,
+    *,
+    build_missing=False,
+    build_days=None,
+):
+    """Add up ``minutes_by_type`` across the range's day payloads.
+
+    ``build_days(days)`` builds and caches a batch of missing days, as in
+    ``_walk_days``; without it a missing day is built alone when
+    ``build_missing`` is set.
+    """
     minutes_by_type = defaultdict(float)
     if not day_list:
         return {}
@@ -492,6 +504,11 @@ def _aggregate_minutes_per_media_type_from_days(user, day_list, *, build_missing
         chunk = day_list[offset : offset + chunk_size]
         key_map = {day: _day_cache_key(user.id, day) for day in chunk}
         cached = cache.get_many(key_map.values())
+        if build_days is not None:
+            absent = [day for day in chunk if key_map[day] not in cached]
+            if absent:
+                build_days(absent)
+                cached.update(cache.get_many([key_map[day] for day in absent]))
         for day in chunk:
             cache_key = key_map[day]
             day_stats = cached.pop(cache_key, None)
