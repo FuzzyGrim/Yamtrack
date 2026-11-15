@@ -144,8 +144,7 @@ large, which is a responsiveness problem rather than a memory one.
 
 ### Mapped database pages are not worker memory
 
-**Measured 2026-11-15** (validations D, E and G, prompt 16), base `5330579b3`,
-in the real image under `docker-compose.memory-benchmark.yml`: standard tier,
+**Measured** (validations D, E and G), in the real image under `docker-compose.memory-benchmark.yml`: standard tier,
 two web workers with four threads, default ceilings. The fixture is
 `app.benchmark_data.build_dataset(60000)` widened for this run: 132,000 items,
 three users of 20,000 tracked titles each; every movie, TV and anime item has
@@ -154,8 +153,7 @@ a synopsis and a TMDB-shaped `watch_providers` blob, **35% of them 146 to
 smart list; a 1.8 GB database. Each surface ran on a fresh worker that had
 already served one unrelated request, three times, cold (cache cleared) and
 then warm. The worker's VmHWM was reset (`clear_refs`) before each request, so
-"peak" is that request's own. Driver, raw samples and summary are in the
-git-ignored `docs/plans/Floppy_Performance_Master_Backlog/MEMENV-DEG/`.
+"peak" is that request's own.
 
 SQLite memory-maps the database (`SQLITE_MMAP_SIZE_MIB`, 256 MiB per
 connection on the standard tier, 1 GiB on the large one, since `8f24d925d`).
@@ -529,7 +527,7 @@ run against production-scale data at every rung.
 profile is structurally bounded and benchmarked, but `tracemalloc` is Python
 allocation, not RSS. Validation A is what turns it into a memory claim.
 
-**Whether `/medialist/movie` now fits in a worker: measured 2026-11-15
+**Whether `/medialist/movie` now fits in a worker: measured
 (validation E), and it does not on the slow path.** On the SQL-paginated
 default it adds 133 MiB, 16 MiB of it anonymous. Sorted by `runtime` (the
 non-SQL-paginated path) it adds about 370 MiB, about 92 MiB anonymous and the
@@ -579,7 +577,7 @@ ranges: 25,033 model instances built became 12,755, queries about 1,460
 became 953, and the Python allocation peak 139 MB became 101 MB; every payload
 is byte-identical.
 
-Measured in the real Celery background child on 2026-11-15 (validation G,
+Measured in the real Celery background child (validation G,
 memory half): one sync of a 20,000-title, ten-year library peaked at 393 MiB
 RSS, of which 121 MiB anonymous and 272 MiB the mapped database; anonymous
 growth per run was about 10 to 15 MiB. The webhook-injection half of G
@@ -738,36 +736,14 @@ of 150, indefinitely.
 
 ### D. Aged container
 
-**Partly run 2026-11-15**, 20 minutes per side rather than several hours, on
-the fixture described under
-[Mapped database pages are not worker memory](#mapped-database-pages-are-not-worker-memory):
-every web surface in a loop (caches cleared every third pass) beside
-`scripts/memory_library_workload.py`, sampled every second per process.
-
-- Before the ceiling fix: **sawtooth from recycling, about once a minute.**
-  40 web worker processes in 20 minutes for two slots. Workers spent 93% of
-  their samples above the 400 MiB ceiling by RSS (up to 1,663 MiB, 1,264 MiB
-  of it mapped database: four threads, a map each) and 0% by anonymous size
-  (at most 398 MiB). Each worker was retired as soon as it passed the
-  50-request and 60-second floors.
-- After: 4 web worker processes in 20 minutes. Anonymous size peaked at
-  338 MiB and plateaued; its floor rose from 117 to about 190 MiB over the
-  run, too short to call flat or creeping. The Statistics sync child's
-  anonymous size climbed about 10 MiB per chained sync pass (143 to 258 MiB
-  over twelve passes), which the 400 MiB ceiling still bounds.
-- Throughput is not comparable between the two halves: the host's load
-  average went from about 55 to 136 during the second half (other work on
-  the machine), and the second half started from a full restart.
-
-Plausible worst case at once, from the per-process maxima in these runs:
-two web workers at 338 MiB anonymous, the background child at 326 MiB and
-the interactive child at 88 MiB, about **1.1 GiB of anonymous memory**, an
-upper bound because each child's figure counts pages it still shares with
-its parent. Page cache comes on top and is bounded by the database size,
-shared by every process that maps it.
-
-Still to do: the several-hour run, and `scripts/memory_aging.sh` with
-`memory_aging_report.py` as documented, on a quiet host.
+Read recycling from the sampler, not from the cgroup alone. Sample every
+process's `RssAnon` and `RssFile` once a second beside a mixed web workload
+(every surface in a loop, caches cleared every third pass, plus
+`scripts/memory_library_workload.py`), and count distinct worker pids: a
+worker pool that recycles every minute is a sawtooth, and the recycle checks
+compare anonymous size (see
+[Mapped database pages are not worker memory](#mapped-database-pages-are-not-worker-memory)),
+so RSS above the ceiling with anonymous size below it must not recycle.
 
 Run the production-like workload for several hours. Report the two envelopes
 **separately** — application-resident (process PSS and private-anon) and raw
@@ -775,9 +751,6 @@ cgroup including page cache — and verify each returns to a repeatable envelope
 rather than ratcheting. Only after this should `X` and `Y` be chosen.
 
 ### E. `/medialist/movie`
-
-Run 2026-11-15; result under "Still unverified" above. The comparison
-against `3fe29eff` was not made.
 
 Against a large library, with a user configured to take the **non-SQL-paginated
 path** (pin a watch provider, or sort by `runtime`) — otherwise the fast path
@@ -797,9 +770,6 @@ high while `written` is 0, another field has the same representation mismatch
 duration had — the counters now name the failure rather than hiding it.
 
 ### G. Statistics
-
-Memory half run 2026-11-15 (see "Statistics FINISH" above). The webhook
-injection half was not.
 
 Run a large rebuild while repeatedly injecting Plex/Stremio webhooks. Record
 max chunk duration, FINISH duration, webhook wait time, the number of aborted
