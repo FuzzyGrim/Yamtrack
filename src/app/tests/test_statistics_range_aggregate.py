@@ -16,7 +16,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from app import statistics as stats
-from app import statistics_highlights, statistics_sync
+from app import statistics_aggregator, statistics_highlights, statistics_sync
 from app.models import TV, Anime, Book, Game, Item, MediaTypes, Movie, Sources, Status
 from app.statistics_aggregator import _aggregate_statistics_from_days
 from app.statistics_refresh import _get_predefined_range_dates, _resolve_day_list
@@ -160,6 +160,63 @@ class PassEqualityTests(RangeAggregateTestCase):
         self.assertEqual(outcome["status"], "done")
         self.assertEqual(len(outcome["published"]), len(statistics_sync.HOT_RANGES))
         self.assertEqual(load_index.call_count, 1)
+
+    def test_a_pass_loads_and_annotates_each_card_row_once(self):
+        for name in ALL_RANGES:
+            self.warm(name)
+        loaded = []
+        annotated = []
+        fetch = statistics_aggregator._fetch_media_objects
+        annotate = stats._annotate_top_rated_media
+
+        def record_fetch(refs):
+            loaded.extend(refs)
+            return fetch(refs)
+
+        def record_annotate(media):
+            annotated.extend((row._meta.model_name, row.pk) for row in media)
+            return annotate(media)
+
+        with (
+            patch.object(statistics_aggregator, "_fetch_media_objects", record_fetch),
+            patch.object(stats, "_annotate_top_rated_media", record_annotate),
+        ):
+            outcome = statistics_sync.run_sync(self.user.id, only_ranges=ALL_RANGES)
+
+        self.assertEqual(outcome["status"], "done")
+        self.assertTrue(loaded)
+        self.assertTrue(annotated)
+        self.assertEqual(len(loaded), len(set(loaded)))
+        self.assertEqual(len(annotated), len(set(annotated)))
+
+    def test_ranges_of_a_pass_get_their_own_copies_of_shared_rows(self):
+        pass_memo = {}
+        week = statistics_sync._aggregate_range(
+            self.user, "Last 7 Days", 0, pass_memo=pass_memo
+        )
+        month = statistics_sync._aggregate_range(
+            self.user, "Last 30 Days", 0, pass_memo=pass_memo
+        )
+
+        week_movie = week["top_rated"][0]
+        month_movie = next(
+            movie for movie in month["top_rated"] if movie.pk == week_movie.pk
+        )
+        self.assertIsNot(week_movie, month_movie)
+        self.assertIsNot(week_movie.item, month_movie.item)
+        # A card's own attributes stay with that range's copy.
+        week_movie.aggregated_score = -1
+        week_movie.item.title = "changed in one range"
+        self.assertNotEqual(month_movie.aggregated_score, -1)
+        self.assertNotEqual(month_movie.item.title, "changed in one range")
+        # Within one range the overall and per-type lists still share a row.
+        self.assertIs(week["top_rated_by_type"][MediaTypes.MOVIE.value][0], week_movie)
+        # The rows the memo keeps are never the ones a range was handed.
+        stored = pass_memo["top_rated_rows"][
+            (MediaTypes.MOVIE.value, week_movie.pk, week_movie.item_id)
+        ]
+        self.assertIsNot(stored, week_movie)
+        self.assertIsNot(stored, month_movie)
 
     def test_the_pass_memo_is_not_published(self):
         pass_memo = {}
