@@ -209,6 +209,18 @@ Interactive/native recovery uses shared ErrorRecovery and ErrorReportPanel. The 
 
 ## MEDIA-CARD
 
+The iOS `NativeCardMenu.ios.jsx` defines the full rounded `MediaCard` as the system context-menu preview shape for Home, Library, Search and other MediaCardSlot consumers. Android's Material menu and the Expo web dropdown have no corresponding lifted preview; browser card ownership, remaining consumers and retirement conditions are unchanged. Browser, iOS and Android runtime verification are recorded separately in the component register.
+
+`native-proof/app/surfaces/MediaCardSlot.jsx` composes `AdaptivePresentationSheet` with the shared `TrackDialog` and `ListsForm` for card tracking and list actions, matching Detail on Expo iOS, Android and web. The browser card adapter and other modal hosts remain; their retirement conditions are unchanged. Browser, iOS and Android runtime verification is pending independently.
+
+Quick status uses the shared MediaCard and MediaCardActions, the browser card adapter and the Expo MediaCardSlot on Home, Library and Search. Existing fallback consumers and retirement conditions are unchanged. Manual untracked items and non-generic tracking retain their existing flow. Browser search and iOS library rendered; interaction verification and Android runtime verification remain pending separately.
+
+`frontend/ui/mediaCardQuickStatus.web.js` owns browser status transport; Expo uses `native-proof/app/surfaces/mediaCardTransport.js`. Native long presses use system context menus and iOS system feedback or Android vibration; Expo web retains the shared dropdown because system menus are native-only.
+
+`MediaCard` consumes long presses on its artwork and title, while `MediaCardSlot` supplies the native menu and its “Update status” submenu on Home, Library, Search and other slot consumers. The Expo web adapter uses a shared dropdown submenu. Existing fallback ownership and retirement conditions remain unchanged; browser, iOS and Android interaction verification is pending separately.
+
+`native-proof/app/surfaces/NativeCardMenu.ios.jsx` renders the iOS context menu and its menu-style Picker; `NativeCardMenu.android.jsx` supplies the Android Material menu and haptic, while `NativeCardMenu.jsx` supplies the shared dropdown on Expo web. The Picker changes the native submenu control; its iOS runtime appearance is not yet verified.
+
 Custom-list grid and table adapters supply podcast show status and score to the existing card and table components; native list detail receives those fields through the list API, and smart-list rules resolve show trackers by provider identity. Presentation ownership and remaining consumers are unchanged. Browser: before/after grid and table captures at desktop and phone widths. iOS and Android runtime verification is pending.
 
 Shared MediaCard preserves the accepted status-specific icon shapes and colors, with provider icons as a fallback for unknown statuses. Native action hosts and progress renderers remain supplied by adapters. Ownership and remaining server consumers are unchanged; browser and native verification are recorded independently.
@@ -381,7 +393,7 @@ Status: `Partial / coexisting`
 
 ## SEARCH
 
-`native-proof/app/surfaces/SearchSlot.jsx` → shared `GlobalSearch`; `native-proof/app/screens/SearchScreen.jsx` → shared `SearchPageView`; `native-proof/app/surfaces/SearchResultsSlot.jsx` → shared `SearchResults` → `HomeShelves` → `MediaCard`. Expo `SearchSlot` supplies the reviewed media-type menu, barcode scopes and copy to shared `GlobalSearch`; keyboard overlap, authenticated suggestions and scanner behavior remain in native adapters. `SearchScreen` adds no extra top inset to results. `SearchResultsSlot` uses the default shared shelf card presentation instead of nesting a Library grid host inside each result; token results, streaming provider rows, music routing and manual-entry navigation remain. Shared presentation remains React-owned with the existing coexisting web fallback and retirement conditions. Deliberate platform difference: the restored native shelf card opens Detail while the browser retains its existing in-place actions.
+`native-proof/app/surfaces/SearchSlot.jsx` → shared `GlobalSearch`; `native-proof/app/screens/SearchScreen.jsx` → shared `SearchPageView`; `native-proof/app/surfaces/SearchResultsSlot.jsx` → shared `SearchResults` → `HomeShelves` → `MediaCard`. Expo `SearchSlot` supplies the reviewed media-type menu, barcode scopes and copy to shared `GlobalSearch`; keyboard overlap, authenticated suggestions and scanner behavior remain in native adapters. `SearchScreen` adds no extra top inset to results. `SearchResultsSlot` supplies MediaCardSlot to each shared shelf card for in-place actions; token results, streaming provider rows, music routing and manual-entry navigation remain. Shared presentation remains React-owned with the existing coexisting web fallback and retirement conditions. Native shelf actions use the MediaCardSlot host; unsupported media retain their existing detail flow.
 
 GlobalSearch and SearchResults retain the accepted menu/results geometry and theme accent. Browser keyboard overlap stays in keyboardOverlap.web.js; the native adapter supplies its own overlap hook and WindowedRail. Token results, manual-entry navigation and streaming provider rows remain. Existing ownership and fallback retirement conditions are unchanged; native runtime remains separately verified.
 
