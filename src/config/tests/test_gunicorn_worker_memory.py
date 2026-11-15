@@ -226,3 +226,64 @@ class WorkerMemoryCeilingTests(SimpleTestCase):
 
         self.assertIsNotNone(resident)
         self.assertGreater(resident, 1024 * 1024)
+
+
+class PageCacheIsNotWorkerMemoryTests(SimpleTestCase):
+    """The ceiling measures what a recycle returns, not the mapped database.
+
+    SQLite memory-maps the database file (SQLITE_MMAP_SIZE_MIB), and mapped
+    pages count as resident. One cold Home row put ~120 MiB of the file into a
+    worker, where it stays; a ceiling on plain RSS spent itself on page cache
+    that the replacement worker maps straight back in.
+    """
+
+    def test_shared_pages_are_subtracted_from_resident(self):
+        from config import runtime_profile
+
+        page = runtime_profile._page_size()
+        statm = "90000 60000 45000 700 0 15000 0\n"
+
+        self.assertEqual(
+            runtime_profile.anon_resident_bytes_from_statm(statm),
+            15000 * page,
+        )
+
+    def test_an_unreadable_statm_is_unknown(self):
+        from config import runtime_profile
+
+        for contents in (None, "", "12 34\n", "a b c\n"):
+            with self.subTest(contents=contents):
+                self.assertIsNone(
+                    runtime_profile.anon_resident_bytes_from_statm(contents),
+                )
+
+    def test_the_hook_reads_the_anonymous_size(self):
+        module = load_config("standard")
+        with patch.object(module, "current_anon_rss_bytes", return_value=1234):
+            self.assertEqual(module._worker_rss_bytes(), 1234)
+
+    @skipUnless(sys.platform == "linux", "reads /proc/self/statm")
+    def test_a_mapped_file_does_not_grow_the_measured_size(self):
+        """Reading a memory-mapped file the way SQLite does stays out of it."""
+        import mmap
+        import tempfile
+
+        from config import runtime_profile
+
+        size = 64 * 1024 * 1024
+        with tempfile.TemporaryFile() as handle:
+            handle.truncate(size)
+            mapped = mmap.mmap(handle.fileno(), size, access=mmap.ACCESS_READ)
+            try:
+                anon_before = runtime_profile.current_anon_rss_bytes()
+                rss_before = runtime_profile.current_rss_bytes()
+                step = mmap.PAGESIZE
+                touched = sum(mapped[offset] for offset in range(0, size, step))
+                anon_after = runtime_profile.current_anon_rss_bytes()
+                rss_after = runtime_profile.current_rss_bytes()
+            finally:
+                mapped.close()
+
+        self.assertEqual(touched, 0)
+        self.assertGreater(rss_after - rss_before, size // 2)
+        self.assertLess(anon_after - anon_before, 8 * 1024 * 1024)
