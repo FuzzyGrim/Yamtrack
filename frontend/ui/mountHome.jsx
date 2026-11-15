@@ -5,6 +5,8 @@ import { useShelfCardWidth } from './shelfWidth.web';
 import { MediaCard } from './MediaCard.web';
 import { ProgressChanger, progressControlHeight } from './ProgressChangerTheme.web';
 import { createViewportRowWatcher } from './homeRowWatcher.web';
+import { createRemoteHomeActions, mergeHomeRowPage } from './homeTransportCore';
+import { createWebRequest } from './webRequest.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -86,22 +88,12 @@ function assign(url) {
   if (url) window.location.assign(url);
 }
 
-function mergeRowPage(row, page) {
-  if (!page) return row;
-  return {
-    ...row,
-    ...page,
-    items: [...(row.items || []), ...(page.items || [])],
-    loadedCount: page.loadedCount ?? (row.items || []).length + (page.items || []).length,
-    total: page.total ?? row.total,
-    seed: page.seed ?? row.seed,
-    pollForCovers: !!(row.pollForCovers || page.pollForCovers),
-  };
-}
-
 function Adapter({ host, props }) {
   const [palette, setPalette] = useState(readPalette);
   const itemWidth = useShelfCardWidth();
+  // The same Home endpoints the Expo app calls, over the page's cookie session.
+  const [home] = useState(() => createRemoteHomeActions(createWebRequest({ csrfToken: props.csrfToken })));
+  const rowLimit = props.itemsLimit || undefined;
   // Rows below the fold load as they come within reach of the viewport.
   const [watchRow] = useState(() => createViewportRowWatcher());
   // The progress control's height follows the same breakpoint as card width.
@@ -119,48 +111,21 @@ function Adapter({ host, props }) {
     };
   }, []);
 
-  async function requestJson(url, options = {}) {
-    const response = await window.fetch(url, {
-      credentials: 'same-origin',
-      ...options,
-      headers: {
-        Accept: 'application/json',
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(options.method === 'POST' ? { 'X-CSRFToken': props.csrfToken || '' } : {}),
-        ...(options.headers || {}),
-      },
-    });
-    if (!response.ok) throw new Error(`Home request failed: ${response.status}`);
-    return response.json();
-  }
-
-  async function loadRow(rowId, offset = 0, seed = '') {
-    const params = new URLSearchParams();
-    params.set('offset', String(offset));
-    if (seed !== '' && seed != null) params.set('seed', String(seed));
-    if (props.itemsLimit) params.set('limit', String(props.itemsLimit));
-    const payload = await requestJson(`/api/v1/home/row/${encodeURIComponent(rowId)}/?${params}`);
-    return payload.row || null;
+  function loadRow(rowId) {
+    return home.loadRow({ rowId, limit: rowLimit });
   }
 
   async function loadMore(row) {
-    const page = await loadRow(row.rowId, row.loadedCount || 0, row.seed ?? '');
-    return page ? mergeRowPage(row, page) : null;
+    const page = await home.loadRow({ rowId: row.rowId, offset: row.loadedCount || 0, seed: row.seed ?? '', limit: rowLimit });
+    return page ? mergeHomeRowPage(row, page) : null;
   }
 
-  async function sortRow(row) {
-    const payload = await requestJson(
-      `/api/v1/home/row/${encodeURIComponent(row.rowId)}/sort/`,
-      { method: 'POST', body: '{}' },
-    );
-    return payload.row || null;
+  function sortRow(row) {
+    return home.sortRow({ rowId: row.rowId });
   }
 
   function refreshCovers(ids, pending) {
-    const params = new URLSearchParams();
-    params.set('ids', ids.join(','));
-    params.set('pending', String(pending));
-    return requestJson(`/api/v1/home/artwork/?${params}`);
+    return home.refreshCovers({ ids, pending });
   }
 
   function renderCard(item) {
