@@ -8,6 +8,7 @@ were recorded against the previous hand-written builders, so a request that
 used to share an entry still does, and one that did not still does not.
 """
 
+import dataclasses
 from collections import defaultdict
 from datetime import timedelta
 from unittest import mock
@@ -19,11 +20,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from app import cache_utils, media_list_views
+from app.media_list_filters import MediaListFilters
 from app.models import TV, Item, MediaTypes, Movie, Sources, Status
 
 MAIN = f"{cache_utils.MEDIA_LIST_CACHE_PREFIX}_"
 FILTERS = f"{cache_utils.MEDIA_LIST_FILTER_CACHE_PREFIX}_"
 TIME_LEFT = f"{cache_utils.TIME_LEFT_CACHE_PREFIX}_"
+DEFAULT_TOKEN = "f0c7e6f70e1ee6d6c1770a92"
 
 
 class _RecordingCache:
@@ -342,3 +345,150 @@ class MediaListCacheKeyContractTests(TestCase):
                     self._shared_groups(observed, kind),
                     sorted(sorted(group) for group in groups),
                 )
+
+
+class MediaListCacheWarmReadTests(TestCase):
+    """A warm (cached) page shows the same items as the cold one."""
+
+    def setUp(self):
+        self.credentials = {"username": "cache-warm", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+        now = timezone.now()
+        for index, title in enumerate(("Alpha", "Bravo", "Charlie")):
+            item = Item.objects.create(
+                media_id=f"cache-warm-movie-{index}",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=title,
+                image="http://example.com/movie.jpg",
+            )
+            Movie.objects.create(
+                item=item,
+                user=self.user,
+                status=Status.COMPLETED.value,
+                score=index * 4,
+                end_date=now - timedelta(days=index + 1),
+            )
+            show = Item.objects.create(
+                media_id=f"cache-warm-show-{index}",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.TV.value,
+                title=f"{title} Show",
+                image="http://example.com/show.jpg",
+            )
+            TV.objects.create(item=show, user=self.user, status=Status.IN_PROGRESS.value)
+        cache.clear()
+
+    def _item_ids(self, media_type, params):
+        response = self.client.get(reverse("medialist", args=[media_type]), params)
+        self.assertEqual(response.status_code, 200)
+        return [entry.item_id for entry in response.context["media_list"]]
+
+    def test_warm_requests_show_the_cold_items(self):
+        cases = [
+            # One card per play: the order cache serves the warm read.
+            (MediaTypes.MOVIE.value, {"sort": "title", "rating_min": "4"}, True),
+            (MediaTypes.MOVIE.value, {"sort": "title", "initial": "B"}, True),
+            # TV time-left keeps its own order cache.
+            (MediaTypes.TV.value, {"sort": "time_left", "search": "Show"}, False),
+        ]
+        for media_type, params, separate in cases:
+            with self.subTest(media_type=media_type, params=params):
+                get_user_model().objects.filter(pk=self.user.pk).update(
+                    movie_show_each_play=separate,
+                )
+                cache.clear()
+                cold = self._item_ids(media_type, params)
+                warm = self._item_ids(media_type, params)
+                self.assertTrue(cold)
+                self.assertEqual(warm, cold)
+
+
+class MediaListFiltersCacheTokenTests(TestCase):
+    """``MediaListFilters.cache_token`` is the one list of what filters a page."""
+
+    # Fields that cannot change which entries match (see the dataclass).
+    NOT_IN_TOKEN = frozenset(
+        {
+            "completed_date_within",
+            "completed_date_within_unit",
+            "release_date_within",
+            "release_date_within_unit",
+            "date_added_within",
+            "date_added_within_unit",
+        },
+    )
+
+    @staticmethod
+    def _flipped(item):
+        value = item.default
+        if isinstance(value, bool):
+            return not value
+        if isinstance(value, tuple):
+            return ("flipped",)
+        if value is None:
+            return "flipped"
+        return f"{value}-flipped"
+
+    def test_every_field_changes_the_token_unless_declared_otherwise(self):
+        base = MediaListFilters()
+        for item in dataclasses.fields(MediaListFilters):
+            with self.subTest(field=item.name):
+                changed = dataclasses.replace(base, **{item.name: self._flipped(item)})
+                if item.name in self.NOT_IN_TOKEN:
+                    self.assertEqual(changed.cache_token(), base.cache_token())
+                else:
+                    self.assertNotEqual(changed.cache_token(), base.cache_token())
+        declared = {
+            item.name
+            for item in dataclasses.fields(MediaListFilters)
+            if item.metadata.get("cache_token") is False
+        }
+        self.assertEqual(declared, self.NOT_IN_TOKEN)
+
+    def test_multi_value_order_does_not_matter(self):
+        for name in ("statuses", "platforms", "tags", "pinned_providers", "exclude"):
+            with self.subTest(field=name):
+                self.assertEqual(
+                    MediaListFilters(**{name: ("a", "b")}).cache_token(),
+                    MediaListFilters(**{name: ("b", "a")}).cache_token(),
+                )
+
+    def test_token_is_stable_across_processes(self):
+        # A fixed digest: ``hash()`` would differ per process and miss on restart.
+        self.assertEqual(MediaListFilters().cache_token(), DEFAULT_TOKEN)
+
+    def test_exclude_drops_a_field_and_rejects_unknown_names(self):
+        rated = MediaListFilters(rating="rated")
+        self.assertEqual(
+            rated.cache_token(exclude=frozenset({"rating"})),
+            MediaListFilters().cache_token(exclude=frozenset({"rating"})),
+        )
+        with self.assertRaises(ValueError):
+            rated.cache_token(exclude=frozenset({"not_a_field"}))
+
+    def test_each_key_ignores_only_real_fields(self):
+        names = {item.name for item in dataclasses.fields(MediaListFilters)}
+        self.assertLessEqual(cache_utils.FILTER_MENU_IGNORED_FILTERS, names)
+        self.assertLessEqual(cache_utils.TIME_LEFT_IGNORED_FILTERS, names)
+
+    def test_alphabet_letter_carries_the_title_display(self):
+        plain = MediaListFilters(media_type=MediaTypes.MOVIE.value)
+        lettered = dataclasses.replace(plain, initial="A")
+        for build in (
+            lambda filters, title: cache_utils.build_media_list_cache_key(
+                1, filters, sort="title", title_display=title
+            ),
+            lambda filters, title: cache_utils.build_media_list_filter_cache_key(
+                1, filters, title_display=title
+            ),
+            lambda filters, title: cache_utils.build_time_left_cache_key(
+                1, filters, title_display=title
+            ),
+        ):
+            self.assertEqual(build(plain, "localized"), build(plain, "original"))
+            self.assertNotEqual(
+                build(lettered, "localized"), build(lettered, "original")
+            )
+            self.assertNotEqual(build(plain, "localized"), build(lettered, "localized"))

@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import logging
 import time
+from typing import TYPE_CHECKING
 
 import redis
 from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django_redis import get_redis_connection
+
+if TYPE_CHECKING:
+    from app.media_list_filters import MediaListFilters
 
 logger = logging.getLogger(__name__)
 
@@ -25,68 +31,55 @@ MEDIA_LIST_FILTER_CACHE_PREFIX = "media_list_filters_v2"
 MEDIA_LIST_FILTER_CACHE_TTL = 300
 _MEDIA_LIST_REGISTRY_TEMPLATE = f"{MEDIA_LIST_CACHE_PREFIX}_registry_{{user_id}}"
 
+# The media-list keys are built from ``MediaListFilters.cache_token``, so a
+# new filter reaches every key on its own. These are the fields a key leaves
+# out on purpose.
+#
+# The filter menu does not depend on the order, or on these narrowing filters.
+FILTER_MENU_IGNORED_FILTERS = frozenset(
+    {
+        "sort",
+        "direction",
+        "rating",
+        "rating_min",
+        "rating_max",
+        "collection",
+        "origin",
+        "release_date_from",
+        "release_date_to",
+        "date_added_from",
+        "date_added_to",
+    },
+)
+# The time-left order is TV only; author and format do not filter TV.
+TIME_LEFT_IGNORED_FILTERS = frozenset({"author", "format"})
+
+
+def _alphabet_part(filters: MediaListFilters, title_display: str) -> str:
+    """Return the A to Z part; a letter is matched on the displayed title."""
+    return f"initial={filters.initial}:title={title_display}" if filters.initial else ""
+
 
 def build_time_left_cache_key(
     user_id: int,
-    media_type: str,
-    status_filter: str,
-    search_query: str,
-    direction: str,
-    rating_filter: str,
-    progress_filter: str = "",
-    collection_filter: str = "",
-    genre_filter: str = "",
-    year_filter: str = "",
-    release_filter: str = "",
-    source_filter: str = "",
-    language_filter: str = "",
-    country_filter: str = "",
-    platform_filter: str = "",
-    platform_mode: str = "",
-    origin_filter: str = "",
-    tag_filter: str = "",
-    tag_mode: str = "",
-    provider_filter: str = "",
-    watch_provider_region: str = "",
-    media_status_filter: str = "",
-    pinned_providers: str = "",
-    completed_date_from: str = "",
-    completed_date_to: str = "",
-    range_filters: str = "",
+    filters: MediaListFilters,
+    *,
+    title_display: str = "",
 ) -> str:
-    """Create the cache key used for time-left sorted TV lists."""
-    normalized_status = status_filter or ""
-    normalized_query = search_query or ""
-    normalized_direction = direction or ""
-    normalized_rating = rating_filter or ""
-    normalized_progress = progress_filter or ""
-    normalized_collection = collection_filter or ""
-    normalized_genre = genre_filter or ""
-    normalized_year = year_filter or ""
-    normalized_release = release_filter or ""
-    normalized_source = source_filter or ""
-    normalized_language = language_filter or ""
-    normalized_country = country_filter or ""
-    normalized_platform = platform_filter or ""
-    normalized_platform_mode = platform_mode or ""
-    normalized_origin = origin_filter or ""
-    normalized_tag = tag_filter or ""
-    normalized_tag_mode = tag_mode or ""
-    normalized_provider = provider_filter or ""
-    normalized_region = watch_provider_region or ""
-    normalized_media_status = media_status_filter or ""
-    normalized_pinned_providers = pinned_providers or ""
-    normalized_completed_date_from = completed_date_from or ""
-    normalized_completed_date_to = completed_date_to or ""
-    return (
-        f"{TIME_LEFT_CACHE_PREFIX}_{user_id}_{media_type}_{normalized_status}_"
-        f"{normalized_query}_{normalized_direction}_{normalized_rating}_{normalized_progress}_{normalized_collection}_"
-        f"{normalized_genre}_{normalized_year}_{normalized_release}_{normalized_source}_"
-        f"{normalized_language}_{normalized_country}_{normalized_platform}_{normalized_platform_mode}_{normalized_origin}_"
-        f"{normalized_tag}_{normalized_tag_mode}_{normalized_provider}_{normalized_region}_"
-        f"{normalized_media_status}_{normalized_pinned_providers}_"
-        f"{normalized_completed_date_from}_{normalized_completed_date_to}"
-        f"_{range_filters or ''}"
+    """Create the cache key used for time-left sorted TV lists.
+
+    ``filters`` is the view's effective filter set. The time-left order
+    ignores the filters in ``TIME_LEFT_IGNORED_FILTERS`` and the anime
+    library mode.
+    """
+    return "_".join(
+        (
+            TIME_LEFT_CACHE_PREFIX,
+            str(user_id),
+            str(filters.media_type or ""),
+            filters.cache_token(exclude=TIME_LEFT_IGNORED_FILTERS),
+            _alphabet_part(filters, title_display),
+        ),
     )
 
 
@@ -195,132 +188,58 @@ def clear_time_left_cache_for_user(user_id: int) -> None:
 
 def build_media_list_cache_key(
     user_id: int,
-    media_type: str,
-    sort_filter: str,
-    direction: str,
-    status_filter: str,
-    search_query: str,
-    rating_filter: str,
-    progress_filter: str = "",
-    collection_filter: str = "",
-    author_filter: str = "",
-    format_filter: str = "",
-    genre_filter: str = "",
-    implied_genre_filter: str = "",
-    year_filter: str = "",
-    release_filter: str = "",
-    source_filter: str = "",
-    language_filter: str = "",
-    country_filter: str = "",
-    platform_filter: str = "",
-    platform_mode: str = "",
-    origin_filter: str = "",
-    tag_filter: str = "",
-    tag_mode: str = "",
-    cache_variant: str = "",
-    provider_filter: str = "",
-    watch_provider_region: str = "",
-    media_status_filter: str = "",
-    pinned_providers: str = "",
-    completed_date_from: str = "",
-    completed_date_to: str = "",
-    range_filters: str = "",
+    filters: MediaListFilters,
+    *,
+    sort: str,
+    library_mode: str = "",
+    title_display: str = "",
+    entry_grouping: bool | None = None,
 ) -> str:
-    """Create the cache key for a fully-processed media list page."""
-    parts = [
-        MEDIA_LIST_CACHE_PREFIX,
-        str(user_id),
-        media_type,
-        sort_filter or "",
-        direction or "",
-        status_filter or "",
-        search_query or "",
-        rating_filter or "",
-        progress_filter or "",
-        collection_filter or "",
-        author_filter or "",
-        format_filter or "",
-        genre_filter or "",
-        implied_genre_filter or "",
-        year_filter or "",
-        release_filter or "",
-        source_filter or "",
-        language_filter or "",
-        country_filter or "",
-        platform_filter or "",
-        platform_mode or "",
-        origin_filter or "",
-        tag_filter or "",
-        tag_mode or "",
-        cache_variant or "",
-        provider_filter or "",
-        watch_provider_region or "",
-        media_status_filter or "",
-        pinned_providers or "",
-        completed_date_from or "",
-        completed_date_to or "",
-        range_filters or "",
-    ]
-    return "_".join(parts)
+    """Create the cache key for a fully-processed media list page.
+
+    ``filters`` is the view's effective filter set (saved status, masked
+    filters and pinned providers already applied). ``sort`` is the sort the
+    user chose, ``library_mode`` the anime library mode where it applies, and
+    ``entry_grouping`` whether matching plays show as one card or several
+    (``None`` where a media type has no such choice).
+    """
+    grouping = {None: "", False: "grouped", True: "separate"}[entry_grouping]
+    return "_".join(
+        (
+            MEDIA_LIST_CACHE_PREFIX,
+            str(user_id),
+            str(filters.media_type or ""),
+            sort or "",
+            filters.cache_token(),
+            library_mode or "",
+            _alphabet_part(filters, title_display),
+            grouping,
+        ),
+    )
 
 
 def build_media_list_filter_cache_key(
     user_id: int,
-    media_type: str,
-    status_filter: str,
-    search_query: str,
-    progress_filter: str = "",
-    genre_filter: str = "",
-    implied_genre_filter: str = "",
-    year_filter: str = "",
-    release_filter: str = "",
-    source_filter: str = "",
-    language_filter: str = "",
-    country_filter: str = "",
-    platform_filter: str = "",
-    platform_mode: str = "",
-    author_filter: str = "",
-    format_filter: str = "",
-    tag_filter: str = "",
-    tag_mode: str = "",
-    cache_variant: str = "",
-    provider_filter: str = "",
-    watch_provider_region: str = "",
-    media_status_filter: str = "",
-    pinned_providers: str = "",
-    completed_date_from: str = "",
-    completed_date_to: str = "",
+    filters: MediaListFilters,
+    *,
+    library_mode: str = "",
+    title_display: str = "",
 ) -> str:
-    """Create the cache key for media-list filter summary data."""
-    parts = [
-        MEDIA_LIST_FILTER_CACHE_PREFIX,
-        str(user_id),
-        media_type,
-        status_filter or "",
-        search_query or "",
-        progress_filter or "",
-        genre_filter or "",
-        implied_genre_filter or "",
-        year_filter or "",
-        release_filter or "",
-        source_filter or "",
-        language_filter or "",
-        country_filter or "",
-        platform_filter or "",
-        platform_mode or "",
-        author_filter or "",
-        format_filter or "",
-        tag_filter or "",
-        tag_mode or "",
-        cache_variant or "",
-        provider_filter or "",
-        watch_provider_region or "",
-        media_status_filter or "",
-        pinned_providers or "",
-        completed_date_from or "",
-        completed_date_to or "",
-    ]
-    return "_".join(parts)
+    """Create the cache key for media-list filter summary data.
+
+    The filter menu ignores the filters in ``FILTER_MENU_IGNORED_FILTERS``
+    and the entry-grouping mode.
+    """
+    return "_".join(
+        (
+            MEDIA_LIST_FILTER_CACHE_PREFIX,
+            str(user_id),
+            str(filters.media_type or ""),
+            filters.cache_token(exclude=FILTER_MENU_IGNORED_FILTERS),
+            library_mode or "",
+            _alphabet_part(filters, title_display),
+        ),
+    )
 
 
 HOME_ROW_CACHE_PREFIX = "home_row_v2"

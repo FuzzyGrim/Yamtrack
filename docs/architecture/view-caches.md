@@ -15,6 +15,16 @@ agrees on what a change can make stale.
 Each entry is registered per user when it is written, and a clear removes
 everything in that user's registry (`src/app/cache_utils.py`).
 
+## Keys
+
+The media-list and time-left keys are built from the view's effective
+`MediaListFilters` through `MediaListFilters.cache_token()`, plus a few view
+settings the filters do not hold (sort, anime library mode, title display for
+the A to Z rail, entry grouping). A new filter field reaches every key on its
+own. Each key's deliberate omissions are named in `cache_utils`
+(`FILTER_MENU_IGNORED_FILTERS`, `TIME_LEFT_IGNORED_FILTERS`), and
+`app.tests.views.test_media_list_cache_keys` pins which requests share an entry.
+
 ## Clearing
 
 Call `cache_utils.clear_library_view_caches(user_id, change, media_types=...)`
