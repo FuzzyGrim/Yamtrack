@@ -9,7 +9,6 @@ from functools import wraps
 from django.apps import apps
 from django.db import models
 
-from app import cache_utils
 from app.models.choices import MediaTypes
 from app.models.manager import (
     MediaManager,
@@ -40,6 +39,11 @@ def show_separate_entries(user, media_type: str) -> bool:
     """Return whether the user wants matching entries as separate rows."""
     field_name = preference_field(media_type)
     return bool(field_name and getattr(user, field_name, False))
+
+
+def active_entry_grouping_mode() -> bool | None:
+    """Return this request's grouping mode: separate, grouped, or not offered."""
+    return _ENTRY_GROUPING_MODE.get()
 
 
 def entry_grouping_is_separate() -> bool:
@@ -188,24 +192,4 @@ def _install_media_list_policy() -> None:
     MediaManager.get_media_list = get_media_list
 
 
-def _install_cache_key_policy() -> None:
-    current_builder = cache_utils.build_media_list_cache_key
-    if hasattr(current_builder, "_supports_entry_grouping_context"):
-        return
-
-    @wraps(current_builder)
-    def build_media_list_cache_key(*args, **kwargs):
-        """Build a cache key with the active entry-grouping mode."""
-        cache_key = current_builder(*args, **kwargs)
-        mode = _ENTRY_GROUPING_MODE.get()
-        if mode is None:
-            return cache_key
-        mode_key = "separate" if mode else "grouped"
-        return f"{cache_key}_entry_grouping_{mode_key}"
-
-    build_media_list_cache_key._supports_entry_grouping_context = True
-    cache_utils.build_media_list_cache_key = build_media_list_cache_key
-
-
 _install_media_list_policy()
-_install_cache_key_policy()

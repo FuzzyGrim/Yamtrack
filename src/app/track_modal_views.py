@@ -1169,7 +1169,7 @@ def _render_standard_track_modal(
         show_title = episode_metadata.get("title") or (
             media.item.title if media else ""
         )
-        episode_label = f"S{season_number}E{episode_number}"
+        episode_label = f"S{int(season_number):02d}E{int(episode_number):02d}"
         if episode_name:
             title = episode_name
             title_subtitle = f"{show_title} · {episode_label}"

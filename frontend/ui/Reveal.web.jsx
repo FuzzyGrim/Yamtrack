@@ -1,51 +1,13 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React from 'react';
 
-// Browser height reveal matching the release sidebar animation. The native
-// counterpart renders the same children without owning DOM APIs.
+// Web moves the panel inside a fixed clip so the browser can composite the
+// animation without recalculating layout on every frame. Native uses its own
+// measured-height animation because it does not use browser CSS transitions.
 export function Reveal({ open, children, duration = 200 }) {
-  const nodeRef = useRef(null);
-  const changed = useRef(false);
-  const [visible, setVisible] = useState(open);
-
-  useLayoutEffect(() => {
-    if (!changed.current) {
-      changed.current = true;
-      setVisible(open);
-      return undefined;
-    }
-    const node = nodeRef.current;
-    if (!node) return undefined;
-    if (open) {
-      setVisible(true);
-      const frame = requestAnimationFrame(() => {
-        const target = nodeRef.current;
-        if (!target) return;
-        const height = target.scrollHeight;
-        target.style.overflow = 'hidden';
-        const animation = target.animate(
-          [{ height: '0px' }, { height: `${height}px` }],
-          { duration, easing: 'ease-in-out' },
-        );
-        animation.onfinish = () => {
-          target.style.height = '';
-          target.style.overflow = '';
-        };
-      });
-      return () => cancelAnimationFrame(frame);
-    }
-    const height = node.scrollHeight;
-    node.style.overflow = 'hidden';
-    const animation = node.animate(
-      [{ height: `${height}px` }, { height: '0px' }],
-      { duration, easing: 'ease-in-out' },
-    );
-    animation.onfinish = () => {
-      node.style.height = '';
-      node.style.overflow = '';
-      setVisible(false);
-    };
-    return undefined;
-  }, [open, duration]);
-
-  return <div ref={nodeRef} style={{ display: visible ? 'block' : 'none', overflow: 'hidden' }}>{children}</div>;
+  return <div inert={!open} style={{ overflow: 'hidden', pointerEvents: open ? 'auto' : 'none' }}>
+    <div className="sidebar-reveal" data-open={open ? 'true' : 'false'}
+      style={{ '--sidebar-reveal-duration': `${duration}ms` }}>
+      {children}
+    </div>
+  </div>;
 }

@@ -811,7 +811,7 @@ class IntegrationTest(SerialStaticLiveServerTestCase):
         self.page.locator('input[name="end_date"]').fill("2025-03-07")
         self.page.get_by_role("button", name="Create Entry").click()
         expect(self.page.locator("body")).to_contain_text(
-            "Friends S1E1 added successfully.",
+            "Friends S01E01 added successfully.",
         )
 
         # Check visibility

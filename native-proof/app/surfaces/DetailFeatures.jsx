@@ -84,6 +84,15 @@ import {
 } from './mediaCardTransport';
 import { badgePalette, mediaCardPalette, palette as themePalette, progressDetailPalette, ratingPalette, spacing } from '../theme';
 import { loadDetailHeader } from '../data/loadDetailHeader.mjs';
+import {
+  RELOAD_SCOPES,
+  applyEpisodeScore,
+  applyEpisodeWatched,
+  applyTrackingStatus,
+  applyViewerRating,
+  createLatestGate,
+  storedScore,
+} from './detailActions.mjs';
 
 // The detail page's own controls on top of the server page payload: the track
 // dialog and check-in, tags, notes, lists, activity history, the progress card,
@@ -155,6 +164,15 @@ const ADD_ENTRY_WHEN_COMPLETED = new Set(['movie', 'anime', 'book', 'comic']);
 function renderRating({ value, label, scaleMax, palette: ratingColors, onSelect }) {
   return <RatingStars scaleMax={scaleMax} value={value} label={label}
     renderStar={RatingStarIcon} onSelect={onSelect} palette={ratingColors} />;
+}
+
+/** Whether two transport identities name the same item. */
+function sameIdentity(left, right) {
+  if (!left || !right) return false;
+  return left.mediaType === right.mediaType && left.source === right.source
+    && String(left.mediaId) === String(right.mediaId)
+    && Number(left.seasonNumber ?? -1) === Number(right.seasonNumber ?? -1)
+    && Number(left.episodeNumber ?? -1) === Number(right.episodeNumber ?? -1);
 }
 
 /** The transports' identity from the page payload's identity. */
@@ -352,8 +370,9 @@ function SeerrDialog({ open, state, busy, error, onRequest, onClose }) {
  * @param ready false while the page payload is loading or failed
  * @param version bumps when the screen reloaded the page model
  * @param refresh reloads the page model after a write
+ * @param optimistic shows an action's result on the page model before the server answers
  */
-export function useDetailFeatures({ model, ready, dataReady, version, refresh, navigate, onOpenItem, onOpenExternal, shelfWidth }) {
+export function useDetailFeatures({ model, ready, dataReady, version, refresh, optimistic, navigate, onOpenItem, onOpenExternal, shelfWidth }) {
   const { width } = useWindowDimensions();
   const [ratingOpen, setRatingOpen] = useState(false);
   const identityKey = JSON.stringify(featureIdentity(model));
@@ -374,15 +393,59 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
   const [episodes, setEpisodes] = useState({ rows: [], status: 'idle', error: '', order: 'asc' });
   const [issues, setIssues] = useState({ rows: [], total: 0, status: 'idle', error: '', layout: 'grid' });
   const [siblings, setSiblings] = useState([]);
-  const [local, setLocal] = useState(0);
+  // Each part of the page reloads on its own; an action reloads only the parts it changes.
+  const [stamps, setStamps] = useState({ header: 0, collection: 0, episodes: 0 });
+  const episodesGate = useRef(null);
+  if (!episodesGate.current) episodesGate.current = createLatestGate();
+  const pendingActions = useRef({ count: 0, scopes: new Set() });
+  // A rating changes the scores listed in the activity history; it reloads when next opened.
+  const historyStale = useRef(false);
 
   const isEpisode = identity?.mediaType === 'episode';
   const isSeason = identity?.mediaType === 'season';
   const isAnime = identity?.mediaType === 'anime';
   const isComic = identity?.mediaType === 'comic';
   const canRequest = identity?.source === 'tmdb' && (identity.mediaType === 'movie' || identity.mediaType === 'tv');
-  const reload = useCallback(() => { setLocal(value => value + 1); refresh?.(); }, [refresh]);
-  const stamp = `${version}:${local}`;
+  /** Reloads the named parts once (all of them by default). */
+  const reload = useCallback((scopes = RELOAD_SCOPES.all, options = {}) => {
+    const parts = new Set(scopes);
+    setStamps(current => ({
+      header: current.header + (parts.has('header') ? 1 : 0),
+      collection: current.collection + (parts.has('collection') ? 1 : 0),
+      episodes: current.episodes + (parts.has('episodes') ? 1 : 0),
+    }));
+    if (parts.has('page')) refresh?.(options);
+  }, [refresh]);
+  const headerStamp = `${version}:${stamps.header}`;
+  const collectionStamp = `${version}:${stamps.collection}`;
+  const episodesStamp = `${version}:${stamps.episodes}`;
+
+  /**
+   * Runs a write whose result is already on screen. A failure puts the
+   * previous state back and reports it. Once no write is in flight, the parts
+   * the writes changed reload once, so the page ends where a full reload would.
+   */
+  const runOptimistic = useCallback(async ({ write, revert, scopes, onError }) => {
+    const pending = pendingActions.current;
+    pending.count += 1;
+    // A failure that was put back needs no reload; one overtaken by a newer
+    // tap reloads, so the page shows what the server kept.
+    let restored = false;
+    try {
+      await write();
+    } catch (cause) {
+      restored = revert?.() === true;
+      onError?.(cause);
+    } finally {
+      pending.count -= 1;
+      if (!restored) scopes.forEach(scope => pending.scopes.add(scope));
+      if (pending.count === 0 && pending.scopes.size) {
+        const parts = [...pending.scopes];
+        pending.scopes.clear();
+        reload(parts);
+      }
+    }
+  }, [reload]);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -399,7 +462,7 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
       setHeaderReadyKey(identityKey);
     });
     return () => { cancelled = true; };
-  }, [enabled, identity, identityKey, stamp, canRequest]);
+  }, [enabled, identity, identityKey, headerStamp, canRequest]);
 
   // Older servers lack the capability flag; keep their existing discovery path
   // without holding the detail page on an optional external service.
@@ -420,23 +483,45 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
         if (!cancelled) setCollection({ status: 'error', entries: [], counts: [], error: cause?.message || 'Collection could not be loaded.' });
       });
     return () => { cancelled = true; };
-  }, [enabled, identity, stamp]);
+  }, [enabled, identity, collectionStamp]);
 
+  const refreshStaleHistory = useCallback(() => {
+    if (!historyStale.current) return;
+    historyStale.current = false;
+    reload(['header']);
+  }, [reload]);
   // Anime episodes come from their own preview endpoint; the page payload lists none.
   const episodesRef = useRef(episodes);
   episodesRef.current = episodes;
   const loadEpisodes = useCallback(async (more = false) => {
     if (!enabled || (!isAnime && !isSeason)) return;
     if (more && episodesRef.current.status === 'loading') return;
+    // A newer load or episode tap makes this answer stale.
+    const token = episodesGate.current.begin();
     setEpisodes(current => ({ ...current, status: more || !current.rows.length ? 'loading' : 'ready', error: '' }));
     try {
       const next = isSeason ? await loadSeasonEpisodes(identity, identity.seasonNumber, { withPage: true, offset: more ? episodesRef.current.loadMore?.offset || 0 : 0 })
         : await loadAnimeEpisodes(identity, more ? episodesRef.current.loadMore?.querystring : '');
+      if (!episodesGate.current.isLatest(token)) return;
       setEpisodes(current => ({ ...current, rows: more ? [...current.rows, ...next.rows] : next.rows, loadMore: next.loadMore, total: next.total, status: 'ready', error: '' }));
     } catch (cause) {
+      if (!episodesGate.current.isLatest(token)) return;
       setEpisodes(current => ({ ...current, status: 'error', error: cause?.message || 'Episodes could not be loaded.' }));
     }
-  }, [enabled, identity, isAnime, isSeason, stamp]);
+  }, [enabled, identity, isAnime, isSeason, episodesStamp]);
+
+  /** Changes episode rows on screen now; returns a revert that applies while still the latest change. */
+  const patchEpisodes = useCallback((change, undo) => {
+    const token = episodesGate.current.begin();
+    // This change makes an unfinished load stale, so a revert must restart it.
+    const interrupted = episodesRef.current.status === 'loading';
+    setEpisodes(current => ({ ...current, rows: change(current.rows), error: '' }));
+    return () => {
+      if (!episodesGate.current.isLatest(token)) return false;
+      setEpisodes(current => ({ ...current, rows: undo(current.rows) }));
+      return !interrupted;
+    };
+  }, []);
   useEffect(() => { loadEpisodes(); }, [loadEpisodes]);
 
   // A comic volume lists its issues, twenty at a time.
@@ -492,12 +577,14 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
     setTrack(current => ({ ...current, busy: true, serverError: '' }));
     try {
       await saveTrack(track.identity, track.model, values, track.tracked);
+      // The saved status shows at once; the rest of the page reloads behind it.
+      if (sameIdentity(track.identity, identity)) setTracking(current => applyTrackingStatus(current, values?.status));
       setTrack(EMPTY_TRACK);
       reload();
     } catch (cause) {
       setTrack(current => ({ ...current, busy: false, serverError: cause?.message || 'The change could not be saved.' }));
     }
-  }, [reload, track.identity, track.model, track.tracked]);
+  }, [identity, reload, track.identity, track.model, track.tracked]);
 
   const removeTrack = useCallback(async () => {
     if (!track.identity || !track.model) return;
@@ -672,20 +759,23 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
     try {
       await syncMetadata(identity);
       setNotice('Metadata synced successfully.');
-      reload();
+      reload(RELOAD_SCOPES.all, { artwork: true });
     } catch (cause) {
       setNotice(cause?.message || 'Metadata could not be synced.');
     }
   }, [identity, reload]);
 
-  const rateEpisode = useCallback(async (child, score) => {
-    try {
-      await saveScore(child.identity, score == null ? null : score * 10 / (child.scaleMax || 10));
-      loadEpisodes();
-    } catch (cause) {
-      setEpisodes(current => ({ ...current, error: cause?.message || 'The score could not be saved.' }));
-    }
-  }, [loadEpisodes]);
+  const rateEpisode = useCallback((child, score) => {
+    const previous = child.score ?? null;
+    const revert = patchEpisodes(rows => applyEpisodeScore(rows, child.identity, score),
+      rows => applyEpisodeScore(rows, child.identity, previous));
+    return runOptimistic({
+      write: () => saveScore(child.identity, storedScore(score, child.scaleMax)),
+      revert,
+      scopes: RELOAD_SCOPES.episodeRate,
+      onError: cause => setEpisodes(current => ({ ...current, error: cause?.message || 'The score could not be saved.' })),
+    });
+  }, [patchEpisodes, runOptimistic]);
 
   function openCopyDialog(target = identity, itemTitle = title) {
     setCopy({ open: true, target, title: itemTitle, context: null, values: emptyCopyValues(copyFieldsFor(target.mediaType)), errors: {}, busy: false });
@@ -799,7 +889,10 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
     },
   }));
   const trackRest = trackActions.slice(1);
-  const openKind = kind => () => setDialog({ ...NO_DIALOG, kind });
+  const openKind = kind => () => {
+    if (kind === 'history') refreshStaleHistory();
+    setDialog({ ...NO_DIALOG, kind });
+  };
   const historyItem = { key: 'history', label: 'View history', icon: 'history', onPress: openKind('history') };
   const canPickCover = tracking.tracked && tracking.catalogItemId && !isEpisode;
   // Keep cover/edition tools available without displacing the PWA's quick actions.
@@ -894,13 +987,19 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
     renderStar={RatingStarIcon}
     open={ratingOpen}
     onOpenChange={setRatingOpen}
-    onSelect={async score => {
-      try {
-        await saveScore(identity, score == null ? null : score * 10 / (viewerRating.scaleMax || 10));
-        reload();
-      } catch (cause) {
-        setNotice(cause?.message || 'The rating could not be saved.');
-      }
+    onSelect={score => {
+      // The rating shows at once; a failed save puts the previous one back.
+      const previous = viewerRating.value ?? null;
+      setNotice('');
+      if (tracking.tracked) historyStale.current = true;
+      const token = optimistic?.apply(current => applyViewerRating(current, score));
+      return runOptimistic({
+        write: () => saveScore(identity, storedScore(score, viewerRating.scaleMax)),
+        revert: () => optimistic?.revert(token, current => applyViewerRating(current, previous)),
+        // An untracked item gains an entry, which changes the header too.
+        scopes: tracking.tracked ? RELOAD_SCOPES.rate : RELOAD_SCOPES.all,
+        onError: cause => setNotice(cause?.message || 'The rating could not be saved.'),
+      });
     }} /> : null;
   const progressSlot = progress.data ? <ProgressCard
     model={progress.data.card}
@@ -959,7 +1058,7 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
     ? <DetailTrackingHistory entries={model.trackingEntries.entries.slice(1)} count={model.trackingEntries.count}
       hasMore={model.trackingEntries.hasMore} title="History" repeatsLabel="Repeats"
       onEdit={entry => openTrack(false, entry.identity)}
-      onOpenHistory={() => setDialog({ ...NO_DIALOG, kind: 'history' })} palette={palette} /> : null;
+      onOpenHistory={() => { refreshStaleHistory(); setDialog({ ...NO_DIALOG, kind: 'history' }); }} palette={palette} /> : null;
   const sectionSlots = { collection: collectionSlot, notes: notesSlot, history: historySlot };
   const sectionsSlot = <>{collectionSlot}{notesSlot}{noticeSlot}</>;
 
@@ -1022,12 +1121,16 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
             return;
           }
           if (!['watch', 'unwatch'].includes(key)) return;
-          try {
-            await (key === 'unwatch' ? unwatchEpisode(child.identity) : watchEpisode(child.identity));
-            reload();
-          } catch (cause) {
-            setEpisodes(current => ({ ...current, error: cause?.message || 'The episode could not be updated.' }));
-          }
+          // The row shows watched or unwatched at once; a failed save puts it back.
+          const watched = key === 'watch';
+          const revert = patchEpisodes(rows => applyEpisodeWatched(rows, child.identity, watched),
+            rows => rows.map(row => (row.key === child.key ? child : row)));
+          await runOptimistic({
+            write: () => (watched ? watchEpisode(child.identity) : unwatchEpisode(child.identity)),
+            revert,
+            scopes: RELOAD_SCOPES.episodeWatch,
+            onError: cause => setEpisodes(current => ({ ...current, error: cause?.message || 'The episode could not be updated.' })),
+          });
         }}
         onRate={rateEpisode} />
     </View> : null;
@@ -1060,7 +1163,7 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
       onArtworkSave={async imageUrl => {
         if (!track.identity || !imageUrl) return;
         await saveArtwork(track.identity, imageUrl);
-        reload();
+        reload(RELOAD_SCOPES.all, { artwork: true });
       }}
       onDiscoverToggle={(itemId, hidden) => setDiscoverHidden(itemId, hidden)} />
     </View>
@@ -1162,9 +1265,9 @@ export function useDetailFeatures({ model, ready, dataReady, version, refresh, n
       </Pressable>)}
     </MediaCardActionHost>
     <CoverDialog open={dialog.kind === 'cover'} itemId={tracking.catalogItemId}
-      onSaved={() => { closeDialog(); reload(); }} onClose={closeDialog} />
+      onSaved={() => { closeDialog(); reload(RELOAD_SCOPES.all, { artwork: true }); }} onClose={closeDialog} />
     <EditionDialog open={dialog.kind === 'edition'} itemId={tracking.catalogItemId}
-      onSaved={() => { closeDialog(); reload(); }} onClose={closeDialog} />
+      onSaved={() => { closeDialog(); reload(RELOAD_SCOPES.all, { artwork: true }); }} onClose={closeDialog} />
     <NotesDialog open={dialog.kind === 'notes'} note={dialog.data} busy={dialog.busy}
       error={dialog.kind === 'notes' ? dialog.error : ''} onSave={saveNotes} onClose={closeDialog} />
     <PlaysDialog open={dialog.kind === 'history'} identity={dialog.target || identity} entries={dialog.target ? [] : tracking.history}

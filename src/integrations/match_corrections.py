@@ -223,7 +223,7 @@ def destination_episodes(destination_item):
             rows.append(
                 {
                     "id": f"{number}:{int(episode['episode_number'])}",
-                    "code": f"S{number}E{int(episode['episode_number'])}",
+                    "code": f"S{int(number):02d}E{int(episode['episode_number']):02d}",
                     "title": episode.get("title") or episode.get("name") or "",
                     "air_date": str(episode.get("air_date") or ""),
                 },

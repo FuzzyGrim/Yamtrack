@@ -173,3 +173,136 @@ class MigrationHygieneCommandTests(TestCase):
         self.assertEqual(len(violations), 1)
         self.assertEqual(violations[0].operation, "AddConstraint")
         self.assertEqual(violations[0].line_number, 5)
+
+
+class InlineOperationGuardTests(TestCase):
+    """New migrations must import the idempotent operations, not copy them."""
+
+    def _write_migration(self, repo_root: Path, app: str, name: str, body: str):
+        migration_dir = repo_root / "src" / app / "migrations"
+        migration_dir.mkdir(parents=True, exist_ok=True)
+        path = migration_dir / name
+        path.write_text(body, encoding="utf-8")
+        return path
+
+    def test_inline_class_in_a_new_migration_is_reported(self):
+        with TemporaryDirectory() as tmp_dir:
+            repo_root = Path(tmp_dir)
+            self._write_migration(
+                repo_root,
+                "users",
+                "9999_new_inline.py",
+                "from django.db import migrations\n"
+                "\n"
+                "\n"
+                "class RemoveConstraintIfExists(migrations.RemoveConstraint):\n"
+                "    pass\n",
+            )
+            self._write_migration(
+                repo_root,
+                "users",
+                "9998_imports_shared.py",
+                "from app.migration_operations import AddFieldIfNotExists\n",
+            )
+
+            violations = check_migration_hygiene._inline_operation_violations(
+                repo_root, ["users"]
+            )
+
+        self.assertEqual(len(violations), 1)
+        self.assertEqual(violations[0].path, "src/users/migrations/9999_new_inline.py")
+        self.assertEqual(violations[0].class_name, "RemoveConstraintIfExists")
+        self.assertEqual(violations[0].line_number, 4)
+
+    def test_allowlisted_shipped_migration_is_not_reported(self):
+        rel_path = sorted(check_migration_hygiene._inline_allowlist())[0]
+        app = rel_path.split("/")[1]
+        with TemporaryDirectory() as tmp_dir:
+            repo_root = Path(tmp_dir)
+            self._write_migration(
+                repo_root,
+                app,
+                Path(rel_path).name,
+                "class AddFieldIfNotExists:\n    pass\n",
+            )
+
+            violations = check_migration_hygiene._inline_operation_violations(
+                repo_root, [app]
+            )
+
+        self.assertEqual(violations, [])
+
+    def test_allowlist_only_names_real_inline_copies(self):
+        """Every entry is a real file that still defines a class inline.
+
+        The files are frozen, so this holds forever; a typo or a stale entry
+        would otherwise quietly widen the allowlist.
+        """
+        repo_root = check_migration_hygiene._repo_root()
+        for rel_path in sorted(check_migration_hygiene._inline_allowlist()):
+            with self.subTest(path=rel_path):
+                path = repo_root / rel_path
+                self.assertTrue(path.exists())
+                self.assertTrue(
+                    check_migration_hygiene._find_inline_operation_classes(
+                        path, rel_path
+                    )
+                )
+
+    def test_shipped_tree_has_no_unlisted_inline_copies(self):
+        repo_root = check_migration_hygiene._repo_root()
+        self.assertEqual(
+            check_migration_hygiene._inline_operation_violations(
+                repo_root, list(check_migration_hygiene.DEFAULT_APPS)
+            ),
+            [],
+        )
+
+    @override_settings(MIGRATION_MODULES={})
+    def test_strict_command_fails_with_a_pointer_to_the_shared_module(self):
+        violation = check_migration_hygiene.InlineOperationViolation(
+            path="src/users/migrations/9999_new_inline.py",
+            line_number=4,
+            class_name="AddFieldIfNotExists",
+        )
+        with (
+            patch.object(
+                check_migration_hygiene,
+                "_inline_operation_violations",
+                return_value=[violation],
+            ),
+            self.assertRaises(CommandError) as raised,
+        ):
+            call_command(
+                "check_migration_hygiene",
+                base_ref="HEAD",
+                apps="users",
+                stdout=StringIO(),
+            )
+
+        message = str(raised.exception)
+        self.assertIn("from app.migration_operations import", message)
+        self.assertIn("9999_new_inline.py:4: class AddFieldIfNotExists", message)
+
+    @override_settings(MIGRATION_MODULES={})
+    def test_no_strict_only_warns(self):
+        violation = check_migration_hygiene.InlineOperationViolation(
+            path="src/users/migrations/9999_new_inline.py",
+            line_number=4,
+            class_name="AddFieldIfNotExists",
+        )
+        output = StringIO()
+        with patch.object(
+            check_migration_hygiene,
+            "_inline_operation_violations",
+            return_value=[violation],
+        ):
+            call_command(
+                "check_migration_hygiene",
+                base_ref="HEAD",
+                apps="users",
+                strict=False,
+                stdout=output,
+            )
+
+        self.assertIn("1 inline idempotent operation classes", output.getvalue())

@@ -13,7 +13,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from app.models import Episode, ItemTag, Media
+from app.models import TV, Episode, ItemTag, Media, Season
 from lists.models import CustomListItem
 
 
@@ -75,13 +75,17 @@ def touch_seasons(season_ids):
         rows = model._base_manager.filter(pk__in=season_ids)
         tv_ids = set(rows.values_list("related_tv_id", flat=True))
         models.QuerySet.update(rows, updated_at=now)
-        tv_ids.discard(None)
-        for tv_model in _tracking_models():
-            if tv_model._meta.model_name == "tv":
-                models.QuerySet.update(
-                    tv_model._base_manager.filter(pk__in=tv_ids),
-                    updated_at=now,
-                )
+        _touch_shows(tv_ids, now)
+
+
+def _touch_shows(tv_ids, now):
+    tv_ids = set(tv_ids) - {None}
+    for tv_model in _tracking_models():
+        if tv_model._meta.model_name == "tv":
+            models.QuerySet.update(
+                tv_model._base_manager.filter(pk__in=tv_ids),
+                updated_at=now,
+            )
 
 
 @receiver(post_save, sender=Episode)
@@ -89,5 +93,17 @@ def touch_seasons(season_ids):
 def touch_on_episode_change(sender, instance, **kwargs):
     """Watching or unwatching an episode changes its season and its show."""
     if kwargs.get("raw") or not instance.related_season_id:
+        return
+    origin = kwargs.get("origin")
+    if isinstance(origin, TV):
+        # Deleting a show cascades here; its seasons go with it, so there is
+        # nothing left to stamp.
+        return
+    if isinstance(origin, Season) and origin.pk == instance.related_season_id:
+        # Deleting a season cascades to each of its episodes. The season row
+        # goes too, so only its show needs a stamp, and once is enough.
+        if not getattr(origin, "_touched_show", False):
+            origin._touched_show = True
+            _touch_shows({origin.related_tv_id}, timezone.now())
         return
     touch_seasons({instance.related_season_id})

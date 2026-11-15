@@ -1368,7 +1368,7 @@ class TraktImporter(TraktMetadataResolverMixin):
         )
 
         if not episode_exists:
-            item_identifier = f"{show['title']} S{season_number}E{episode_number}"
+            item_identifier = f"{show['title']} S{int(season_number):02d}E{int(episode_number):02d}"
             self.warnings.append(
                 f"{item_identifier}: not found in {Sources.TMDB.label} "
                 f"with ID {tmdb_id}.",
@@ -1789,7 +1789,7 @@ class TraktImporter(TraktMetadataResolverMixin):
                 )
                 if not episode_exists:
                     self.warnings.append(
-                        f"{show['title']} S{season_number}E{episode_number}: not "
+                        f"{show['title']} S{int(season_number):02d}E{int(episode_number):02d}: not "
                         f"found in {Sources.TMDB.label} with ID {tmdb_id}.",
                     )
                     continue

@@ -11,7 +11,7 @@ import sys
 import tempfile
 import time
 from collections import Counter
-from contextlib import ExitStack, closing, suppress
+from contextlib import ExitStack, closing, contextmanager, nullcontext, suppress
 from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
@@ -42,6 +42,12 @@ _BUSY_HINT = (
 _ALBUM_ARTIST_TABLE = "app_albumartist"
 _ACTION_ENV = "FLOPPY_SQLITE_CONFLICT_ACTION"
 _MAX_CONFLICT_SAMPLES = 5
+# Snapshot copy: pages per backup step and the pause between steps.
+_SNAPSHOT_STEP_PAGES = 256
+_SNAPSHOT_STEP_PAUSE_SECONDS = 0.002
+# A pinned WAL copy never restarts. More than this means the pin did not hold
+# or (rollback journal) the instance is too busy to copy unpinned.
+_SNAPSHOT_MAX_RESTARTS = 3
 _MAX_AFFECTED_TITLES = 5
 _REPORT_SUFFIX = ".integrity.json"
 _DECISION_SUFFIX = ".integrity.decision"
@@ -972,6 +978,80 @@ def _sweep_copy(staging_path) -> bool | None:
     return True
 
 
+class _SnapshotNotConvergingError(sqlite3.OperationalError):
+    """The copy kept restarting because the source kept changing under it."""
+
+
+@contextmanager
+def _pinned_read(source):
+    """Hold one read transaction on ``source`` for the duration of the block.
+
+    The backup then copies that one snapshot. Without it, SQLite restarts a
+    stepped backup from page one whenever another connection commits between
+    steps, so a copy longer than the gap between commits never finishes.
+    """
+    isolation_level = source.isolation_level
+    source.isolation_level = None
+    source.execute("BEGIN")
+    try:
+        # BEGIN is deferred: the first read is what takes the snapshot.
+        source.execute("SELECT count(*) FROM sqlite_master").fetchone()
+        yield
+    finally:
+        try:
+            source.execute("ROLLBACK")
+        finally:
+            source.isolation_level = isolation_level
+
+
+def _copy_source(source, destination, outcome=None):
+    """Copy ``source`` into ``destination`` and record how the copy went.
+
+    Always a stepped copy with a short pause between steps, so live web and
+    worker traffic keeps getting the disk.
+
+    WAL: the copy runs inside one pinned read snapshot. WAL readers never block
+    writers, so the pin costs writers nothing; it only holds back checkpoints
+    until the copy ends. Without it, every commit from another connection
+    restarts the copy from page one.
+
+    Rollback journal (Floppy's fallback on SQLite builds with the WAL-reset
+    bug): a held read lock, or a single-step copy, blocks every writer at
+    commit for the whole copy (2.8 s for 711 MB in CONC-43, minutes for a
+    multi-GB file, past the busy timeout). So the copy is not pinned, writers
+    wait at most one step, and a busy instance can restart the copy. The
+    restart limit turns that into a reported failure instead of a loop.
+    """
+    journal_mode = source.execute("PRAGMA journal_mode").fetchone()[0].lower()
+    stats = {"pinned": journal_mode == "wal", "steps": 0, "restarts": 0}
+    if outcome is not None:
+        outcome.update(stats)
+    last_remaining = None
+
+    def progress(_status, remaining, _total):
+        nonlocal last_remaining
+        stats["steps"] += 1
+        # A restart starts again from page one: more pages left than before.
+        if last_remaining is not None and remaining > last_remaining:
+            stats["restarts"] += 1
+            if stats["restarts"] > _SNAPSHOT_MAX_RESTARTS:
+                if outcome is not None:
+                    outcome.update(stats)
+                message = (
+                    f"snapshot copy restarted {stats['restarts']} times "
+                    "because the database kept changing; giving up"
+                )
+                raise _SnapshotNotConvergingError(message)
+        last_remaining = remaining
+        time.sleep(_SNAPSHOT_STEP_PAUSE_SECONDS)
+
+    pin = _pinned_read(source) if stats["pinned"] else nullcontext()
+    with pin:
+        source.backup(destination, pages=_SNAPSHOT_STEP_PAGES, progress=progress)
+    if outcome is not None:
+        outcome.update(stats)
+
+
 def _backup_to_staging(
     source,
     directory_descriptor,
@@ -1006,9 +1086,7 @@ def _backup_to_staging(
             )
             os.close(descriptor)
         with closing(sqlite3.connect(staging_path, timeout=timeout)) as destination:
-            # Release the source read lock between small backup steps. The
-            # pause caps copy pressure while live web/worker traffic runs.
-            source.backup(destination, pages=256, progress=lambda *_: time.sleep(0.002))
+            _copy_source(source, destination, outcome)
             swept = None
             if verify == "page_sweep":
                 # The sweep opens its own connection: close this one first so

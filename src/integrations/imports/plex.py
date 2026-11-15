@@ -2839,7 +2839,7 @@ class PlexHistoryImporter:
 
         item_identifier = (
             f"{record['series_title'] or tv_metadata.get('title')} "
-            f"S{record['season_number']}E{record['episode_number']}"
+            f"S{int(record['season_number']):02d}E{int(record['episode_number']):02d}"
         )
         self.warnings.append(
             f"{item_identifier}: not found in {Sources.TMDB.label} with ID "

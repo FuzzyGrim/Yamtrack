@@ -113,6 +113,7 @@ def _preview_context(order, preview):
             "id": watch["id"], "title": titles[watch["item_id"]],
             "season_number": watch["season_number"],
             "episode_number": watch["episode_number"], "air_date": watch["air_date"],
+            "episode_code": f"S{watch['season_number']:02d}E{watch['episode_number']:02d}",
             "start_date": watch["start_date"], "end_date": watch["end_date"],
             "score": watch["score"], "status": watch["status"], "notes": watch["notes"],
             "selected": selected, "pending": pending, "kind": kind,
@@ -124,11 +125,11 @@ def _preview_context(order, preview):
             "rows": {str(row["id"]): {
                 "selected": row["selected"], "pending": row["pending"],
                 "kind": row["kind"], "archive": False, "combine": str(row["id"]),
-                "label": f"S{row['season_number']}E{row['episode_number']} {row['title']}",
+                "label": f"S{row['season_number']:02d}E{row['episode_number']:02d} {row['title']}",
             } for row in rows},
             "episodes": [{
                 "id": episode["provider_episode_id"],
-                "code": f"S{episode['season_number']}E{episode['episode_number']}",
+                "code": f"S{episode['season_number']:02d}E{episode['episode_number']:02d}",
                 "title": episode["title"], "air_date": episode.get("air_date") or "",
             } for episode in order.catalogue["episodes"]],
         },
@@ -251,7 +252,7 @@ def _episode_ordering_props(request, tv, context):
             date_label = end or labels["noDate"]
         watches.append({
             "id": watch["id"],
-            "label": f"S{watch['season_number']}E{watch['episode_number']} · {watch['title']}",
+            "label": f"S{watch['season_number']:02d}E{watch['episode_number']:02d} · {watch['title']}",
             "seasonNumber": watch["season_number"],
             "episodeNumber": watch["episode_number"],
             "title": watch["title"],

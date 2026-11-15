@@ -439,6 +439,7 @@ def provider_state(provider, user):
     enabled operations. None of these labels promises that a service is healthy.
     """
     slug = provider["slug"]
+    spec = credentials.REGISTRY.get(slug)
     credentials_available = bool(
         provider.get("credential") and credentials.is_configured(slug, user)
     )
@@ -475,8 +476,7 @@ def provider_state(provider, user):
         connection = "Webhook events received"
     elif account_saved:
         connection = "Account saved"
-    elif credentials_available:
-        spec = credentials.REGISTRY.get(slug)
+    elif credentials_available and not (spec and spec.bundled_only):
         sources = {credentials.source_of(slug, field.name, user) for field in spec.fields if field.required} if spec else set()
         connection = "Bundled credentials available" if sources == {credentials.SOURCE_DEFAULT} else "Credentials available"
     elif provider.get("public_access"):
@@ -525,6 +525,9 @@ def provider_state(provider, user):
         )
     return {
         "credentials_available": credentials_available,
+        # An account a person links is separate from the API credentials Floppy
+        # holds. Providers with one show "linked" and credentials separately.
+        "account_linkable": slug in _ACCOUNT_PROVIDERS | _SERVER_PROVIDERS or slug == "seerr",
         "account_saved": account_saved,
         "attention": attention,
         "connection": connection,

@@ -34,6 +34,27 @@ class ImportAniList(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
     @patch("requests.Session.post")
+    def test_unrated_entries_and_repeats_have_no_score(self, mock_request):
+        with Path(mock_path / "import_anilist.json").open() as file:
+            response = json.load(file)
+        for media_type in ("anime", "manga"):
+            entry = response["data"][media_type]["lists"][0]["entries"][0]
+            entry["score"] = 0
+            entry["repeat"] = 1
+            importer = anilist.AniListImporter(None, self.user, "new", "test")
+            importer._process_entry(entry, media_type)
+            self.assertEqual(
+                [row.score for row in importer.bulk_media[media_type]], [None, None]
+            )
+        mock_request.return_value.json.return_value = response
+
+        anilist.importer(None, self.user, "new", "bloodthirstiness")
+
+        for model in (Anime, Manga):
+            rows = model.objects.filter(user=self.user, score__isnull=True)
+            self.assertGreaterEqual(rows.count(), 1)
+
+    @patch("requests.Session.post")
     def test_import_anilist_public(self, mock_request):
         """Basic test importing anime and manga from AniList."""
         with Path(mock_path / "import_anilist.json").open() as file:

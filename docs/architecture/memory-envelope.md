@@ -216,8 +216,8 @@ after completion was roughly *one* database-copy rather than two.
 
 What remains is that the backup reads most of the live ~2 GB database while
 writing the ~2 GB destination, warming both sides at once, and `quick_check`
-then reads the whole copy back before the hint is issued. **No change was made
-to the backup for this**, and that is a deliberate decision rather than an
+then reads the whole copy back before the hint is issued. **Nothing bounds that
+cache during the copy**, and that is a deliberate decision rather than an
 omission — see below.
 
 The fix issues `POSIX_FADV_DONTNEED` on the finished snapshot. Its safety
@@ -230,25 +230,44 @@ front of it. `posix_fadvise` is feature-detected; a platform without it still
 publishes, and a hint that fails is logged and ignored. Global `drop_caches` is
 never used.
 
-#### Why the backup itself was not changed
+#### How the copy runs, and what was not changed
 
-The obvious lever is `Connection.backup(dest, pages=N, progress=cb)` with a
-periodic `fdatasync` and `POSIX_FADV_DONTNEED` on the staging descriptor, so
-the destination cache is bounded *during* the copy rather than dropped after
-it. It was investigated and deliberately not implemented, for two independent
-reasons that source reading alone cannot settle:
+The copy is stepped: `Connection.backup(dest, pages=256)` with a 2 ms pause
+between steps, so the snapshot does not monopolise the disk while web and
+worker traffic runs (added with background verification in `1d4f07a39`).
 
-- **It trades a measured-nothing for a real regression risk.** `pages=-1`
-  copies in a single step, holding one read transaction throughout. With
-  `pages=N`, SQLite restarts the backup from the beginning whenever the source
-  is written between steps. On a busy instance that can extend the snapshot or
-  stop it converging.
-- **The hint may do nothing.** `DONTNEED` drops only clean pages, so a mid-copy
-  hint requires extra syncs, and whether the kernel then reclaims is filesystem-
-  and writeback-dependent. Advisory behaviour is not identical everywhere.
+A stepped copy alone restarts from page one whenever another connection
+commits between steps. Measured on an 82 MB database (SQLite 3.42): a commit
+every 0.25 s caused 175 restarts in 45 s and the copy never finished. So
+`_copy_source` in `config/sqlite_integrity.py` picks by the source's own
+journal mode:
 
-`quick_check` would also re-warm the copy afterwards, undoing a mid-copy hint,
-and it cannot advise as it goes because it runs on the write connection.
+- **WAL:** the copy runs inside one read transaction on the source
+  (`BEGIN` plus one read). It copies that single snapshot in one pass, with
+  commits every 50 ms, and never blocks a writer (the copy's disk traffic
+  can still slow a commit: slowest 184 ms against 449 ms to 4 s for the old
+  unpinned copy, on a 711 MB file). The cost is that
+  checkpoints cannot move past the snapshot until the copy ends, so the WAL
+  grows for one pass and shrinks at the next checkpoint (CONC-43 receipts).
+- **Rollback journal** (the fallback on SQLite builds with the WAL-reset bug):
+  the copy is not pinned. A held read lock, or a single-step copy, blocks
+  every writer at commit for the whole copy: 2.8 s for a 711 MB file in
+  CONC-43, minutes for a multi-GB one, past the busy timeout. Unpinned,
+  writers wait at most one step, but a busy instance can restart the copy.
+
+Each run records `pinned`, `steps` and `restarts` on the `db_snapshot` log
+line. A pinned copy should show `restarts=0`; more than three restarts fails
+the snapshot with "the database kept changing" rather than running to the
+task time limit. On a busy rollback-journal install that means a missed,
+reported snapshot instead of stalled writes. Measured on a laptop with SQLite
+3.42 (macOS) and 3.53.4 (the Linux image), not on a production instance.
+
+Bounding the destination cache *during* the copy (a periodic `fdatasync` and
+`POSIX_FADV_DONTNEED` on the staging file) was investigated and not
+implemented. `DONTNEED` drops only clean pages, so a mid-copy hint needs extra
+syncs, and whether the kernel then reclaims depends on the filesystem and
+writeback. `quick_check` would also re-warm the copy afterwards, and it cannot
+advise as it goes because it runs on the write connection.
 
 So the deliverable is measurement, not a guess:
 `scripts/snapshot_memory_ladder.sh` runs the real `write_database_snapshot`
@@ -435,8 +454,15 @@ structurally smaller. Whether the request stops approaching the 400 MiB
 recycle ceiling is a Docker measurement.
 
 **Statistics FINISH: profiled, partly reduced.** `_aggregate_statistics_from_days`
-now times its phases and `stats_range_summary` logs them as `phases_ms`, so a
-slow range names its own cause. The profile was taken on a synthetic library
+is a short sequence of phases in `statistics_aggregator.py`: the day walk
+(`_walk_days`, merging each payload into one `_RangeAccumulators` with
+`_merge_day`), then undated rows, status and scores with top rated
+(`_build_scores_and_top_rated`), top played, activity and play charts, games,
+reading (`_build_reading_consumption` per type), History highlights, summary
+cards, top talent, and packing the per-type metric cards. Each phase is a
+function that reads the accumulators and returns its part of the payload, and
+`stats_range_summary` logs each one's wall time in `phases_ms` under the same
+names, so a slow range names its own cause. The profile was taken on a synthetic library
 (one user, 3,414 active days, about 15,000 items; production is about 9,570
 days and 250,000 items), with day payloads warm:
 
@@ -455,14 +481,26 @@ each range, and each media type inside it, re-read the History index and the
 same History days. That is about a third of the CPU of a hot pass and a fifth
 of a heavy one on the profiled library.
 
+**Across the ranges of a pass (2026-11-14).** Profiled again per range inside
+whole passes (same library shape, 3,400 days, about 18,000 items). In a heavy
+pass the top-rated card was the largest phase of every range (about 45% of the
+ranges' CPU), and 54% of the rows it annotated and 62% of the card rows loaded
+had already been loaded by an earlier range of the same pass. The walks over
+the day payloads of all bounded ranges together were about 0.25 s. So the
+pass now loads and annotates each card row once and hands each range a copy
+(`statistics-sync.md`); the day walk is still per range, and sharing it is not
+worth the accumulator snapshots it would need. For one pass of all eleven
+ranges: 25,033 model instances built became 12,755, queries about 1,460
+became 953, and the Python allocation peak 139 MB became 101 MB; every payload
+is byte-identical.
+
 Still open, largest first for All Time:
 
-- **The day walk** (fetch and merge, about a third). Nested ranges repeat it
-  from scratch. Sharing one walk between ranges needs the thirty accumulators
-  to be snapshotted at range boundaries; that is a design decision, not a
-  patch.
+- **The day walk** (fetch and merge, about a third of All Time). Each range
+  walks its own days; see above for why the ranges do not share one walk.
 - **Top-rated annotation.** `MediaManager.annotate_max_progress` is called per
-  row for seasons and re-reads rows the aggregate has just fetched.
+  row for seasons and re-reads rows the aggregate has just fetched. It now runs
+  once per row per pass rather than per range.
 - **Reading items.** `_fetch_reading_items_with_authors` loads a full `Item`
   for every reading title in the range to read its release date and authors.
 - **Top talent**, and the wide `Item` columns loaded by `_fetch_media_objects`

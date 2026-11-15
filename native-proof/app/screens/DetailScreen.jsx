@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Linking, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DetailView } from '../../../frontend/pages/DetailView';
@@ -9,6 +9,7 @@ import { useDevicePose } from '../data/useDevicePose';
 import { Screen } from '../components/Screen';
 import { createDetailModelForItem, loadDetailModel } from '../surfaces/DetailSlot';
 import { identityFromDetailItem } from '../surfaces/detailIdentity.mjs';
+import { applyViewerRating, createLatestGate, storedScore } from '../surfaces/detailActions.mjs';
 import { useDetailFeatures } from '../surfaces/DetailFeatures';
 import { setShellPageType, ShellLayoutContext } from '../surfaces/shellContext';
 import { horizontalContentPadding } from '../safeAreaSpacing.mjs';
@@ -47,7 +48,11 @@ export default function DetailScreen({ params, onBack, navigate }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [actionBusy, setActionBusy] = useState(false);
-  const [version, setVersion] = useState(0);
+  const [version] = useState(0);
+  // Orders page refreshes and on-screen changes: a refresh that started before
+  // a newer tap is dropped, so a late answer never undoes what the viewer sees.
+  const modelGate = useRef(null);
+  if (!modelGate.current) modelGate.current = createLatestGate();
 
   useEffect(() => {
     if (!item) {
@@ -96,13 +101,39 @@ export default function DetailScreen({ params, onBack, navigate }) {
     return () => { cancelled = true; };
   }, [item, attempt, params?.publicView]);
 
-  // A write from one of the page's own controls reloads the page payload in place.
-  const refresh = useCallback(() => {
-    if (!item) return;
-    loadDetailModel(item, { publicView: params?.publicView })
-      .then(next => { setModel(next); setVersion(value => value + 1); })
+  // A write from one of the page's own controls refreshes the page payload in
+  // place. The artwork on screen stays (actions do not change it) unless the
+  // write changed it (`artwork: true`), so no gallery request or image swap.
+  // The feature adapter reloads its own sections; this no longer bumps
+  // `version`, which made every action load those sections twice.
+  const refresh = useCallback((options = {}) => {
+    if (!item) return Promise.resolve();
+    const token = modelGate.current.begin();
+    const keepArtwork = !options.artwork;
+    return loadDetailModel(item, { publicView: params?.publicView, ...(keepArtwork ? { gallery: false } : {}) })
+      .then(next => {
+        if (!modelGate.current.isLatest(token)) return;
+        setModel(current => (keepArtwork && current?.artwork
+          ? { ...next, artwork: { ...next.artwork, ...current.artwork, gallery: next.artwork?.gallery || current.artwork.gallery } }
+          : next));
+      })
       .catch(cause => setError(cause?.message || 'The detail could not be loaded from the server.'));
   }, [item, params?.publicView]);
+
+  // Shows an action's result before the server answers. Returns a token; a
+  // revert applies only while no newer change or refresh has started.
+  const optimistic = useMemo(() => ({
+    apply(change) {
+      const token = modelGate.current.begin();
+      setModel(current => change(current));
+      return token;
+    },
+    revert(token, change) {
+      if (!modelGate.current.isLatest(token)) return false;
+      setModel(current => change(current));
+      return true;
+    },
+  }), []);
 
   const wrapAction = action => ({
     ...action,
@@ -179,8 +210,7 @@ export default function DetailScreen({ params, onBack, navigate }) {
       method: 'PATCH',
       json: { score },
     });
-    const next = await loadDetailModel(item, { publicView: params?.publicView });
-    setModel(next);
+    refresh();
   }
 
   async function runChildAction(key, child) {
@@ -193,7 +223,7 @@ export default function DetailScreen({ params, onBack, navigate }) {
     setError('');
     try {
       await request(path, { method: key === 'unwatch' ? 'DELETE' : 'POST' });
-      setModel(await loadDetailModel(item, { publicView: params?.publicView }));
+      refresh();
     } catch (cause) {
       setError(cause?.message || 'The episode action could not be completed.');
     } finally {
@@ -210,9 +240,9 @@ export default function DetailScreen({ params, onBack, navigate }) {
     setError('');
     try {
       await request(`/api/v1/media/tv/${encodeURIComponent(identity.source)}/${encodeURIComponent(identity.mediaId)}/${encodeURIComponent(identity.seasonNumber)}/episodes/${encodeURIComponent(identity.episodeNumber)}/score/`, {
-        method: 'PATCH', json: { score: score == null ? null : score * 10 / (child.scaleMax || 10) },
+        method: 'PATCH', json: { score: storedScore(score, child.scaleMax) },
       });
-      setModel(await loadDetailModel(item, { publicView: params?.publicView }));
+      refresh();
     } catch (cause) {
       setError(cause?.message || 'The episode rating could not be saved.');
     } finally {
@@ -229,17 +259,18 @@ export default function DetailScreen({ params, onBack, navigate }) {
     const path = identity.media_type === 'episode'
       ? `${base}${encodeURIComponent(identity.season_number)}/episodes/${encodeURIComponent(identity.episode_number)}/score/`
       : identity.media_type === 'season' ? `${base}${encodeURIComponent(identity.season_number)}/` : base;
-    setActionBusy(true);
+    const previous = model.viewerRating?.value ?? null;
     setError('');
+    // The rating shows at once; a failed save puts the previous one back.
+    const token = optimistic.apply(current => applyViewerRating(current, score));
     try {
       await request(path, {
-        method: 'PATCH', json: { score: score == null ? null : Number(score) * 10 / (model.viewerRating?.scaleMax || 10) },
+        method: 'PATCH', json: { score: storedScore(score, model.viewerRating?.scaleMax) },
       });
-      setModel(await loadDetailModel(item, { publicView: params?.publicView }));
+      refresh();
     } catch (cause) {
+      if (!optimistic.revert(token, current => applyViewerRating(current, previous))) refresh();
       setError(cause?.message || 'The rating could not be saved.');
-    } finally {
-      setActionBusy(false);
     }
   }
 
@@ -251,6 +282,7 @@ export default function DetailScreen({ params, onBack, navigate }) {
     dataReady,
     version,
     refresh,
+    optimistic,
     navigate,
     onOpenItem: openDetail,
     onOpenExternal: openExternal,

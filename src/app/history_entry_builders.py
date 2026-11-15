@@ -302,12 +302,10 @@ def _build_episode_entry(episode, episode_title_map=None):
         and episode_item.season_number is not None
         and episode_item.episode_number is not None
     ):
-        episode_label = (
-            f"{episode_item.season_number}x{episode_item.episode_number:02d}"
-        )
         episode_code = (
             f"S{episode_item.season_number:02d}E{episode_item.episode_number:02d}"
         )
+        episode_label = episode_code
 
     entry = {
         "media_type": MediaTypes.EPISODE.value,

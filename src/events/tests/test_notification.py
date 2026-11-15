@@ -883,8 +883,8 @@ class NotificationTests(TestCase):
 
         self.assertEqual(notification_text.count("* Season Finale"), 1)
         self.assertEqual(notification_html.count("* Season Finale"), 1)
-        self.assertIn("Test TV Show - Season 1 S1 E5", notification_text)
-        self.assertIn("Test TV Show - Season 1 S1 E4", notification_text)
+        self.assertIn("Test TV Show - Season 1 S01E05", notification_text)
+        self.assertIn("Test TV Show - Season 1 S01E04", notification_text)
         self.assertIn(
             '<span style="color: #dc2626;">* Season Finale</span>',
             notification_html,
@@ -902,7 +902,7 @@ class NotificationTests(TestCase):
 
         notification_text = format_notification([self.season1_event])
 
-        self.assertIn("Test TV Show - Season 1 S1 E5 * Season Finale", notification_text)
+        self.assertIn("Test TV Show - Season 1 S01E05 * Season Finale", notification_text)
         self.assertNotIn("(11:59)", notification_text)
 
     def test_format_notification_html(self):
@@ -978,8 +978,8 @@ class NotificationTests(TestCase):
 
         notification_text = format_notification([self.season1_event, second_episode])
 
-        self.assertIn("Test TV Show - Season 1 S1 E5", notification_text)
-        self.assertIn("Test TV Show - Season 1 S1 E4", notification_text)
+        self.assertIn("Test TV Show - Season 1 S01E05", notification_text)
+        self.assertIn("Test TV Show - Season 1 S01E04", notification_text)
         self.assertNotIn("Episodes", notification_text)
 
     def test_format_notification_only_collapses_the_batch_item(self):
@@ -998,7 +998,7 @@ class NotificationTests(TestCase):
         notification_text = format_notification(events)
 
         self.assertIn("Episodes 1-5", notification_text)
-        self.assertIn("Test TV Show - Season 3 S3 E1", notification_text)
+        self.assertIn("Test TV Show - Season 3 S03E01", notification_text)
 
     def test_format_notification_html_collapses_full_season_batch(self):
         """HTML notifications collapse batches the same way as plain text."""

@@ -8,15 +8,32 @@ import heapq
 import itertools
 from collections import defaultdict
 
-from django.apps import apps
-
 from app import config
-from app.models import MediaManager
+from app.history_cache_utils import (
+    HISTORY_UNREAD_ITEM_FIELDS,
+    history_deferred_item_fields,
+)
+from app.models import TV, MediaManager, MediaTypes, Season, Sources
 from app.statistics_cache import STATISTICS_TOP_N, STATISTICS_TOP_RATED_OVERALL
 from app.stats_utils import _CombinedMediaBucket, _infer_user_from_user_media
 from app.templatetags import app_tags
 
 SCORE_SCALE_FIVE_POINT = 5
+
+
+def _prefetch_activity_dates(queryset, model_cls):
+    """Load what a TV show's or season's activity dates read, in a few queries.
+
+    A TV show's and a season's ``end_date`` and ``progressed_at`` are derived
+    from their seasons and episodes. Without this every scored show or season
+    queries for them separately.
+    """
+    model = model_cls._meta.concrete_model
+    if model is TV:
+        return queryset.prefetch_related("seasons__item", "seasons__episodes")
+    if model is Season:
+        return queryset.prefetch_related("episodes")
+    return queryset
 
 
 def get_score_distribution(user_media):
@@ -49,25 +66,25 @@ def get_score_distribution(user_media):
         )
 
         # Group media by item to identify which items appear in the date range
+        # One pass over each queryset itself, not a clone: an evaluation
+        # re-runs its prefetches (a TV bucket loads every season and episode),
+        # and the timeline and other callers then reuse the loaded rows.
+        # get_user_media already selects each row's item.
         media_by_item = defaultdict(list)
+        # Model class per item; handles grouped anime (TV) in the anime bucket.
+        _model_classes_by_item_id = {}
         for _qs in _all_qs:
-            for media in _qs.select_related("item"):
+            for media in _qs:
                 item = getattr(media, "item", None)
                 key = item.id if item else media.id
                 media_by_item[key].append(media)
+                if item:
+                    _model_classes_by_item_id[item.id] = type(media)
 
         # For each item that appears in the date range, fetch ALL entries (not just date-filtered)
         # to find the aggregated score, even if the score was set outside the date range
         deduped_scored = {}
         if user:
-            # Derive model class(es) from actual queryset(s); handles grouped anime (TV) in anime bucket
-            _model_classes_by_item_id = {}
-            for _qs in _all_qs:
-                for entry in _qs.select_related("item"):
-                    item = getattr(entry, "item", None)
-                    if item:
-                        _model_classes_by_item_id[item.id] = type(entry)
-
             # Get all unique item IDs from items that appear in the date range
             item_ids_in_range = set()
             item_id_to_key_map = {}  # Map item.id -> key used in media_by_item
@@ -96,6 +113,7 @@ def get_score_distribution(user_media):
                         .select_related("item")
                         .order_by("-created_at")
                     )
+                    _entries_q = _prefetch_activity_dates(_entries_q, model_cls)
                     for entry in _entries_q:
                         _item = getattr(entry, "item", None)
                         if _item:
@@ -351,44 +369,85 @@ def get_score_distribution(user_media):
     )
 
 
+# annotate_max_progress reads a manual item's custom details for these types
+# (manual_metadata, then item columns such as authors or studios), so a manual
+# item of these types is loaded whole rather than one late query per column.
+_MANUAL_DETAIL_PROGRESS_TYPES = frozenset(
+    {MediaTypes.ANIME.value, MediaTypes.MANGA.value, MediaTypes.COMIC.value}
+)
+
+
 def _annotate_top_rated_media(top_rated_media):
     """Apply prefetch_related and annotate max_progress for top rated media."""
     if not top_rated_media:
         return top_rated_media
 
-    # Group by media type to batch database operations
-    media_by_type = {}
+    # The item type can differ from the table containing the tracking row.
+    media_by_model = {}
     for media in top_rated_media:
-        media_type = media.item.media_type
-        if media_type not in media_by_type:
-            media_by_type[media_type] = []
-        media_by_type[media_type].append(media)
+        media_by_model.setdefault(media._meta.concrete_model, []).append(media)
 
     media_manager = MediaManager()
 
-    for media_type, media_list in media_by_type.items():
-        model = apps.get_model(app_label="app", model_name=media_type)
+    replacements = {}
+    for model, media_list in media_by_model.items():
+        media_type = model._meta.model_name
         media_ids = [media.id for media in media_list]
 
-        # Fetch fresh instances with proper relationships and annotations
-        queryset = model.objects.filter(id__in=media_ids)
-        queryset = media_manager._apply_prefetch_related(queryset, media_type)
-        media_manager.annotate_max_progress(queryset, media_type)
+        # Fetch fresh instances with proper relationships and annotations.
+        # The cached range payload keeps these rows and the season and episode
+        # items prefetched under them, so the wide item columns no card reads
+        # stay out.
+        item_paths = ["item"]
+        if media_type == MediaTypes.SEASON.value:
+            item_paths.append("related_tv__item")
+        whole_ids = set()
+        if media_type in _MANUAL_DETAIL_PROGRESS_TYPES:
+            whole_ids = {
+                media.id
+                for media in media_list
+                if media.item.source == Sources.MANUAL.value
+            }
+        rows = []
+        for ids, deferred in (
+            (set(media_ids) - whole_ids, history_deferred_item_fields(*item_paths)),
+            (whole_ids, ()),
+        ):
+            if not ids:
+                continue
+            queryset = (
+                model.objects.filter(id__in=ids)
+                .select_related(*item_paths)
+                .defer(*deferred)
+            )
+            rows.extend(
+                media_manager._apply_prefetch_related(
+                    queryset, media_type, defer_item_fields=HISTORY_UNREAD_ITEM_FIELDS
+                )
+            )
+        media_manager.annotate_max_progress(rows, media_type)
 
-        prefetched_media_map = {media.id: media for media in queryset}
+        prefetched_media_map = {media.id: media for media in rows}
 
         # Replace original instances with enhanced ones, keeping any route
         # override (e.g. grouped anime fetched as a TV row) that was set on
         # the original instance so links keep using the anime route.
-        for i, media in enumerate(top_rated_media):
-            if media.item.media_type == media_type:
-                replacement = prefetched_media_map[media.id]
-                route_media_type = getattr(media, "route_media_type", None) or (
-                    getattr(media.item, "route_media_type", None)
-                )
-                if route_media_type:
-                    replacement.route_media_type = route_media_type
-                    replacement.item.route_media_type = route_media_type
-                top_rated_media[i] = replacement
+        for media in media_list:
+            replacement = prefetched_media_map.get(media.id)
+            if replacement is None:
+                continue
+            route_media_type = getattr(media, "route_media_type", None) or (
+                getattr(media.item, "route_media_type", None)
+            )
+            if route_media_type:
+                replacement.route_media_type = route_media_type
+                replacement.item.route_media_type = route_media_type
+            if hasattr(media, "aggregated_score"):
+                replacement.aggregated_score = media.aggregated_score
+            replacements[(model, media.pk)] = replacement
 
-    return top_rated_media
+    return [
+        replacements[key]
+        for media in top_rated_media
+        if (key := (media._meta.concrete_model, media.pk)) in replacements
+    ]

@@ -233,7 +233,7 @@ def provider_detail(request, slug):
         if provider.get("metadata_role") == "supplemental":
             related_media = provider["media_types"]
         context.update(metadata_views.metadata_context(request.user, slug, related_media))
-        if tab == "connection" and slug != "anilist":
+        if tab == "connection" and slug != "anilist" and context.get("metadata_provider"):
             context["credentials_model"] = provider_ui.provider_credentials(request, context)
     if (
         tab == "import"
@@ -450,6 +450,25 @@ def provider_detail(request, slug):
         )
         context["account_connection"]["title"] = _("MyAnimeList account")
         context["account_connection"]["submitLabel"] = _("Authorize and enable MyAnimeList sync")
+    if slug == "wetrakr" and tab == "connection":
+        account = (context.get("wetrakr_sync") or {}).get("account")
+        pending = bool(account and account.is_pending)
+        connected = bool(account and account.is_connected)
+        attention = bool(account and account.connection_broken and not pending)
+        context["account_connection"] = provider_ui.account_connection(
+            request, connected=connected, saved=bool(account) and not pending, attention=attention,
+            fields=[], follow_up=None, connect_url=reverse("wetrakr_connect"), disconnect_url=reverse("wetrakr_disconnect"),
+            link_slug="wetrakr", link_label=provider["label"],
+            messages={
+                "connected": _("Your WeTrakr account is linked. Choose what Floppy sends on the Sync tab."),
+                "attention": _("WeTrakr rejected your login. Reconnect to continue."),
+                "disconnected": _("Link your WeTrakr account to send your plays, statuses and ratings."),
+            },
+            summary={"url": "", "lastSync": "", "error": redact_secrets(account.last_error_message or "")} if attention and account.last_error_message else None,
+            device=provider_ui.device_login(account.user_code, account.verification_url, account.device_interval, account.device_expires_at) if pending else None,
+        )
+        context["account_connection"]["title"] = _("WeTrakr account")
+        context["account_connection"]["submitLabel"] = _("Connect WeTrakr")
     context["provider_page"] = provider_ui.provider_page(request, provider, tab, credential_context=context)
     if getattr(request, "provider_context_only", False):
         # The native JSON API reuses this view model instead of rebuilding it.

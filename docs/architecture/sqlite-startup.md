@@ -131,8 +131,11 @@ SQLite more cache does not help when the container's memory is smaller than the
 database, and no `PRAGMA` changes the walk order. The fix is to verify in file
 order.
 
-Supervisor runs `sqlite_startup --background` (`sqlite-verification`) 60 seconds
-after start and then every 10 minutes, niced. It makes no copy and takes no
+Supervisor runs `config/sqlite_background.py` (`sqlite-verification`) 60 seconds
+after start and then every 10 minutes, niced. It is the same slice as
+`sqlite_startup --background`, run without starting Django: the verifier needs
+only the standard library, and two Django start-ups per slice (the command and
+its deadline worker, about 6.5 s of CPU) were most of an idle instance's CPU. It makes no copy and takes no
 write lock. Nothing blocks startup or serving, and nothing is re-run because the
 image changed: state is tied to the database file (`DB_FILE.verification.
 progress.json`), so work resumes across restarts and upgrades, and a replaced
@@ -167,7 +170,8 @@ its copy; that is not yet sliced or swept.
 
 Observe `[sqlite-verification] slice status=...` logs and the progress file
 (`verified_through`, `unverified_units`, `fk_incomplete`, `deep_incomplete`).
-Run a slice manually with `python manage.py sqlite_startup --background`.
+Run a slice manually with `python manage.py sqlite_startup --background` (or
+`python config/sqlite_background.py`; both share `run_background_slice`).
 
 A snapshot passing `quick_check` establishes structural integrity of its
 copy only. It does **not** establish relational integrity. Existing scheduled

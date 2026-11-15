@@ -224,6 +224,15 @@ class Media(models.Model):
         else:
             super().save(*args, **kwargs)
 
+    @serialized_state_write
+    def delete(self, *args, **kwargs):
+        """Delete inside the same per-user barrier as a save.
+
+        A cascade (a season's episodes) locks the user's sequence row once here
+        instead of once per deleted row in the delete signals.
+        """
+        return super().delete(*args, **kwargs)
+
     def _include_updated_at(self, kwargs):
         """Make a partial save (``update_fields``) move ``updated_at`` too."""
         update_fields = kwargs.get("update_fields")

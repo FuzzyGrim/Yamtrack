@@ -79,6 +79,24 @@ import runs. It passes `refresh_results=False`, so opening Overview does not ref
 Celery results or write task state. AniList retains its established full-history
 read adapter. Both produce the same card contract, without UI branches per provider.
 
+The Connection card answers "is my account linked?" for every provider that has
+an account (`provider["state"]["account_linkable"]`): "Account linked", "Account not
+linked", "Waiting for you to approve" or "Account needs attention", with the
+credentials in use as a second line ("Bundled credentials active"). Credentials alone
+never turn the badge on. Providers without an account keep the credentials headline.
+
+## Keys that belong to Floppy
+
+A provider whose key is issued to the app, not to its users, is registered with
+`bundled_only=True` in `app.providers.credentials`. That one flag removes the key
+from every user-facing place: no credential forms, no "Get a key" link, no
+Settings > Metadata entry, no credential line on Overview, and the save, clear and
+personal-key routes answer 404. Only the environment (a rebrand or public host with
+its own key) can replace it. WeTrakr is the first. Its Connection tab is the shared
+account card; sign-in is the shared `ProviderLinkCard` device-code flow, which the
+web adapter (`mountAccountConnection`) and the native app both use, and a code
+started before a reload resumes.
+
 Each card is a native, keyboard-accessible link to its owning tab.
 There are no separate manage/configure/view footers. All three status subtitles
 use the same muted typography and omit terminal periods. Tabs retain the active

@@ -61,6 +61,22 @@ class MediaCardModelTest(TestCase):
         self.user.clickable_media_cards = True
         self.assertTrue(card_model(ctx)["actions"]["clickable"])
 
+    def test_quick_status_identity_tracks_permissions_and_existing_row(self):
+        """Quick actions use the existing tracker and never appear on public cards."""
+        ctx = card_context({"user": self.user}, "library", {"item": self.item, "media": self.movie})
+        quick = card_model(ctx)["quickStatus"]
+        self.assertTrue(quick["tracked"])
+        self.assertEqual(quick["status"], Status.COMPLETED.value)
+        self.assertEqual(quick["identity"]["instanceId"], self.movie.id)
+        self.assertEqual(quick["identity"]["mediaId"], "model-1")
+        untracked = card_context({"user": self.user}, "search", {"item": self.item, "media": None})
+        self.assertFalse(card_model(untracked)["quickStatus"]["tracked"])
+        self.item.source = Sources.MANUAL.value
+        self.assertIsNone(card_model(untracked)["quickStatus"])
+        self.item.source = Sources.TMDB.value
+        public = card_context({"user": self.user, "public_view": True}, "library", {"item": self.item, "media": self.movie})
+        self.assertIsNone(card_model(public)["quickStatus"])
+
     def test_next_episode_chip_has_compact_label(self):
         """The next-episode action exposes a short localized label for phones."""
         media = SimpleNamespace(next_episode_queue=False)
