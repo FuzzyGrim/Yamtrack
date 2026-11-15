@@ -198,15 +198,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Compiled into the web bundle through MediaCardView consumers; the drag handle, adjustable value and step controls were not exercised in a browser."
+          "evidence": "Quick status and long-press changes are not runtime verified. Compiled into the web bundle through MediaCardView consumers; the drag handle, adjustable value and step controls were not exercised in a browser."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled and placed in the card on the iOS Home screen. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
+          "evidence": "Quick status and long-press changes are not runtime verified. Compiled and placed in the card on the iOS Home screen. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Compiled and placed in the card on the Android Home and Library screens. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
+          "evidence": "Quick status and long-press changes are not runtime verified. Compiled and placed in the card on the Android Home and Library screens. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
         }
       }
     },
@@ -1133,15 +1133,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered by the Lists web adapter inside the existing React ModalHost; the web bundle builds, but no browser interaction pass was run."
+          "evidence": "The browser adapter retains its React ModalHost; Expo web uses the Detail presentation sheet. The new card sheet has not had a browser interaction pass."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the MediaCardSlot native placement; no runtime interaction pass."
+          "evidence": "A physical Duo opened the MediaCardSlot Lists sheet, verified its native rail close button at half and full height, and dismissed it; Lists form interactions remain unverified."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the MediaCardSlot native placement; no runtime interaction pass."
+          "evidence": "MediaCardSlot now embeds ListsForm in the Detail presentation sheet; the Android interaction is not runtime verified."
         }
       }
     },
@@ -1173,15 +1173,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered by mountTrackForm as the web Track dialog for card, detail, album/artist and podcast-show popups. Song and podcast preview and history remain server-owned and are moved into the form; their legacy shell remains a fallback. Runtime evidence is recorded separately."
+          "evidence": "The browser adapter retains its Track dialog; Expo web embeds TrackDialog in the Detail presentation sheet for card actions. The new card sheet has not had a browser interaction pass."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Detail tracking surface; the dialog, tabs, coupling, delete, repeat and validation states were not exercised on a simulator or device."
+          "evidence": "Detail and MediaCardSlot embed TrackDialog in the presentation sheet; the card dialog and its save, delete and tab interactions are not runtime verified on iOS."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Detail tracking surface; the dialog, tabs, coupling, delete, repeat and validation states were not exercised on an emulator or device."
+          "evidence": "Detail and MediaCardSlot embed TrackDialog in the presentation sheet; the card dialog and its save, delete and tab interactions are not runtime verified on Android."
         }
       }
     },
@@ -2385,15 +2385,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Native person/studio credit grids use canonical shared card models and an opt-in hover-line policy; paired pre-fix screenshots showed drift and post-fix browser comparison is pending. Existing browser adapter and other model defaults are unchanged."
+          "evidence": "Quick status, the nested submenu and long-press navigation handling are not runtime verified. Native person/studio credit grids use canonical shared card models and an opt-in hover-line policy; paired pre-fix screenshots showed drift and post-fix browser comparison is pending. Existing browser adapter and other model defaults are unchanged."
         },
         "ios": {
-          "status": "verified",
-          "evidence": "Earlier iPhone Duo (iOS 27.2) testing covered compact Home cards and one touch-action path. The new person/studio hover-line behavior has not been run on iOS."
+          "status": "unverified",
+          "evidence": "The user captured the previous nested Menu presentation; its replacement with a menu-style Picker and full-card context-menu preview shape have not been runtime verified. Earlier iPhone Duo (iOS 27.2) testing covered compact Home cards and one touch-action path. The new person/studio hover-line behavior has not been run on iOS."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Neither the shared 24px chip sizing nor Expo Go runtime interaction with the saved touch-action setting has been exercised on Android."
+          "evidence": "Quick status and long-press changes are not runtime verified. Neither the shared 24px chip sizing nor Expo Go runtime interaction with the saved touch-action setting has been exercised on Android."
         }
       }
     },
@@ -4723,15 +4723,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "The browser adapter places status and next-episode chips in opposing corners, so narrow cards can collide. Compact CSS selects Next and wider cards retain Next ep; generated CSS is checked, but compact-breakpoint browser runtime verification remains pending."
+          "evidence": "Quick status and long-press changes are not runtime verified. The browser adapter places status and next-episode chips in opposing corners, so narrow cards can collide. Compact CSS selects Next and wider cards retain Next ep; generated CSS is checked, but compact-breakpoint browser runtime verification remains pending."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Not applicable to the browser implementation."
+          "evidence": "Quick status and long-press changes are not runtime verified. Not applicable to the browser implementation."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Not applicable to the browser implementation."
+          "evidence": "Quick status and long-press changes are not runtime verified. Not applicable to the browser implementation."
         }
       }
     },
@@ -5383,6 +5383,10 @@
     }
   },
   "web_adapters": {
+    "frontend/ui/mediaCardQuickStatus.web.js": {
+      "register": "MEDIA-CARD",
+      "purpose": "Browser transport for quick status changes using the session and consumption API."
+    },
     "frontend/settings/Chip.web.jsx": {
       "register": "SETTINGS-CARD",
       "purpose": "Browser link adapter for the shared chip: supplies anchor navigation and new-tab attributes, honors a caller-supplied palette for React-owned cards and falls back to the scoped web CSS-variable palette for server wrappers while the shared chip owns hover and focus."

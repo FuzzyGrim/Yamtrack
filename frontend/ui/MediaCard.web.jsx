@@ -3,6 +3,15 @@ import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
 import { openModal } from './ModalHost';
 import { RatingStars } from './RatingStars';
+import { DropdownItem, DropdownMenu } from './DropdownMenu';
+import { saveQuickStatus } from './mediaCardQuickStatus.web';
+
+const quickStatuses = ['Planning', 'In progress', 'Paused', 'Completed', 'Dropped'];
+const quickStatusColors = { Planning: 'text-sky-400', 'In progress': 'text-indigo-400',
+  Paused: 'text-orange-400', Completed: 'text-emerald-400', Dropped: 'text-red-400' };
+const quickPalette = { surface: 'var(--color-surface)', surfaceStrong: 'var(--color-surface)',
+  surfaceMuted: 'var(--color-surface-alt)', border: 'var(--color-border)', text: 'var(--color-text)',
+  textSecondary: 'var(--color-text)', overlay: 'rgba(0,0,0,.55)' };
 
 // The shared media card body. It renders the same class names the Django card
 // used, so every existing theme and layout rule keeps applying. Only the Search
@@ -76,6 +85,7 @@ function CornerChip({ chip, labels }) {
   }
   return <a href={chip.href} {...{ 'hx-disable': '' }}
     className={`${chipBase} top-2 right-2 hover:bg-indigo-600 flex items-center gap-0.5 transition-colors`}
+    data-next-episode={chip.kind === 'next-episode' ? 'true' : undefined}
     data-episode-queue={chip.kind === 'queue' ? 'true' : undefined}
     title={labels.nextEpisode}
     aria-label={chip.kind === 'next-episode' ? labels.nextEpisode : undefined}>{inner}</a>;
@@ -451,6 +461,31 @@ export function MediaCard({
   const cardRef = useRef(null);
   const revealed = useTapToReveal(cardRef, host, !!shownActions, !!selection?.active, !!shownActions?.clickable);
   const live = useLiveCard(model);
+  const [quick, setQuick] = useState(model.quickStatus);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickActive, setQuickActive] = useState(false);
+  const [quickError, setQuickError] = useState('');
+  const [quickBusy, setQuickBusy] = useState(false);
+  const [quickAnchor, setQuickAnchor] = useState(null);
+  const quickAvailable = quick && !readOnly && !selection?.active
+    && !['event', 'media-type', 'status-native'].includes(model.statusChip?.kind);
+  useEffect(() => setQuick(model.quickStatus), [model.quickStatus]);
+  useEffect(() => {
+    if (live?.status) setQuick(current => current && { ...current, tracked: true, status: live.status });
+  }, [live]);
+  async function chooseStatus(status) {
+    setQuickOpen(false);
+    setQuickBusy(true);
+    setQuickError('');
+    try {
+      await saveQuickStatus(quick, status, shownActions?.csrfToken);
+      setQuick(current => ({ ...current, tracked: true, status, identity: { ...current.identity, instanceId: null } }));
+      if (model.cardKey) document.dispatchEvent(new CustomEvent('floppyCardUpdate', {
+        detail: { cardKey: model.cardKey, status, statusColor: quickStatusColors[status] },
+      }));
+    } catch (error) { setQuickError(error.message); }
+    finally { setQuickBusy(false); }
+  }
   if (model.layout === 'row') {
     return <MediaRow model={model} slots={slots} labels={copy} actions={shownActions}
       onAction={onAction} readOnly={readOnly} />;
@@ -460,7 +495,7 @@ export function MediaCard({
   const aspectStyle = model.aspectRatio ? { aspectRatio: Number(model.aspectRatio) } : undefined;
   const bar = model.progressBar;
   const card = <>
-    <div className="media-card-visual relative">
+    <div className={`media-card-visual relative${quickActive || quickOpen ? ' media-quick-status-active' : ''}`}>
       {model.recommend ? <div className="cursor-pointer"><img decoding="sync" loading="lazy" alt={model.title}
         className={imgClass} style={aspectStyle} src={art.src} data-image-source={art.source} /></div> : <a href={model.href} {...(model.boost ? { 'hx-boost': 'true' } : {})} onClick={(event) => {
         if (selection?.active) { event.preventDefault(); selection.toggle(); }
@@ -473,12 +508,30 @@ export function MediaCard({
           data-image-source={art.source}
           {...(model.video ? { 'data-image-fallback': art.fallback, 'data-image-fallback-on-small': 'true' } : {})} />
       </a>}
-      {model.statusChip?.kind === 'status-native' ? <StatusChip chip={model.statusChip} />
+      {quickAvailable && <div className="media-quick-status"
+        onMouseEnter={() => setQuickActive(true)} onMouseLeave={() => setQuickActive(false)}
+        onFocus={() => setQuickActive(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setQuickActive(false); }}>
+        <button type="button" className="media-quick-status-button" disabled={quickBusy}
+          aria-label={`Change status: ${quick.status || 'Not tracked'}`} aria-expanded={quickOpen}
+          onClick={event => { event.preventDefault(); event.stopPropagation(); const rect = event.currentTarget.getBoundingClientRect();
+            setQuickAnchor({ x: rect.left, y: rect.top, width: rect.width, height: rect.height }); setQuickOpen(true); }}>
+          <span className={`media-quick-status-icon ${quickStatusColors[quick.status] || ''}`} aria-hidden="true">{quick.status && statusIcons[quick.status]
+            ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{statusIcons[quick.status]}</svg> : '+'}</span>
+          <span className="media-quick-status-label">{quick.status || 'Add to tracker'}</span>
+        </button>
+        <DropdownMenu open={quickOpen} onClose={() => setQuickOpen(false)} anchor={quickAnchor} align="start"
+          closeLabel="Close status menu" palette={quickPalette} estimatedHeight={208}>
+          {quickStatuses.map(status => <DropdownItem key={status} label={status} palette={quickPalette}
+            selected={quick.status === status} onPress={() => chooseStatus(status)} />)}
+        </DropdownMenu>
+      </div>}
+      {quickError && <span className="media-quick-status-error" role="alert">{quickError}</span>}
+      <div className={quickAvailable ? 'media-quick-status-original' : undefined}>{model.statusChip?.kind === 'status-native' ? <StatusChip chip={model.statusChip} />
         : model.statusChip?.kind === 'media-type' ? <MediaTypeChip chip={model.statusChip} />
           : model.statusId && <div id={model.statusId} data-react-owned="">{(() => {
             const chip = liveChip(model.statusChip, live, copy);
             return chip && <CardStatusChip chip={chip} />;
-          })()}</div>}
+          })()}</div>}</div>
       {(model.cornerChips || []).map((chip) => <CornerChip key={chip.kind} chip={chip} labels={copy} />)}
       {bar && <div className={`media-card-progress-bar absolute bottom-0 left-0 right-0 h-1 bg-gray-900/60 z-20${bar.dormant ? ' media-card-progress-dormant' : ''}`}>
         <div className={`h-full ${bar.paused ? 'bg-indigo-500/40' : 'bg-indigo-500'} transition-[width] duration-300 ease-out`}

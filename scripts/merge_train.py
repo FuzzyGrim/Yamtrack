@@ -1,17 +1,30 @@
 #!/usr/bin/env python3
 # ruff: noqa: T201
-"""Keep pull requests up to date with latest, one at a time, so auto-merge can land them.
+"""Keep approved pull requests up to date with latest so auto-merge can land them.
 
 latest requires a pull request to be up to date before it merges, and GitHub's
 merge queue is not available on a personal repository. Auto-merge alone then stalls:
 after any merge every other waiting PR is behind and nothing updates it. This script
-is the queue. Among open PRs that have auto-merge switched on (the owner's approval),
-it walks them in the order auto-merge was enabled and acts on the first one that can
-still merge:
+is the queue. It only ever does one thing to a PR: merge latest into its branch
+(GitHub's "Update branch"), which restarts that PR's own CI. GitHub's native
+auto-merge then lands whichever up-to-date PR goes green first. Nothing else is
+created, merged or pushed.
 
-- behind latest: merge latest into it (this restarts CI, and auto-merge lands it),
-- up to date and its checks are running or about to merge: it is the one in flight
-  and the others wait their turn.
+PRs with auto-merge switched on (the owner's approval) run in two lanes:
+
+- normal: up to MERGE_TRAIN_DEPTH (default 3) PRs are refreshed and tested at the
+  same time. A PR already running or green on the current latest never holds the
+  others back. Free slots go to PRs that are already green on an older latest,
+  earliest green first, then to the rest in approval order; a PR waiting longer
+  than FAIRNESS_AFTER counts as ready so it cannot starve. A previously failed PR
+  is retried once per new latest, last.
+- migration: any PR that changes src/*/migrations/ (added, deleted or renamed, or
+  a diff too large to inspect) is refreshed one at a time in approval order, as
+  before, and has to pass migration-order against the latest it merges into.
+
+When one PR merges, every other in-flight PR is behind again; the next run
+refreshes it against the new latest (the strict rule makes that retest
+mandatory, so a stale green result can never merge).
 
 "Behind" is decided by comparing the PR head with the current latest commit, not by
 GitHub's mergeStateStatus, which reads UNKNOWN while it recalculates and BLOCKED
@@ -20,9 +33,9 @@ check, checks that never started, a fork branch the token may not update) is ski
 with the reason, so it cannot hold the queue; its author has to act.
 
 The run exits 0 when a PR was updated, one is in flight, or the queue is empty.
-An unmodifiable contributor fork is also an expected manual handoff, not a
-broken automation: the contributor must update it, and the warning stays visible.
-A stalled queue with merge conflicts or failed checks still exits 1.
+An unmodifiable contributor fork is an expected manual handoff, not a broken
+automation: the contributor must update it, and the warning stays visible. A
+stalled queue with merge conflicts or failed checks still exits 1.
 
 Usage: merge_train.py [--dry-run]    (needs GH_TOKEN and GH_REPO)
 """
@@ -36,6 +49,7 @@ import subprocess
 import sys
 import time
 from contextlib import suppress
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -48,9 +62,14 @@ HUNG_AFTER = timedelta(hours=2)  # a required check this old and still pending i
 # got CI (for example a change CI ignores); one green this long that GitHub still has
 # not merged is stuck on something else. Either would hold the queue forever.
 STALLED_AFTER = timedelta(minutes=30)
+FAIRNESS_AFTER = timedelta(hours=2)  # Bound bypasses of non-failing stale PRs.
 UNKNOWN_RETRIES = 3  # GitHub recalculates mergeability on request; ask again
 UNKNOWN_WAIT_SECONDS = 10
 ATTEMPT_MARKER = re.compile(r"<!-- merge-train-base:([0-9a-f]{40})(?::(refused))? -->")
+MIGRATION_PATH = re.compile(r"^src/[^/]+/migrations/")
+COMPARE_FILE_LIMIT = 300  # GitHub's compare API lists at most this many files
+DEFAULT_DEPTH = 3
+NORMAL, MIGRATION = "normal", "migration"
 
 QUERY = """
 query($owner: String!, $name: String!) {
@@ -58,8 +77,12 @@ query($owner: String!, $name: String!) {
     ref(qualifiedName: "refs/heads/latest") { target { ... on Commit { oid committedDate } } }
     pullRequests(states: OPEN, baseRefName: "latest", first: 100) {
       nodes {
+        id
         number
         body
+        headRefName
+        author { login }
+        createdAt
         isDraft
         isCrossRepository
         maintainerCanModify
@@ -124,6 +147,13 @@ def _attempt_marker(pr: dict) -> tuple[str, str | None] | None:
     return (match.group(1), match.group(2)) if match else None
 
 
+def _all_required_passed(pr: dict) -> bool:
+    checks = _checks(pr, REQUIRED_CHECKS)
+    return {c["name"] for c in checks} == REQUIRED_CHECKS and all(
+        c["status"] == "COMPLETED" and c["conclusion"] in PASSED for c in checks
+    )
+
+
 def _up_to_date_verdict(pr: dict, now: datetime) -> tuple[str, str]:
     """Judge a PR whose head already contains latest: in flight, or stuck."""
     checks = _checks(pr, REQUIRED_CHECKS)
@@ -134,8 +164,10 @@ def _up_to_date_verdict(pr: dict, now: datetime) -> tuple[str, str]:
                 "required checks never started on its latest commit (a change CI "
                 "ignores, such as docs only, needs a manual merge)"
             )
+        if since_commit > HUNG_AFTER:
+            return "skip", "some required checks never appeared within the CI timeout"
         return "wait", "required checks are queued or running"
-    if all(c["status"] == "COMPLETED" and c["conclusion"] in PASSED for c in checks):
+    if _all_required_passed(pr):
         finished = max(_time(c["completedAt"]) for c in checks)
         if now - finished > STALLED_AFTER:
             return "skip", (
@@ -165,7 +197,7 @@ def judge(pr: dict, behind: int | None, now: datetime) -> tuple[str, str]:
         if marker and marker[0] == latest_oid:
             if marker[1] == "refused":
                 return "skip", "GitHub refused the branch update (HTTP 403 or equivalent); the contributor has to merge latest into the branch themselves"
-            return "wait", "branch update was attempted for this latest commit; waiting for fresh required checks"
+            return "skip", "branch refresh already attempted for this base; failed checks still need attention"
         return "update", f"required check failed before latest advanced; refreshing {behind} commits"
     reason = _failure_reason(pr, now)
     if reason:
@@ -181,49 +213,97 @@ def judge(pr: dict, behind: int | None, now: datetime) -> tuple[str, str]:
     return "update", f"{behind} commits behind latest"
 
 
-def choose(
-    prs: list[dict], behind: dict[int, int | None], now: datetime
-) -> tuple[str, int | None, list[str]]:
-    """Return (action, pr number, notes): 'update', 'wait', 'manual', 'stuck' or 'idle'.
+@dataclass
+class Plan:
+    """What one run should do.
 
-    'manual' means only contributor forks inaccessible to this token were
-    skipped; 'stuck' indicates a genuine unresolved problem. notes has one line
-    per PR looked at, saying what was decided and why.
+    ``ranked`` lists, per lane, the PRs to refresh in order; ``free`` is how many
+    of them may start now.
+    """
+
+    ranked: dict[str, list[dict]] = field(default_factory=dict)
+    free: dict[str, int] = field(default_factory=dict)
+    in_flight: int = 0
+    queued: int = 0
+    manual_only: bool = True  # every skip so far is a fork permission handoff
+    notes: list[str] = field(default_factory=list)
+
+
+def _ready_at(pr: dict, now: datetime) -> datetime | None:
+    """Return when this PR counts as ready, or None while it is not.
+
+    Ready means green on all required checks, or approved for longer than
+    FAIRNESS_AFTER (so an unproven PR cannot starve).
+    """
+    if _all_required_passed(pr):
+        return max(_time(c["completedAt"]) for c in _checks(pr, REQUIRED_CHECKS))
+    enabled = _time(pr["autoMergeRequest"]["enabledAt"])
+    if now - enabled >= FAIRNESS_AFTER:
+        return enabled
+    return None
+
+
+def _rank(pr: dict, lane: str, now: datetime) -> tuple:
+    enabled = _time(pr["autoMergeRequest"]["enabledAt"])
+    if _old_non_migration_failure(pr):
+        return (2, enabled, pr["number"])
+    if lane == MIGRATION:  # migrations keep strict approval order
+        return (0, enabled, pr["number"])
+    ready = _ready_at(pr, now)
+    return (0, ready, pr["number"]) if ready else (1, enabled, pr["number"])
+
+
+def _manual_skip(pr: dict, reason: str) -> bool:
+    """Report whether a skip is only a fork permission boundary.
+
+    That is a healthy manual handoff. Failed checks, conflicts, API errors and
+    unknown states remain actionable automation failures.
+    """
+    return pr["isCrossRepository"] and (
+        "fork branch that maintainers may not update" in reason
+        or "GitHub refused the branch update (HTTP 403 or equivalent)" in reason
+    )
+
+
+def plan(
+    prs: list[dict],
+    behind: dict[int, int | None],
+    migrating: dict[int, bool],
+    now: datetime,
+    depth: int = DEFAULT_DEPTH,
+) -> Plan:
+    """Sort the approved PRs into in flight, to refresh (ranked per lane) and skipped.
+
+    A PR whose migration status is unknown goes to the migration lane: failing
+    closed only costs it parallelism.
     """
     queue = sorted(
         (p for p in prs if not p["isDraft"] and p["autoMergeRequest"]),
-        key=lambda p: p["autoMergeRequest"]["enabledAt"],
+        key=lambda p: (p["autoMergeRequest"]["enabledAt"], p["number"]),
     )
-    notes: list[str] = []
-    chosen: tuple[str, int] | None = None
-    manual_only = bool(queue)
+    result = Plan(queued=len(queue), manual_only=bool(queue))
+    capacity = {NORMAL: max(1, depth), MIGRATION: 1}
+    flying = {NORMAL: 0, MIGRATION: 0}
+    waiting: dict[str, list[dict]] = {NORMAL: [], MIGRATION: []}
     for pr in queue:
         number = pr["number"]
-        if chosen:
-            notes.append(f"#{number} queued behind #{chosen[1]}")
-            continue
+        lane = MIGRATION if migrating.get(number, True) else NORMAL
         verdict, reason = judge(pr, behind.get(number), now)
         if verdict == "skip":
-            notes.append(f"#{number} skipped: {reason}")
-            # Only an external fork permission boundary is a healthy manual
-            # handoff. Failed checks, conflicts, API errors and unknown states
-            # remain actionable automation failures.
-            if not (
-                pr["isCrossRepository"]
-                and (
-                    "fork branch that maintainers may not update" in reason
-                    or "GitHub refused the branch update (HTTP 403 or equivalent)" in reason
-                )
-            ):
-                manual_only = False
+            result.notes.append(f"#{number} skipped: {reason}")
+            if not _manual_skip(pr, reason):
+                result.manual_only = False
+        elif verdict == "wait":
+            flying[lane] += 1
+            result.notes.append(f"#{number} in flight ({lane} lane): {reason}")
         else:
-            notes.append(f"#{number} {verdict}: {reason}")
-            chosen = (verdict, number)
-    if chosen:
-        return chosen[0], chosen[1], notes
-    if not queue:
-        return "idle", None, notes
-    return ("manual" if manual_only else "stuck"), None, notes
+            pr["_reason"] = reason
+            waiting[lane].append(pr)
+    result.in_flight = sum(flying.values())
+    for lane in (NORMAL, MIGRATION):
+        result.ranked[lane] = sorted(waiting[lane], key=lambda p: _rank(p, lane, now))
+        result.free[lane] = max(0, capacity[lane] - flying[lane])
+    return result
 
 
 def unsettled(prs: list[dict]) -> bool:
@@ -276,19 +356,32 @@ def _record_attempt(owner: str, name: str, pr: dict, refused: bool = False) -> N
     )
 
 
-def _behind_by(owner: str, name: str, latest: str, head: str) -> int | None:
-    """Count commits on latest that the PR head lacks (None if GitHub won't say)."""
+def _touches_migrations(paths: list[str]) -> bool:
+    return any(MIGRATION_PATH.match(path) for path in paths)
+
+
+def _compare(owner: str, name: str, latest: str, head: str) -> tuple[int | None, bool]:
+    """Return (commits on latest the head lacks, whether the PR changes migrations).
+
+    The diff is latest...head, the PR's own changes. Rename sources count as well
+    as destinations. A diff GitHub truncates is treated as changing migrations.
+    On an API error behind is None (the PR is skipped and retried next run).
+    """
     try:
-        return int(
+        data = json.loads(
             _gh(
                 "api",
                 f"repos/{owner}/{name}/compare/{latest}...{head}",
                 "--jq",
-                ".behind_by",
+                "{behind: .behind_by, files: [.files[]? | .filename, (.previous_filename // empty)],"
+                " count: (.files | length)}",
             )
         )
-    except (subprocess.CalledProcessError, ValueError):
-        return None
+        behind = int(data["behind"])
+    except (subprocess.CalledProcessError, ValueError, KeyError, TypeError):
+        return None, True
+    truncated = data.get("count", 0) >= COMPARE_FILE_LIMIT
+    return behind, truncated or _touches_migrations(data.get("files") or [])
 
 
 def _refusal(stderr: str) -> str:
@@ -316,63 +409,110 @@ def _report(lines: list[str], problem: bool) -> None:
             handle.write("\n")
 
 
+
+
+def _depth() -> int:
+    try:
+        return max(1, min(10, int(os.environ.get("MERGE_TRAIN_DEPTH") or DEFAULT_DEPTH)))
+    except ValueError:
+        return DEFAULT_DEPTH
+
+
+class UpdateError(Exception):
+    """GitHub refused a branch update in a way the owner has to look at."""
+
+
+def _update(owner: str, name: str, pr: dict) -> str | None:
+    """Merge latest into the PR branch.
+
+    Return None on success, or a skip line when GitHub refuses a contributor
+    fork (a manual handoff). Raise UpdateError for refusals that are real errors.
+    """
+    number = pr["number"]
+    retrying_failed_checks = _old_non_migration_failure(pr)
+    if retrying_failed_checks:
+        try:
+            _record_attempt(owner, name, pr)
+        except subprocess.CalledProcessError as error:
+            message = (
+                f"#{number} skipped: could not record the one-time update attempt: "
+                f"{error.stderr.strip()}"
+            )
+            raise UpdateError(message) from error
+    try:
+        _gh(
+            "api", "-X", "PUT", f"repos/{owner}/{name}/pulls/{number}/update-branch",
+            "-f", f"expected_head_sha={pr['headRefOid']}",
+        )
+    except subprocess.CalledProcessError as error:
+        if retrying_failed_checks:
+            with suppress(subprocess.CalledProcessError):
+                _record_attempt(owner, name, pr, refused=True)
+        failure = f"#{number} skipped: {_refusal(error.stderr.strip())}"
+        if pr["isCrossRepository"] and "HTTP 403" in error.stderr:
+            return failure
+        raise UpdateError(failure) from error
+    return None
+
+
 def main(argv: list[str]) -> int:
-    """Fetch the open PRs, pick one, and update its branch unless this is a dry run."""
+    """Fetch the open PRs and refresh every one that has a free slot in its lane."""
     dry_run = "--dry-run" in argv
     owner, name = os.environ["GH_REPO"].split("/")
     prs, latest = _fetch(owner, name)
+    # Ignore CI events for unrelated or superseded PR heads.
+    ci_head = os.environ.get("CI_HEAD")
+    if ci_head and not any(
+        p["headRefOid"] == ci_head and not p["isDraft"] and p["autoMergeRequest"]
+        for p in prs
+    ):
+        _report(["CI event is not on a current approved PR head; ignored"], False)
+        return 0
     for _ in range(UNKNOWN_RETRIES):
         if not unsettled(prs):
             break
         time.sleep(UNKNOWN_WAIT_SECONDS)
         prs, latest = _fetch(owner, name)
-    behind = {
-        p["number"]: _behind_by(owner, name, latest, p["headRefOid"])
-        for p in prs
-        if not p["isDraft"] and p["autoMergeRequest"]
-    }
-    failed: list[str] = []  # PRs GitHub refused to update this run
-    critical_failures: list[str] = []
-    while True:
-        action, number, notes = choose(prs, behind, datetime.now(UTC))
-        lines = [x for x in notes if not x.startswith(f"#{number} update:")] + failed
-        if action != "update":
-            problem = action == "stuck" or bool(critical_failures)
-            _report(lines or ["queue empty"], problem)
-            return 1 if problem else 0
-        if dry_run:
-            _report([*lines, f"dry run: would update the branch of #{number}"], False)
-            return 0
-        pr = next(p for p in prs if p["number"] == number)
-        retrying_failed_checks = _old_non_migration_failure(pr)
-        if retrying_failed_checks:
-            try:
-                _record_attempt(owner, name, pr)
-            except subprocess.CalledProcessError as error:
-                failure = (
-                    f"#{number} skipped: could not record the one-time update attempt: "
-                    f"{error.stderr.strip()}"
-                )
-                failed.append(failure)
-                critical_failures.append(failure)
-                prs = [p for p in prs if p["number"] != number]
-                continue
-        try:
-            _gh(
-                "api", "-X", "PUT", f"repos/{owner}/{name}/pulls/{number}/update-branch"
+    behind: dict[int, int | None] = {}
+    migrating: dict[int, bool] = {}
+    for p in prs:
+        if not p["isDraft"] and p["autoMergeRequest"]:
+            behind[p["number"]], migrating[p["number"]] = _compare(
+                owner, name, latest, p["headRefOid"]
             )
-        except subprocess.CalledProcessError as error:
-            if retrying_failed_checks:
-                with suppress(subprocess.CalledProcessError):
-                    _record_attempt(owner, name, pr, refused=True)
-            failure = f"#{number} skipped: {_refusal(error.stderr.strip())}"
-            failed.append(failure)
-            if not (pr["isCrossRepository"] and "HTTP 403" in error.stderr):
-                critical_failures.append(failure)
-            prs = [p for p in prs if p["number"] != number]
-            continue
-        _report([*lines, f"#{number} updated: merged latest into its branch"], False)
-        return 0
+    result = plan(prs, behind, migrating, datetime.now(UTC), _depth())
+    lines = list(result.notes)
+    updated = 0
+    errors = False
+    for lane in (NORMAL, MIGRATION):
+        free = result.free[lane]
+        for pr in result.ranked[lane]:
+            number = pr["number"]
+            if free == 0:
+                lines.append(f"#{number} waiting for a free {lane} slot ({pr['_reason']})")
+                continue
+            if dry_run:
+                lines.append(f"dry run: would update #{number} ({lane} lane): {pr['_reason']}")
+                free -= 1
+                updated += 1
+                continue
+            try:
+                refused = _update(owner, name, pr)
+            except UpdateError as error:
+                lines.append(str(error))
+                errors = True
+                continue
+            if refused:
+                lines.append(refused)
+                continue
+            lines.append(f"#{number} updated ({lane} lane): merged latest into its branch; {pr['_reason']}")
+            free -= 1
+            updated += 1
+    advancing = bool(updated or result.in_flight)
+    stuck = bool(result.queued) and not advancing and not result.manual_only
+    problem = errors or stuck
+    _report(lines or ["queue empty"], problem)
+    return 1 if problem else 0
 
 
 if __name__ == "__main__":

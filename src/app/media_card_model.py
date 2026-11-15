@@ -271,7 +271,7 @@ def _item_lines(ctx, media_type):
         and _safe(item, "episode_number") is not None
     ):
         season, episode = _safe(item, "season_number"), _safe(item, "episode_number")
-        lines.append({"parts": [{"text": f"S{season:02d}E{episode:02d}"}]})
+        lines.append({"parts": [{"text": f"S{season:02d} E{episode:02d}"}]})
         return lines
     if ctx.get("use_podcast_show") and show:
         text = show.title
@@ -406,6 +406,22 @@ def card_model(ctx):
     if ctx.get("use_podcast_show") and show and show.image:
         image = show.image
     video = media_type == MediaTypes.VIDEO.value
+    actions = card_actions(ctx)
+    source = _safe(item, "source")
+    media_id = _safe(item, "media_id")
+    # These types use the generic consumption API. Episodes, videos and music
+    # entities have different write semantics and must keep their own actions.
+    quick_types = {"movie", "tv", "season", "anime", "manga", "book", "comic", "comicissue", "game", "boardgame"}
+    quick_status = None
+    if (media_type in quick_types and source and media_id and actions
+            and not (source == "manual" and not ctx.get("media"))
+            and any(action.get("modal") == "track" for action in actions["items"])):
+        quick_status = {
+            "identity": {"mediaType": media_type, "source": source, "mediaId": str(media_id),
+                         "seasonNumber": _safe(item, "season_number"), "instanceId": _safe(ctx.get("media"), "id")},
+            "tracked": bool(ctx.get("media")),
+            "status": _safe(ctx.get("media"), "aggregated_status") or _safe(ctx.get("media"), "status") or "",
+        }
     return {
         "mediaType": _safe(item, "media_type"),
         "shape": card_shape(media_type, bool(ctx.get("video_landscape"))),
@@ -433,7 +449,8 @@ def card_model(ctx):
         ],
         "progressBar": _progress_bar(ctx, media_type),
         "lines": _subtitle_lines(ctx, media_type),
-        "actions": card_actions(ctx),
+        "actions": actions,
+        "quickStatus": quick_status,
         "cardKey": app_tags.item_slot_id("media-card", item),
         "statusId": app_tags.item_slot_id("media-status-chip", item),
         "ratingId": app_tags.item_slot_id("media-card-rating", item),

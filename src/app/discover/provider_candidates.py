@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import contextvars
 import logging
+import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
@@ -30,6 +33,21 @@ PROVIDER_DISCOVER_TTL_SECONDS = 60 * 60
 PROVIDER_COMING_SOON_WINDOW_DAYS = 180
 TRAKT_POPULAR_PAGE_SIZE = 100
 ISO_DATE_LENGTH = 10
+
+# A trending "work" without an edition id is resolved to its first edition
+# with one /editions.json request each. Open Library allows 20 requests a
+# minute (see services.py), so a cold daily + monthly build made 22 such calls
+# one after another, about a minute on the single Discover worker (M6).
+# The resolution is not user data and changes only when Open Library adds an
+# edition, so it is kept for a month; a failure is retried after six hours.
+OPENLIBRARY_FIRST_EDITION_TTL_SECONDS = 60 * 60 * 24 * 30
+OPENLIBRARY_FIRST_EDITION_FAILURE_TTL_SECONDS = 60 * 60 * 6
+# Uncached lookups run a few at a time (the shared per-host limiter still caps
+# the rate) and one row waits at most this long for them. A work still
+# unresolved is left out of this build; its lookup finishes in the background
+# and fills the cache, so the next build shows it without another request.
+OPENLIBRARY_EDITION_LOOKUP_WORKERS = 4
+OPENLIBRARY_EDITION_LOOKUP_BUDGET_SECONDS = 15
 
 
 def _api_cached_results(
@@ -123,11 +141,20 @@ def _openlibrary_cover_url(entry: dict) -> str:
     return settings.IMG_NONE
 
 
+def _openlibrary_first_edition_cache_key(work_key: str) -> str:
+    return f"discover:openlibrary:first_edition:{work_key}"
+
+
 def _openlibrary_first_edition_id(work_key: str) -> str | None:
+    """Resolve a work to its first edition id, cached across rebuilds.
+
+    Safe to run in a worker thread: it touches only the cache and
+    services.api_request, never the database.
+    """
     if not work_key or not str(work_key).startswith("/works/"):
         return None
 
-    cache_key = f"discover:openlibrary:first_edition:{work_key}"
+    cache_key = _openlibrary_first_edition_cache_key(work_key)
     cached_value = cache.get(cache_key)
     if cached_value is not None:
         return str(cached_value) or None
@@ -140,7 +167,11 @@ def _openlibrary_first_edition_id(work_key: str) -> str | None:
             params={"limit": 1},
         )
     except Exception:
-        cache.set(cache_key, "", timeout=60 * 60 * 6)
+        cache.set(
+            cache_key,
+            "",
+            timeout=OPENLIBRARY_FIRST_EDITION_FAILURE_TTL_SECONDS,
+        )
         return None
 
     entries = payload.get("entries") or []
@@ -150,20 +181,104 @@ def _openlibrary_first_edition_id(work_key: str) -> str | None:
         if isinstance(edition_key, str) and "/books/" in edition_key:
             edition_id = edition_key.rstrip("/").split("/books/")[-1]
 
-    cache.set(cache_key, edition_id or "", timeout=60 * 60 * 24)
+    cache.set(
+        cache_key,
+        edition_id or "",
+        timeout=OPENLIBRARY_FIRST_EDITION_TTL_SECONDS,
+    )
     return edition_id
 
 
-def _openlibrary_entry_edition_id(entry: dict) -> str | None:
+def _openlibrary_resolve_first_editions(
+    work_keys: list[str],
+) -> dict[str, str | None]:
+    """Resolve many works at once, bounded in concurrency and total time.
+
+    Returns the edition id (or None after a failed lookup) for each work that
+    resolved within the budget. A work missing from the result is still being
+    looked up; the caller leaves it out of this build.
+    """
+    resolved: dict[str, str | None] = {}
+    unique_keys = list(dict.fromkeys(key for key in work_keys if key))
+    if not unique_keys:
+        return resolved
+
+    cached = cache.get_many(
+        [_openlibrary_first_edition_cache_key(key) for key in unique_keys],
+    )
+    missing: list[str] = []
+    for key in unique_keys:
+        value = cached.get(_openlibrary_first_edition_cache_key(key))
+        if value is None:
+            missing.append(key)
+        else:
+            resolved[key] = str(value) or None
+    if not missing:
+        return resolved
+
+    executor = ThreadPoolExecutor(
+        max_workers=min(OPENLIBRARY_EDITION_LOOKUP_WORKERS, len(missing)),
+        thread_name_prefix="openlibrary-edition",
+    )
+    futures = {
+        # copy_context keeps services.interactive_request_scope() in force
+        # inside the worker thread.
+        executor.submit(
+            contextvars.copy_context().run,
+            _openlibrary_first_edition_id,
+            key,
+        ): key
+        for key in missing
+    }
+    deadline = time.monotonic() + OPENLIBRARY_EDITION_LOOKUP_BUDGET_SECONDS
+    pending = set(futures)
+    try:
+        while pending:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            done, pending = wait(
+                pending,
+                timeout=remaining,
+                return_when=FIRST_COMPLETED,
+            )
+            for future in done:
+                try:
+                    resolved[futures[future]] = future.result()
+                except Exception:
+                    logger.debug(
+                        "Open Library edition lookup failed for %s",
+                        futures[future],
+                        exc_info=True,
+                    )
+                    resolved[futures[future]] = None
+    finally:
+        # Do not wait for lookups still running: they finish on their own
+        # and cache their answer for the next build. Queued ones are dropped.
+        executor.shutdown(wait=False, cancel_futures=True)
+
+    if pending:
+        logger.info(
+            "Open Library edition lookups: %s of %s still pending after %ss; "
+            "left out of this Discover build",
+            len(pending),
+            len(missing),
+            OPENLIBRARY_EDITION_LOOKUP_BUDGET_SECONDS,
+        )
+    return resolved
+
+
+def _openlibrary_entry_direct_edition_id(entry: dict) -> tuple[str | None, str | None]:
+    """Return (edition id, work key still needing a lookup) for one entry."""
     direct_edition = entry.get("cover_edition_key")
     if isinstance(direct_edition, str) and direct_edition.strip():
-        return direct_edition.strip()
+        return direct_edition.strip(), None
 
     edition_keys = entry.get("edition_key") or entry.get("edition_keys")
     if isinstance(edition_keys, list):
         for edition_key in edition_keys:
             if isinstance(edition_key, str) and edition_key.strip():
-                return edition_key.strip()
+                return edition_key.strip(), None
 
     editions = entry.get("editions")
     if isinstance(editions, list):
@@ -172,22 +287,34 @@ def _openlibrary_entry_edition_id(entry: dict) -> str | None:
                 continue
             key = edition.get("key")
             if isinstance(key, str) and "/books/" in key:
-                return key.rstrip("/").split("/books/")[-1]
+                return key.rstrip("/").split("/books/")[-1], None
 
     key = entry.get("key")
     if isinstance(key, str):
         if "/books/" in key:
-            return key.rstrip("/").split("/books/")[-1]
+            return key.rstrip("/").split("/books/")[-1], None
         if key.startswith("/works/"):
-            return _openlibrary_first_edition_id(key)
+            return None, key
 
     work = entry.get("work")
     if isinstance(work, dict):
         work_key = work.get("key")
-        if isinstance(work_key, str):
-            return _openlibrary_first_edition_id(work_key)
+        if isinstance(work_key, str) and work_key.startswith("/works/"):
+            return None, work_key
 
-    return None
+    return None, None
+
+
+def _openlibrary_entry_edition_ids(entries: list[dict]) -> list[str | None]:
+    """Return each entry's edition id, resolving works in one bounded batch."""
+    direct = [_openlibrary_entry_direct_edition_id(entry) for entry in entries]
+    resolved = _openlibrary_resolve_first_editions(
+        [work_key for _edition_id, work_key in direct if work_key],
+    )
+    return [
+        edition_id or (resolved.get(work_key) if work_key else None)
+        for edition_id, work_key in direct
+    ]
 
 
 def _openlibrary_trending_candidates(
@@ -222,9 +349,12 @@ def _openlibrary_trending_candidates(
         fetcher=fetcher,
     )
 
+    edition_ids = _openlibrary_entry_edition_ids(entries)
     candidates: list[CandidateItem] = []
-    for index, entry in enumerate(entries, start=1):
-        edition_id = _openlibrary_entry_edition_id(entry)
+    for index, (entry, edition_id) in enumerate(
+        zip(entries, edition_ids, strict=True),
+        start=1,
+    ):
         if not edition_id:
             continue
 
@@ -301,9 +431,12 @@ def _openlibrary_coming_soon_candidates(
         fetcher=fetcher,
     )
 
+    edition_ids = _openlibrary_entry_edition_ids(entries)
     candidates: list[CandidateItem] = []
-    for index, entry in enumerate(entries, start=1):
-        edition_id = _openlibrary_entry_edition_id(entry)
+    for index, (entry, edition_id) in enumerate(
+        zip(entries, edition_ids, strict=True),
+        start=1,
+    ):
         if not edition_id:
             continue
 
