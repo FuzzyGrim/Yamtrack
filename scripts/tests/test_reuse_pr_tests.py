@@ -484,6 +484,31 @@ class DecisionTests(unittest.TestCase):
         self.assertNotIn("\ndecision=reuse", reuse.summary(hostile))
         self.assertEqual(reuse.one_line("a\nb|c"), "a b c")
 
+    # --- the warning when GitHub stops reporting the tested commit ----
+
+    def test_missing_tested_commit_on_a_merge_raises_a_warning(self):
+        self.world.runs[0]["referenced_workflows"] = []
+        alert = reuse.warning(self.world.decide())
+        self.assertIsNotNone(alert)
+        self.assertTrue(alert.startswith("::warning "))
+        self.assertIn("does not report the commit it tested", alert)
+        self.assertNotIn("\n", alert)
+
+    def test_ordinary_reasons_not_to_reuse_raise_no_warning(self):
+        cases = {
+            "reused": lambda w: None,
+            "direct push": lambda w: setattr(w, "associated", []),
+            "tag": lambda w: w.env.update(GITHUB_REF="refs/tags/v1"),
+            "behind": lambda w: setattr(w, "pushed_tree", OTHER_TREE),
+            "failed run": lambda w: w.runs[0].update(conclusion="failure"),
+            "running": lambda w: w.runs[0].update(status="in_progress"),
+        }
+        for name, change in cases.items():
+            with self.subTest(name):
+                world = World()
+                change(world)
+                self.assertIsNone(reuse.warning(world.decide()))
+
 
 class CommandTests(unittest.TestCase):
     """The script as the workflow runs it: it always exits 0 and says "run"."""
