@@ -1,0 +1,463 @@
+{
+ "_note": "Trimmed real /api/v1 answers from a local server, captured 2026-11-14 around one write each.",
+ "tvRate": {
+  "before": {
+   "facts": [
+    {
+     "label": "format",
+     "value": "TV"
+    },
+    {
+     "label": "seasons",
+     "value": "5"
+    },
+    {
+     "label": "episodes",
+     "value": "62"
+    }
+   ],
+   "tracking": {
+    "status": "In progress",
+    "score": 9.0,
+    "progress": 3,
+    "max_progress": 62,
+    "notes": ""
+   },
+   "viewer_rating": {
+    "enabled": true,
+    "scale_max": 10,
+    "value": 9.0
+   },
+   "score_chips": [
+    {
+     "label": "Your score",
+     "value": 9.0,
+     "kind": "viewer"
+    }
+   ],
+   "capabilities": {
+    "can_request_seerr": false,
+    "can_track": false,
+    "can_update": true
+   }
+  },
+  "after_6_5": {
+   "facts": [
+    {
+     "label": "format",
+     "value": "TV"
+    },
+    {
+     "label": "seasons",
+     "value": "5"
+    },
+    {
+     "label": "episodes",
+     "value": "62"
+    }
+   ],
+   "tracking": {
+    "status": "In progress",
+    "score": 6.5,
+    "progress": 3,
+    "max_progress": 62,
+    "notes": ""
+   },
+   "viewer_rating": {
+    "enabled": true,
+    "scale_max": 10,
+    "value": 6.5
+   },
+   "score_chips": [
+    {
+     "label": "Your score",
+     "value": 6.5,
+     "kind": "viewer"
+    }
+   ],
+   "capabilities": {
+    "can_request_seerr": false,
+    "can_track": false,
+    "can_update": true
+   }
+  },
+  "after_clear": {
+   "facts": [
+    {
+     "label": "format",
+     "value": "TV"
+    },
+    {
+     "label": "seasons",
+     "value": "5"
+    },
+    {
+     "label": "episodes",
+     "value": "62"
+    }
+   ],
+   "tracking": {
+    "status": "In progress",
+    "score": null,
+    "progress": 3,
+    "max_progress": 62,
+    "notes": ""
+   },
+   "viewer_rating": {
+    "enabled": true,
+    "scale_max": 10,
+    "value": null
+   },
+   "score_chips": [],
+   "capabilities": {
+    "can_request_seerr": false,
+    "can_track": false,
+    "can_update": true
+   }
+  }
+ },
+ "movieRateScale5": {
+  "before": {
+   "facts": [
+    {
+     "label": "format",
+     "value": "Movie"
+    }
+   ],
+   "tracking": {
+    "status": "Completed",
+    "score": 8.0,
+    "progress": 1,
+    "max_progress": 1,
+    "notes": ""
+   },
+   "viewer_rating": {
+    "enabled": true,
+    "scale_max": 5,
+    "value": 4.0
+   },
+   "score_chips": [
+    {
+     "label": "Your score",
+     "value": 8.0,
+     "kind": "viewer"
+    }
+   ],
+   "capabilities": {
+    "can_request_seerr": false,
+    "can_track": false,
+    "can_update": true
+   }
+  },
+  "after_3_5": {
+   "facts": [
+    {
+     "label": "format",
+     "value": "Movie"
+    }
+   ],
+   "tracking": {
+    "status": "Completed",
+    "score": 7.0,
+    "progress": 1,
+    "max_progress": 1,
+    "notes": ""
+   },
+   "viewer_rating": {
+    "enabled": true,
+    "scale_max": 5,
+    "value": 3.5
+   },
+   "score_chips": [
+    {
+     "label": "Your score",
+     "value": 7.0,
+     "kind": "viewer"
+    }
+   ],
+   "capabilities": {
+    "can_request_seerr": false,
+    "can_track": false,
+    "can_update": true
+   }
+  }
+ },
+ "seasonWatch": {
+  "before": {
+   "results": [
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-02-17",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 4,
+      "title": "Cancer Man",
+      "url": "/details/tmdb/tv/1396/cancer-man/season/1/episode/4",
+      "runtime_minutes": null,
+      "release_datetime": "2008-02-17T00:00:00Z"
+     }
+    },
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-02-24",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 5,
+      "title": "Gray Matter",
+      "url": "/details/tmdb/tv/1396/gray-matter/season/1/episode/5",
+      "runtime_minutes": null,
+      "release_datetime": "2008-02-24T00:00:00Z"
+     }
+    },
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-03-02",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 6,
+      "title": "Crazy Handful of Nothin'",
+      "url": "/details/tmdb/tv/1396/crazy-handful-of-nothin/season/1/episode/6",
+      "runtime_minutes": null,
+      "release_datetime": "2008-03-02T00:00:00Z"
+     }
+    }
+   ],
+   "pagination": {
+    "total": 7,
+    "limit": 20,
+    "offset": 0,
+    "next": null,
+    "previous": null
+   }
+  },
+  "after_watch": {
+   "results": [
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-02-17",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 4,
+      "title": "Cancer Man",
+      "url": "/details/tmdb/tv/1396/cancer-man/season/1/episode/4",
+      "runtime_minutes": null,
+      "release_datetime": "2008-02-17T00:00:00Z"
+     }
+    },
+    {
+     "id": 8,
+     "tracked": true,
+     "score": null,
+     "status": 3,
+     "end_date": "2026-11-14T14:16:06.807884Z",
+     "air_date": "2008-02-24",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 5,
+      "title": "Gray Matter",
+      "url": "/details/tmdb/tv/1396/gray-matter/season/1/episode/5",
+      "runtime_minutes": 49,
+      "release_datetime": "2008-02-24T11:59:59.999999Z"
+     }
+    },
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-03-02",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 6,
+      "title": "Crazy Handful of Nothin'",
+      "url": "/details/tmdb/tv/1396/crazy-handful-of-nothin/season/1/episode/6",
+      "runtime_minutes": null,
+      "release_datetime": "2008-03-02T00:00:00Z"
+     }
+    }
+   ],
+   "pagination": {
+    "total": 7,
+    "limit": 20,
+    "offset": 0,
+    "next": null,
+    "previous": null
+   }
+  },
+  "after_unwatch": {
+   "results": [
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-02-17",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 4,
+      "title": "Cancer Man",
+      "url": "/details/tmdb/tv/1396/cancer-man/season/1/episode/4",
+      "runtime_minutes": null,
+      "release_datetime": "2008-02-17T00:00:00Z"
+     }
+    },
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-02-24",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 5,
+      "title": "Gray Matter",
+      "url": "/details/tmdb/tv/1396/gray-matter/season/1/episode/5",
+      "runtime_minutes": null,
+      "release_datetime": "2008-02-24T00:00:00Z"
+     }
+    },
+    {
+     "id": null,
+     "tracked": false,
+     "score": null,
+     "status": null,
+     "end_date": null,
+     "air_date": "2008-03-02",
+     "runtime": 49,
+     "collected": false,
+     "display_score": null,
+     "scale_max": 10,
+     "can_rate": true,
+     "can_watch": true,
+     "can_collect": true,
+     "can_list": true,
+     "item": {
+      "media_id": "1396",
+      "source": "tmdb",
+      "media_type": "episode",
+      "season_number": 1,
+      "episode_number": 6,
+      "title": "Crazy Handful of Nothin'",
+      "url": "/details/tmdb/tv/1396/crazy-handful-of-nothin/season/1/episode/6",
+      "runtime_minutes": null,
+      "release_datetime": "2008-03-02T00:00:00Z"
+     }
+    }
+   ],
+   "pagination": {
+    "total": 7,
+    "limit": 20,
+    "offset": 0,
+    "next": null,
+    "previous": null
+   }
+  }
+ }
+}
