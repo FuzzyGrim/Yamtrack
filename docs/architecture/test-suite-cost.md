@@ -29,19 +29,53 @@ correctly reported `Decision: run` with the reason
 `no pull request is associated with this commit`, so the full gate
 was selected. The run's eventual completion is tracked separately.
 
-**Still not proven:** a squash merge and a merge while the PR branch
-is behind `latest`; an end-to-end scratch-repository exercise with
-the reuse variable enabled and the three shards skipped. Unit tests
-cover the decision paths, but do not replace those live exercises.
-Keep `REUSE_PR_TEST_RESULTS` unset until those cases are checked and
-the maintainer approves the 72-hour age limit and trust assumptions
-in #1917. Track outstanding validation in
-[#1918](https://github.com/dannyvfilms/Floppy/issues/1918).
+**Switched on 2026-11-13.** `REUSE_PR_TEST_RESULTS` has been `true`
+since then. The cases that were "not proven" above have all happened on
+`latest` itself, in the 32 `Docker Image` push runs from then to
+2026-11-15:
 
-This is a *correctness* observation, not a before/after speed
-benchmark: collect controlled CI medians and an enabled-vs-disabled
-publish latency comparison separately. Do not treat different commits
-or runs with broken distribution verification as a controlled baseline.
+| Case | Example | Decision |
+| --- | --- | --- |
+| Up-to-date merge commit | [#1996](https://github.com/dannyvfilms/Floppy/actions/runs/43733184735) and 18 more | Reused, trees equal |
+| Squash merge | [#1974](https://github.com/dannyvfilms/Floppy/actions/runs/43680572742), [#1562](https://github.com/dannyvfilms/Floppy/actions/runs/43505694059) | Reused, trees equal |
+| Squash merged while behind | [#1998](https://github.com/dannyvfilms/Floppy/actions/runs/43670473917) | Full gate: tested tree differs |
+| Merged while the PR run was still going | [#1987](https://github.com/dannyvfilms/Floppy/actions/runs/43652629220), [#1988](https://github.com/dannyvfilms/Floppy/actions/runs/43655717286) | Full gate: run in progress or queued |
+| Direct push, including merge commits pushed by hand | [eed87a907](https://github.com/dannyvfilms/Floppy/actions/runs/43671959036) and 7 more | Full gate: no pull request |
+| Reused, then an always-run job failed | [#1989](https://github.com/dannyvfilms/Floppy/actions/runs/43664812425) | Upgrade (PostgreSQL) failed, no image published |
+
+On every reused run the shards show as skipped, `test (3.12)` passed,
+and migration checks, OAuth, both upgrade replays, release lint and the
+image smoke still ran.
+
+Push to built image, from the same runs:
+
+| Gate | Runs | Median | Range |
+| --- | --- | --- | --- |
+| Reused | 20 | 15.1 min | 10.7 to 16.6 min |
+| Full | 6 | 25.0 min | 23.3 to 27.8 min |
+
+The full-gate row includes three shadow-mode runs from 2026-11-12; only
+six full-gate runs published an image, because most direct pushes in
+this window failed a shard.
+
+These are different commits on shared runners, not a controlled A/B, but
+the gap is the shard time and is consistent across every run.
+
+The one thing tree equality cannot prove is that the publish gate runs
+no test the pull request skipped, because the same workflow file picks
+tests by event. `scripts/tests/test_reuse_pr_workflow.py` holds that:
+it runs the shard's test step for both events and fails if the gate
+would select a label, tag or test the pull request did not. It also
+checks that only the decision can skip the shards and that the
+roll-up and the image build still need every always-run job. If that
+test breaks because test selection was rewritten, prove the property
+again for the new wiring; do not delete it.
+
+If GitHub stops reporting the tested commit for runs, reuse stops on
+every merge (safe) and the decision job raises a warning on the run.
+
+Remaining follow-ups are in
+[#1918](https://github.com/dannyvfilms/Floppy/issues/1918).
 
 
 The suite got slow enough that waiting on it became the bottleneck for both

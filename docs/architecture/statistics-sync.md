@@ -297,7 +297,13 @@ database). Stale → `ensure_sync` (gated, idempotent) and serve it anyway. None
 
 Eager/test mode (`CELERY_TASK_ALWAYS_EAGER` or `TESTING`) has no worker, so the
 read path rebuilds the requested range inline and `ensure_sync` is a no-op.
-Tests that exercise the real queueing override both settings and patch
+Custom ranges and the comparison-period minutes build their missing days the
+way the sync does (`statistics_cache._eager_day_builder` →
+`statistics_sync._build_days`, one range-wide prefetch per slice), not one day
+at a time; the day payloads and stored rows are the same
+(`app/tests/test_statistics_eager_day_builds.py`). An empty library's page went
+from about 9,000 queries to under 500. The prefetch also carries audiobook
+listening minutes, so a prefetched day issues no query of its own. Tests that exercise the real queueing override both settings and patch
 `app.tasks_interactive.statistics_sync_task.apply_async`
 (`app/tests/test_statistics_sync.py`).
 

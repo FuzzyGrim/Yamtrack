@@ -54,6 +54,7 @@ What it reads, all of it cheap:
 | Field | Source |
 | --- | --- |
 | `rss` | `/proc/self/statm` field 2 |
+| `rss_anon` | `/proc/self/statm` field 2 minus field 3 (file and shmem pages) |
 | `hwm` | `/proc/self/status`, `VmHWM` |
 | `cgroup_current` | `/sys/fs/cgroup/memory.current` |
 | `anon`, `file`, `kernel` | `/sys/fs/cgroup/memory.stat` |
@@ -87,7 +88,7 @@ only when one of these crosses its threshold:
 | `peak_rss` (new VmHWM) | `MEMORY_HIGH_WATER_HWM_DELTA_BYTES` | 32 MiB |
 | `cgroup_growth` | `MEMORY_HIGH_WATER_CGROUP_DELTA_BYTES` | 128 MiB |
 | `page_cache_growth` | `MEMORY_HIGH_WATER_CGROUP_FILE_DELTA_BYTES` | 128 MiB |
-| `near_recycle_ceiling` | `MEMORY_HIGH_WATER_CEILING_RATIO` | 0.85 |
+| `near_recycle_ceiling` (on `rss_anon`, as the recyclers measure) | `MEMORY_HIGH_WATER_CEILING_RATIO` | 0.85 |
 
 Zero disables a signal. `MEMORY_HIGH_WATER_ENABLED=False` disables the whole
 layer, including the sampling.
@@ -97,7 +98,7 @@ are expected to be tuned once real events accumulate. **None of them is a
 memory guarantee.**
 
 The event carries `kind`, `name`, `pid`, `role`, `reasons`, `duration_ms`,
-`rss_before/after/delta`, `hwm_before/after`, `cgroup_before/after/delta`,
+`rss_before/after/delta`, `rss_anon_before/after`, `hwm_before/after`, `cgroup_before/after/delta`,
 `anon_before/after`, `file_before/after`, `kernel_after`, `cgroup_peak` and the
 role's recycle `ceiling`.
 
@@ -116,8 +117,12 @@ arguments carry user ids, search terms and credentials.
 
 ### Reading an event
 
-`rss_growth` or `peak_rss` without `page_cache_growth` is **process-anonymous
-growth** — Python built something. `page_cache_growth` with `anon` flat is
+Read `rss_growth` and `peak_rss` against `rss_anon_before/after` first. RSS
+includes the memory-mapped database (see
+[Mapped database pages are not worker memory](#mapped-database-pages-are-not-worker-memory)):
+RSS up with `rss_anon` flat is **SQLite reading the file through its map**,
+page cache that recycling cannot return. `rss_anon` up is **process-anonymous
+growth** — Python, or SQLite's own heap, built something. `page_cache_growth` with `anon` flat is
 **filesystem cache** — something wrote or read a large file. Both together
 usually means a large read into Python. `duration` alone means slow but not
 large, which is a responsiveness problem rather than a memory one.
@@ -133,8 +138,81 @@ large, which is a responsiveness problem rather than a memory one.
 | Pocket Casts recurring poll | process-anonymous + duration | convergence fixed, counters added |
 | Statistics restart thrash | duration / worker occupancy | settling window added |
 | Statistics FINISH | process-anonymous | **profiled, partly reduced**, documented below |
+| Memory-mapped database pages in worker RSS | page cache counted as process memory | **confirmed; ceilings fixed** |
 | History day-cache warming | process-anonymous | bounded to a recent window, one style |
 | Interactive worker first-webhook growth | process-anonymous | measured, **not** imports; see below |
+
+### Mapped database pages are not worker memory
+
+**Measured** (validations D, E and G), in the real image under `docker-compose.memory-benchmark.yml`: standard tier,
+two web workers with four threads, default ceilings. The fixture is
+`app.benchmark_data.build_dataset(60000)` widened for this run: 132,000 items,
+three users of 20,000 tracked titles each; every movie, TV and anime item has
+a synopsis and a TMDB-shaped `watch_providers` blob, **35% of them 146 to
+180 KiB** (median 11 KiB); activity spread over ten years; one 8,000-item
+smart list; a 1.8 GB database. Each surface ran on a fresh worker that had
+already served one unrelated request, three times, cold (cache cleared) and
+then warm. The worker's VmHWM was reset (`clear_refs`) before each request, so
+"peak" is that request's own.
+
+SQLite memory-maps the database (`SQLITE_MMAP_SIZE_MIB`, 256 MiB per
+connection on the standard tier, 1 GiB on the large one, since `8f24d925d`).
+Mapped pages count as resident. Every heavy surface is mostly that:
+
+| Surface (cold, median of 3) | Peak over start | of which anonymous | Notes |
+| --- | --- | --- | --- |
+| History, date range | +437 MiB | +97 | ends at 566 MiB RSS; anonymous still held 60 s later |
+| `/medialist/movie?sort=runtime` (validation E) | +370 MiB | +92 | ends at ~500 MiB RSS; 504 at 60 s in 5 of 6 runs, warm too |
+| Statistics sync, Celery background child (validation G) | +264 MiB | ~+15 | peak 393 MiB = 121 anonymous + 272 mapped |
+| History, anniversary | +262 MiB | +21 | |
+| Search, TV scope | +169 MiB | +15 | |
+| Smart list page (8,000 items) | +168 MiB | +24 | |
+| History, month | +164 MiB | +9 | |
+| Home row, Season "upcoming" | +155 MiB | +36 | |
+| Home row, TV "next episode air date" | +153 MiB | +33 | `tracemalloc` peak ~25 MiB |
+| Smart list sync task | +150 MiB | ~+10 | `tracemalloc` peak 2 MiB |
+| Metadata backfill task (Celery, after the fix) | +381 MiB | +40 | one run, from the live log |
+| History rebuild task (`refresh_history_cache_task`) | +43 to +104 MiB | none retained | `tracemalloc` peak 6 MiB, 95 s |
+| `/medialist/movie` (default) | +133 MiB | +16 | |
+| `GET /api/v1/statistics` | +126 MiB | +3 | warm too |
+| `/medialist/tv` | +110 MiB | +16 | 17 s cold on this host |
+| Statistics page, All Time | +2 MiB | +1 | served from the snapshot |
+
+Two web workers can each hold several hundred MiB of mapped pages at once, but
+they are the same physical page cache, and the kernel reclaims them under
+pressure. They belong to the operational envelope, not the resident one.
+
+The recyclers did not know that. Gunicorn's `post_request` compared
+`/proc/self/statm` resident, and billiard compares `ru_maxrss` (a lifetime
+peak, file pages included). So a date-range History request or a runtime
+sort alone put a worker over its 400 MiB ceiling (566 and ~500 MiB RSS), and
+a Statistics sync left its child at 386 MiB of lifetime peak against a
+400 MiB ceiling. Not measured here, but the same arithmetic: the constrained
+tier also maps 256 MiB, under a 250 MiB background ceiling. Recycling for those returns nothing: the
+replacement maps the same file back in, and the user waits for the restart.
+This fits the production records that were never reproduced: a worker
+growing 588 MB during one search and then recycling (2026-10-31, four days
+after the map was enabled) and +30 to +125 MB per cold Home row.
+
+**Fixed.** Both ceilings, and the `near_recycle_ceiling` signal, now compare
+the anonymous resident size, statm resident minus shared
+(`config.runtime_profile.current_anon_rss_bytes`): gunicorn's hook directly,
+and Celery by replacing `billiard.pool.mem_rss` in each pool child. The map
+itself is unchanged; it is what keeps cold reads fast on slow disks. A
+`/proc` that cannot be read keeps the old behaviour (gunicorn never retires
+on a guess; Celery falls back to billiard's figure).
+
+**Still open, as structural hypotheses** (not measured further here):
+
+- The anonymous part is mostly not Python. `tracemalloc` peaks at 23 MiB for
+  the date-range History request while anonymous memory grows 97 MiB and
+  stays. The likely owner is SQLite's own heap: its page cache
+  (`SQLITE_CACHE_SIZE_MIB`, per connection) and in-memory sorts
+  (`SQLITE_TEMP_STORE=MEMORY`) of rows that carry the wide `Item` columns,
+  which glibc then keeps. A lone `TV.objects.select_related("item").first()`
+  (ordered, one row) grew a process by 70 MiB anonymous on this fixture.
+- The runtime sort's non-SQL path is also a latency failure (60 s, 504) on a
+  20,000-title library; that is the "updated"-sort class of prompt 08.
 
 ### `reconcile_trakt_popularity` — 600 MiB of Python, for four scalars
 
@@ -449,9 +527,14 @@ run against production-scale data at every rung.
 profile is structurally bounded and benchmarked, but `tracemalloc` is Python
 allocation, not RSS. Validation A is what turns it into a memory claim.
 
-**Whether `/medialist/movie` now fits in a worker.** The object graph is
-structurally smaller. Whether the request stops approaching the 400 MiB
-recycle ceiling is a Docker measurement.
+**Whether `/medialist/movie` now fits in a worker: measured
+(validation E), and it does not on the slow path.** On the SQL-paginated
+default it adds 133 MiB, 16 MiB of it anonymous. Sorted by `runtime` (the
+non-SQL-paginated path) it adds about 370 MiB, about 92 MiB anonymous and the
+rest the mapped database, ends near 500 MiB RSS, and timed out at 60 s in five
+of six runs, warm included. With the ceilings now measuring anonymous size it
+no longer retires the worker; the 92 MiB and the minute are still there. Not
+compared against `3fe29eff`; this was a ranking run on current code only.
 
 **Statistics FINISH: profiled, partly reduced.** `_aggregate_statistics_from_days`
 is a short sequence of phases in `statistics_aggregator.py`: the day walk
@@ -493,6 +576,12 @@ worth the accumulator snapshots it would need. For one pass of all eleven
 ranges: 25,033 model instances built became 12,755, queries about 1,460
 became 953, and the Python allocation peak 139 MB became 101 MB; every payload
 is byte-identical.
+
+Measured in the real Celery background child (validation G,
+memory half): one sync of a 20,000-title, ten-year library peaked at 393 MiB
+RSS, of which 121 MiB anonymous and 272 MiB the mapped database; anonymous
+growth per run was about 10 to 15 MiB. The webhook-injection half of G
+(chunk duration, FINISH duration, aborted runs versus follow-ups) was not run.
 
 Still open, largest first for All Time:
 
@@ -646,6 +735,15 @@ every fifteen minutes. The failure this replaces was stable at 149 errors out
 of 150, indefinitely.
 
 ### D. Aged container
+
+Read recycling from the sampler, not from the cgroup alone. Sample every
+process's `RssAnon` and `RssFile` once a second beside a mixed web workload
+(every surface in a loop, caches cleared every third pass, plus
+`scripts/memory_library_workload.py`), and count distinct worker pids: a
+worker pool that recycles every minute is a sawtooth, and the recycle checks
+compare anonymous size (see
+[Mapped database pages are not worker memory](#mapped-database-pages-are-not-worker-memory)),
+so RSS above the ceiling with anonymous size below it must not recycle.
 
 Run the production-like workload for several hours. Report the two envelopes
 **separately** — application-resident (process PSS and private-anon) and raw
