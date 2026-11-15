@@ -130,6 +130,16 @@ RUN SECRET=build-time-placeholder python manage.py collectstatic --noinput \
 # can silently drift from the app version.
 COPY mcp_server ./mcp_server
 
+# Ship compiled bytecode for the standard library, dependencies and app. The
+# base image ships none and PYTHONDONTWRITEBYTECODE stops processes saving it,
+# so every Python start (each manage.py, workers, Gunicorn) recompiled all its
+# imports from source. On a cold or busy disk that alone could exceed the 30 s
+# SQLite admission deadline and park a healthy database (#1875). Keep this
+# after the last COPY of Python source: a source file newer than its .pyc is
+# compiled in memory again, never run stale.
+RUN python -m compileall -q -j 0 -x '^/floppy/(\.venv|staticfiles|db)/' \
+    /usr/local/lib/python3.12 /opt/venv /floppy
+
 # 8000 remains the documented/default port. FLOPPY_PORT can select a different
 # runtime listener; EXPOSE is image metadata and cannot express a dynamic port.
 EXPOSE 8000
