@@ -601,6 +601,22 @@ class MediaManager(models.Manager):
                     f"season/{season.item.season_number}"
                 ]["max_progress"]
 
+        released_events = events.models.Event.objects.filter(
+            item_id__in=[season.item_id for season in season_list],
+            datetime__lte=timezone.now(),
+            content_number__isnull=False,
+        ).values("item_id", "content_number")
+        released_progress = {}
+        for event in released_events:
+            item_id = event["item_id"]
+            released_progress[item_id] = max(
+                released_progress.get(item_id, 0),
+                event["content_number"],
+            )
+
+        for season in season_list:
+            season.released_progress = released_progress.get(season.item_id)
+
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
         # Prefetch all relevant events in one query
