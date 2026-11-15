@@ -31,10 +31,6 @@ on:
     branches:
       - latest
   workflow_dispatch:
-  # TEMPORARY, removed before review: lets this PR run the browser job once.
-  pull_request:
-    paths:
-      - .github/workflows/latest-health.yml
 
 # Only the newest push is worth testing: a newer push cancels the older browser
 # run, and its report never runs. Publish gate reports queue separately and are
@@ -49,7 +45,7 @@ permissions:
 jobs:
   browser:
     name: Browser tests
-    if: github.event_name != 'workflow_run' && (github.ref == 'refs/heads/latest' || github.event_name == 'pull_request')
+    if: github.event_name != 'workflow_run' && github.ref == 'refs/heads/latest'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     # The same environment as the pull request shards: real migrations, the
