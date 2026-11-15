@@ -327,6 +327,34 @@ jobs:
             app.tests.test_alphabet_filter_browser.AlphabetBrowserTests.test_alphabet_navigation_fallback_themes_and_lifecycle \
             --tag playwright --timing --durations 30
 
+  # When a pull request's tests fail, say in the run summary whether the same
+  # tests are failing on latest (the open "Tests are failing on latest" issue,
+  # kept by latest-health.yml). Information only: this job is not required, no
+  # other job waits for it, and it never fails. If latest's state cannot be
+  # read it says "unknown", never "green". Rollback: delete this job.
+  baseline_note:
+    name: Compare failures with latest
+    needs: test_shards
+    if: ${{ failure() && github.event_name == 'pull_request' }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Compare this run's failing tests with latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: python3 scripts/latest_health.py pr-note --run-id "$RUN_ID"
+
   oauth_postgres:
     name: OAuth (PostgreSQL)
     runs-on: ubuntu-latest

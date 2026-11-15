@@ -608,6 +608,42 @@ Now:
 
 The two workflows list the shards separately. Change them together.
 
+## Knowing when latest itself is broken
+
+From 12 to 15 November 2026, 30 of 100 pull request runs of App Tests failed.
+27 of those fell in four windows where unrelated branches failed the same
+tests, and each window began with a push to `latest` and ended when a fix
+reached it (one began when the date entered the Discover holiday window).
+Three of the four were non-browser tests: the publish gate went red on
+`latest` within about 20 minutes, but a red run on `latest` tells nobody. The
+fourth was four Playwright tests, which the publish gate leaves out on
+purpose, so nothing on `latest` ran them at all.
+
+`latest-health.yml` closes both gaps without gating anything:
+
+- On every push to `latest` it runs the browser tests pull requests must
+  pass: `scripts/test.sh app integrations --tag playwright --exclude-tag
+  flaky_alphabet_rail`, with real migrations. A newer push cancels the
+  older run.
+- When the publish gate finishes for a push to `latest`, it reads the
+  gate's test shards.
+- `scripts/latest_health.py` keeps one issue, **Tests are failing on
+  latest**: opened on the first failure with the failing tests, the first
+  bad commit and the range since the last good one; edited while anything
+  still fails; commented on and closed when both sources pass. A result for
+  an older commit than the one recorded is ignored. A run that could not tell
+  (Chromium did not install or start, a job was killed, no test was named)
+  is "unknown" and never opens or closes the issue.
+- When a pull request's shards fail, the **Compare failures with latest**
+  job in `app-tests.yml` writes one line in the run summary: whether the
+  same tests are failing on `latest`. If that cannot be read it says
+  "unknown", never green. It is not required and never fails.
+
+If the browser command in `app-tests.yml` changes (for example a separate
+browser shard), change the one in `latest-health.yml` with it.
+
+Rollback: delete `latest-health.yml` and the `baseline_note` job.
+
 ## Reusing a pull request's test result on the publish gate
 
 A push to `latest` runs the Docker publish gate, which runs the three test
