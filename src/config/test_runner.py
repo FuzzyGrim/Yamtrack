@@ -338,8 +338,19 @@ REPORTED_FILE = "reported.txt"
 MODULE_SECONDS_FILE = "module_seconds.json"
 
 
-def _accounting_dir() -> Path | None:
-    """Where this run writes its test accounting, if anywhere.
+# Read once by the runner that owns the process, then removed from the
+# environment. A test that builds its own runner, or starts a subprocess, must
+# not inherit them: one did, in this suite's own tests, and rewrote the shard's
+# selected.txt with a list of its own (caught by the accounting check).
+_OWNED_VARIABLES = (
+    "FLOPPY_TEST_SHARD",
+    "FLOPPY_TEST_ACCOUNTING_DIR",
+    "FLOPPY_TEST_LIST_ONLY",
+)
+
+
+def _claim_environment() -> dict[str, str]:
+    """Take this run's sharding and accounting settings out of ``os.environ``.
 
     ``FLOPPY_TEST_ACCOUNTING_DIR`` receives three files:
 
@@ -352,14 +363,11 @@ def _accounting_dir() -> Path | None:
       setup, for refreshing ``test_shard_weights.json``.
 
     ``scripts/check_test_accounting.py`` compares them across shards.
+    ``FLOPPY_TEST_LIST_ONLY=1`` writes ``selected.txt`` and runs nothing.
     """
-    raw = os.environ.get("FLOPPY_TEST_ACCOUNTING_DIR")
-    return Path(raw) if raw else None
-
-
-def _list_only() -> bool:
-    """``FLOPPY_TEST_LIST_ONLY=1``: write selected.txt and run nothing."""
-    return os.environ.get("FLOPPY_TEST_LIST_ONLY") == "1"
+    return {
+        name: os.environ.pop(name) for name in _OWNED_VARIABLES if name in os.environ
+    }
 
 
 class _AccountingSink:
@@ -475,10 +483,15 @@ class ResilientDiscoverRunner(DiscoverRunner):
         super().__init__(*args, **kwargs)
         self.parallel = _configured_parallel(self.parallel)
         self._sink: _AccountingSink | None = None
+        owned = _claim_environment()
+        self._shard_spec = owned.get("FLOPPY_TEST_SHARD")
+        raw_dir = owned.get("FLOPPY_TEST_ACCOUNTING_DIR")
+        self._accounting_dir = Path(raw_dir) if raw_dir else None
+        self._list_only = owned.get("FLOPPY_TEST_LIST_ONLY") == "1"
 
     def build_suite(self, test_labels=None, **kwargs):
         """Apply ``FLOPPY_TEST_SHARD`` after tags, then write ``selected.txt``."""
-        shard = test_sharding.parse_shard(os.environ.get("FLOPPY_TEST_SHARD"))
+        shard = test_sharding.parse_shard(self._shard_spec)
         if shard is not None and self.parallel > 1:
             message = (
                 "FLOPPY_TEST_SHARD splits the run into separate serial "
@@ -488,7 +501,7 @@ class ResilientDiscoverRunner(DiscoverRunner):
         suite = super().build_suite(test_labels, **kwargs)
         if shard is not None:
             suite = self._keep_shard(suite, *shard)
-        directory = _accounting_dir()
+        directory = self._accounting_dir
         if directory is not None:
             directory.mkdir(parents=True, exist_ok=True)
             ids = sorted(test.id() for test in iter_test_cases(suite))
@@ -513,9 +526,9 @@ class ResilientDiscoverRunner(DiscoverRunner):
 
     def run_tests(self, test_labels, **kwargs):
         """With ``FLOPPY_TEST_LIST_ONLY=1``, only discover: no database, no tests."""
-        if not _list_only():
+        if not self._list_only:
             return super().run_tests(test_labels, **kwargs)
-        if _accounting_dir() is None:
+        if self._accounting_dir is None:
             message = "FLOPPY_TEST_LIST_ONLY=1 needs FLOPPY_TEST_ACCOUNTING_DIR."
             raise ImproperlyConfigured(message)
         self.setup_test_environment()
@@ -535,13 +548,13 @@ class ResilientDiscoverRunner(DiscoverRunner):
             for test_id in broken:
                 self.log(f"  {test_id}")
             return len(broken)
-        self.log(f"[test-list] wrote {SELECTED_FILE} to {_accounting_dir()}.")
+        self.log(f"[test-list] wrote {SELECTED_FILE} to {self._accounting_dir}.")
         return 0
 
     def get_resultclass(self):
         """Record every outcome when ``FLOPPY_TEST_ACCOUNTING_DIR`` is set."""
         base = super().get_resultclass()
-        directory = _accounting_dir()
+        directory = self._accounting_dir
         if directory is None:
             return base
         if self._sink is None:

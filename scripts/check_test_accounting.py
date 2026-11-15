@@ -24,11 +24,31 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 from collections import Counter
 from pathlib import Path
 
 SHOWN = 40
+
+# unittest reports a failure or skip in class or module setup once, under a
+# stand-in named like "setUpClass (app.tests.test_x.SomeTests)", instead of
+# once per test. That outcome is the result of every test it covers.
+_FIXTURE = re.compile(
+    r"^(setUpClass|tearDownClass|setUpModule|tearDownModule) \((.+)\)$"
+)
+
+
+def _covered(selected, reported: set[str]) -> set[str]:
+    """Return the selected IDs answered directly or by their class or module."""
+    prefixes = tuple(
+        match.group(2) + "." for line in reported if (match := _FIXTURE.match(line))
+    )
+    return {
+        test_id
+        for test_id in selected
+        if test_id in reported or (prefixes and test_id.startswith(prefixes))
+    }
 
 
 def _read_ids(path: Path) -> list[str]:
@@ -90,14 +110,15 @@ def check(expected_root: Path, shards_root: Path) -> tuple[bool, list[str]]:
         if doubled:
             problems = True
             report.extend(_listing(f"{shard.name}: selected more than once", doubled))
-        missing_results = sorted(set(counts) - reported)
+        answered = _covered(counts, reported)
+        missing_results = sorted(set(counts) - answered)
         no_result[shard.name] = missing_results
         status = "ok" if not missing_results else f"{len(missing_results)} no result"
         if not (shard / "selected.txt").is_file():
             status = "selected.txt missing"
         report.append(
             f"  {shard.name}: {len(counts)} selected, "
-            f"{len(reported & set(counts))} reported ({status})"
+            f"{len(answered)} reported ({status})"
         )
 
     overlaps = {i: names for i, names in owner.items() if len(names) > 1}

@@ -118,6 +118,26 @@ class AccountingTests(unittest.TestCase):
         self.assertFalse(passed)
         self.assertIn("No shard output", "\n".join(report))
 
+    def test_class_level_skip_answers_for_its_tests(self):
+        # A setUpClass that raises SkipTest is reported once, for the class.
+        self.shard(
+            "test-accounting-browser",
+            APP + OTHER,
+            reported=["setUpClass (app.tests.test_a.A)", *OTHER],
+        )
+        passed, report = self.run_check()
+        self.assertTrue(passed, report)
+
+    def test_class_level_outcome_does_not_cover_other_classes(self):
+        self.shard(
+            "test-accounting-unit-1",
+            APP + OTHER,
+            reported=["setUpClass (app.tests.test_a.AB)", *OTHER],
+        )
+        passed, report = self.run_check()
+        self.assertFalse(passed)
+        self.assertIn("no result reported: 3", report)
+
     def test_empty_shard_is_allowed(self):
         # The browser shard on the publish gate selects nothing.
         self.shard("test-accounting-browser", [])

@@ -8,6 +8,7 @@ lands in exactly one shard, and every outcome is written down as it happens.
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from io import StringIO
@@ -128,6 +129,28 @@ class RunnerShardTests(SimpleTestCase):
             runner = test_runner.ResilientDiscoverRunner(verbosity=0)
             with self.assertRaises(ImproperlyConfigured):
                 runner.build_suite([LABEL])
+
+
+class OwnedEnvironmentTests(SimpleTestCase):
+    def test_a_runner_built_inside_a_test_inherits_nothing(self):
+        # The CI shard's own runner takes these variables. A runner that a
+        # test builds afterwards (or a subprocess) must not see them, or it
+        # rewrites the shard's selected.txt. That happened on the first CI run.
+        env = {
+            "FLOPPY_TEST_SHARD": "2/5",
+            "FLOPPY_TEST_ACCOUNTING_DIR": "outer-accounting",
+            "FLOPPY_TEST_LIST_ONLY": "1",
+        }
+        with patch.dict("os.environ", env):
+            outer = test_runner.ResilientDiscoverRunner(verbosity=0)
+            leaked = {name for name in env if name in os.environ}
+            inner = test_runner.ResilientDiscoverRunner(verbosity=0)
+        self.assertEqual(leaked, set())
+        self.assertEqual(outer._shard_spec, "2/5")
+        self.assertEqual(outer._accounting_dir, Path("outer-accounting"))
+        self.assertIsNone(inner._shard_spec)
+        self.assertIsNone(inner._accounting_dir)
+        self.assertFalse(inner._list_only)
 
 
 class ListOnlyTests(SimpleTestCase):
