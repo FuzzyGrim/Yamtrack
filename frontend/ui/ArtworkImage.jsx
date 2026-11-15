@@ -38,6 +38,10 @@ export function ArtworkImage({
   palette = {},
   labels = {},
   children,
+  // A platform image with the same props as React Native's Image (`source`,
+  // `resizeMode`, `onLoad` with `nativeEvent.source.width`, `onError`). Native
+  // passes a cached image; the default is React Native's Image.
+  imageComponent: ImageComponent = Image,
 }) {
   const colors = { ...DEFAULT_PALETTE, ...palette };
   const copy = { ...DEFAULT_LABELS, ...labels };
@@ -77,7 +81,7 @@ export function ArtworkImage({
   const accessibilityHint = status === 'unavailable' ? copy.unavailable : undefined;
 
   return <View style={[styles.root, style, { backgroundColor: colors.placeholder }]}>
-    {uri && status !== 'unavailable' ? <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode={resizeMode}
+    {uri && status !== 'unavailable' ? <ImageComponent source={{ uri }} style={StyleSheet.absoluteFill} resizeMode={resizeMode}
       accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       onLoad={handleLoad} onError={handleError} /> : null}
     {placeholder ? <Text numberOfLines={2} accessibilityLiveRegion="polite"

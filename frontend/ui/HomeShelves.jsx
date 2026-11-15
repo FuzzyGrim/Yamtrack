@@ -132,6 +132,16 @@ const RailRow = React.memo(function RailRow({
 }) {
   const items = row.items || [];
   const hasMore = !rowLoaded(row);
+  // Card callbacks read the latest row and handlers through a ref, so their
+  // identity never changes and a memoized card re-renders only for its own item.
+  const latest = useRef(null);
+  latest.current = { row, onOpenCard, onOpenLink, onAction, onRate };
+  const handlers = useMemo(() => ({
+    open: item => latest.current.onOpenCard?.(item, latest.current.row),
+    openLink: (href, item) => latest.current.onOpenLink?.(href, item, latest.current.row),
+    action: (action, item) => latest.current.onAction?.(action, item, latest.current.row),
+    rate: (score, item) => latest.current.onRate?.(score, item, latest.current.row),
+  }), []);
   return <RailComponent
     title={row.titleMain || row.title}
     titleDetail={row.titleDetail}
@@ -158,19 +168,29 @@ const RailRow = React.memo(function RailRow({
     renderItem={item => <View style={styles.cardStack}>
       {renderCard
         ? renderCard(item, row)
-        : <MediaCard model={item.card} labels={labels} palette={palette}
+        : <ShelfCard item={item} handlers={handlers} labels={labels} palette={palette}
           width={itemWidth} readOnly={readOnly}
-          onOpen={() => onOpenCard?.(item, row)}
-          onOpenLink={href => onOpenLink?.(href, item, row)}
-          onAction={action => onAction?.(action, item, row)}
-          onRate={score => onRate?.(score, item, row)}
-          renderRating={renderRating}
-          renderActionIcon={renderActionIcon} />}
+          renderRating={renderRating} renderActionIcon={renderActionIcon} />}
       {item.progress && renderProgress ? <View nativeID={item.progress.target}
         style={styles.progress}>
         {renderProgress(item.progress, item, row)}
       </View> : null}
     </View>} />;
+});
+
+// One shelf card. Memoized with callbacks bound to its item, so a shelf
+// re-render (load more, a sort, a cover arriving) skips unchanged cards.
+const ShelfCard = React.memo(function ShelfCard({
+  item, handlers, labels, palette, width, readOnly, renderRating, renderActionIcon,
+}) {
+  const onOpen = useCallback(() => handlers.open(item), [handlers, item]);
+  const onOpenLink = useCallback(href => handlers.openLink(href, item), [handlers, item]);
+  const onAction = useCallback(action => handlers.action(action, item), [handlers, item]);
+  const onRate = useCallback(score => handlers.rate(score, item), [handlers, item]);
+  return <MediaCard model={item.card} labels={labels} palette={palette}
+    width={width} readOnly={readOnly}
+    onOpen={onOpen} onOpenLink={onOpenLink} onAction={onAction} onRate={onRate}
+    renderRating={renderRating} renderActionIcon={renderActionIcon} />;
 });
 
 // A waiting row takes the height its loaded row will have, so rows arriving
@@ -245,8 +265,10 @@ export function HomeShelves({
   onOpenSettings,
   testID,
 }) {
-  const labels = mergeLabels(suppliedLabels);
-  const palette = mergePalette(suppliedPalette);
+  // Stable merged objects, so a row arriving does not hand every shelf a new
+  // palette and re-render its cards.
+  const labels = useMemo(() => mergeLabels(suppliedLabels), [suppliedLabels]);
+  const palette = useMemo(() => mergePalette(suppliedPalette), [suppliedPalette]);
   // Release separates media-type groups by 1rem on phones and 2rem from `sm`.
   const viewport = useWindowDimensions();
   const sectionGap = sectionSpacing(viewport.width);
@@ -472,9 +494,12 @@ export function HomeShelves({
       : current));
   }, []);
 
+  const loadingMoreRef = useRef(loadingMore);
+  loadingMoreRef.current = loadingMore;
+  // Stable identity: one row loading more must not re-render every other row.
   const loadMore = useCallback(async row => {
     const key = rowKey(row);
-    if (!onLoadMore || loadingMore[key] || rowLoaded(row)) return;
+    if (!onLoadMore || loadingMoreRef.current[key] || rowLoaded(row)) return;
     setLoadingMore(current => ({ ...current, [key]: true }));
     try {
       const next = await onLoadMore(row);
@@ -486,7 +511,7 @@ export function HomeShelves({
         return next;
       });
     }
-  }, [applyRow, loadingMore, onLoadMore]);
+  }, [applyRow, onLoadMore]);
 
   sortStateRef.current = { sorting, rowPatches };
 

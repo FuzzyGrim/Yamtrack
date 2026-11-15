@@ -24,6 +24,7 @@ from app.activity_builders import (
     _normalize_detail_episode_actions,
     _paginate_detail_episodes,
 )
+from app.artwork_sizes import card_image_url
 from app.detail_builders import (
     _apply_cached_hltb_link,
     _build_detail_link_sections,
@@ -364,7 +365,7 @@ def _media_card(entry, *, public_view, viewer=None, can_write=False):
             "mediaType": media_type,
             "shape": "square" if media_type in {"music", "podcast"} else "poster",
             "href": href,
-            "image": {"src": image, "fallback": "", "source": "primary"},
+            "image": {"src": card_image_url(image), "fallback": "", "source": "primary"},
             "title": title,
             "altTitle": raw.get("original_title") or raw.get("alternative_title"),
             "statusChip": {"kind": "status", "status": status, "hideOnMobile": False}
@@ -443,7 +444,7 @@ def _child_row(raw, *, media_type, parent_media_type, source, media_id, public_v
         "number": number,
         "identity": identity,
         "title": title,
-        "image": {"src": image, "fallback": ""},
+        "image": {"src": card_image_url(image), "fallback": ""},
         "overview": overview,
         "dateLabel": date_value,
         "card": season_card,

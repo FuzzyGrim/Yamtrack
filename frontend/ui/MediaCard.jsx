@@ -279,7 +279,10 @@ function CardMetadata({ model, palette, labels, onOpen, onOpenLink, onLongPress,
   </>;
 }
 
-export function MediaCard({
+// Memoized on its props: a list re-render (a shelf arriving, a page appended)
+// skips cards whose model and callbacks are unchanged. Parents pass stable
+// props for this to hold; a changed model still re-renders the card.
+export const MediaCard = React.memo(function MediaCard({
   model,
   labels = {},
   palette,
@@ -426,7 +429,7 @@ export function MediaCard({
         style={{ top: 0, height: width / (ASPECT[model.shape] || ASPECT.poster) }} /> : null}
     </View>
   </View>;
-}
+});
 
 const styles = StyleSheet.create({
   card: { position: 'relative', borderWidth: 1, borderRadius: 8, overflow: 'hidden' },

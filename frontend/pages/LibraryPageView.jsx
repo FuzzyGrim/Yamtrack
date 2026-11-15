@@ -35,8 +35,9 @@ export function LibraryPageView({
   onEmptyAction,
   style,
   testID,
+  renderScroll,
 }) {
-  return <View style={[styles.root, style]} testID={testID}>
+  const top = <>
     {search || null}
     {heading || <PageHeading
       title={title}
@@ -59,6 +60,22 @@ export function LibraryPageView({
       error={error}
       onRetry={onRetry}
       onEmptyAction={onEmptyAction} />
+  </>;
+  // A platform whose list scrolls itself (native windows the grid in a
+  // FlatList) takes the parts above and below the content as the list's
+  // header and footer, with the same 16 pt gaps the stacked page has. The
+  // caller renders the content only when `state` is 'ready'.
+  if (renderScroll) {
+    return renderScroll({
+      header: <View style={[styles.root, state === 'ready' && styles.header, style]} testID={testID}>{top}</View>,
+      footer: bulkBar || footer
+        ? <View style={[styles.root, styles.footer]}>{bulkBar || null}{footer || null}</View>
+        : null,
+      ready: state === 'ready',
+    });
+  }
+  return <View style={[styles.root, style]} testID={testID}>
+    {top}
     {state === 'ready' ? content : null}
     {bulkBar || null}
     {footer || null}
@@ -67,4 +84,6 @@ export function LibraryPageView({
 
 const styles = StyleSheet.create({
   root: { gap: 16, minWidth: 0 },
+  header: { paddingBottom: 16 },
+  footer: { paddingTop: 16 },
 });

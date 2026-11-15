@@ -14,6 +14,9 @@ Code: `src/app/local_covers.py` (storage), `src/app/cover_views.py` (views).
   know the difference: templates run it through `image_url`, which leaves it alone, and
   the API renderer turns it into an absolute URL for clients that have no page to resolve
   it against.
+- Card sizing (`app.artwork_sizes`, see the media-card contract) never rewrites a local
+  cover: it only shortens provider URLs. With the image cache on, a card's smaller
+  provider size is a second file in `image-cache/`, next to the full-size one Detail uses.
 - `covers/` is **not** part of `image-cache/`. "Clear cache" removes derived copies of
   provider artwork; a local cover cannot be re-downloaded, so it must survive that.
   Back up the data folder and the covers come with it.
