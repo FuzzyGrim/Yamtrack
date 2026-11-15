@@ -1,0 +1,143 @@
+name: Latest Health
+
+# Says within minutes when tests break on latest itself, instead of every open
+# pull request turning red one by one.
+#
+# - On every push to latest it runs the Playwright tests pull requests must
+#   pass. The publish gate leaves them out on purpose (a browser break must not
+#   stop a fix from shipping), and direct pushes skip the pull request suite,
+#   so nothing else runs them on latest.
+# - When the publish gate in docker-image.yml finishes for a push to latest, it
+#   reads the gate's own test results. They already went red within minutes of
+#   a bad push, but nobody was told.
+#
+# Both feed one issue, "Tests are failing on latest" (scripts/latest_health.py):
+# opened on the first failure, updated while anything fails, commented on and
+# closed when everything passes again. A run that could not tell (for example
+# Chromium failed to install) is "unknown" and never opens or closes it.
+#
+# This workflow decides nothing: it is not a required check, it changes no pull
+# request and it does not gate publication. It checks out only latest and never
+# runs pull request code. Rollback: delete this file and the "Compare failures
+# with latest" job in app-tests.yml. See docs/architecture/test-suite-cost.md.
+
+on:
+  push:
+    branches:
+      - latest
+  workflow_run:
+    workflows: ["Docker Image"]
+    types: [completed]
+    branches:
+      - latest
+  workflow_dispatch:
+
+# Only the newest push is worth testing: a newer push cancels the older browser
+# run, and its report never runs. Publish gate reports queue separately and are
+# never cancelled mid-write. The two report jobs may still run at the same
+# moment; a concurrency group shared by both would drop a queued report, so
+# the script checks each write afterwards and redoes it (scripts/latest_health.py).
+concurrency:
+  group: latest-health-${{ github.event_name == 'workflow_run' && 'gate' || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_run' }}
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: Browser tests
+    if: github.event_name != 'workflow_run' && github.ref == 'refs/heads/latest'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # The same environment as the pull request shards: real migrations, the
+    # same browser fixtures, one serial process.
+    env:
+      SECRET: ci-tests-only-not-a-production-secret
+      FLOPPY_TEST_FAST_DB: "0"
+      FLOPPY_TEST_TIMEOUT: "4800"
+      FLOPPY_TEST_WATCHDOG: "4500"
+      FLOPPY_TEST_PARALLEL: "1"
+      FLOPPY_TEST_DB_TEMPLATE: "0"
+    steps:
+      - name: Checkout latest
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.3"
+      - name: Install dependencies and Chromium
+        run: |
+          uv sync --locked --all-packages --all-extras
+          uv run --no-sync playwright install --with-deps chromium
+      - name: Fetch migration baseline
+        run: git fetch --no-tags https://github.com/FuzzyGrim/Yamtrack.git dev:refs/remotes/upstream/dev
+      # The browser tests pull requests must pass: every Playwright test in the
+      # app and integrations shards except the one flaky alphabet case, which
+      # stays in the diagnostic job. Keep this in step with app-tests.yml.
+      - name: Run browser tests
+        run: >-
+          scripts/test.sh app integrations --tag playwright
+          --exclude-tag flaky_alphabet_rail --timing --durations 30
+
+  report_browser:
+    name: Report browser tests
+    needs: browser
+    # Only a run of latest itself may touch the issue.
+    if: >-
+      ${{ !cancelled() && github.ref == 'refs/heads/latest' &&
+      needs.browser.result != 'skipped' && needs.browser.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Checkout latest
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: latest
+          persist-credentials: false
+      - name: Update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: python3 scripts/latest_health.py report --source browser --run-id "$RUN_ID" --sha "$SHA"
+
+  report_gate:
+    name: Report publish gate tests
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'latest' &&
+      github.event.workflow_run.conclusion != 'cancelled' &&
+      github.event.workflow_run.conclusion != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Checkout latest
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: latest
+          persist-credentials: false
+      - name: Update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: python3 scripts/latest_health.py report --source gate --run-id "$RUN_ID" --sha "$SHA"
