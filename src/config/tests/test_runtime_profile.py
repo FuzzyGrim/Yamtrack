@@ -391,6 +391,14 @@ class SizingTests(SimpleTestCase):
         self.assertEqual(minimal["start_discover"], "false")
         self.assertEqual(minimal["role"], "combined")
 
+    def test_no_tier_starts_a_separate_discover_worker(self):
+        """Discover rides the background worker; its own worker is never started."""
+        for tier in (TIER_MINIMAL, TIER_CONSTRAINED, TIER_STANDARD, "unrecognised"):
+            with self.subTest(tier=tier):
+                plan = celery_queue_plan(self._profile(tier))
+                self.assertEqual(plan["start_discover"], "false")
+                self.assertIn("discover", plan["queues"].split(","))
+
     def test_every_queue_is_served_on_every_tier(self):
         """No tier may leave a queue with no consumer, or tasks vanish."""
         for tier in (TIER_MINIMAL, TIER_CONSTRAINED, TIER_STANDARD):

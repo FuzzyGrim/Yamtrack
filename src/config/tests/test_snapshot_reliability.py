@@ -1,11 +1,14 @@
 """Real disposable snapshots, including failed publication and WAL recovery."""
 
+import contextlib
 import os
 import sqlite3
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from contextlib import closing
 from pathlib import Path
 from unittest import mock
@@ -221,3 +224,177 @@ sqlite_integrity.create_live_database_snapshot(
         self.assertIsNotNone(current)
         self.assertTrue(current.exists())
         self.assertEqual(list(self.destination.iterdir()), [current])
+
+
+class _Committer:
+    """Commit one tiny row to the source every ``interval`` seconds."""
+
+    def __init__(self, database, interval, *, limit=8.0):
+        self.database = database
+        self.interval = interval
+        self.limit = limit
+        self.commits = 0
+        self.slowest = 0.0
+        self.stop = threading.Event()
+        self.thread = threading.Thread(target=self.run, daemon=True)
+
+    def run(self):
+        deadline = time.monotonic() + self.limit
+        with closing(
+            sqlite3.connect(self.database, timeout=10, isolation_level=None)
+        ) as writer:
+            while time.monotonic() < deadline and not self.stop.wait(self.interval):
+                started = time.monotonic()
+                writer.execute("INSERT INTO plays (n) VALUES (?)", (self.commits,))
+                self.slowest = max(self.slowest, time.monotonic() - started)
+                self.commits += 1
+
+    def __enter__(self):
+        self.thread.start()
+        return self
+
+    def __exit__(self, *exc):
+        self.stop.set()
+        self.thread.join()
+
+
+class SnapshotUnderWritesTests(SimpleTestCase):
+    """The copy must converge while another connection keeps committing.
+
+    The real copy uses 256 pages per step; a test-sized database uses 4 so one
+    pass takes about a second, far longer than the 50 ms between commits.
+    """
+
+    ROWS = 1000
+
+    def setUp(self):
+        self.workspace = tempfile.TemporaryDirectory()
+        self.addCleanup(self.workspace.cleanup)
+        self.root = Path(self.workspace.name)
+        self.destination = self.root / "backups"
+        patcher = mock.patch.object(sqlite_integrity, "_SNAPSHOT_STEP_PAGES", 4)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def build(self, journal_mode):
+        database = self.root / f"{journal_mode}.sqlite3"
+        with closing(sqlite3.connect(database, isolation_level=None)) as db:
+            db.execute(f"PRAGMA journal_mode={journal_mode}")
+            db.execute("CREATE TABLE body (id INTEGER PRIMARY KEY, data BLOB)")
+            db.execute("CREATE TABLE plays (id INTEGER PRIMARY KEY, n INTEGER)")
+            db.execute("BEGIN")
+            db.executemany(
+                "INSERT INTO body (data) VALUES (randomblob(3000))",
+                [()] * self.ROWS,
+            )
+            db.execute("COMMIT")
+        return database
+
+    def snapshot(self, database, outcome):
+        return sqlite_integrity.create_live_database_snapshot(
+            str(database),
+            self.destination,
+            max_keep=3,
+            timeout_seconds=5,
+            outcome=outcome,
+        )
+
+    def assert_complete_copy(self, snapshot):
+        with closing(sqlite3.connect(snapshot)) as copy:
+            self.assertEqual(copy.execute("PRAGMA quick_check").fetchall(), [("ok",)])
+            self.assertEqual(
+                copy.execute("SELECT count(*) FROM body").fetchone()[0], self.ROWS
+            )
+            plays = [n for (n,) in copy.execute("SELECT n FROM plays ORDER BY n")]
+        # A consistent image: a prefix of the committed plays, no gaps.
+        self.assertEqual(plays, list(range(len(plays))))
+
+    def test_wal_copy_finishes_in_one_pass_while_writes_continue(self):
+        database = self.build("wal")
+        outcome = {}
+        with _Committer(database, 0.05) as committer:
+            started = time.monotonic()
+            snapshot = self.snapshot(database, outcome)
+            elapsed = time.monotonic() - started
+            still_writing = committer.thread.is_alive()
+        self.assertIsNotNone(snapshot)
+        # Unpinned, the copy restarts on every commit and only finishes after
+        # the committer gives up at 8 s.
+        self.assertTrue(
+            still_writing, f"copy only finished after writes stopped ({elapsed:.1f} s)"
+        )
+        self.assertGreater(committer.commits, 3)
+        self.assertEqual(outcome.get("restarts"), 0)
+        self.assertTrue(outcome.get("pinned"))
+        self.assertGreater(outcome.get("steps"), 100)
+        # WAL readers never block the writer: commits stay quick during the copy.
+        self.assertLess(committer.slowest, 0.5)
+        self.assert_complete_copy(snapshot)
+
+    def test_wal_pin_ends_so_checkpoint_can_shrink_the_wal(self):
+        database = self.build("wal")
+        # Keep a connection open so SQLite does not delete the WAL on close.
+        with closing(sqlite3.connect(database)) as keeper:
+            keeper.execute("SELECT count(*) FROM plays").fetchone()
+            with _Committer(database, 0.02, limit=2.0):
+                self.assertIsNotNone(self.snapshot(database, {}))
+            wal = Path(f"{database}-wal")
+            self.assertGreater(wal.stat().st_size, 0)
+            busy, _log, _done = keeper.execute(
+                "PRAGMA wal_checkpoint(TRUNCATE)"
+            ).fetchone()
+            self.assertEqual(busy, 0)
+            self.assertEqual(wal.stat().st_size, 0)
+
+    def test_rollback_journal_copy_never_holds_writers(self):
+        # Pinning or a single-step copy would make a commit wait for the whole
+        # ~1 s pass. Unpinned, a busy instance restarts the copy instead, and
+        # the restart limit reports that rather than looping.
+        database = self.build("delete")
+        outcome = {}
+        with (
+            mock.patch.object(sqlite_integrity, "_log") as log,
+            _Committer(database, 0.05, limit=4.0) as committer,
+        ):
+            time.sleep(0.2)
+            snapshot = self.snapshot(database, outcome)
+            time.sleep(0.2)
+        self.assertFalse(outcome.get("pinned"))
+        self.assertLess(committer.slowest, 0.5)
+        if snapshot is None:
+            self.assertGreater(
+                outcome["restarts"], sqlite_integrity._SNAPSHOT_MAX_RESTARTS
+            )
+            self.assertIn("kept changing", str(log.call_args_list))
+        else:
+            self.assert_complete_copy(snapshot)
+
+    def test_quiet_rollback_journal_copy_completes_stepped(self):
+        database = self.build("delete")
+        outcome = {}
+        snapshot = self.snapshot(database, outcome)
+        self.assertIsNotNone(snapshot)
+        self.assertFalse(outcome["pinned"])
+        self.assertEqual(outcome["restarts"], 0)
+        self.assertGreater(outcome["steps"], 100)
+        self.assert_complete_copy(snapshot)
+
+    def test_copy_that_keeps_restarting_fails_loudly(self):
+        database = self.build("wal")
+        outcome = {}
+        with (
+            mock.patch.object(
+                sqlite_integrity,
+                "_pinned_read",
+                lambda source: contextlib.nullcontext(),
+            ),
+            mock.patch.object(sqlite_integrity, "_log") as log,
+            _Committer(database, 0.05),
+        ):
+            started = time.monotonic()
+            self.assertIsNone(self.snapshot(database, outcome))
+            elapsed = time.monotonic() - started
+        self.assertLess(elapsed, 6)
+        self.assertGreater(outcome["restarts"], sqlite_integrity._SNAPSHOT_MAX_RESTARTS)
+        self.assertIn("kept changing", str(log.call_args_list))
+        self.assertEqual(list(self.destination.iterdir()), [])
