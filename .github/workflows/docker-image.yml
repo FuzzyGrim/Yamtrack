@@ -275,11 +275,8 @@ jobs:
   build:
     needs: [test, quality]
     runs-on: ubuntu-latest
-    # Holds packages: write, which a merge-train candidate (a same-repository
-    # pull request) must never run with. Not a required check.
     if: >-
       ${{ !cancelled() &&
-      !startsWith(github.head_ref, 'merge-train/batch-') &&
       (github.event_name == 'pull_request' || github.actor != 'dependabot[bot]') &&
       needs.test.result == 'success' &&
       (needs.quality.result == 'success' ||
