@@ -47,6 +47,7 @@ def write_database_snapshot():
     # own size in `file` unless the cache is released afterwards.
     before = sample_memory()
     started = time.perf_counter()
+    outcome: dict = {}
     try:
         dest_dir = Path(settings.BACKUP_DIR) / "database"
         path = create_live_database_snapshot(
@@ -54,6 +55,7 @@ def write_database_snapshot():
             dest_dir,
             max_keep=settings.DB_SNAPSHOT_RETENTION_COUNT,
             timeout_seconds=settings.SQLITE_BUSY_TIMEOUT_SECONDS,
+            outcome=outcome,
         )
     except Exception as error:
         logger.exception("Database snapshot task failed unexpectedly")
@@ -67,7 +69,8 @@ def write_database_snapshot():
 
     backup_status.record_success(backup_status.SNAPSHOT, path.name)
 
-    _log_snapshot_envelope(path, before, (time.perf_counter() - started) * 1000)
+    duration_ms = (time.perf_counter() - started) * 1000
+    _log_snapshot_envelope(path, before, duration_ms, outcome)
     return {"status": "ok", "path": str(path)}
 
 
@@ -76,13 +79,18 @@ def _format(value) -> str:
     return "unknown" if value is None else str(value)
 
 
-def _log_snapshot_envelope(path: Path, before, duration_ms: float) -> None:
+def _log_snapshot_envelope(
+    path: Path, before, duration_ms: float, outcome: dict | None = None
+) -> None:
     """Emit one structured line tying the snapshot to the cgroup it moved.
 
     Only the file name is logged, not the full path: BACKUP_DIR is operator
     configuration and the name alone is enough to match this line against the
     page_cache_release line the writer emits for the same snapshot.
+    ``pinned``, ``steps`` and ``restarts`` say how the copy ran: a pinned WAL
+    copy should show restarts=0 however busy the instance was.
     """
+    outcome = outcome or {}
     size_bytes = None
     with suppress(OSError):
         size_bytes = path.stat().st_size
@@ -90,7 +98,7 @@ def _log_snapshot_envelope(path: Path, before, duration_ms: float) -> None:
     logger.info(
         "db_snapshot name=%s bytes=%s duration_ms=%.0f "
         "cgroup_before=%s cgroup_after=%s anon_before=%s anon_after=%s "
-        "file_before=%s file_after=%s",
+        "file_before=%s file_after=%s pinned=%s steps=%s restarts=%s",
         path.name,
         _format(size_bytes),
         duration_ms,
@@ -100,4 +108,7 @@ def _log_snapshot_envelope(path: Path, before, duration_ms: float) -> None:
         _format(after.cgroup_anon_bytes),
         _format(before.cgroup_file_bytes),
         _format(after.cgroup_file_bytes),
+        _format(outcome.get("pinned")),
+        _format(outcome.get("steps")),
+        _format(outcome.get("restarts")),
     )
