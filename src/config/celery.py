@@ -10,6 +10,8 @@ from celery.signals import (
     worker_shutting_down,
 )
 
+from config.runtime_profile import current_anon_rss_bytes
+
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
@@ -131,3 +133,33 @@ def _freeze_child_image(**_kwargs):
     """
     gc.collect()
     gc.freeze()
+
+
+def _child_anon_rss_kib():
+    """Return this child's anonymous resident size in KiB, as billiard expects.
+
+    billiard's own reading is ``ru_maxrss``: the child's lifetime *peak*, file
+    pages included. SQLite memory-maps the database, so one task that reads a
+    wide table pushes that peak past the ceiling for good, and the child is
+    recycled after every later task for page cache it cannot give back. A
+    non-positive return makes billiard log "unable to determine memory usage"
+    and keep the child, so an unreadable /proc falls back to billiard's figure.
+    """
+    from billiard import compat
+
+    resident = current_anon_rss_bytes()
+    if resident is None:
+        return compat.mem_rss()
+    return resident // 1024
+
+
+@worker_process_init.connect
+def _measure_child_memory_without_page_cache(**_kwargs):
+    """Make CELERY_WORKER_MAX_MEMORY_PER_CHILD compare what a recycle returns.
+
+    The pool loop looks ``mem_rss`` up in ``billiard.pool`` after each task,
+    so replacing it there, in the child, is enough.
+    """
+    import billiard.pool
+
+    billiard.pool.mem_rss = _child_anon_rss_kib

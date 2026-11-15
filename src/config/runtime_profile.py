@@ -63,6 +63,8 @@ _TIER_ORDER = (TIER_MINIMAL, TIER_CONSTRAINED, TIER_STANDARD)
 # A "field" line in /proc/meminfo is "Name:  <value> kB" - three tokens once
 # split, but two suffice to read the number.
 _MEMINFO_MIN_FIELDS = 2
+# /proc/self/statm: size resident shared text lib data dt, in pages.
+_STATM_SHARED_FIELD = 2
 _CPU_MAX_FIELDS = 2
 # Two cores can't keep the standard process set fed regardless of memory.
 _LOW_CPU_COUNT = 2
@@ -199,6 +201,52 @@ def current_rss_bytes() -> int | None:
         return int(parts[1]) * os.sysconf("SC_PAGE_SIZE")
     except (ValueError, OSError):
         return None
+
+
+def anon_resident_bytes_from_statm(contents: str | None) -> int | None:
+    """Return the anonymous part of a statm line's resident size, or None.
+
+    statm's "resident" counts every page mapped in, including file pages.
+    SQLite memory-maps the database (``SQLITE_MMAP_SIZE_MIB``), so a request
+    that reads many rows maps hundreds of MiB of the database file into the
+    process. Those pages are page cache: the kernel reclaims them under
+    pressure, and recycling the process returns nothing, because the next
+    process maps the same file. Subtracting "shared" (file and shmem pages)
+    leaves the memory a recycle actually gives back.
+    """
+    if not contents:
+        return None
+    parts = contents.split()
+    if len(parts) < _STATM_SHARED_FIELD + 1:
+        return None
+    try:
+        resident = int(parts[1])
+        shared = int(parts[_STATM_SHARED_FIELD])
+    except ValueError:
+        return None
+    return max(0, resident - shared) * _page_size()
+
+
+def current_anon_rss_bytes() -> int | None:
+    """Return this process's anonymous resident size, or None.
+
+    The size worker recycling compares against its ceiling; see
+    ``anon_resident_bytes_from_statm`` for why it is not plain RSS. Read with
+    a bare ``open`` because gunicorn calls it after every request.
+    """
+    try:
+        with open(_PROC_SELF_STATM) as statm:  # noqa: PTH123 - hot path
+            contents = statm.read()
+    except OSError:
+        return None
+    return anon_resident_bytes_from_statm(contents)
+
+
+def _page_size() -> int:
+    try:
+        return os.sysconf("SC_PAGE_SIZE")
+    except (AttributeError, OSError, ValueError):  # pragma: no cover - non-POSIX
+        return 4096
 
 
 def _tier_from_memory(memory_bytes: int | None) -> str:
