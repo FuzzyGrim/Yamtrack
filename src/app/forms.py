@@ -19,8 +19,10 @@ from app.models import (
     Manga,
     MediaTypes,
     Movie,
+    Music,
     Season,
     Sources,
+    Video,
 )
 
 
@@ -352,6 +354,42 @@ class BoardgameForm(MediaForm):
                 _("Progress ({unit})"),
                 unit=config.get_translated_unit(
                     MediaTypes.BOARDGAME.value,
+                    plural=True,
+                ),
+            ),
+        }
+
+
+class MusicForm(MediaForm):
+    """Form for music."""
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = Music
+        labels = {
+            "progress": format_lazy(
+                _("Progress ({unit})"),
+                unit=config.get_translated_unit(
+                    MediaTypes.MUSIC.value,
+                    plural=True,
+                ),
+            ),
+        }
+
+
+class VideoForm(MediaForm):
+    """Form for videos."""
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = Video
+        labels = {
+            "progress": format_lazy(
+                _("Progress ({unit})"),
+                unit=config.get_translated_unit(
+                    MediaTypes.VIDEO.value,
                     plural=True,
                 ),
             ),

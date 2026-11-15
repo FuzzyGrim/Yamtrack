@@ -52,6 +52,10 @@ SOURCES_CONFIG = {
         "name": "GoodReads",
         "logo": static("img/logo-goodreads.svg"),
     },
+    "google_takeout": {
+        "name": "Google Takeout",
+        "logo": static("img/logo-youtube.svg"),
+    },
 }
 
 

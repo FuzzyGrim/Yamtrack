@@ -135,6 +135,8 @@ class AppTagsTests(TestCase):
             MediaTypes.BOOK.value: "Books",
             MediaTypes.COMIC.value: "Comics",
             MediaTypes.BOARDGAME.value: "Boardgames",
+            MediaTypes.MUSIC.value: "Music",
+            MediaTypes.VIDEO.value: "Videos",
         }
 
         for media_type, _label in MediaTypes.choices:
@@ -186,6 +188,8 @@ class AppTagsTests(TestCase):
             MediaTypes.BOOK.value: ("book", "read", "read"),
             MediaTypes.COMIC.value: ("comic", "read", "read"),
             MediaTypes.BOARDGAME.value: ("board game", "play", "played"),
+            MediaTypes.MUSIC.value: ("music", "play", "played"),
+            MediaTypes.VIDEO.value: ("video", "watch", "watched"),
         }
         self.assertEqual(set(verb_contexts), set(MediaTypes.values))
 
@@ -215,6 +219,8 @@ class AppTagsTests(TestCase):
             MediaTypes.BOOK.value: ("book", "Page", "Pages", "P"),
             MediaTypes.COMIC.value: ("comic", "Issue", "Issues", "#"),
             MediaTypes.BOARDGAME.value: ("board game", "Play", "Plays", "#"),
+            MediaTypes.MUSIC.value: ("music", "Listen", "Listens", "#"),
+            MediaTypes.VIDEO.value: ("video", "Watch", "Watches", "#"),
         }
         self.assertEqual(
             set(unit_contexts),

@@ -1,0 +1,73 @@
+[
+  {
+    "header": "YouTube Music",
+    "title": "Watched Bohemian Rhapsody",
+    "titleUrl": "https://music.youtube.com/watch?v=fJ9rUzIMcZQ",
+    "subtitles": [
+      {
+        "name": "Queen - Topic",
+        "url": "https://music.youtube.com/channel/UCiMhD4jzUqG-IgPzUmmytRQ"
+      }
+    ],
+    "time": "2024-01-10T12:00:00.000Z",
+    "products": ["YouTube"],
+    "activityControls": ["YouTube watch history"]
+  },
+  {
+    "header": "YouTube Music",
+    "title": "Watched Bohemian Rhapsody",
+    "titleUrl": "https://music.youtube.com/watch?v=fJ9rUzIMcZQ",
+    "subtitles": [
+      {
+        "name": "Queen - Topic",
+        "url": "https://music.youtube.com/channel/UCiMhD4jzUqG-IgPzUmmytRQ"
+      }
+    ],
+    "time": "2024-02-15T18:30:00.000Z",
+    "products": ["YouTube"],
+    "activityControls": ["YouTube watch history"]
+  },
+  {
+    "header": "YouTube Music",
+    "title": "Watched Never Gonna Give You Up",
+    "titleUrl": "https://music.youtube.com/watch?v=dQw4w9WgXcQ",
+    "subtitles": [
+      {
+        "name": "Rick Astley - Topic",
+        "url": "https://music.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw"
+      }
+    ],
+    "time": "2024-03-01T09:15:00.000Z",
+    "products": ["YouTube"],
+    "activityControls": ["YouTube watch history"]
+  },
+  {
+    "header": "YouTube",
+    "title": "Watched How to Make Pasta",
+    "titleUrl": "https://www.youtube.com/watch?v=abcdefghijk",
+    "subtitles": [
+      {
+        "name": "Cooking Channel",
+        "url": "https://www.youtube.com/channel/UC123"
+      }
+    ],
+    "time": "2024-04-20T20:00:00.000Z",
+    "products": ["YouTube"],
+    "activityControls": ["YouTube watch history"]
+  },
+  {
+    "header": "YouTube",
+    "title": "Searched for pasta recipes",
+    "titleUrl": "https://www.youtube.com/results?search_query=pasta",
+    "time": "2024-04-20T19:55:00.000Z",
+    "products": ["YouTube"],
+    "activityControls": ["YouTube search history"]
+  },
+  {
+    "header": "YouTube",
+    "title": "Watched Deleted Video",
+    "time": "2024-05-01T10:00:00.000Z",
+    "products": ["YouTube"],
+    "activityControls": ["YouTube watch history"]
+  }
+]

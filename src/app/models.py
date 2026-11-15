@@ -65,6 +65,8 @@ class MediaTypes(models.TextChoices):
     BOOK = "book", _("Book")
     COMIC = "comic", _("Comic")
     BOARDGAME = "boardgame", _("Boardgame")
+    MUSIC = "music", _("Music")
+    VIDEO = "video", _("Video")
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -1951,5 +1953,17 @@ class Comic(Media):
 
 class BoardGame(Media):
     """Model for board games."""
+
+    tracker = FieldTracker()
+
+
+class Music(Media):
+    """Model for music."""
+
+    tracker = FieldTracker()
+
+
+class Video(Media):
+    """Model for videos (for example YouTube watches)."""
 
     tracker = FieldTracker()

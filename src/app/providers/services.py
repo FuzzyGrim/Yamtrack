@@ -10,6 +10,7 @@ from redis import Redis
 from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import (
     anilist,
@@ -316,5 +317,18 @@ def search(media_type, query, page, source=None, *, show_adult_titles=True):
         ),
         MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
         MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
+        # Manual-only for now; entries are created via create entry or Takeout import.
+        MediaTypes.MUSIC.value: lambda: helpers.format_search_response(
+            page,
+            settings.PER_PAGE,
+            0,
+            [],
+        ),
+        MediaTypes.VIDEO.value: lambda: helpers.format_search_response(
+            page,
+            settings.PER_PAGE,
+            0,
+            [],
+        ),
     }
     return search_handlers[media_type]()

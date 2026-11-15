@@ -267,6 +267,8 @@ def media_type_readable_plural(media_type):
         MediaTypes.BOARDGAME.value: lambda: pgettext(
             "media type plural label", "Boardgames"
         ),
+        MediaTypes.MUSIC.value: lambda: pgettext("media type plural label", "Music"),
+        MediaTypes.VIDEO.value: lambda: pgettext("media type plural label", "Videos"),
     }
 
     return plural_translators[media_type]()
@@ -281,7 +283,8 @@ def media_status_readable(media_status):
 @register.filter
 def default_source(media_type):
     """Return the default source for the media type."""
-    return config.get_default_source_name(media_type).label
+    # Sources.MANUAL.label is lazy-translated; coerce so templates get a str.
+    return str(config.get_default_source_name(media_type).label)
 
 
 @register.filter

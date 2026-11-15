@@ -16,6 +16,7 @@
   {% trans "Import games" as import_games_label %}
   {% trans "Import movies and TV shows from your ratings" as import_imdb_ratings_label %}
   {% trans "Import from GoodReads backup" as import_from_goodreads_backup_label %}
+  {% trans "Import YouTube Music listens and YouTube watches from Google Takeout" as import_google_takeout_label %}
   {% trans "Import TV shows and movies" as import_trakt_label %}
   {% trans "File uploads are not available for periodic imports" as periodic_upload_unavailable_label %}
   <div class="space-y-6"
@@ -431,6 +432,33 @@
                      :disabled="importFrequency !== 'once'"
                      @change="importFrequency === 'once' && $el.form.submit()">
               {% trans "Select CSV File" %}
+            </label>
+          </form>
+        </div>
+
+        {# Google Takeout (YouTube / YouTube Music) #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "google_takeout" %}</div>
+          <p class="text-sm text-gray-400 mb-3"
+             x-text="importFrequency === 'once' ? '{{ import_google_takeout_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
+          </p>
+          <form method="post"
+                action="{% url 'import_google_takeout' %}"
+                enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :disabled="importFrequency !== 'once'">
+              <input name="google_takeout_file"
+                     accept=".zip,.json,application/zip,application/json"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
+                     @change="importFrequency === 'once' && $el.form.submit()">
+              {% trans "Select Takeout File" %}
             </label>
           </form>
         </div>

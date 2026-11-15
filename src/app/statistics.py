@@ -427,6 +427,12 @@ CONSUMPTION_DESCRIPTORS = {
     MediaTypes.BOARDGAME.value: lambda n: npgettext(
         "consumption statistic", "Boardgame play", "Boardgame plays", n
     ),
+    MediaTypes.MUSIC.value: lambda n: npgettext(
+        "consumption statistic", "Music listen", "Music listens", n
+    ),
+    MediaTypes.VIDEO.value: lambda n: npgettext(
+        "consumption statistic", "Video watch", "Video watches", n
+    ),
 }
 
 

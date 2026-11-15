@@ -495,6 +495,34 @@ def import_goodreads(request):
     return redirect("import_data")
 
 
+@require_POST
+def import_google_takeout(request):
+    """View for importing YouTube Music and YouTube watches from Google Takeout."""
+    file = request.FILES.get("google_takeout_file")
+
+    if not file:
+        messages.error(
+            request,
+            _("Google Takeout zip or watch-history.json file is required."),
+        )
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_google_takeout.delay(
+        file=file,
+        user_id=request.user.id,
+        mode=mode,
+    )
+    messages.info(
+        request,
+        _(
+            "The task to import YouTube Music and YouTube watches "
+            "from Google Takeout has been queued."
+        ),
+    )
+    return redirect("import_data")
+
+
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""

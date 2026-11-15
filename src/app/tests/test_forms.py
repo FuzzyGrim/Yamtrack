@@ -13,8 +13,10 @@ from app.forms import (
     GameForm,
     MangaForm,
     ManualItemForm,
+    MusicForm,
     SeasonForm,
     TvForm,
+    VideoForm,
 )
 from app.models import TV, Item, MediaTypes, Season, Sources, Status
 
@@ -49,6 +51,8 @@ class BasicMediaForm(TestCase):
             BookForm: MediaTypes.BOOK.value,
             ComicForm: MediaTypes.COMIC.value,
             BoardgameForm: MediaTypes.BOARDGAME.value,
+            MusicForm: MediaTypes.MUSIC.value,
+            VideoForm: MediaTypes.VIDEO.value,
         }
 
         for language, _name in settings.LANGUAGES:

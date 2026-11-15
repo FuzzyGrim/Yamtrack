@@ -301,6 +301,52 @@ MEDIA_TYPE_CONFIG = {
         },
         "date_key": "year",
     },
+    MediaTypes.MUSIC.value: {
+        "sources": [Sources.MANUAL],
+        "default_source": Sources.MANUAL,
+        "sample_query": "Bohemian Rhapsody",
+        "unicode_icon": "🎵",
+        "verb": {
+            "present": pgettext_lazy("music tracking verb present", "play"),
+            "past": pgettext_lazy("music tracking verb past", "played"),
+        },
+        "activity": "play",
+        "text_color": COLORS["purple"]["text"],
+        "stats_color": COLORS["purple"]["hex"],
+        "svg_icon": """
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>""",
+        "unit": {
+            # Translators: Short label for the music listen progress unit.
+            "short": pgettext_lazy("music progress unit short", "#"),
+            "singular": pgettext_lazy("music progress unit singular", "Listen"),
+            "plural": pgettext_lazy("music progress unit plural", "Listens"),
+        },
+    },
+    MediaTypes.VIDEO.value: {
+        "sources": [Sources.MANUAL],
+        "default_source": Sources.MANUAL,
+        "sample_query": "How to Make Pasta",
+        "unicode_icon": "🎬",
+        "verb": {
+            "present": pgettext_lazy("video tracking verb present", "watch"),
+            "past": pgettext_lazy("video tracking verb past", "watched"),
+        },
+        "activity": "watch",
+        "text_color": COLORS["red"]["text"],
+        "stats_color": COLORS["red"]["hex"],
+        "svg_icon": """
+            <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0
+            0-.752-.432L16 10.5"/>
+            <rect x="2" y="6" width="14" height="12" rx="2"/>""",
+        "unit": {
+            # Translators: Short label for the video watch progress unit.
+            "short": pgettext_lazy("video progress unit short", "#"),
+            "singular": pgettext_lazy("video progress unit singular", "Watch"),
+            "plural": pgettext_lazy("video progress unit plural", "Watches"),
+        },
+    },
 }
 
 # --- Status Configuration ---
