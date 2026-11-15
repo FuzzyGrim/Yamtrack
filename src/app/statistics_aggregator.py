@@ -19,6 +19,7 @@ from django.utils.translation import gettext_noop
 
 from app import config, helpers
 from app import statistics as stats
+from app.history_cache_utils import history_deferred_item_fields
 from app.models import Item, MediaTypes, Status
 from app.statistics_day_builder import (
     _day_boundary_datetime,
@@ -392,15 +393,23 @@ def _fetch_media_objects(media_refs):
 
     for media_type, media_ids in by_type.items():
         model = apps.get_model("app", media_type)
-        queryset = model.objects.filter(id__in=media_ids).select_related("item")
+        item_paths = ("item",)
         if media_type == MediaTypes.SEASON.value:
-            queryset = queryset.select_related("item", "related_tv__item")
+            item_paths = ("item", "related_tv__item")
         elif media_type == MediaTypes.EPISODE.value:
-            queryset = queryset.select_related(
+            item_paths = (
                 "item",
                 "related_season__item",
                 "related_season__related_tv__item",
             )
+        # These rows are stored in the cached range payload. The cards read a
+        # few item columns, never the wide ones (watch_providers alone is
+        # ~146 KiB a title), so leave those out of every item the row carries.
+        queryset = (
+            model.objects.filter(id__in=media_ids)
+            .select_related(*item_paths)
+            .defer(*history_deferred_item_fields(*item_paths))
+        )
         found_ids = set()
         for media in queryset.iterator(chunk_size=500):
             media_objects[(media_type, media.id)] = media
@@ -412,7 +421,12 @@ def _fetch_media_objects(media_refs):
             missing_ids = media_ids - found_ids
             if missing_ids:
                 TV = apps.get_model("app", MediaTypes.TV.value)
-                for tv in TV.objects.filter(id__in=missing_ids).select_related("item"):
+                grouped = (
+                    TV.objects.filter(id__in=missing_ids)
+                    .select_related("item")
+                    .defer(*history_deferred_item_fields("item"))
+                )
+                for tv in grouped:
                     # Grouped anime is stored on TV rows; without the route
                     # annotation the shared media card links it to /tv/.
                     tv.route_media_type = MediaTypes.ANIME.value

@@ -9,7 +9,11 @@ import itertools
 from collections import defaultdict
 
 from app import config
-from app.models import TV, MediaManager, Season
+from app.history_cache_utils import (
+    HISTORY_UNREAD_ITEM_FIELDS,
+    history_deferred_item_fields,
+)
+from app.models import TV, MediaManager, MediaTypes, Season, Sources
 from app.statistics_cache import STATISTICS_TOP_N, STATISTICS_TOP_RATED_OVERALL
 from app.stats_utils import _CombinedMediaBucket, _infer_user_from_user_media
 from app.templatetags import app_tags
@@ -365,6 +369,14 @@ def get_score_distribution(user_media):
     )
 
 
+# annotate_max_progress reads a manual item's custom details for these types
+# (manual_metadata, then item columns such as authors or studios), so a manual
+# item of these types is loaded whole rather than one late query per column.
+_MANUAL_DETAIL_PROGRESS_TYPES = frozenset(
+    {MediaTypes.ANIME.value, MediaTypes.MANGA.value, MediaTypes.COMIC.value}
+)
+
+
 def _annotate_top_rated_media(top_rated_media):
     """Apply prefetch_related and annotate max_progress for top rated media."""
     if not top_rated_media:
@@ -382,12 +394,40 @@ def _annotate_top_rated_media(top_rated_media):
         media_type = model._meta.model_name
         media_ids = [media.id for media in media_list]
 
-        # Fetch fresh instances with proper relationships and annotations
-        queryset = model.objects.filter(id__in=media_ids)
-        queryset = media_manager._apply_prefetch_related(queryset, media_type)
-        media_manager.annotate_max_progress(queryset, media_type)
+        # Fetch fresh instances with proper relationships and annotations.
+        # The cached range payload keeps these rows and the season and episode
+        # items prefetched under them, so the wide item columns no card reads
+        # stay out.
+        item_paths = ["item"]
+        if media_type == MediaTypes.SEASON.value:
+            item_paths.append("related_tv__item")
+        whole_ids = set()
+        if media_type in _MANUAL_DETAIL_PROGRESS_TYPES:
+            whole_ids = {
+                media.id
+                for media in media_list
+                if media.item.source == Sources.MANUAL.value
+            }
+        rows = []
+        for ids, deferred in (
+            (set(media_ids) - whole_ids, history_deferred_item_fields(*item_paths)),
+            (whole_ids, ()),
+        ):
+            if not ids:
+                continue
+            queryset = (
+                model.objects.filter(id__in=ids)
+                .select_related(*item_paths)
+                .defer(*deferred)
+            )
+            rows.extend(
+                media_manager._apply_prefetch_related(
+                    queryset, media_type, defer_item_fields=HISTORY_UNREAD_ITEM_FIELDS
+                )
+            )
+        media_manager.annotate_max_progress(rows, media_type)
 
-        prefetched_media_map = {media.id: media for media in queryset}
+        prefetched_media_map = {media.id: media for media in rows}
 
         # Replace original instances with enhanced ones, keeping any route
         # override (e.g. grouped anime fetched as a TV row) that was set on
