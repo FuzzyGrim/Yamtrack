@@ -62,7 +62,7 @@ Status: `Partial / coexisting`
 - `frontend/ui/mountFilterChips.jsx`, `ScrollRow` and `FilterChips` in `frontend/ui/controls` (Discover media-type row; `Tabs` shares `ScrollRow`)
 - `src/templates/base_public.html`
 
-- `native-proof/app/components/NativeStatusBar.jsx`, `native-proof/app/components/NativeStatusBar.ios.jsx`, `native-proof/app/theme.js`, `native-proof/app/systemColor.ios.js`, `native-proof/app/systemColor.js` (iOS system semantic colors; other hosts retain the existing proof palette)
+- `native-proof/app/components/NativeStatusBar.jsx`, `native-proof/app/themeColor.js`, `native-proof/app/theme.js`, `native-proof/app/systemColor.ios.js`, `native-proof/app/systemColor.js` (iOS system semantic colors; other hosts retain the existing proof palette)
 - `native-proof/app/components/Screen.jsx`, `native-proof/app/components/Screen.ios.jsx` (shared screen presentation; iOS applies the remaining 22-point page margin after the shell's safe-area inset on each side)
 
 ## SETTINGS-CARD
@@ -522,6 +522,7 @@ Duo compared before and after; desktop comparison pending. iOS — runtime, Expo
 iPhone Duo compared before and after. Android — unverified; runtime comparison
 pending. These checks do not establish complete page parity.
 
+- `native-proof/app/surfaces/detailActions.mjs`, `native-proof/app/surfaces/detailLoads.mjs` (Expo detail action state: the result of a rating or episode watched shows before the server answers, failed writes are put back, and only the changed parts reload; album, track and podcast show payloads load in parallel). Consumed by `native-proof/app/screens/DetailScreen.jsx`, `native-proof/app/surfaces/DetailFeatures.jsx` and `native-proof/app/surfaces/DetailSlot.jsx`; no shared presentation changed. Web Detail keeps its server fragments, which already update in place from the write response. Evidence: web runtime; iOS runtime (simulator); Android runtime (emulator, rating only).
 - `frontend/ui/DetailBackdrop.jsx`, `frontend/ui/DetailBackdrop.native.jsx`, `frontend/ui/DetailBackdrop.web.jsx`, `frontend/ui/detailHeroLayout.js` (inner-area hero geometry and platform image gradients).
 - `frontend/ui/DetailActivitySubtitle.jsx`, `frontend/ui/mountDetailActivitySubtitle.jsx`, `src/templates/app/components/detail_activity_subtitle.html` (shared activity subtitle, browser history-button adapter and server fallback); Expo receives formatted text from `native-proof/app/data/detailTransportCore.js`. The subtitle is shared React-owned; the surrounding detail page remains partial/coexisting.
 - `frontend/ui/mountDetailBackdrop.jsx` mounts the shared mobile backdrop in the PWA; the server image remains its loading and no-JavaScript fallback. The surrounding hero and desktop carousel remain server-owned, so ownership is partial/coexisting.
@@ -779,7 +780,7 @@ Status: `Legacy`
 
 - `StatisticsMediaTypeOverview` is shared by web overview islands and the native Statistics screen; its stacked list panels constrain their width and truncate long titles. Server overview fragments remain fallbacks. Browser phone and desktop layouts and an iOS Expo Go preview were inspected; Android capture did not respond.
 
-Status: `Partial/coexisting` — shared React islands and native presentation coexist with the server sources below.
+Status: `Partial / coexisting` — shared React islands and native presentation coexist with the server sources below.
 
 - `src/static/js/date-range.js`
 - `src/static/js/libraries/chartjs-4.4.9.min.js`
