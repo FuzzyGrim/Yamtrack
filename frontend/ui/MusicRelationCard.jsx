@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { MediaCard } from './MediaCard';
 
@@ -33,6 +33,7 @@ function relationModel(relation, labels) {
   return {
     mediaType: 'music',
     shape: 'poster',
+    href: relation.href,
     image: { src: relation.image, fallback: '', source: 'primary' },
     title: relation.name,
     altTitle: null,
@@ -72,12 +73,15 @@ export function MusicRelationCard({ relation, width, labels, palette, onOpen }) 
 
 export function MusicRelationGrid({ relations, labels, palette, onOpen, minWidth = 120, maxWidth = 190 }) {
   const { width } = useWindowDimensions();
+  const [availableWidth, setAvailableWidth] = useState(0);
   const columns = width >= 1024 ? 6 : width >= 768 ? 4 : width >= 640 ? 3 : 2;
+  const gridWidth = availableWidth || width - 32;
   const cardWidth = Math.floor(Math.min(maxWidth,
-    Math.max(minWidth, (width - 32 - (columns - 1) * 16) / columns)));
-  return <View style={styles.grid}>
-    {relations.map(relation => <MusicRelationCard key={relation.id}
-      relation={relation} width={cardWidth} labels={labels} palette={palette} onOpen={onOpen} />)}
+    Math.max(0, (gridWidth - (columns - 1) * 16) / columns)));
+  return <View style={styles.grid} onLayout={event => setAvailableWidth(event.nativeEvent.layout.width)}>
+    {relations.map(relation => <View key={relation.id} style={{ width: cardWidth }}>
+      <MusicRelationCard relation={relation} width={cardWidth} labels={labels} palette={palette} onOpen={onOpen} />
+    </View>)}
   </View>;
 }
 

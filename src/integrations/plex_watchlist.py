@@ -3,6 +3,7 @@
 import logging
 from collections import defaultdict
 from copy import deepcopy
+from datetime import timedelta
 
 from django.db import IntegrityError
 from django.utils import timezone
@@ -20,6 +21,10 @@ logger = logging.getLogger(__name__)
 WATCHLIST_SYNC_INTERVAL_MINUTES = 15
 WATCHLIST_TASK_NAME = "Sync Plex Watchlist"
 WATCHLIST_PAGE_SIZE = 100
+# The sync runs every 15 minutes. Re-stamping when an item was last seen on
+# every run rewrote each ledger row 96 times a day for no reader; it is now
+# refreshed with any other change, or once it is this old.
+LAST_SEEN_REFRESH = timedelta(days=1)
 
 
 class PlexWatchlistSyncService:
@@ -442,7 +447,6 @@ class PlexWatchlistSyncService:
             "imdb_id": str(external_ids.get("imdb_id") or ""),
             "is_active": True,
             "removed_at": None,
-            "last_seen_at": now,
         }
         for field_name, desired_value in desired_values.items():
             if getattr(sync_item, field_name) != desired_value:
@@ -453,8 +457,12 @@ class PlexWatchlistSyncService:
             sync_item.created_by_sync = True
             updated_fields.append("created_by_sync")
 
-        if updated_fields:
-            sync_item.save(update_fields=updated_fields)
+        if updated_fields or (
+            not sync_item.last_seen_at
+            or now - sync_item.last_seen_at >= LAST_SEEN_REFRESH
+        ):
+            sync_item.last_seen_at = now
+            sync_item.save(update_fields=[*updated_fields, "last_seen_at"])
 
     def _reconcile_removals(self, seen_item_ids: set[int]) -> None:
         """Deactivate ledger rows that disappeared from the current watchlist."""

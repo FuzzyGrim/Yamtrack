@@ -19,6 +19,25 @@ from app.tests.live_server import SerialStaticLiveServerTestCase
 from lists.models import CustomList, CustomListItem
 
 
+def settled_box(page, selector):
+    """Bounding box of an element once it has not moved for two frames."""
+    page.wait_for_function(
+        """(selector) => {
+          const box = () => {
+            const rect = document.querySelector(selector)?.getBoundingClientRect();
+            return rect ? [rect.x, rect.y, rect.width, rect.height].join() : null;
+          };
+          const first = box();
+          if (first === null) return false;
+          return new Promise(resolve => requestAnimationFrame(() =>
+            requestAnimationFrame(() => resolve(box() === first))));
+        }""",
+        arg=selector,
+        timeout=15000,
+    )
+    return page.locator(selector).bounding_box()
+
+
 @tag("slow", "playwright")
 class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
     """Use real Django responses, bundled React and the existing HTMX runtime."""
@@ -190,7 +209,7 @@ class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
 
             block_renderer = True
             page.goto(f"{self.live_server_url}{library}?initial=q&layout=grid")
-            empty_before = page.locator(".alphabet-empty").bounding_box()
+            empty_before = settled_box(page, ".alphabet-empty")
             expect(
                 page.get_by_role(
                     "heading", name="No titles match this alphabet filter", level=3
@@ -203,7 +222,7 @@ class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
             expect(
                 page.locator('.alphabet-empty[data-react-mounted="true"]')
             ).to_have_count(1)
-            empty_after = page.locator(".alphabet-empty").bounding_box()
+            empty_after = settled_box(page, ".alphabet-empty")
             for dimension in empty_before:
                 self.assertAlmostEqual(
                     empty_before[dimension], empty_after[dimension], delta=1

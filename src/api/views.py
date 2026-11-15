@@ -644,7 +644,8 @@ class ListDetailView(drf_views.APIView):
                 status=HTTP.FORBIDDEN,
             )
 
-        paginated_data, err = paginate_list_items(request, user, user_list)
+        media_user = user if user_list.user_can_edit(user) else user_list.owner
+        paginated_data, err = paginate_list_items(request, media_user, user_list)
         if err:
             return err
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
@@ -659,7 +660,7 @@ class ListDetailView(drf_views.APIView):
                 "paginated_items": paginated_data,
                 "lists_by_item_id": lists_by_item_id,
                 "list_added_by_item_id": list_added_by_item_id,
-                "completed_counts": _get_list_completed_counts(user, [user_list.id]),
+                "completed_counts": _get_list_completed_counts(media_user, [user_list.id]),
                 "media_type_breakdown": _build_media_type_breakdown(user_list),
             },
         )
@@ -848,7 +849,8 @@ class ListItemsView(drf_views.APIView):
                 status=HTTP.FORBIDDEN,
             )
 
-        paginated_data, err = paginate_list_items(request, user, user_list)
+        media_user = user if user_list.user_can_edit(user) else user_list.owner
+        paginated_data, err = paginate_list_items(request, media_user, user_list)
         if err:
             return err
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])

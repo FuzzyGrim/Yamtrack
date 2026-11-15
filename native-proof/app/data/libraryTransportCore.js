@@ -153,7 +153,7 @@ export function mediaRowFromPayload(row) {
       endDate: row.end_date || '',
     },
     cells: {
-      image: { kind: 'image', src: item.image || null, alt: title },
+      image: { kind: 'image', src: item.card_image || item.image || null, alt: title },
       title: { kind: 'title', text: title, href: `#open:${id}` },
       media_type: { kind: 'text', text: MEDIA_LABELS[mediaType] || mediaType, muted: true },
       score: {
@@ -293,7 +293,9 @@ export function mediaCardModelFromRow(row) {
     : '';
   const release = item.release_datetime;
   const year = yearLabel(release);
-  const image = item.image || null;
+  // The server picks the provider size a card shows (`card_image`); `image` stays
+  // full size for Detail.
+  const image = item.card_image || item.image || null;
   const square = ['music', 'podcast'].includes(mediaType);
   const landscape = ['game', 'boardgame', 'video'].includes(mediaType);
   const shape = square ? 'square' : landscape ? 'landscape' : 'poster';

@@ -58,6 +58,39 @@ def album_for_media_id(media_id, user=None):
     return find_canonical_album(_preferred_album(matches, user), user=user)
 
 
+def album_trackers_for_list_items(user, items):
+    """Load album tracking for list cards in bounded queries."""
+    from django.db.models import Subquery
+    from django.urls import reverse
+
+    from app.library_query.spec import ROUTING_MODEL
+    from app.library_query.trackers import tracker_sources
+    from app.models import AlbumTracker, MediaTypes, Sources
+
+    items_by_id = {
+        item.pk: item for item in items
+        if item.media_type == MediaTypes.MUSIC.value and item.source == Sources.MUSICBRAINZ.value
+    }
+    if not items_by_id:
+        return {}
+    source = tracker_sources(user, MediaTypes.MUSIC.value, ROUTING_MODEL, include_albums=True)[0]
+    ids = Item.objects.filter(pk__in=items_by_id).annotate(
+        _tracker_id=Subquery(source.item_rows(user).order_by("-updated_at", "-pk").values("pk")[:1])
+    ).values_list("pk", "_tracker_id")
+    ids = dict(ids)
+    trackers = AlbumTracker.objects.in_bulk(value for value in ids.values() if value)
+    result = {}
+    for item_id, tracker_id in ids.items():
+        tracker = trackers.get(tracker_id)
+        if tracker:
+            tracker.item = items_by_id[item_id]
+            tracker.item_id = item_id
+            tracker.formatted_score = tracker.score
+            tracker.score_url = reverse("update_album_score", args=[tracker.album_id])
+            result[item_id] = tracker
+    return result
+
+
 def _parse_partial_date(date_str):
     """Parse a MusicBrainz partial date string (YYYY, YYYY-MM, or YYYY-MM-DD)."""
     if not date_str:

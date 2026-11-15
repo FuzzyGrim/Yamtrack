@@ -36,10 +36,12 @@ export function ProviderLinkCard({
   onCopy,
   onConnected,
   renderIdle,
+  initialDevice,
 }) {
   const copy = { ...providerLinkCopy, ...(labels || {}) };
-  const [phase, setPhase] = useState('idle');
-  const [device, setDevice] = useState(null);
+  // A code started before a reload resumes instead of asking the person to start over.
+  const [phase, setPhase] = useState(initialDevice ? 'device' : 'idle');
+  const [device, setDevice] = useState(initialDevice || null);
   const [wait, setWait] = useState({ state: 'waiting', error: '' });
   const [serverUrl, setServerUrl] = useState('');
   const [error, setError] = useState('');

@@ -138,7 +138,7 @@ class ProviderSyncTemplateTests(SimpleTestCase):
                     request=self.request,
                 )
                 actions = FormParser(html).actions
-                self.assertEqual(
-                    reverse("wetrakr_disconnect") in actions, tab == "connection"
-                )
+                # Linking and unlinking live on the shared Connection card.
+                self.assertNotIn(reverse("wetrakr_disconnect"), actions)
+                self.assertNotIn(reverse("wetrakr_connect"), actions)
                 self.assertEqual(reverse("wetrakr_settings") in actions, tab == "sync")

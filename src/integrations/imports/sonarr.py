@@ -18,12 +18,12 @@ from integrations.imports.helpers import (
     find_item_across_buckets,
     retry_on_lock,
 )
-from integrations.models import SonarrInstance
+from integrations.models import CollectionSourceState, SonarrInstance
 from integrations.safe_fetch import send_to_self_hosted
 from integrations.source_sync import (
     prune_collection_source_states,
     remove_collection_source_state,
-    upsert_collection_source_state,
+    sync_collection_source_state,
 )
 
 logger = logging.getLogger(__name__)
@@ -165,6 +165,7 @@ class SonarrImporter:
                 imported_counts["skipped_missing_ids"] += 1
                 continue
 
+            self._series_changed = False
             synced_item_ids = self._sync_series_episode_collection(item, row)
             if synced_item_ids is None:
                 # A failed episode fetch must not make the whole series look
@@ -172,8 +173,14 @@ class SonarrImporter:
                 complete = False
                 continue
             owned_item_ids.update(synced_item_ids)
-            imported_counts["collection"] += 1
-            imported_counts["updated"] += 1
+            # A series Sonarr reports exactly as before is not an import:
+            # counting it would start a calendar reload and a Statistics
+            # rebuild every scheduled run.
+            if self._series_changed:
+                imported_counts["collection"] += 1
+                imported_counts["updated"] += 1
+            else:
+                imported_counts["unchanged"] += 1
 
         if complete:
             removed = prune_collection_source_states(
@@ -275,14 +282,7 @@ class SonarrImporter:
         """
         series_id = row.get("id")
         if series_id in (None, ""):
-            upsert_collection_source_state(
-                user=self.user,
-                item=show_item,
-                source="sonarr",
-                source_instance_id=self.instance.pk,
-                quality_label="",
-                source_updated_at=self._parse_source_timestamp(row),
-            )
+            self._sync_state(show_item, "", row)
             return {show_item.id}
 
         try:
@@ -303,13 +303,10 @@ class SonarrImporter:
             if not self._episode_has_file(episode_row):
                 continue
 
-            upsert_collection_source_state(
-                user=self.user,
-                item=episode_item,
-                source="sonarr",
-                source_instance_id=self.instance.pk,
-                quality_label=self._extract_episode_quality_label(episode_row),
-                source_updated_at=self._parse_source_timestamp(episode_row),
+            self._sync_state(
+                episode_item,
+                self._extract_episode_quality_label(episode_row),
+                episode_row,
             )
             collected_episode_item_ids.add(episode_item.id)
 
@@ -321,15 +318,21 @@ class SonarrImporter:
             return collected_episode_item_ids
 
         # The show gets its own entry so it lists under TV Shows, as Plex does.
-        upsert_collection_source_state(
+        self._sync_state(show_item, "", row)
+        return collected_episode_item_ids | {show_item.id}
+
+    def _sync_state(self, item, quality_label, row):
+        """Write one Sonarr copy, noting whether anything changed."""
+        _entry, changed = sync_collection_source_state(
             user=self.user,
-            item=show_item,
+            item=item,
             source="sonarr",
             source_instance_id=self.instance.pk,
-            quality_label="",
-            source_updated_at=self._parse_source_timestamp(row),
+            quality_label=quality_label,
+            # None when Sonarr sent no timestamp, so the stored one stays.
+            source_updated_at=self._parse_source_timestamp(row, fallback_now=False),
         )
-        return collected_episode_item_ids | {show_item.id}
+        self._series_changed = self._series_changed or changed
 
     def _child_bucket(self, show_item, default_bucket):
         """Return the library bucket a show's season/episode rows belong in.
@@ -505,7 +508,10 @@ class SonarrImporter:
         return (quality.get("quality") or {}).get("name") or quality.get("name") or ""
 
     def _prune_series_collection_state(self, show_item, *, keep_episode_item_ids=None):
-        """Drop stale Sonarr collection ownership for a series."""
+        """Drop stale Sonarr collection ownership for a series.
+
+        Returns how many copies were removed.
+        """
         if keep_episode_item_ids is None:
             keep_episode_item_ids = set()
 
@@ -532,16 +538,26 @@ class SonarrImporter:
                 source="sonarr",
                 source_instance_id=self.instance.pk,
             )
+        removed = len(stale_episode_item_ids)
 
-        if keep_episode_item_ids:
-            return
-
-        remove_collection_source_state(
-            user=self.user,
-            item=show_item,
-            source="sonarr",
-            source_instance_id=self.instance.pk,
-        )
+        if not keep_episode_item_ids:
+            show_state = CollectionSourceState.objects.filter(
+                user=self.user,
+                item=show_item,
+                source="sonarr",
+                source_instance_id=self.instance.pk,
+            )
+            if show_state.exists():
+                removed += 1
+                remove_collection_source_state(
+                    user=self.user,
+                    item=show_item,
+                    source="sonarr",
+                    source_instance_id=self.instance.pk,
+                )
+        if removed:
+            self._series_changed = True
+        return removed
 
     def _parse_episode_release_datetime(self, row):
         return self._parse_source_timestamp(
@@ -555,6 +571,8 @@ class SonarrImporter:
         row,
         keys=("lastInfoSync", "added", "updated"),
         default=None,
+        *,
+        fallback_now=True,
     ):
         for key in keys:
             value = row.get(key)
@@ -573,4 +591,6 @@ class SonarrImporter:
                     timezone.get_default_timezone(),
                 )
             return parsed
-        return timezone.now() if default is None else default
+        if default is None and fallback_now:
+            return timezone.now()
+        return default

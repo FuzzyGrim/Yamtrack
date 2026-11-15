@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
+from app.artwork_sizes import card_image_url
 from app.icon_specs import file_icon
 from app.models import MediaTypes, Status
 from app.templatetags import app_tags
@@ -406,6 +407,22 @@ def card_model(ctx):
     if ctx.get("use_podcast_show") and show and show.image:
         image = show.image
     video = media_type == MediaTypes.VIDEO.value
+    actions = card_actions(ctx)
+    source = _safe(item, "source")
+    media_id = _safe(item, "media_id")
+    # These types use the generic consumption API. Episodes, videos and music
+    # entities have different write semantics and must keep their own actions.
+    quick_types = {"movie", "tv", "season", "anime", "manga", "book", "comic", "comicissue", "game", "boardgame"}
+    quick_status = None
+    if (media_type in quick_types and source and media_id and actions
+            and not (source == "manual" and not ctx.get("media"))
+            and any(action.get("modal") == "track" for action in actions["items"])):
+        quick_status = {
+            "identity": {"mediaType": media_type, "source": source, "mediaId": str(media_id),
+                         "seasonNumber": _safe(item, "season_number"), "instanceId": _safe(ctx.get("media"), "id")},
+            "tracked": bool(ctx.get("media")),
+            "status": _safe(ctx.get("media"), "aggregated_status") or _safe(ctx.get("media"), "status") or "",
+        }
     return {
         "mediaType": _safe(item, "media_type"),
         "shape": card_shape(media_type, bool(ctx.get("video_landscape"))),
@@ -416,7 +433,7 @@ def card_model(ctx):
         "href": _href(ctx),
         "image": {
             "src": app_tags.image_url(
-                app_tags.youtube_landscape_thumbnail(image) if video else image,
+                app_tags.youtube_landscape_thumbnail(image) if video else card_image_url(image),
             ),
             "fallback": app_tags.image_url(image) if video else "",
             "source": ctx.get("image_source") or "primary",
@@ -433,7 +450,8 @@ def card_model(ctx):
         ],
         "progressBar": _progress_bar(ctx, media_type),
         "lines": _subtitle_lines(ctx, media_type),
-        "actions": card_actions(ctx),
+        "actions": actions,
+        "quickStatus": quick_status,
         "cardKey": app_tags.item_slot_id("media-card", item),
         "statusId": app_tags.item_slot_id("media-status-chip", item),
         "ratingId": app_tags.item_slot_id("media-card-rating", item),
@@ -559,7 +577,7 @@ def history_card_model(entry, card_class, history_mode, user, request=None):
         "href": href,
         "image": {
             "src": app_tags.image_url(
-                app_tags.youtube_landscape_thumbnail(poster) if video else poster,
+                app_tags.youtube_landscape_thumbnail(poster) if video else card_image_url(poster),
             ),
             "fallback": app_tags.image_url(poster) if video else "",
             "source": "primary",
@@ -598,7 +616,11 @@ def row_card_model(item, media, title, matched_title, user, request=None):
         "layout": "row",
         "mediaType": media_type,
         "href": _href(ctx),
-        "image": {"src": app_tags.image_url(_safe(item, "image")), "fallback": "", "source": "primary"},
+        "image": {
+            "src": app_tags.image_url(card_image_url(_safe(item, "image"))),
+            "fallback": "",
+            "source": "primary",
+        },
         "title": resolved,
         "altTitle": app_tags.alternative_title(item, user),
         "matched": (

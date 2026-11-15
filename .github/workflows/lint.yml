@@ -60,6 +60,7 @@ jobs:
         run: |
           npm run check:ui-architecture
           npm run test:ui-architecture
+          npm run test:ui-render
 
       - name: Install isolated Expo proof dependencies
         working-directory: native-proof

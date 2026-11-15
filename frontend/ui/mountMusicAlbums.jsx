@@ -47,6 +47,10 @@ function openAlbum(album) {
   if (album.href) window.location.assign(album.href);
 }
 
+// The web card renders an img even when the server has no artwork. Keep a
+// music placeholder until the cover refresh supplies an image.
+const placeholder = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><g transform="translate(51 51) scale(2)" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></g></svg>')}`;
+
 function Grid({ props }) {
   const [palette, setPalette] = useState(readPalette);
   useEffect(() => {
@@ -60,7 +64,7 @@ function Grid({ props }) {
       scheme.removeEventListener('change', update);
     };
   }, []);
-  return <MusicView part="albums" albums={props.albums} labels={props.labels}
+  return <MusicView part="albums" albums={props.albums.map(album => ({ ...album, image: album.image || placeholder }))} labels={props.labels}
     palette={palette} onOpenAlbum={openAlbum} />;
 }
 

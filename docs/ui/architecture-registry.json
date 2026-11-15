@@ -198,15 +198,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Compiled into the web bundle through MediaCardView consumers; the drag handle, adjustable value and step controls were not exercised in a browser."
+          "evidence": "Quick status and long-press changes are not runtime verified. Compiled into the web bundle through MediaCardView consumers; the drag handle, adjustable value and step controls were not exercised in a browser."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled and placed in the card on the iOS Home screen. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
+          "evidence": "Quick status and long-press changes are not runtime verified. Compiled and placed in the card on the iOS Home screen. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Compiled and placed in the card on the Android Home and Library screens. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
+          "evidence": "Quick status and long-press changes are not runtime verified. Compiled and placed in the card on the Android Home and Library screens. The PanResponder drag gesture, adjustable value and hint, and accessibility actions were not exercised; no action reveal, button press or reorder was exercised."
         }
       }
     },
@@ -1133,15 +1133,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered by the Lists web adapter inside the existing React ModalHost; the web bundle builds, but no browser interaction pass was run."
+          "evidence": "The browser adapter retains its React ModalHost; Expo web uses the Detail presentation sheet. The new card sheet has not had a browser interaction pass."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the MediaCardSlot native placement; no runtime interaction pass."
+          "evidence": "A physical Duo opened the MediaCardSlot Lists sheet, verified its native rail close button at half and full height, and dismissed it; Lists form interactions remain unverified."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the MediaCardSlot native placement; no runtime interaction pass."
+          "evidence": "MediaCardSlot now embeds ListsForm in the Detail presentation sheet; the Android interaction is not runtime verified."
         }
       }
     },
@@ -1153,7 +1153,7 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered in the shared TrackDialog by mountTrackForm for card, detail and episode Track popups; General fields, date/status/progress coupling, notes, repeat identity, validation and htmx save/delete/rewatch are wired. The web bundle builds and targeted Django tests pass, but no browser interaction pass was run."
+          "evidence": "Rendered in the shared TrackDialog by mountTrackForm for card, detail and episode Track popups. Song and podcast dialogs receive server-owned preview and history through the adapter while their fallback is hidden. The web bundle builds; runtime evidence is recorded separately."
         },
         "ios": {
           "status": "unverified",
@@ -1173,15 +1173,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Rendered by mountTrackForm as the web Track dialog for card, detail, album/artist and podcast-show popups with General, Tags, Status history and Discover shared; the Metadata, Collection and Episode plays bodies are moved in from the server. The web bundle builds and targeted Django tests pass, but no browser interaction pass was run."
+          "evidence": "The browser adapter retains its Track dialog; Expo web embeds TrackDialog in the Detail presentation sheet for card actions. The new card sheet has not had a browser interaction pass."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Detail tracking surface; the dialog, tabs, coupling, delete, repeat and validation states were not exercised on a simulator or device."
+          "evidence": "Detail and MediaCardSlot embed TrackDialog in the presentation sheet; the card dialog and its save, delete and tab interactions are not runtime verified on iOS."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Detail tracking surface; the dialog, tabs, coupling, delete, repeat and validation states were not exercised on an emulator or device."
+          "evidence": "Detail and MediaCardSlot embed TrackDialog in the presentation sheet; the card dialog and its save, delete and tab interactions are not runtime verified on Android."
         }
       }
     },
@@ -1515,11 +1515,11 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "The shared comparison, taste/talent, role/studio leader and per-media overview presentation is not mounted in the browser; the existing server/Alpine Statistics page remains the web owner and no browser pass was performed."
+          "evidence": "Web islands mount shared per-media overview and talent presentation alongside server fallbacks. Populated overview panels with long titles were checked at phone width; legacy fallbacks remain until their hosts retire."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Statistics screen; no comparison mode, sort control, person selection, media-type filter or empty state was exercised on a simulator or device."
+          "evidence": "StatisticsMediaTypeOverview with long titles was inspected in an Expo Go preview on iPhone 16 Pro; other Statistics interactions were not verified in this pass."
         },
         "android": {
           "status": "unverified",
@@ -1945,12 +1945,12 @@
       "register": "MUSIC",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "Mounted through mountMusicRelations as a compile-checked browser island; no browser runtime pass has been performed for the relation grid."
+          "status": "verified",
+          "evidence": "Chromium rendered the artist relation island at desktop and phone widths, including the image-refresh swap."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native Artist screen; the relation grid was not exercised on a simulator or device."
+          "status": "verified",
+          "evidence": "A fixture preview of the shared relation grid ran in Expo Go on an iOS simulator; the full artist flow was not exercised."
         },
         "android": {
           "status": "unverified",
@@ -1967,11 +1967,11 @@
       "verification": {
         "web": {
           "status": "verified",
-          "evidence": "Browser verified on a local artist page: the island mounted and replaced the server fallback; before the fix both React anchors lacked href values. After MusicAlbumCard preserved the server album href in the shared card model, clicking each album cover and title opened its correct album page."
+          "evidence": "Chromium rendered the artist album island at desktop and phone widths, including the cover-refresh swap; album links retain their server URLs."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through the native artist discography; the album grid was not exercised on a simulator or device."
+          "status": "verified",
+          "evidence": "A fixture preview of the shared album grid ran in Expo Go on an iOS simulator; the full artist flow was not exercised."
         },
         "android": {
           "status": "unverified",
@@ -2116,8 +2116,8 @@
       "register": "HOME",
       "verification": {
         "web": {
-          "status": "unverified",
-          "evidence": "Compact Home shelf cards now use a shared 110 pt width on phone layouts; browser runtime verification after the sizing change remains pending. Expo Home uses the reviewed default shared cards; the web retains its existing renderer and quick progress controls. Native row windowing and API transport remain adapter-owned. Final restoration runtime verification is recorded separately in the component register."
+          "status": "verified",
+          "evidence": "Chromium at 2x with 4x CPU throttle on a copy of real data: Home first load renders each of 128 cards once (803 renders before); before/after screenshots differ by at most 0.02% of pixels."
         },
         "ios": {
           "status": "verified",
@@ -2385,15 +2385,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Native person/studio credit grids use canonical shared card models and an opt-in hover-line policy; paired pre-fix screenshots showed drift and post-fix browser comparison is pending. Existing browser adapter and other model defaults are unchanged."
+          "evidence": "Quick status, the nested submenu and long-press navigation handling are not runtime verified. Native person/studio credit grids use canonical shared card models and an opt-in hover-line policy; paired pre-fix screenshots showed drift and post-fix browser comparison is pending. Existing browser adapter and other model defaults are unchanged."
         },
         "ios": {
-          "status": "verified",
-          "evidence": "Earlier iPhone Duo (iOS 27.2) testing covered compact Home cards and one touch-action path. The new person/studio hover-line behavior has not been run on iOS."
+          "status": "unverified",
+          "evidence": "The user captured the previous nested Menu presentation; its replacement with a menu-style Picker and full-card context-menu preview shape have not been runtime verified. Earlier iPhone Duo (iOS 27.2) testing covered compact Home cards and one touch-action path. The new person/studio hover-line behavior has not been run on iOS. Render cost (2026-11-14): iPhone 16 Pro simulator, Expo Go: Library after five more pages keeps 45 cards mounted with no re-render of existing cards (180 mounted, 1,380 renders before); layout pixel-identical to the unchanged build."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Neither the shared 24px chip sizing nor Expo Go runtime interaction with the saved touch-action setting has been exercised on Android."
+          "evidence": "Quick status and long-press changes are not runtime verified. Neither the shared 24px chip sizing nor Expo Go runtime interaction with the saved touch-action setting has been exercised on Android. Render cost (2026-11-14): Android API 35 emulator, Expo Go: Library after five more pages keeps 54 cards mounted with no re-render of existing cards (150 mounted, 1,350 renders before); app memory 604 MB to 540 MB."
         }
       }
     },
@@ -2894,12 +2894,12 @@
           "evidence": "The Expo LibraryScreen consumes this shared composition. The browser library remains server-owned with its server table, Alpine filters and htmx pagination; no browser pass was run."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Expo iOS export compiled this view. Runtime verification is blocked because xcrun simctl reports CoreSimulatorService is unavailable."
+          "status": "verified",
+          "evidence": "iPhone 16 Pro simulator, Expo Go: Library after five more pages keeps 45 cards mounted with no re-render of existing cards (180 mounted, 1,380 renders before); layout pixel-identical to the unchanged build."
         },
         "android": {
-          "status": "unverified",
-          "evidence": "Expo Android export compiled this view. Runtime verification is blocked because adb cannot start its local daemon (operation not permitted)."
+          "status": "verified",
+          "evidence": "Android API 35 emulator, Expo Go: Library after five more pages keeps 54 cards mounted with no re-render of existing cards (150 mounted, 1,350 renders before); app memory 604 MB to 540 MB."
         }
       }
     },
@@ -3644,13 +3644,24 @@
     },
     "frontend/ui/DetailActivitySubtitle.jsx": {
       "kind": "presentation",
-      "components": ["DetailActivitySubtitle"],
+      "components": [
+        "DetailActivitySubtitle"
+      ],
       "register": "DETAIL",
       "purpose": "Render activity dates and duration consistently across detail surfaces.",
       "verification": {
-        "web": {"status": "verified", "evidence": "Mobile PWA on iPhone Duo compared with Expo; desktop appearance pending."},
-        "ios": {"status": "verified", "evidence": "Expo on iPhone Duo compared with the mobile PWA."},
-        "android": {"status": "unverified", "evidence": "Shared presentation and data tests pass; Android runtime appearance pending."}
+        "web": {
+          "status": "verified",
+          "evidence": "Mobile PWA on iPhone Duo compared with Expo; desktop appearance pending."
+        },
+        "ios": {
+          "status": "verified",
+          "evidence": "Expo on iPhone Duo compared with the mobile PWA."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Shared presentation and data tests pass; Android runtime appearance pending."
+        }
       }
     },
     "frontend/ui/DetailBackdrop.jsx": {
@@ -4675,11 +4686,11 @@
       "components": [
         "Reveal"
       ],
-      "purpose": "Animate the sidebar Explore block open and closed with the release's 200 ms height reveal on the browser; the native counterpart keeps the same open/closed contract.",
+      "purpose": "Animate Sidebar Explore with a clipped 200 ms transform on web, avoiding per-frame height layout; native retains its measured-height implementation.",
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Compiled into the browser sidebar; the reveal is being rechecked against the release behavior."
+          "evidence": "Targeted Chromium regression exercises the mounted sidebar, rapid reversal, scrolling and reduced motion; visual comparison remains pending."
         },
         "ios": {
           "status": "unverified",
@@ -4723,15 +4734,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "The browser adapter places status and next-episode chips in opposing corners, so narrow cards can collide. Compact CSS selects Next and wider cards retain Next ep; generated CSS is checked, but compact-breakpoint browser runtime verification remains pending."
+          "evidence": "Quick status and long-press changes are not runtime verified. The browser adapter places status and next-episode chips in opposing corners, so narrow cards can collide. Compact CSS selects Next and wider cards retain Next ep; generated CSS is checked, but compact-breakpoint browser runtime verification remains pending. Render cost (2026-11-14): Chromium at 2x with 4x CPU throttle on a copy of real data: Home first load renders each of 128 cards once (803 renders before); before/after screenshots differ by at most 0.02% of pixels."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Not applicable to the browser implementation."
+          "evidence": "Quick status and long-press changes are not runtime verified. Not applicable to the browser implementation."
         },
         "android": {
           "status": "unverified",
-          "evidence": "Not applicable to the browser implementation."
+          "evidence": "Quick status and long-press changes are not runtime verified. Not applicable to the browser implementation."
         }
       }
     },
@@ -4785,19 +4796,19 @@
       "components": [
         "ArtworkImage"
       ],
-      "purpose": "Render the shared artwork fallback and state contract with React Native Image primitives on iOS and Android.",
+      "purpose": "Render the shared artwork fallback and state contract on iOS and Android through expo-image (memory and disk cache, no transition); the browser keeps its own <img>.",
       "verification": {
         "web": {
           "status": "unverified",
           "evidence": "Not applicable to this native implementation."
         },
         "ios": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through MediaCardView on the native Home, Library, Discover, Search and History screens; no simulator pass."
+          "status": "verified",
+          "evidence": "iPhone 16 Pro simulator, Expo Go: card artwork renders through expo-image (memory and disk cache, no fade-in); posters were on screen on the first frame after an app restart."
         },
         "android": {
-          "status": "unverified",
-          "evidence": "Compiled by the Expo export through MediaCardView on the native Home, Library, Discover, Search and History screens; no emulator pass."
+          "status": "verified",
+          "evidence": "Android API 35 emulator, Expo Go: card artwork renders through expo-image; after a relaunch all visible posters were painted while the unchanged build still showed placeholders."
         }
       }
     },
@@ -5383,6 +5394,10 @@
     }
   },
   "web_adapters": {
+    "frontend/ui/mediaCardQuickStatus.web.js": {
+      "register": "MEDIA-CARD",
+      "purpose": "Browser transport for quick status changes using the session and consumption API."
+    },
     "frontend/settings/Chip.web.jsx": {
       "register": "SETTINGS-CARD",
       "purpose": "Browser link adapter for the shared chip: supplies anchor navigation and new-tab attributes, honors a caller-supplied palette for React-owned cards and falls back to the scoped web CSS-variable palette for server wrappers while the shared chip owns hover and focus."
@@ -5536,13 +5551,24 @@
       "purpose": "Mount the shared activity subtitle in the browser history button."
     },
     "frontend/ui/mountDetailBackdrop.jsx": {
-      "components": ["WebDetailBackdrop"],
+      "components": [
+        "WebDetailBackdrop"
+      ],
       "register": "DETAIL",
       "purpose": "Measure the server hero frame and mount the shared mobile backdrop, retaining the server fallback.",
       "verification": {
-        "web": {"status": "verified", "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."},
-        "ios": {"status": "verified", "evidence": "Expo on iPhone Duo compared before and after."},
-        "android": {"status": "unverified", "evidence": "Expo uses the native adapter; runtime comparison pending."}
+        "web": {
+          "status": "verified",
+          "evidence": "Mobile PWA on iPhone Duo compared before and after; desktop comparison pending."
+        },
+        "ios": {
+          "status": "verified",
+          "evidence": "Expo on iPhone Duo compared before and after."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Expo uses the native adapter; runtime comparison pending."
+        }
       }
     },
     "frontend/ui/mountDetailComposition.jsx": {

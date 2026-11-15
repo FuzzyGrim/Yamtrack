@@ -1,6 +1,7 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, useColorScheme } from 'react-native';
 
 export default function NativeStatusBar({ backgroundColor }) {
-  return <StatusBar barStyle="light-content" backgroundColor={backgroundColor} />;
+  const scheme = useColorScheme();
+  return <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={backgroundColor} />;
 }

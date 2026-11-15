@@ -506,9 +506,10 @@ class Item(CalendarTriggerMixin, models.Model):
         """Return the name of the item."""
         name = self.title
         if self.season_number is not None:
-            name += f" S{self.season_number}"
             if self.episode_number is not None:
-                name += f"E{self.episode_number}"
+                name += f" S{self.season_number:02d}E{self.episode_number:02d}"
+            else:
+                name += f" S{self.season_number}"
         return name
 
     @transaction.atomic

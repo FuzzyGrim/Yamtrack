@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { shelfCardWidth } from '../../../frontend/ui/HomeShelves';
 import WindowedRail from './WindowedRail';
+import MediaCardSlot from './MediaCardSlot';
 import { SearchResults } from '../../../frontend/ui/SearchResults';
+import { MediaCard } from '../../../frontend/ui/MediaCard';
 import { mergeSearchRowPage, onlineRowParams, searchRowParams } from '../../../frontend/ui/searchRows';
 import { getActiveAuthSession, subscribeAuthSession } from '../data/authSession';
 import { createSearchTransport } from '../data/searchTransport';
@@ -83,6 +85,20 @@ export default function SearchResultsSlot({ query = '', mediaType = 'all', onOpe
     if (!navigate || !routeCardHref(card?.href, navigate)) onOpenDetail?.(card);
   }, [onOpenDetail, navigate, transport]);
 
+  const renderCard = useCallback(item => {
+    const card = item.card;
+    const identity = card?.quickStatus?.identity;
+    // Music and other specialized cards keep their existing detail navigation.
+    if (!identity) return <MediaCard model={card} palette={palette} width={itemWidth}
+      onOpen={() => openCard(item)} onOpenLink={() => openCard(item)} onAction={() => openCard(item)} />;
+    const model = { ...card, identity, actions: card?.actions && {
+      ...card.actions, items: card.actions.items.map(action => ({ ...action, media: identity })),
+    } };
+    return <MediaCardSlot items={[{ key: item.key || card.cardKey || card.href, model }]}
+      cardWidth={itemWidth} gridGap={0} onOpenDetail={() => openCard(item)}
+      onOpenLink={href => { if (!navigate || !routeCardHref(href, navigate)) openCard(item); }} />;
+  }, [itemWidth, navigate, openCard]);
+
   // The reviewed Expo results use the shared shelf card, rather than a Library grid host.
   // Web keeps its existing card adapter and in-place actions.
   return <SearchResults
@@ -90,6 +106,7 @@ export default function SearchResultsSlot({ query = '', mediaType = 'all', onOpe
     state={creating ? 'loading' : view.state}
     palette={palette}
     itemWidth={itemWidth}
+    renderCard={renderCard}
     onOpenCard={openCard}
     onOpenLink={(_href, item) => openCard(item)}
     onAction={(_action, item) => openCard(item)}

@@ -5,7 +5,7 @@
       {% include "users/components/provider_connection.html" %}
       {% if provider.integration %}{% include "users/providers/integration_content.html" %}{% endif %}
       {% if account_connection %}{% include "users/components/account_connection.html" %}{% if provider_slug == 'koreader' %}{% include "users/components/settings_form_island.html" with form_model=provider_forms.koreader form_props_id="form-koreader" %}{% endif %}{% elif provider_slug == 'mdblist' and file_import %}{% include "users/components/file_import_island.html" %}{% elif import_slug %}{% include "users/components/provider_import.html" %}{% endif %}
-      {% if provider_slug == 'tmdb' or provider_slug == 'wetrakr' %}{% include "users/providers/outbound_sync.html" %}{% endif %}
+      {% if provider_slug == 'tmdb' %}{% include "users/providers/outbound_sync.html" %}{% endif %}
     {% elif provider_tab == 'metadata' %}
       {% include "users/components/provider_metadata.html" %}
     {% elif provider_tab == 'import' %}

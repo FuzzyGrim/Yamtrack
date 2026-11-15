@@ -201,6 +201,7 @@ def from_smart_rules(
         ),
         sort=SortSpec(key=sort_key or "title", direction=direction),
         union_list_ids=list_ids,
+        include_podcast_shows=True,
         routing=ROUTING_MODEL if legacy else ROUTING_LIBRARY,
         provider_region=str(getattr(owner, "watch_provider_region", "") or ""),
     )

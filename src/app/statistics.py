@@ -58,6 +58,9 @@ def get_user_media(user, start_date, end_date):
                 end_date__range=(start_date, end_date),
             )
 
+    # Every episode prefetch below also loads its item: season progress reads
+    # each episode's number, and the legacy statistics API serializes that
+    # progress for every season, so a bare prefetch costs one query per episode.
     _status_filter = [
         Status.IN_PROGRESS.value,
         Status.COMPLETED.value,
@@ -125,7 +128,7 @@ def get_user_media(user, start_date, end_date):
                             "episodes",
                             queryset=base_episodes.filter(
                                 related_season__related_tv__in=_tv_ids,
-                            ),
+                            ).select_related("item"),
                         ),
                     ),
                 ),
@@ -145,7 +148,7 @@ def get_user_media(user, start_date, end_date):
             queryset = base_season_qs.exclude(
                 related_tv__item__library_media_type=MediaTypes.ANIME.value,
             ).prefetch_related(
-                Prefetch("episodes", queryset=base_episodes),
+                Prefetch("episodes", queryset=base_episodes.select_related("item")),
             )
         # For other models, apply date filtering conditionally
         elif start_date is None and end_date is None:
@@ -244,7 +247,7 @@ def get_user_media(user, start_date, end_date):
                     .prefetch_related(
                         Prefetch(
                             "episodes",
-                            queryset=_grouped_anime_episodes,
+                            queryset=_grouped_anime_episodes.select_related("item"),
                         ),
                     ),
                 ),
@@ -296,7 +299,7 @@ def get_user_media(user, start_date, end_date):
                             "episodes",
                             queryset=base_episodes.filter(
                                 related_season__related_tv__in=_tv_ids,
-                            ),
+                            ).select_related("item"),
                         ),
                     ),
                 ),
@@ -341,7 +344,7 @@ def get_media_type_distribution(media_count, minutes_per_type=None):
 
     dataset = chart_data["datasets"][0]
 
-    if minutes_per_type:
+    if minutes_per_type is not None:
         dataset["value_label"] = "Hours"
         dataset["value_suffix"] = "h"
         dataset["value_decimals"] = 1

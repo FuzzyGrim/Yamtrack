@@ -72,6 +72,17 @@ re-run the supported job if its result is still needed. On rollback, stop new
 publishers/workers first; old workers accept JSON, but do not resume accepting
 pickle on an untrusted broker.
 
+If a worker logs a rejected pickle message whose method is `ping`, it is a
+Celery control command, not evidence of a failed Xbox sync or a queued task.
+Floppy's health-check ping uses the JSON-configured Celery app. Check for old
+Floppy processes, other Celery applications, monitoring tools, and custom
+publishers using the same broker and control exchange; the message alone does
+not identify its sender. Upgrade or reconfigure the publisher to use JSON, or
+isolate deployments using separate brokers or distinct `REDIS_PREFIX` values.
+Changing a prefix also changes the queues and cache keys: coordinate all
+processes of a deployment and drain or explicitly cancel outstanding work as
+described above before switching. Do not enable pickle or flush Redis.
+
 JSON removes executable broker-message deserialization, not the need to protect
 Redis: anyone able to publish can invoke registered tasks with forged arguments.
 The Django Redis cache also retains its Python object serializer. Keep Redis on

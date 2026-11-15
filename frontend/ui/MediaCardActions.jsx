@@ -133,6 +133,7 @@ export function MediaCardActions({
   labels = {},
   revealed = false,
   onOpen,
+  onLongPress,
   onAction,
   onReorder,
   onReorderDrag,
@@ -144,7 +145,7 @@ export function MediaCardActions({
   const ordering = actions.ordering;
   return <View style={[styles.overlay, style]}>
     <Pressable accessibilityRole="button" accessibilityLabel={labels.open || actions.title}
-      onPress={onOpen} style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} />
+      onPress={onOpen} onLongPress={onLongPress} style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} />
     <View style={styles.overlayBody}>
       {ordering
         ? <View style={styles.ordering}>

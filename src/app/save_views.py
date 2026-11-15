@@ -9,6 +9,7 @@ import requests
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.db.models import prefetch_related_objects
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -55,6 +56,22 @@ from integrations.state.ratings import rating_edit
 logger = logging.getLogger(__name__)
 
 DETAILS_ROUTE_MIN_SEGMENTS = 2  # "details", "<source>", ... in the URL path
+
+
+def _prefetch_show_trees(shows):
+    """Load each show's seasons, episodes and calendar once for the response.
+
+    The save response reads progress, next episode and watch dates from every
+    season, several times over. Unprefetched, each read reloads all of the
+    show's episodes, which on a long show cost more than the save itself. This
+    is the detail page's prefetch; anything already loaded is left as it is.
+    """
+    shows = [show for show in shows if isinstance(show, TV)]
+    if shows:
+        lookups = BasicMedia.objects._apply_prefetch_related(
+            TV.objects.none(), MediaTypes.TV.value,
+        )._prefetch_related_lookups
+        prefetch_related_objects(shows, *lookups)
 
 
 @require_POST
@@ -371,6 +388,7 @@ def media_save(request):
             else media.item.title
         ) or "item"
         if is_htmx:
+            _prefetch_show_trees([media])
             fragment_context = (
                 f"{action_verb.lower()} save media_type={media_type} "
                 f"source={source} media_id={media_id} "
@@ -402,6 +420,7 @@ def media_save(request):
                         "item",
                     ),
                 )
+                _prefetch_show_trees(user_medias)
                 play_stats, activity_subtitle = _build_detail_activity_state(
                     media_type,
                     {"max_progress": getattr(media, "max_progress", None)},
