@@ -5280,6 +5280,8 @@ class DiscoverServiceTests(TestCase):
             .startswith("keywords:"),
         )
 
+    @patch("app.discover.movie_comfort._is_holiday_window", new=lambda today=None: False)
+    @patch("app.discover.comfort_scoring._is_holiday_window", new=lambda today=None: False)
     def test_behavior_first_confidence_keeps_anime_on_generic_path(self):
         base_profile = {
             "phase_keyword_affinity": {"holiday": 1.0, "whodunit": 0.9},
@@ -5789,6 +5791,7 @@ class DiscoverServiceTests(TestCase):
         self.assertIn("recent-90", content)
         self.assertNotIn("title-days", content)
 
+    @patch("app.discover.movie_comfort._is_holiday_window", new=lambda today=None: False)
     @patch("app.discover.comfort_scoring._is_holiday_window", return_value=False)
     def test_movie_behavior_first_applies_keyword_holiday_penalty_out_of_season(
         self, _mock_window
@@ -5880,6 +5883,7 @@ class DiscoverServiceTests(TestCase):
             by_id["keyword-holiday"].final_score, by_id["neutral"].final_score
         )
 
+    @patch("app.discover.movie_comfort._is_holiday_window", new=lambda today=None: False)
     @patch("app.discover.comfort_scoring._is_holiday_window", return_value=False)
     def test_movie_behavior_first_debug_payload_exposes_holiday_penalty(
         self, _mock_window
@@ -7378,6 +7382,7 @@ class DiscoverServiceTests(TestCase):
             self.assertIn(key, entry)
         self.assertIn("absence_boost", payload["contribution_totals"])
 
+    @patch("app.discover.movie_comfort._is_holiday_window", new=lambda today=None: False)
     @patch("app.discover.comfort_scoring._is_holiday_window", return_value=False)
     def test_comfort_confidence_applies_out_of_season_holiday_penalty(
         self, _mock_window
@@ -7685,6 +7690,7 @@ class DiscoverServiceTests(TestCase):
         self.assertGreaterEqual(display_scores[0], display_scores[1])
         self.assertGreaterEqual(display_scores[1], display_scores[2])
 
+    @patch("app.discover.movie_comfort._is_holiday_window", new=lambda today=None: False)
     @patch("app.discover.comfort_scoring._is_holiday_window", return_value=False)
     def test_comfort_debug_payload_exposes_spread_and_penalty_stack(self, _mock_window):
         candidates = [

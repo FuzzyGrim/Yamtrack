@@ -22,6 +22,10 @@ permissions:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    # Not a required check, and it holds security-events: write. Merge-train
+    # candidates are same-repository PRs, so they never get it; every member
+    # already ran it as its own pull request.
+    if: ${{ !startsWith(github.head_ref, 'merge-train/batch-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

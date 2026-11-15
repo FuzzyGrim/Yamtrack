@@ -59,13 +59,14 @@ permissions:
 
 jobs:
   merge-train:
+    # Any finished required-check run on a pull request wakes the train: a
+    # failure frees the queue, a success can complete a candidate or make a
+    # source eligible. The script ignores heads that are neither an approved
+    # source nor a candidate. Only one run may be pending per concurrency
+    # group, so bursts of check completions collapse into a single run.
     if: >-
       github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.event == 'pull_request' &&
-       contains(fromJSON('["failure","timed_out","cancelled","action_required","startup_failure"]'),
-                github.event.workflow_run.conclusion))
-    # Skipped successful/unrelated workflow_run jobs must not replace a
-    # pending train job in the concurrency group.
+      github.event.workflow_run.event == 'pull_request'
     concurrency:
       group: merge-train
       cancel-in-progress: false
@@ -82,7 +83,7 @@ jobs:
           GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN }}
           GH_REPO: ${{ github.repository }}
           DRY_RUN: ${{ inputs.dry_run }}
-          FAILED_CI_HEAD: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
+          CI_HEAD: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
           MERGE_TRAIN_BATCH: ${{ vars.MERGE_TRAIN_BATCH != 'false' }}
           MERGE_TRAIN_DEPTH: ${{ vars.MERGE_TRAIN_DEPTH || '3' }}
         run: |
