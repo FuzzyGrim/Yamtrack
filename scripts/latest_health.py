@@ -359,9 +359,17 @@ def plan_report(
     state["sources"][source] = entry
     if not issue:
         return Plan(quiet, state, note="passing, no issue open")
-    if not all_passing(state):
-        # Closing needs a clean pass from every source, not just no failures.
-        waiting = _not_passing(state)
+    behind = [
+        SOURCE_NAMES[s]
+        for s in SOURCES
+        if (state["sources"].get(s) or {}).get("status") == "pass"
+        and state["sources"][s].get("sha") != sha
+    ]
+    if not all_passing(state) or behind:
+        # Closing needs a clean pass from every source on this same commit.
+        waiting = _not_passing(state) + [
+            f"{n} has not passed {_short(sha)} yet" for n in behind
+        ]
         comment = ""
         if previous_status == "fail":
             comment = (

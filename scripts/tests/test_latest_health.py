@@ -566,6 +566,20 @@ class CodexFindings(unittest.TestCase):
         self.assertEqual(set(state["sources"]), {"browser", "gate"})
 
 
+def _same_commit_case(self):
+    self.push("a")
+    self.gate("g1", "a", broken=True)
+    self.browser("b1", "a", broken=False)
+    self.push("b")
+    self.gate("g2", "b")
+    self.assertEqual(len(self.gh.open_list()), 1)
+    self.browser("b2", "b", broken=False)
+    self.assertEqual(self.gh.open_list(), [])
+
+
+CodexFindings.test_close_needs_both_sources_on_the_same_commit = _same_commit_case
+
+
 class NoIssueBaselineTests(unittest.TestCase):
     def closed(self, **sources):
         return {"body": lh.render_body({"sources": sources}, "o/r")}
