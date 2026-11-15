@@ -9,12 +9,27 @@ import itertools
 from collections import defaultdict
 
 from app import config
-from app.models import MediaManager
+from app.models import TV, MediaManager, Season
 from app.statistics_cache import STATISTICS_TOP_N, STATISTICS_TOP_RATED_OVERALL
 from app.stats_utils import _CombinedMediaBucket, _infer_user_from_user_media
 from app.templatetags import app_tags
 
 SCORE_SCALE_FIVE_POINT = 5
+
+
+def _prefetch_activity_dates(queryset, model_cls):
+    """Load what a TV show's or season's activity dates read, in a few queries.
+
+    A TV show's and a season's ``end_date`` and ``progressed_at`` are derived
+    from their seasons and episodes. Without this every scored show or season
+    queries for them separately.
+    """
+    model = model_cls._meta.concrete_model
+    if model is TV:
+        return queryset.prefetch_related("seasons__item", "seasons__episodes")
+    if model is Season:
+        return queryset.prefetch_related("episodes")
+    return queryset
 
 
 def get_score_distribution(user_media):
@@ -47,25 +62,25 @@ def get_score_distribution(user_media):
         )
 
         # Group media by item to identify which items appear in the date range
+        # One pass over each queryset itself, not a clone: an evaluation
+        # re-runs its prefetches (a TV bucket loads every season and episode),
+        # and the timeline and other callers then reuse the loaded rows.
+        # get_user_media already selects each row's item.
         media_by_item = defaultdict(list)
+        # Model class per item; handles grouped anime (TV) in the anime bucket.
+        _model_classes_by_item_id = {}
         for _qs in _all_qs:
-            for media in _qs.select_related("item"):
+            for media in _qs:
                 item = getattr(media, "item", None)
                 key = item.id if item else media.id
                 media_by_item[key].append(media)
+                if item:
+                    _model_classes_by_item_id[item.id] = type(media)
 
         # For each item that appears in the date range, fetch ALL entries (not just date-filtered)
         # to find the aggregated score, even if the score was set outside the date range
         deduped_scored = {}
         if user:
-            # Derive model class(es) from actual queryset(s); handles grouped anime (TV) in anime bucket
-            _model_classes_by_item_id = {}
-            for _qs in _all_qs:
-                for entry in _qs.select_related("item"):
-                    item = getattr(entry, "item", None)
-                    if item:
-                        _model_classes_by_item_id[item.id] = type(entry)
-
             # Get all unique item IDs from items that appear in the date range
             item_ids_in_range = set()
             item_id_to_key_map = {}  # Map item.id -> key used in media_by_item
@@ -94,6 +109,7 @@ def get_score_distribution(user_media):
                         .select_related("item")
                         .order_by("-created_at")
                     )
+                    _entries_q = _prefetch_activity_dates(_entries_q, model_cls)
                     for entry in _entries_q:
                         _item = getattr(entry, "item", None)
                         if _item:
