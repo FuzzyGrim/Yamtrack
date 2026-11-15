@@ -75,6 +75,15 @@ class DiscoverServiceTests(TestCase):
             username="discover-service-user",
             password="testpass",
         )
+        # The holiday window opens on 15 November. These tests assert the
+        # ordinary ranking, so they must not depend on the day they run. Each
+        # scoring module imports its own copy of the check, so patch both.
+        for module in ("comfort_scoring", "movie_comfort"):
+            patcher = patch(
+                f"app.discover.{module}._is_holiday_window", return_value=False
+            )
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     @staticmethod
     def _row_snapshot(rows):
