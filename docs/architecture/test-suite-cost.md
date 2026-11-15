@@ -663,10 +663,10 @@ What this means in practice:
 | Tag, `release`, manual run | Full gate: not applicable |
 
 Still run on the pushed commit every time: migration hygiene and
-`makemigrations --check` (the `Migration checks` job, because hygiene reads
-the upstream baseline at run time), OAuth on PostgreSQL, both upgrade
-replays, release lint and the image smoke. MCP and script tests run in the
-`app` shard and are reused with it.
+`makemigrations --check` (the `Migration, MCP and script checks` job,
+because hygiene reads the upstream baseline at run time), the MCP server and
+`scripts/` tests (same job), OAuth on PostgreSQL, both upgrade replays,
+release lint and the image smoke.
 
 The `test (3.12)` job passes when the shards succeeded, or when the decision
 job succeeded, said `reuse`, and the shards were skipped. A pull request run
@@ -682,7 +682,7 @@ Coverage is unaffected: `coverage.yml` runs its own shards on every push to
 
 The migration floor is paid once per set of migration inputs, not once per
 command or per CI job. `scripts/test.sh` sets `FLOPPY_TEST_DB_TEMPLATE=1` for
-local runs, and `app-tests.yml` sets it for the test shards and the browser
+local runs, and `app-tests.yml` sets it for the test shards and the diagnostic browser
 job. The
 first run replays every migration as before and then saves the result to
 `.floppy/testdb-<key>-<contents>.sqlite3`. Later runs copy that file into the
@@ -771,7 +771,7 @@ gap and it should be reported.
 | any key input changes (a migration added, edited or renamed; the lockfile; settings; the runner) | full replay in that run |
 | "Migrated test database" job | once per run when the key is new; otherwise a restore plus a `migrate` that must apply nothing |
 | CI test shards and browser job | only when the saved database is missing, damaged or keyed differently |
-| `Migration checks` (hygiene `--strict`, missing-migration check) | every run |
+| `Migration, MCP and script checks` (hygiene `--strict`, missing-migration check) | every run |
 | `OAuth (PostgreSQL)` | every run, on PostgreSQL |
 | `coverage.yml` shards | every run (reuse is not set there) |
 | `Upgrade (sqlite)` and `Upgrade (postgres)` | every run, with retained user data |

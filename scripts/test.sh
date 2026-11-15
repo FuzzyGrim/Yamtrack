@@ -22,6 +22,11 @@
 #   scripts/test.sh --affected --include-slow
 #                                         Same selection. A full fallback keeps
 #                                         @tag("slow"), matching CI.
+#   scripts/test.sh --shards N [label ...]
+#                                         N independent serial processes, each
+#                                         running one FLOPPY_TEST_SHARD=i/N
+#                                         slice by test module. No labels means
+#                                         the fast suite. Logs in .floppy/shards.
 #   scripts/test.sh --affected-record     Record the map: the CI suite (slow
 #                                         included, network excluded) under
 #                                         coverage, written to
@@ -90,6 +95,58 @@ case "${1:-}" in
     shift
     exec env FLOPPY_TEST_ALLOW_NETWORK=1 \
       "${RUNNER[@]}" src/manage.py test "${APPS[@]}" "${COMMON[@]}" "$@" --tag network
+    ;;
+  --shards)
+    # N separate serial processes, each FLOPPY_TEST_SHARD=i/N, not Django's
+    # --parallel pool (docs/architecture/test-suite-cost.md, "Cause 3").
+    shift
+    count="${1:-}"
+    if ! [[ "$count" =~ ^[1-9][0-9]*$ ]]; then
+      echo "[test.sh] --shards needs a positive count, e.g. --shards 4 integrations" >&2
+      exit 2
+    fi
+    shift
+    if [ "${FLOPPY_TEST_PARALLEL:-1}" != "1" ]; then
+      echo "[test.sh] --shards runs serial processes; unset FLOPPY_TEST_PARALLEL." >&2
+      exit 2
+    fi
+    if [ "$#" -eq 0 ]; then
+      # Same selection as the default fast suite.
+      args=("${APPS[@]}" --exclude-tag slow --exclude-tag network)
+    else
+      args=("$@" --exclude-tag network)
+    fi
+    logs=".floppy/shards"
+    mkdir -p "$logs"
+    pids=()
+    for ((i = 1; i <= count; i++)); do
+      rm -f "$logs/$i.log"
+      shard_env=(FLOPPY_TEST_SHARD="$i/$count" FLOPPY_TEST_PARALLEL=1)
+      if [ -n "${FLOPPY_TEST_ACCOUNTING_DIR:-}" ]; then
+        rm -rf "$FLOPPY_TEST_ACCOUNTING_DIR/shard-$i"
+        shard_env+=(FLOPPY_TEST_ACCOUNTING_DIR="$FLOPPY_TEST_ACCOUNTING_DIR/shard-$i")
+      fi
+      env "${shard_env[@]}" "${RUNNER[@]}" src/manage.py test --buffer "${args[@]}" \
+        >"$logs/$i.log" 2>&1 &
+      pids+=("$!")
+    done
+    failed=0
+    for ((i = 1; i <= count; i++)); do
+      status=0
+      wait "${pids[$((i - 1))]}" || status=$?
+      echo "=== shard $i/$count: exit $status (full log: $logs/$i.log) ==="
+      # Bounded: the summary lines, or the end of a failure.
+      if [ "$status" -eq 0 ]; then
+        grep -E '^\[test-(shard|db)\]|^Ran [0-9]+ tests|^OK' "$logs/$i.log" || true
+      else
+        tail -n 60 "$logs/$i.log"
+        failed=1
+      fi
+    done
+    if [ "$failed" -ne 0 ]; then
+      echo "[test.sh] at least one shard failed" >&2
+    fi
+    exit "$failed"
     ;;
   --affected-record)
     shift

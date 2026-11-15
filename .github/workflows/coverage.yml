@@ -8,7 +8,10 @@ name: Coverage
 # block or unpublish an image; it is a red run on latest that needs a look.
 #
 # The suite is the one the publish gate traced before: slow tests included,
-# network and Playwright excluded. The shard list must match app-tests.yml.
+# network and Playwright excluded. It keeps the app-label shards (app,
+# integrations, other) so its per-test contexts and the affected map are the
+# same as before; App Tests splits by module instead (scripts/ci_tests.sh).
+# Between them these three shards must still cover every app.
 
 on:
   push:
