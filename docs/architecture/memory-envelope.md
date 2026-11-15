@@ -216,8 +216,8 @@ after completion was roughly *one* database-copy rather than two.
 
 What remains is that the backup reads most of the live ~2 GB database while
 writing the ~2 GB destination, warming both sides at once, and `quick_check`
-then reads the whole copy back before the hint is issued. **No change was made
-to the backup for this**, and that is a deliberate decision rather than an
+then reads the whole copy back before the hint is issued. **Nothing bounds that
+cache during the copy**, and that is a deliberate decision rather than an
 omission — see below.
 
 The fix issues `POSIX_FADV_DONTNEED` on the finished snapshot. Its safety
@@ -230,25 +230,44 @@ front of it. `posix_fadvise` is feature-detected; a platform without it still
 publishes, and a hint that fails is logged and ignored. Global `drop_caches` is
 never used.
 
-#### Why the backup itself was not changed
+#### How the copy runs, and what was not changed
 
-The obvious lever is `Connection.backup(dest, pages=N, progress=cb)` with a
-periodic `fdatasync` and `POSIX_FADV_DONTNEED` on the staging descriptor, so
-the destination cache is bounded *during* the copy rather than dropped after
-it. It was investigated and deliberately not implemented, for two independent
-reasons that source reading alone cannot settle:
+The copy is stepped: `Connection.backup(dest, pages=256)` with a 2 ms pause
+between steps, so the snapshot does not monopolise the disk while web and
+worker traffic runs (added with background verification in `1d4f07a39`).
 
-- **It trades a measured-nothing for a real regression risk.** `pages=-1`
-  copies in a single step, holding one read transaction throughout. With
-  `pages=N`, SQLite restarts the backup from the beginning whenever the source
-  is written between steps. On a busy instance that can extend the snapshot or
-  stop it converging.
-- **The hint may do nothing.** `DONTNEED` drops only clean pages, so a mid-copy
-  hint requires extra syncs, and whether the kernel then reclaims is filesystem-
-  and writeback-dependent. Advisory behaviour is not identical everywhere.
+A stepped copy alone restarts from page one whenever another connection
+commits between steps. Measured on an 82 MB database (SQLite 3.42): a commit
+every 0.25 s caused 175 restarts in 45 s and the copy never finished. So
+`_copy_source` in `config/sqlite_integrity.py` picks by the source's own
+journal mode:
 
-`quick_check` would also re-warm the copy afterwards, undoing a mid-copy hint,
-and it cannot advise as it goes because it runs on the write connection.
+- **WAL:** the copy runs inside one read transaction on the source
+  (`BEGIN` plus one read). It copies that single snapshot in one pass, with
+  commits every 50 ms, and never blocks a writer (the copy's disk traffic
+  can still slow a commit: slowest 184 ms against 449 ms to 4 s for the old
+  unpinned copy, on a 711 MB file). The cost is that
+  checkpoints cannot move past the snapshot until the copy ends, so the WAL
+  grows for one pass and shrinks at the next checkpoint (CONC-43 receipts).
+- **Rollback journal** (the fallback on SQLite builds with the WAL-reset bug):
+  the copy is not pinned. A held read lock, or a single-step copy, blocks
+  every writer at commit for the whole copy: 2.8 s for a 711 MB file in
+  CONC-43, minutes for a multi-GB one, past the busy timeout. Unpinned,
+  writers wait at most one step, but a busy instance can restart the copy.
+
+Each run records `pinned`, `steps` and `restarts` on the `db_snapshot` log
+line. A pinned copy should show `restarts=0`; more than three restarts fails
+the snapshot with "the database kept changing" rather than running to the
+task time limit. On a busy rollback-journal install that means a missed,
+reported snapshot instead of stalled writes. Measured on a laptop with SQLite
+3.42 (macOS) and 3.53.4 (the Linux image), not on a production instance.
+
+Bounding the destination cache *during* the copy (a periodic `fdatasync` and
+`POSIX_FADV_DONTNEED` on the staging file) was investigated and not
+implemented. `DONTNEED` drops only clean pages, so a mid-copy hint needs extra
+syncs, and whether the kernel then reclaims depends on the filesystem and
+writeback. `quick_check` would also re-warm the copy afterwards, and it cannot
+advise as it goes because it runs on the write connection.
 
 So the deliverable is measurement, not a guess:
 `scripts/snapshot_memory_ladder.sh` runs the real `write_database_snapshot`
