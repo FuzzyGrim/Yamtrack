@@ -69,7 +69,9 @@ FAILURE_LINE = re.compile(
 )
 MAX_LISTED = 30
 # Playwright's message when its browser is missing or cannot start.
-BROKEN_BROWSER = re.compile(r"BrowserType\.launch: (Executable doesn't exist|Failed to launch)")
+BROKEN_BROWSER = re.compile(
+    r"BrowserType\.launch: (Executable doesn't exist|Failed to launch)"
+)
 
 
 def parse_failures(log: str) -> list[str]:
@@ -228,12 +230,40 @@ def failing_tests(state: dict) -> set[str]:
 
 @dataclass
 class Plan:
-    """What a report does to the issue. action is one of none, open, update, close."""
+    """What a report does to the issue.
+
+    action: none, open, update, close, or persist (silently record the state on
+    the closed issue, so later reports can tell what is newer).
+    """
 
     action: str
     state: dict
     comment: str = ""
     note: str = ""
+
+
+def all_passing(state: dict) -> bool:
+    """Return True only when every source's newest result is a clean pass."""
+    return all(
+        (state["sources"].get(source) or {}).get("status") == "pass"
+        and not (state["sources"].get(source) or {}).get("unknown_at")
+        for source in SOURCES
+    )
+
+
+def _not_passing(state: dict) -> list[str]:
+    out = []
+    for source in SOURCES:
+        entry = state["sources"].get(source) or {}
+        if entry.get("status") == "fail":
+            out.append(f"{SOURCE_NAMES[source]} still failing")
+        elif entry.get("unknown_at"):
+            out.append(
+                f"{SOURCE_NAMES[source]} could not tell at {_short(entry['unknown_at'])}"
+            )
+        elif entry.get("status") != "pass":
+            out.append(f"{SOURCE_NAMES[source]} has not reported yet")
+    return out
 
 
 def plan_report(
@@ -246,15 +276,22 @@ def plan_report(
     newer_recorded,
     last_good_fallback,
     now: str,
+    closed: dict | None = None,
 ) -> Plan:
     """Decide the change to the tracking issue for one source's result at sha.
 
-    issue: the open tracking issue (number, body) or None.
-    newer_recorded(recorded_sha) is True when recorded_sha is a later commit than
-    sha, so this report is stale. last_good_fallback() returns the newest commit
-    the source last passed on, used when no issue holds that.
+    issue: the open tracking issue (number, body) or None. closed: the newest
+    closed tracking issue, whose state carries each source's last result while
+    nothing is open. newer_recorded(recorded_sha) is True when recorded_sha is a
+    later commit than sha, so this report is stale. last_good_fallback() returns
+    the commit the source last passed on when no state holds one.
     """
-    state = read_state(issue["body"]) if issue else {"sources": {}}
+    if issue:
+        state = read_state(issue["body"])
+    elif closed:
+        state = read_state(closed["body"])
+    else:
+        state = {"sources": {}}
     entry = dict(state["sources"].get(source) or {})
     recorded = entry.get("unknown_at") or entry.get("sha")
     if recorded and recorded != sha and newer_recorded(recorded):
@@ -263,14 +300,15 @@ def plan_report(
             state,
             note=f"ignored: {_short(sha)} is older than {_short(recorded)}",
         )
+    quiet = "persist" if closed else "none"
 
     if result.status == "unknown":
-        if not issue:
-            return Plan("none", state, note=f"could not determine: {result.reason}")
         if entry.get("unknown_at") == sha:
             return Plan("none", state, note="already recorded as unknown")
         entry.update(unknown_at=sha, unknown_reason=result.reason, unknown_run=run_url)
         state["sources"][source] = entry
+        if not issue:
+            return Plan(quiet, state, note=f"could not determine: {result.reason}")
         comment = (
             f"{SOURCE_NAMES[source]} could not tell at {_short(sha)}: {result.reason}. "
             f"Nothing changed here. [Run]({run_url})"
@@ -287,7 +325,7 @@ def plan_report(
 
     if result.status == "fail":
         entry["tests"] = result.tests
-        if previous_status != "fail":
+        if previous_status != "fail" or not issue:
             entry["first_bad"] = sha
             entry["last_good"] = (
                 previous_sha if previous_status == "pass" else None
@@ -320,18 +358,19 @@ def plan_report(
     entry.pop("last_good", None)
     state["sources"][source] = entry
     if not issue:
-        return Plan("none", state, note="passing, no issue open")
-    if failing_tests(state):
-        still = [
-            SOURCE_NAMES[s]
-            for s, e in state["sources"].items()
-            if e.get("status") == "fail"
-        ]
-        comment = (
-            f"{SOURCE_NAMES[source]} pass again at {_short(sha)}. "
-            f"Still failing: {', '.join(still)}. [Run]({run_url})"
+        return Plan(quiet, state, note="passing, no issue open")
+    if not all_passing(state):
+        # Closing needs a clean pass from every source, not just no failures.
+        waiting = _not_passing(state)
+        comment = ""
+        if previous_status == "fail":
+            comment = (
+                f"{SOURCE_NAMES[source]} pass again at {_short(sha)}. "
+                f"Not closing yet: {'; '.join(waiting)}. [Run]({run_url})"
+            )
+        return Plan(
+            "update", state, comment=comment, note="waiting: " + "; ".join(waiting)
         )
-        return Plan("update", state, comment=comment, note="one source fixed")
     comment = (
         f"Every test passes on latest again at {_short(sha)}. Closing. [Run]({run_url})"
     )
@@ -375,13 +414,34 @@ def pr_note(pr_failures: list[str], baseline: dict | None, error: str = "") -> s
         )
     if baseline.get("health_green"):
         return (
-            "No tests are known to fail on `latest` (its last health check passed). "
-            "These failures are probably from this branch."
+            "No tests are known to fail on `latest`: both its browser tests and its other "
+            "tests passed on its newest commit. These failures are probably from this branch."
         )
-    return (
-        "Unknown whether these failures also happen on `latest`: no open issue, and its last "
-        "health check did not pass cleanly."
-    )
+    why = baseline.get("why") or "not every check of its newest commit has passed"
+    return f"Unknown whether these failures also happen on `latest`: {why}."
+
+
+def no_issue_baseline(closed: dict | None, head: str) -> dict:
+    """With no open issue, latest counts as green only if both sources passed its head."""
+    state = read_state(closed["body"]) if closed else {"sources": {}}
+    if not all_passing(state):
+        return {
+            "issue": None,
+            "health_green": False,
+            "why": "; ".join(_not_passing(state)),
+        }
+    stale = [
+        SOURCE_NAMES[s]
+        for s in SOURCES
+        if (state["sources"][s].get("sha") or "") != head
+    ]
+    if stale:
+        return {
+            "issue": None,
+            "health_green": False,
+            "why": f"its newest commit {_short(head)} is still being checked ({', '.join(stale)})",
+        }
+    return {"issue": None, "health_green": True}
 
 
 # --- GitHub ---------------------------------------------------------------
@@ -423,9 +483,13 @@ class GitHub:
         # Oldest first, so a duplicate someone made by hand never takes over.
         return min(found, key=lambda i: i["number"]) if found else None
 
-    def last_closed_state(self) -> dict:
+    def closed_issue(self) -> dict | None:
+        """Return the newest closed tracking issue, which holds the last state."""
         found = self.issues("closed")
-        return read_state(found[0]["body"]) if found else {"sources": {}}
+        return max(found, key=lambda i: i["number"]) if found else None
+
+    def latest_head(self) -> str:
+        return self.api("git/ref/heads/latest")["object"]["sha"]
 
     def is_newer(self, recorded: str, sha: str) -> bool:
         """True when recorded is a later commit than sha on the same line."""
@@ -443,12 +507,6 @@ class GitHub:
         except (subprocess.CalledProcessError, ValueError, KeyError):
             return None
         return runs[0]["head_sha"] if runs else None
-
-    def last_health_run(self) -> dict | None:
-        runs = self.api(
-            f"actions/workflows/{HEALTH_WORKFLOW}/runs?branch=latest&event=push&status=completed&per_page=1"
-        )["workflow_runs"]
-        return runs[0] if runs else None
 
     def create(self, body: str) -> int:
         out = self._gh(
@@ -525,14 +583,27 @@ def run_report(gh, source: str, run_id: str, sha: str, dry_run: bool = False) ->
         result = classify(gh.jobs(run_id), job_re, step, gh.log, rollup)
     except (subprocess.CalledProcessError, ValueError, KeyError) as error:
         result = Result("unknown", reason=f"could not read the run ({_why(error)})")
+    for attempt in range(3):
+        plan = _report_once(gh, source, sha, run_url, result, workflow, dry_run)
+        if plan is not None:
+            return plan
+        _summary(
+            f"Another report changed the issue at the same time; retrying ({attempt + 1})."
+        )
+    _summary("Gave up after three tries; the next push will report again.")
+    return Plan("none", {"sources": {}}, note="conflict")
+
+
+def _report_once(gh, source, sha, run_url, result, workflow, dry_run) -> Plan | None:
+    """Apply one report. Return None when a concurrent writer got in the way.
+
+    The two report jobs (browser and publish gate) can run at the same moment.
+    GitHub concurrency groups would drop a queued report, so instead each write
+    is checked afterwards: a duplicate issue is folded into the oldest one, and
+    an edit that lost this source's entry is redone from the fresh body.
+    """
     issue = gh.open_issue()
-
-    def fallback() -> str | None:
-        closed = gh.last_closed_state()["sources"].get(source) or {}
-        if closed.get("status") == "pass" and closed.get("sha"):
-            return closed["sha"]
-        return gh.last_success(workflow)
-
+    closed = None if issue else gh.closed_issue()
     plan = plan_report(
         issue,
         source,
@@ -540,8 +611,9 @@ def run_report(gh, source: str, run_id: str, sha: str, dry_run: bool = False) ->
         run_url,
         result,
         newer_recorded=lambda recorded: gh.is_newer(recorded, sha),
-        last_good_fallback=fallback,
+        last_good_fallback=lambda: gh.last_success(workflow),
         now=datetime.now(UTC).isoformat(timespec="seconds"),
+        closed=closed,
     )
     tests = f" ({len(result.tests)} failing)" if result.tests else ""
     _summary(
@@ -556,15 +628,30 @@ def run_report(gh, source: str, run_id: str, sha: str, dry_run: bool = False) ->
     body = render_body(plan.state, gh.repo)
     if plan.action == "open":
         number = gh.create(body)
+        oldest = gh.open_issue()
+        if oldest and oldest["number"] != number:
+            gh.comment(number, f"Duplicate of #{oldest['number']}.")
+            gh.close(number)
+            return None
         _summary(f"Opened #{number}.")
         return plan
-    if issue is None:
+    target = issue or closed
+    if target is None:
         return plan
-    gh.edit(issue["number"], body)
+    gh.edit(target["number"], body)
+    if plan.action == "persist":
+        return plan
+    fresh = gh.open_issue()
+    if not fresh or fresh["number"] != target["number"]:
+        return None
+    if read_state(fresh["body"])["sources"].get(source) != plan.state["sources"].get(
+        source
+    ):
+        return None
     if plan.comment:
-        gh.comment(issue["number"], plan.comment)
+        gh.comment(target["number"], plan.comment)
     if plan.action == "close":
-        gh.close(issue["number"])
+        gh.close(target["number"])
     return plan
 
 
@@ -584,11 +671,7 @@ def run_pr_note(gh, run_id: str) -> str:
         if issue:
             baseline = {"issue": issue["number"], "state": read_state(issue["body"])}
         else:
-            last = gh.last_health_run()
-            baseline = {
-                "issue": None,
-                "health_green": bool(last) and last.get("conclusion") == "success",
-            }
+            baseline = no_issue_baseline(gh.closed_issue(), gh.latest_head())
         text = pr_note(sorted(failures), baseline)
     except (subprocess.CalledProcessError, ValueError, KeyError) as error:
         text = pr_note(sorted(failures), None, _why(error))

@@ -34,7 +34,9 @@ on:
 
 # Only the newest push is worth testing: a newer push cancels the older browser
 # run, and its report never runs. Publish gate reports queue separately and are
-# never cancelled mid-write.
+# never cancelled mid-write. The two report jobs may still run at the same
+# moment; a concurrency group shared by both would drop a queued report, so
+# the script checks each write afterwards and redoes it (scripts/latest_health.py).
 concurrency:
   group: latest-health-${{ github.event_name == 'workflow_run' && 'gate' || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_run' }}

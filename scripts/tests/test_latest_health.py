@@ -222,7 +222,6 @@ class FakeGitHub:
         self.runs = {}
         self.line = ["good0", "good1"]
         self.successes = {lh.HEALTH_WORKFLOW: "good1", lh.GATE_WORKFLOW: "good1"}
-        self.health_conclusion = "success"
 
     # Run fixtures
     def add_run(self, run_id, jobs, log=""):
@@ -245,11 +244,12 @@ class FakeGitHub:
         found = self.open_list()
         return min(found, key=lambda i: i["number"]) if found else None
 
-    def last_closed_state(self):
+    def closed_issue(self):
         closed = [i for i in self.issues_by_number.values() if i["state"] == "closed"]
-        if not closed:
-            return {"sources": {}}
-        return lh.read_state(max(closed, key=lambda i: i["number"])["body"])
+        return max(closed, key=lambda i: i["number"]) if closed else None
+
+    def latest_head(self):
+        return self.line[-1]
 
     def create(self, body):
         number = len(self.issues_by_number) + 100
@@ -276,9 +276,6 @@ class FakeGitHub:
     def last_success(self, workflow):
         return self.successes.get(workflow)
 
-    def last_health_run(self):
-        return {"conclusion": self.health_conclusion}
-
 
 class InjectionScenarios(unittest.TestCase):
     """The five failure injections, end to end through run_report."""
@@ -302,6 +299,26 @@ class InjectionScenarios(unittest.TestCase):
         )
         return lh.run_report(self.gh, "browser", run_id, sha)
 
+    def gate(self, run_id, sha, broken=False, unknown=False):
+        if unknown:
+            jobs = [job("Release quality gates / test (3.12)", "cancelled", job_id=3)]
+        else:
+            jobs = [
+                job(
+                    "Release quality gates / test (other, 3.12)",
+                    "failure" if broken else "success",
+                    "Run Tests",
+                    job_id=2,
+                ),
+                job(
+                    "Release quality gates / test (3.12)",
+                    "failure" if broken else "success",
+                    job_id=3,
+                ),
+            ]
+        self.gh.add_run(run_id, jobs, GATE_LOG_FAIL if broken else "")
+        return lh.run_report(self.gh, "gate", run_id, sha)
+
     def test_break_update_fix(self):
         # 1. A commit breaks one browser test: one issue names the test and commit.
         self.push("bad1")
@@ -321,9 +338,12 @@ class InjectionScenarios(unittest.TestCase):
         self.assertIn("First seen at bad1", body)
         self.assertEqual(self.gh.comments, [])
 
-        # 3. The fix: commented and closed.
+        # 3. The fix: commented and closed once the publish gate has also passed.
         self.push("fix")
         self.browser("r3", "fix", broken=False)
+        self.assertEqual(len(self.gh.open_list()), 1)
+        self.assertIn("has not reported yet", self.gh.comments[-1][1])
+        self.gate("g3", "fix")
         self.assertEqual(self.gh.open_list(), [])
         self.assertIn("passes on latest again at fix", self.gh.comments[-1][1])
 
@@ -379,6 +399,7 @@ class InjectionScenarios(unittest.TestCase):
         self.assertEqual(len(self.gh.comments), 1)
         self.push("fix")
         self.browser("r3", "fix", broken=False)
+        self.gate("g3", "fix")
         self.assertEqual(self.gh.open_list(), [])
 
     def test_both_sources_must_pass_before_closing(self):
@@ -405,7 +426,10 @@ class InjectionScenarios(unittest.TestCase):
         self.push("fix")
         self.browser("b2", "fix", broken=False)
         self.assertEqual(len(self.gh.open_list()), 1)
-        self.assertIn("Still failing: Other tests", self.gh.comments[-1][1])
+        self.assertIn(
+            "Not closing yet: Other tests (publish gate) still failing",
+            self.gh.comments[-1][1],
+        )
 
         self.gh.add_run(
             "g2",
@@ -452,6 +476,126 @@ class InjectionScenarios(unittest.TestCase):
         )
         text = lh.run_pr_note(self.gh, "pr1")
         self.assertIn("All 1 failing tests here also fail on `latest`", text)
+
+
+class CodexFindings(unittest.TestCase):
+    """Cases from the Codex review of PR #2006."""
+
+    setUp = InjectionScenarios.setUp
+    push = InjectionScenarios.push
+    browser = InjectionScenarios.browser
+    gate = InjectionScenarios.gate
+
+    def test_unknown_gate_keeps_the_issue_open_after_browser_recovers(self):
+        self.push("bad1")
+        self.browser("b1", "bad1", broken=True)
+        self.gate("g1", "bad1", unknown=True)
+        self.push("fix")
+        self.browser("b2", "fix", broken=False)
+        self.assertEqual(len(self.gh.open_list()), 1)
+        self.assertIn("could not tell at bad1", self.gh.comments[-1][1])
+        self.gate("g2", "fix")
+        self.assertEqual(self.gh.open_list(), [])
+
+    def test_rerun_of_an_old_failure_after_close_is_ignored(self):
+        self.push("bad1")
+        self.browser("b1", "bad1", broken=True)
+        self.push("fix")
+        self.browser("b2", "fix", broken=False)
+        self.gate("g2", "fix")
+        self.assertEqual(self.gh.open_list(), [])
+        plan = self.browser("b1-rerun", "bad1", broken=True)
+        self.assertEqual(plan.action, "none")
+        self.assertEqual(self.gh.open_list(), [])
+
+    def test_passes_without_an_issue_are_recorded_on_the_closed_one(self):
+        self.push("bad1")
+        self.browser("b1", "bad1", broken=True)
+        self.push("fix")
+        self.browser("b2", "fix", broken=False)
+        self.gate("g2", "fix")
+        self.push("next")
+        plan = self.browser("b3", "next", broken=False)
+        self.assertEqual(plan.action, "persist")
+        closed = self.gh.closed_issue()
+        self.assertEqual(
+            lh.read_state(closed["body"])["sources"]["browser"]["sha"], "next"
+        )
+        comments = len(self.gh.comments)
+        # A rerun of the fix commit, older than "next", is now stale too.
+        self.assertEqual(self.browser("b2-rerun", "fix", broken=True).action, "none")
+        self.assertEqual(len(self.gh.comments), comments)
+
+    def test_duplicate_from_a_concurrent_writer_is_folded(self):
+        self.push("bad1")
+        real_create = self.gh.create
+
+        def racing_create(body):
+            # The other report job opened its issue a moment earlier.
+            self.gh.issues_by_number[50] = {
+                "number": 50,
+                "body": lh.render_body({"sources": {}}, "o/r"),
+                "state": "open",
+            }
+            self.gh.create = real_create
+            return real_create(body)
+
+        self.gh.create = racing_create
+        self.browser("b1", "bad1", broken=True)
+        self.assertEqual([i["number"] for i in self.gh.open_list()], [50])
+        self.assertIn(BROWSER_TEST, self.gh.issues_by_number[50]["body"])
+        self.assertIn((101, "Duplicate of #50."), self.gh.comments)
+        self.assertEqual(self.gh.issues_by_number[101]["state"], "closed")
+
+    def test_lost_edit_is_redone(self):
+        self.push("bad1")
+        self.gate("g1", "bad1", broken=True)
+        number = self.gh.open_issue()["number"]
+        stale = self.gh.issues_by_number[number]["body"]
+        real_edit = self.gh.edit
+
+        def racing_edit(n, body):
+            real_edit(n, body)
+            # The gate job wrote right after, from the body it read before ours.
+            real_edit(n, stale)
+            self.gh.edit = real_edit
+
+        self.gh.edit = racing_edit
+        self.browser("b1", "bad1", broken=True)
+        state = lh.read_state(self.gh.issues_by_number[number]["body"])
+        self.assertEqual(set(state["sources"]), {"browser", "gate"})
+
+
+class NoIssueBaselineTests(unittest.TestCase):
+    def closed(self, **sources):
+        return {"body": lh.render_body({"sources": sources}, "o/r")}
+
+    def test_green_only_when_both_pass_the_head(self):
+        closed = self.closed(
+            browser={"status": "pass", "sha": "h"}, gate={"status": "pass", "sha": "h"}
+        )
+        self.assertTrue(lh.no_issue_baseline(closed, "h")["health_green"])
+
+    def test_gate_unknown_is_not_green(self):
+        closed = self.closed(
+            browser={"status": "pass", "sha": "h"},
+            gate={"status": "pass", "sha": "g", "unknown_at": "h"},
+        )
+        baseline = lh.no_issue_baseline(closed, "h")
+        self.assertFalse(baseline["health_green"])
+        self.assertTrue(lh.pr_note(["x.y"], baseline).startswith("Unknown"))
+
+    def test_gate_still_running_is_not_green(self):
+        closed = self.closed(
+            browser={"status": "pass", "sha": "h"},
+            gate={"status": "pass", "sha": "old"},
+        )
+        baseline = lh.no_issue_baseline(closed, "h")
+        self.assertFalse(baseline["health_green"])
+        self.assertIn("still being checked", lh.pr_note(["x.y"], baseline))
+
+    def test_nothing_recorded_is_not_green(self):
+        self.assertFalse(lh.no_issue_baseline(None, "h")["health_green"])
 
 
 class StateTests(unittest.TestCase):

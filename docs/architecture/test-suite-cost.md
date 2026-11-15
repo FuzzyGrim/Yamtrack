@@ -630,14 +630,16 @@ purpose, so nothing on `latest` ran them at all.
 - `scripts/latest_health.py` keeps one issue, **Tests are failing on
   latest**: opened on the first failure with the failing tests, the first
   bad commit and the range since the last good one; edited while anything
-  still fails; commented on and closed when both sources pass. A result for
-  an older commit than the one recorded is ignored. A run that could not tell
+  still fails; commented on and closed only when both sources have passed
+  cleanly. The closed issue keeps each source's last result, so a result for
+  an older commit than the one recorded is ignored even when nothing is open. A run that could not tell
   (Chromium did not install or start, a job was killed, no test was named)
   is "unknown" and never opens or closes the issue.
 - When a pull request's shards fail, the **Compare failures with latest**
   job in `app-tests.yml` writes one line in the run summary: whether the
-  same tests are failing on `latest`. If that cannot be read it says
-  "unknown", never green. It is not required and never fails.
+  same tests are failing on `latest`. It says green only when both sources
+  passed `latest`'s newest commit; otherwise, or if it cannot read the
+  state, it says "unknown". It is not required and never fails.
 
 If the browser command in `app-tests.yml` changes (for example a separate
 browser shard), change the one in `latest-health.yml` with it.
