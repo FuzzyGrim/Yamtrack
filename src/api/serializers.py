@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from rest_framework import serializers
 
 from app import helpers as app_helpers
+from app.artwork_sizes import card_image_url
 from app.backdrops import cached_backdrop_or_warm  # FORK: horizontal artwork
 from app.helpers import build_provider_ids
 from app.history_entry_builders import _serialize_show
@@ -138,6 +139,7 @@ class ItemSerializer(serializers.ModelSerializer):
     media_id = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
     ids = serializers.SerializerMethodField()
+    card_image = serializers.SerializerMethodField()
 
     def get_media_id(self, obj):
         """Return media_id preserving alphanumeric provider IDs."""
@@ -158,6 +160,10 @@ class ItemSerializer(serializers.ModelSerializer):
     def get_ids(self, obj):
         """Return the item's resolved external provider ids."""
         return build_provider_ids(obj)
+
+    def get_card_image(self, obj):
+        """Return ``image`` at the provider size a media card shows."""
+        return card_image_url(getattr(obj, "image", "") or "")
 
     class Meta:  # noqa: D106
         model = Item
