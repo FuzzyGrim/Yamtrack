@@ -1106,17 +1106,25 @@ class MediaManager(models.Manager.from_queryset(ImportScopedQuerySet)):
         *,
         compact_episodes=False,
         light_rows=False,
+        defer_item_fields=(),
     ):
         """Apply appropriate prefetch_related based on media type.
 
         list_mode=True narrows the episode queryset to only the fields required
         for list-view progress/date calculations, avoiding the cost of
         materializing full Item objects for every episode.
+
+        defer_item_fields names Item columns to leave out of the season and
+        episode items this prefetches (Statistics caches these rows).
         """
         TV = apps.get_model("app", "TV")
         Season = apps.get_model("app", "Season")
         Episode = apps.get_model("app", "Episode")
         episode_qs = Episode.objects.select_related("item")
+        if defer_item_fields:
+            episode_qs = episode_qs.defer(
+                *(f"item__{field}" for field in defer_item_fields)
+            )
         if compact_episodes and (queryset.model == TV or media_type == MediaTypes.SEASON.value):
             # Window sorting runs over every watch. Joining the catalogue here
             # copies its wide JSON/text columns into every intermediate row.
@@ -1212,6 +1220,7 @@ class MediaManager(models.Manager.from_queryset(ImportScopedQuerySet)):
                     "seasons",
                     queryset=Season.objects.select_related("item").defer(
                         *(("item__watch_providers",) if list_mode else ()),
+                        *(f"item__{field}" for field in defer_item_fields),
                     ),
                 ),
                 Prefetch(
