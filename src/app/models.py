@@ -545,6 +545,10 @@ class MediaManager(models.Manager):
             self._annotate_tv_released_episodes(media_list, current_datetime)
             return
 
+        if media_type == MediaTypes.SEASON.value:
+            self._annotate_season_max_progress(media_list)
+            return
+
         # For other media types, calculate max_progress from events
         # Create a dictionary mapping item_id to max content_number
         max_progress_dict = {}
@@ -567,6 +571,35 @@ class MediaManager(models.Manager):
 
         for media in media_list:
             media.max_progress = max_progress_dict.get(media.item.id)
+
+    def _annotate_season_max_progress(self, season_list):
+        """Annotate TV seasons with their full episode count from metadata."""
+        tmdb_seasons = {}
+        for season in season_list:
+            if season.item.source == Sources.TMDB.value:
+                key = (season.item.media_id, season.item.source)
+                tmdb_seasons.setdefault(key, []).append(season)
+                continue
+
+            season_metadata = providers.services.get_media_metadata(
+                MediaTypes.SEASON.value,
+                season.item.media_id,
+                season.item.source,
+                [season.item.season_number],
+            )
+            season.max_progress = season_metadata["max_progress"]
+
+        for (media_id, source), seasons in tmdb_seasons.items():
+            seasons_metadata = providers.services.get_media_metadata(
+                "tv_with_seasons",
+                media_id,
+                source,
+                [season.item.season_number for season in seasons],
+            )
+            for season in seasons:
+                season.max_progress = seasons_metadata[
+                    f"season/{season.item.season_number}"
+                ]["max_progress"]
 
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
