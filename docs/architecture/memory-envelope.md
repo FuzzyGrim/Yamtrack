@@ -454,8 +454,15 @@ structurally smaller. Whether the request stops approaching the 400 MiB
 recycle ceiling is a Docker measurement.
 
 **Statistics FINISH: profiled, partly reduced.** `_aggregate_statistics_from_days`
-now times its phases and `stats_range_summary` logs them as `phases_ms`, so a
-slow range names its own cause. The profile was taken on a synthetic library
+is a short sequence of phases in `statistics_aggregator.py`: the day walk
+(`_walk_days`, merging each payload into one `_RangeAccumulators` with
+`_merge_day`), then undated rows, status and scores with top rated
+(`_build_scores_and_top_rated`), top played, activity and play charts, games,
+reading (`_build_reading_consumption` per type), History highlights, summary
+cards, top talent, and packing the per-type metric cards. Each phase is a
+function that reads the accumulators and returns its part of the payload, and
+`stats_range_summary` logs each one's wall time in `phases_ms` under the same
+names, so a slow range names its own cause. The profile was taken on a synthetic library
 (one user, 3,414 active days, about 15,000 items; production is about 9,570
 days and 250,000 items), with day payloads warm:
 
@@ -474,14 +481,26 @@ each range, and each media type inside it, re-read the History index and the
 same History days. That is about a third of the CPU of a hot pass and a fifth
 of a heavy one on the profiled library.
 
+**Across the ranges of a pass (2026-11-14).** Profiled again per range inside
+whole passes (same library shape, 3,400 days, about 18,000 items). In a heavy
+pass the top-rated card was the largest phase of every range (about 45% of the
+ranges' CPU), and 54% of the rows it annotated and 62% of the card rows loaded
+had already been loaded by an earlier range of the same pass. The walks over
+the day payloads of all bounded ranges together were about 0.25 s. So the
+pass now loads and annotates each card row once and hands each range a copy
+(`statistics-sync.md`); the day walk is still per range, and sharing it is not
+worth the accumulator snapshots it would need. For one pass of all eleven
+ranges: 25,033 model instances built became 12,755, queries about 1,460
+became 953, and the Python allocation peak 139 MB became 101 MB; every payload
+is byte-identical.
+
 Still open, largest first for All Time:
 
-- **The day walk** (fetch and merge, about a third). Nested ranges repeat it
-  from scratch. Sharing one walk between ranges needs the thirty accumulators
-  to be snapshotted at range boundaries; that is a design decision, not a
-  patch.
+- **The day walk** (fetch and merge, about a third of All Time). Each range
+  walks its own days; see above for why the ranges do not share one walk.
 - **Top-rated annotation.** `MediaManager.annotate_max_progress` is called per
-  row for seasons and re-reads rows the aggregate has just fetched.
+  row for seasons and re-reads rows the aggregate has just fetched. It now runs
+  once per row per pass rather than per range.
 - **Reading items.** `_fetch_reading_items_with_authors` loads a full `Item`
   for every reading title in the range to read its release date and authors.
 - **Top talent**, and the wide `Item` columns loaded by `_fetch_media_objects`

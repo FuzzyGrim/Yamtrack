@@ -138,9 +138,25 @@ payloads, the rest is the finish), and `days_decoded` is how many day payloads
 it read.
 
 Ranges of one pass share an in-memory memo of lookups that do not depend on
-the range (the History index and the History days the highlight cards read).
-It lives for the pass only: it is never cached and never part of a snapshot,
-and a pass still stops at any range boundary.
+the range: the History index and the History days the highlight cards read,
+and the tracker rows the cards show (loaded by `_fetch_media_objects`, and the
+top-rated ones annotated with their progress totals). Nested ranges show many
+of the same rows, so each row is loaded and annotated once per pass and every
+range gets its own copy of it, related item included: a range's per-card
+attributes (`aggregated_score`) never reach another range, and the rows the
+memo keeps are never handed out. It lives for the pass only: it is never
+cached and never part of a snapshot, and a pass still stops at any range
+boundary. A range that follows others in a pass is cheaper than the same range
+built first, so its recorded `stats:sync:range_seconds` can understate what it
+costs at the start of a continuation; the first range of a task always runs,
+so this can only let one range start a little late, never stop one starting.
+
+The ranges do not share their walk over the day payloads. On the profiled
+library (3,414 active days) the walks of every bounded range together cost
+about a quarter of a second of CPU per heavy pass, against several seconds for
+the rest; sharing them would mean freezing about thirty accumulators at every
+range boundary, and the calendar ranges (This Week, This Month, This Year) do
+not nest with the rolling ones.
 
 The highlights ("on this day") read the History day cache and keep any day they
 had to build, so a History cache that keeps losing days (see the coverage repair
