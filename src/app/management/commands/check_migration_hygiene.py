@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import shutil
 import subprocess
@@ -12,19 +13,28 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connections
 from django.db.migrations.loader import MigrationLoader
 
+from app.migration_operations import SHARED_OPERATION_NAMES
+
 DEFAULT_APPS = ("app", "users", "lists", "integrations", "events")
 DEFAULT_BASE_REF = "upstream/dev"
 MIGRATION_FILE_RE = re.compile(r"^\d{4}_.+\.py$")
 RISKY_OP_RE = re.compile(
     r"\bmigrations\.(AddConstraint|RemoveConstraint|AddIndex|RemoveIndex|AddField)\s*\("
 )
+SHARED_OPERATIONS_MODULE = "app.migration_operations"
 RISKY_FIX_HINTS = {
-    "AddConstraint": "use AddConstraintIfNotExists",
-    "RemoveConstraint": "use RemoveConstraintIfExists",
-    "AddIndex": "use AddIndexIfNotExists",
-    "RemoveIndex": "use RemoveIndexIfExists",
-    "AddField": "use AddFieldIfNotExists",
+    operation: (f"use {operation}{suffix} from {SHARED_OPERATIONS_MODULE}")
+    for operation, suffix in (
+        ("AddConstraint", "IfNotExists"),
+        ("RemoveConstraint", "IfExists"),
+        ("AddIndex", "IfNotExists"),
+        ("RemoveIndex", "IfExists"),
+        ("AddField", "IfNotExists"),
+    )
 }
+INLINE_ALLOWLIST_PATH = Path(__file__).with_name(
+    "inline_migration_operations_allowlist.txt"
+)
 
 
 @dataclass(frozen=True)
@@ -35,6 +45,15 @@ class RiskyOpViolation:
     line_number: int
     operation: str
     line: str
+
+
+@dataclass(frozen=True)
+class InlineOperationViolation:
+    """A migration that defines a shared idempotent operation inline."""
+
+    path: str
+    line_number: int
+    class_name: str
 
 
 def _repo_root() -> Path:
@@ -191,6 +210,44 @@ def _find_risky_operations(path: Path, rel_path: str) -> list[RiskyOpViolation]:
     return violations
 
 
+@lru_cache(maxsize=1)
+def _inline_allowlist() -> frozenset[str]:
+    """Return the shipped migrations allowed to keep their inline copies."""
+    lines = INLINE_ALLOWLIST_PATH.read_text(encoding="utf-8").splitlines()
+    return frozenset(
+        line.strip() for line in lines if line.strip() and not line.startswith("#")
+    )
+
+
+def _find_inline_operation_classes(
+    path: Path, rel_path: str
+) -> list[InlineOperationViolation]:
+    """Return classes named like a shared operation defined in ``path``."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=rel_path)
+    return [
+        InlineOperationViolation(
+            path=rel_path, line_number=node.lineno, class_name=node.name
+        )
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name in SHARED_OPERATION_NAMES
+    ]
+
+
+def _inline_operation_violations(
+    repo_root: Path, apps: list[str]
+) -> list[InlineOperationViolation]:
+    """Return inline definitions in migrations that are not on the allowlist."""
+    allowlist = _inline_allowlist()
+    violations = []
+    for rel_path in sorted(_local_migration_paths(repo_root, apps)):
+        if rel_path in allowlist:
+            continue
+        violations.extend(
+            _find_inline_operation_classes(repo_root / rel_path, rel_path)
+        )
+    return violations
+
+
 def _duplicate_number_info(
     repo_root: Path, apps: list[str]
 ) -> dict[str, dict[str, list[str]]]:
@@ -254,6 +311,7 @@ class Command(BaseCommand):
         multi_leaf_apps = _collect_multi_leaf_apps(loader.graph, apps)
 
         duplicate_number_info = _duplicate_number_info(repo_root, apps)
+        inline_violations = _inline_operation_violations(repo_root, apps)
 
         resolution_warnings: list[str] = []
         immutable_warnings: list[str] = []
@@ -310,6 +368,27 @@ class Command(BaseCommand):
                     f"run python src/manage.py makemigrations {app} --merge"
                 )
             failures.append("\n".join(lines))
+
+        if inline_violations and strict:
+            lines = [
+                "Migrations define a shared idempotent operation inline. "
+                f"Import it instead: from {SHARED_OPERATIONS_MODULE} import "
+                "<OperationName>"
+            ]
+            lines.extend(
+                f"- {violation.path}:{violation.line_number}: "
+                f"class {violation.class_name}"
+                for violation in inline_violations
+            )
+            failures.append("\n".join(lines))
+        elif inline_violations:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Warning: {len(inline_violations)} inline idempotent "
+                    f"operation classes found; import them from "
+                    f"{SHARED_OPERATIONS_MODULE} (strict mode disabled)."
+                )
+            )
 
         if risky_violations and strict:
             lines = [

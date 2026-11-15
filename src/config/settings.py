@@ -28,6 +28,7 @@ from django.db.backends.signals import connection_created
 from redis.backoff import NoBackoff
 from redis.retry import Retry
 
+from config.data_paths import resolve_data_paths
 from config.runtime_profile import (
     PROFILE as RESOURCE_PROFILE,
 )
@@ -53,14 +54,8 @@ REDIS_PREFIX = config("REDIS_PREFIX", default=None)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-_data_dir_override = config("FLOPPY_DATA_DIR", default=None)
-FLOPPY_DATA_DIR = Path(_data_dir_override) if _data_dir_override else BASE_DIR / "db"
-_database_path_override = config("FLOPPY_DB_PATH", default=None)
-FLOPPY_DB_PATH = (
-    Path(_database_path_override)
-    if _database_path_override
-    else FLOPPY_DATA_DIR / "db.sqlite3"
-)
+# Shared with the background SQLite verifier, which runs without Django.
+FLOPPY_DATA_DIR, FLOPPY_DB_PATH = resolve_data_paths(config, BASE_DIR)
 DOCKER_SECRETS_DIR = Path("/run/secrets")
 
 

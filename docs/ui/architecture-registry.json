@@ -4187,6 +4187,30 @@
           "evidence": "Pure JavaScript with no platform API; not run on an emulator or device."
         }
       }
+    },
+    "frontend/ui/homeTransportCore.js": {
+      "components": [
+        "createRemoteHomeActions",
+        "createLocalHomeActions",
+        "homeQuery",
+        "homeScreenFromPayload",
+        "mergeHomeRowPage"
+      ],
+      "register": "HOME",
+      "verification": {
+        "web": {
+          "status": "verified",
+          "evidence": "node --test scripts/homeWebTransport.test.mjs (web requests match the recorded pre-change adapter except the unified sort limit and pending flag; web and Expo requests identical); Chromium Home load, load more and sort through mountHome.jsx in the built-in browser, side by side with an untouched latest build."
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "Pure JavaScript with no platform API, moved from native-proof/app/data (which re-exports it unchanged); native transport tests pass. Not run on a simulator or device in this change."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Pure JavaScript with no platform API; native transport tests pass. Not run on an emulator or device in this change."
+        }
+      }
     }
   },
   "platform": {
@@ -5685,7 +5709,7 @@
     },
     "frontend/ui/mountHome.jsx": {
       "register": "HOME",
-      "purpose": "Browser adapter for the shared Home shelves: read the server-built group, row and card model, resolve theme tokens, fetch bounded deferred/load-more row windows and the coalesced artwork poll through the presentation endpoints, keep Django's grouped/deferred markup and HTMX poller as the no-React fallback, and preserve card links, hover actions and quick progress controls."
+      "purpose": "Browser adapter for the shared Home shelves: read the server-built group, row and card model, resolve theme tokens, call the shared Home transport core (frontend/ui/homeTransportCore.js, the same one the Expo app uses) over the page's cookie session through webRequest.web.js for deferred/load-more row windows, sort and the coalesced artwork poll, keep Django's grouped/deferred markup and HTMX poller as the no-React fallback, and preserve card links, hover actions and quick progress controls."
     },
     "frontend/ui/mountShell.jsx": {
       "register": "SHELL",
@@ -5810,6 +5834,10 @@
     "frontend/ui/homeRowWatcher.web.js": {
       "register": "HOME",
       "purpose": "Browser adapter that reports where each waiting Home row sits (on screen, within one and a half screens, or further) with IntersectionObserver, so shared HomeShelves requests only rows near the viewport. Native counterpart: native-proof/app/data/homeRowWatcherCore.js."
+    },
+    "frontend/ui/webRequest.web.js": {
+      "register": "HOME",
+      "purpose": "Web-only request for adapters that drive a shared transport core: same-origin JSON over Django's cookie session with the CSRF token on unsafe methods, query encoding identical to the native transport, errors carrying the HTTP status, optional AbortSignal pass-through, in-flight sharing of identical GETs (no cache, no retry) and an optional onTiming hook. Web-only because the browser signs in with the session cookie; native supplies its own request from authTransportCore.js."
     }
   }
 }
