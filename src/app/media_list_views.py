@@ -41,7 +41,10 @@ from app.library_query.alphabet import (
     normalize_initial,
     query_other_initial,
 )
-from app.media_list_entry_grouping import entry_grouping_is_separate
+from app.media_list_entry_grouping import (
+    active_entry_grouping_mode,
+    entry_grouping_is_separate,
+)
 from app.media_list_filters import (
     apply_media_list_collection_filter,
     apply_media_list_progress_filter,
@@ -2227,44 +2230,16 @@ def media_list(request, media_type):
             items.extend(_build_untracked_media_entries(tracked_item_ids))
         return apply_latest_status_filter(items, status_filter)
 
-    _status_cache_key = ",".join(sorted(status_filter))
-    _tag_cache_key = ",".join(sorted(tag_values))
-    _platform_cache_key = ",".join(sorted(platform_values))
+    # The keys come from the effective filters, so every filter reaches them.
+    _title_display = request.user.title_display_preference
     _media_list_cache_key = (
         cache_utils.build_media_list_cache_key(
             request.user.id,
-            media_type,
-            sort_filter,
-            direction,
-            _status_cache_key,
-            search_query,
-            rating_filter,
-            progress_filter,
-            collection_filter,
-            author_filter,
-            format_filter,
-            genre_filter,
-            implied_genre_filter,
-            year_filter,
-            release_filter,
-            source_filter,
-            language_filter,
-            country_filter,
-            _platform_cache_key,
-            platform_mode,
-            origin_filter,
-            _tag_cache_key,
-            tag_mode,
-            cache_variant,
-            provider_filter=provider_filter,
-            watch_provider_region=watch_provider_region,
-            media_status_filter=media_status_filter,
-            pinned_providers=",".join(
-                sorted(request.user.pinned_watch_providers or [])
-            ),
-            completed_date_from=completed_date_from,
-            completed_date_to=completed_date_to,
-            range_filters=range_cache_key,
+            sql_media_filters,
+            sort=sort_filter,
+            library_mode=cache_variant,
+            title_display=_title_display,
+            entry_grouping=active_entry_grouping_mode(),
         )
         if _use_media_list_cache
         else None
@@ -2272,43 +2247,13 @@ def media_list(request, media_type):
     _media_list_filter_cache_key = (
         cache_utils.build_media_list_filter_cache_key(
             request.user.id,
-            media_type,
-            _status_cache_key,
-            search_query,
-            progress_filter,
-            genre_filter,
-            implied_genre_filter,
-            year_filter,
-            release_filter,
-            source_filter,
-            language_filter,
-            country_filter,
-            _platform_cache_key,
-            platform_mode,
-            author_filter,
-            format_filter,
-            _tag_cache_key,
-            tag_mode,
-            cache_variant,
-            provider_filter=provider_filter,
-            watch_provider_region=watch_provider_region,
-            media_status_filter=media_status_filter,
-            pinned_providers=",".join(
-                sorted(request.user.pinned_watch_providers or [])
-            ),
-            completed_date_from=completed_date_from,
-            completed_date_to=completed_date_to,
+            sql_media_filters,
+            library_mode=cache_variant,
+            title_display=_title_display,
         )
         if (_use_media_list_cache or _time_left_active)
         else None
     )
-    # The alphabet follows the viewer's displayed title, including on warm caches.
-    if initial:
-        alphabet_variant = f":initial={initial}:title={request.user.title_display_preference}"
-        if _media_list_cache_key:
-            _media_list_cache_key += alphabet_variant
-        if _media_list_filter_cache_key:
-            _media_list_filter_cache_key += alphabet_variant
     _media_list_cached = (
         cache.get(_media_list_cache_key) if _media_list_cache_key else None
     )
@@ -2348,36 +2293,9 @@ def media_list(request, media_type):
     if _time_left_active:
         _time_left_cache_key = cache_utils.build_time_left_cache_key(
             request.user.id,
-            media_type,
-            _status_cache_key,
-            search_query,
-            direction,
-            rating_filter,
-            progress_filter,
-            collection_filter,
-            genre_filter,
-            year_filter,
-            release_filter,
-            source_filter,
-            language_filter,
-            country_filter,
-            _platform_cache_key,
-            platform_mode,
-            origin_filter,
-            _tag_cache_key,
-            tag_mode,
-            provider_filter=provider_filter,
-            watch_provider_region=watch_provider_region,
-            media_status_filter=media_status_filter,
-            pinned_providers=",".join(
-                sorted(request.user.pinned_watch_providers or [])
-            ),
-            completed_date_from=completed_date_from,
-            completed_date_to=completed_date_to,
-            range_filters=range_cache_key,
+            sql_media_filters,
+            title_display=_title_display,
         )
-        if initial:
-            _time_left_cache_key += alphabet_variant
         _time_left_cached_order = cache.get(_time_left_cache_key)
         if _time_left_cached_order is not None and filter_data is not None:
             # Sentinel: skips the list build below; the page is hydrated

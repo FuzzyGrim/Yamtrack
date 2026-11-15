@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import dataclasses
 import datetime
+import hashlib
+import json
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 
 from django.apps import apps
 from django.core.cache import cache
@@ -85,6 +88,11 @@ MEDIA_LIST_LANGUAGE_TYPES = {
 }
 
 
+def _not_in_cache_token(default):
+    """Declare a field that ``MediaListFilters.cache_token`` leaves out."""
+    return dataclasses.field(default=default, metadata={"cache_token": False})
+
+
 class MediaListFilterError(ValueError):
     """Raised when an API media-list query parameter is invalid."""
 
@@ -117,19 +125,21 @@ class MediaListFilters:
     year: str = ""
     # Each date range is resolved to from/to; ``*_within`` keeps a relative
     # window ("last 7 days") as asked, so a page can show the choice again.
+    # The window is display only: the dates it resolved to are what filter,
+    # so it stays out of ``cache_token``.
     completed_date_from: str = ""
     completed_date_to: str = ""
-    completed_date_within: str = ""
-    completed_date_within_unit: str = "days"
+    completed_date_within: str = _not_in_cache_token("")
+    completed_date_within_unit: str = _not_in_cache_token("days")
     release: str = "all"
     release_date_from: str = ""
     release_date_to: str = ""
-    release_date_within: str = ""
-    release_date_within_unit: str = "days"
+    release_date_within: str = _not_in_cache_token("")
+    release_date_within_unit: str = _not_in_cache_token("days")
     date_added_from: str = ""
     date_added_to: str = ""
-    date_added_within: str = ""
-    date_added_within_unit: str = "days"
+    date_added_within: str = _not_in_cache_token("")
+    date_added_within_unit: str = _not_in_cache_token("days")
     source: str = ""
     media_status: str = ""
     language: str = ""
@@ -150,6 +160,32 @@ class MediaListFilters:
     direction: str = ""
     exclude: tuple[str, ...] = ()
     media_type: str | None = None
+
+    def cache_token(self, *, exclude: frozenset[str] = frozenset()) -> str:
+        """Return a short, stable digest of everything that filters the list.
+
+        Two filter objects that select the same entries get the same token.
+        Multi-value fields are compared as sets of values, so their order
+        does not matter. A new field is included automatically; declare it
+        with ``_not_in_cache_token`` only when it cannot change the result.
+        ``exclude`` names fields a particular cache deliberately ignores.
+
+        The digest is computed from JSON, not ``hash()``, so it is the same in
+        every process and across restarts.
+        """
+        names = {item.name for item in fields(self)}
+        unknown = set(exclude) - names
+        if unknown:
+            message = f"Unknown MediaListFilters fields: {sorted(unknown)}"
+            raise ValueError(message)
+        values = {}
+        for item in fields(self):
+            if item.name in exclude or not item.metadata.get("cache_token", True):
+                continue
+            value = getattr(self, item.name)
+            values[item.name] = sorted(value) if isinstance(value, tuple) else value
+        payload = json.dumps(values, sort_keys=True, separators=(",", ":"))
+        return hashlib.blake2b(payload.encode(), digest_size=12).hexdigest()
 
     def menu_state(self) -> dict:
         """Return the filter menu's state in the smart-rule vocabulary.
