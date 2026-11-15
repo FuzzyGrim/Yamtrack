@@ -2,16 +2,19 @@ name: Merge Train
 
 # latest requires pull requests to be up to date before they merge, and GitHub's
 # merge queue is not available on a personal repository, so auto-merge alone
-# stalls once the first PR lands. This keeps the next approved PR (one with
-# auto-merge on) up to date, one at a time, preferring green work with an
-# aging rule, so auto-merge can finish it. See
-# scripts/merge_train.py for the rules. Run it by hand with "dry run" ticked to
-# see what it would do without touching anything.
+# stalls once the first PR lands. This keeps approved PRs (auto-merge on) up to
+# date by merging latest into their branches, so their own CI reruns and GitHub's
+# auto-merge lands whichever goes green first. Up to MERGE_TRAIN_DEPTH (repository
+# variable, default 3) migration-free PRs are refreshed at once; PRs that change
+# migrations are refreshed one at a time in approval order. It never creates
+# branches or PRs and never merges anything itself. See scripts/merge_train.py
+# for the rules. Run it by hand with "dry run" ticked to see what it would do
+# without touching anything.
 #
 # It runs when latest moves, or a pull request's auto-merge, readiness, head,
-# or closed state changes. GitHub auto-merge already responds to required CI
-# completing successfully. Failed required CI must wake the train because
-# no push or PR event is guaranteed to follow. Ignore unrelated/obsolete heads.
+# or closed state changes, and when a required-check workflow finishes on a PR
+# (a failure frees a slot; a success can change the order). Events for
+# unrelated or obsolete heads are ignored by the script.
 # The 15 minute schedule is only a safety net: GitHub delays and drops scheduled runs (about
 # 5 of 96 ran on 2026-10-19). Pull request and CI events from forks run this
 # workflow as it is on latest, never the fork's copy, and nothing from the pull
@@ -59,11 +62,7 @@ permissions:
 
 jobs:
   merge-train:
-    # Any finished required-check run on a pull request wakes the train: a
-    # failure frees the queue, a success can complete a candidate or make a
-    # source eligible. The script ignores heads that are neither an approved
-    # source nor a candidate. Only one run may be pending per concurrency
-    # group, so bursts of check completions collapse into a single run.
+    # Bursts of check completions collapse into one pending run per group.
     if: >-
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.event == 'pull_request'
@@ -78,13 +77,12 @@ jobs:
           ref: latest
           persist-credentials: false
 
-      - name: Update the next pull request in line
+      - name: Refresh approved pull requests
         env:
           GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN }}
           GH_REPO: ${{ github.repository }}
           DRY_RUN: ${{ inputs.dry_run }}
           CI_HEAD: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
-          MERGE_TRAIN_BATCH: ${{ vars.MERGE_TRAIN_BATCH != 'false' }}
           MERGE_TRAIN_DEPTH: ${{ vars.MERGE_TRAIN_DEPTH || '3' }}
         run: |
           if [ -z "$GH_TOKEN" ]; then

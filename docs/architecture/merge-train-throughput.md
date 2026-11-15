@@ -1,111 +1,79 @@
-# Merge train throughput: cumulative integration candidates
+# Merge train throughput: parallel refreshes, serial migrations
 
-`latest` stays strict (lint, test (3.12), migration-order from GitHub Actions,
-up-to-date branches). GitHub's merge queue needs an organization, so the train
-(`scripts/merge_train.py`) is the queue. Without it every approved PR needs its
-own full CI cycle after each merge. The accelerated lane builds one cumulative
-candidate from up to `MERGE_TRAIN_DEPTH` (default 3) approved, green PRs and
-tests it once.
+`latest` stays strict: lint, test (3.12) and migration-order from GitHub Actions
+are required, and a branch must be up to date to merge. GitHub's merge queue needs
+an organization, so the train (`scripts/merge_train.py`, run by
+`.github/workflows/merge-train.yml`) is the queue.
 
-## Who is eligible
+The train does one thing: it merges `latest` into an approved PR's branch
+(GitHub's "Update branch"). That restarts the PR's own CI, and GitHub's native
+auto-merge lands it when it is green and still up to date. The train never opens
+PRs, creates branches, merges anything or touches `latest`. Every PR merges as
+itself, with its own commits, author and checks.
 
-Any open, non-draft PR with native auto-merge on its current head, a known
-`MERGEABLE` state, behind `latest`, and all three required checks passing. Owner
-or contributor, fork or not, makes no difference, and nobody has to enable
-"Allow edits from maintainers" or update their branch. The `auto-merge` label
-only mirrors GitHub's state. Real conflicts and failed checks still block.
+## Who is in the queue
 
-A PR that is current and running or green is about to merge by itself and would
-move `latest` under a candidate, so no candidate is staged until `latest` is
-stable. Everything else is ranked independently (oldest approval first), so a
-red, stale or unmodifiable PR never holds up green work. A lone fork PR becomes
-a one-member candidate (no write to the fork needed); a lone same-repo PR
-uses the serial branch update, which costs the same. The scheduler logs why each
-PR was or was not batched.
+Any open, non-draft PR targeting `latest` with native auto-merge on. Owner or
+contributor, fork or not, makes no difference. A fork whose author turned off
+"Allow edits from maintainers", or one GitHub refuses to let the token update
+(HTTP 403), can't be refreshed. That fork is reported as a manual handoff, and
+everything else keeps moving.
 
-## How a candidate is built
+Skipped, with the reason in the job summary: real merge conflicts, failed
+required checks, required checks hung for hours or never started, a green PR
+GitHub hasn't merged within 30 minutes (some other rule is holding it), and PRs
+whose state the API couldn't report this run (retried next run).
 
-In a throwaway workspace (hooks, global config and merge drivers off; nothing
-from the sources is executed or sourced) the train fetches `latest` and each
-source at `refs/pull/<n>/head`, requires that SHA to equal the approved head,
-and merges the heads with `--no-ff` onto the pinned `latest` SHA. Conflicting
-members are left out. Only the new `merge-train/batch-*` ref is pushed; source
-branches and `latest` are never written. It then verifies the base and every
-member head are ancestors, and that the cumulative diff (renames counted as
-delete + add) stays inside the members' own changes and is safe. A staging ref
-left by an interrupted run is reused only if it passes the same checks.
+## Two lanes
 
-The candidate PR's body carries a manifest: base SHA, ordered members with head
-SHAs, candidate head and tree. It is trusted only when the PR is in this
-repository, authored by the train's account, its branch name matches the manifest
-digest, and its head equals the recorded head. A contributor cannot forge one.
+**Normal lane.** PRs that don't touch migrations. Up to `MERGE_TRAIN_DEPTH`
+(repository variable, default 3, `1` gives the old one-at-a-time train) of them
+can be up to date and testing at once. A PR that is already up to date and
+running or green never blocks the others. Free slots are filled in this order:
 
-## What never enters the lane
+1. PRs already green on an older `latest`, earliest green first. A PR approved
+   more than two hours ago counts as ready from its approval time, so it can't
+   starve.
+2. Other approved PRs, oldest approval first.
+3. PRs whose required check failed before `latest` moved get one refresh per new
+   `latest`. A body marker records the attempt.
 
-Anything touching `src/*/migrations/` (additions, deletions, renames in or out,
-non-numbered files), `.github/`, `scripts/merge_train.py`,
-`scripts/check_migration_order.py`, `scripts/reuse_pr_tests.py` or
-`scripts/test.sh`. Those merge serially after normal review with
-`migration-order` and the Django migration tests. Duplicate migration numbers
-within an app are rejected by `check_migration_order.py`; because candidates are
-migration-free, two migration PRs cannot land together through the lane, and
-candidates and serial updates both run against the current `latest`.
+**Migration lane.** Any PR whose diff against `latest` adds, deletes or renames
+anything under `src/*/migrations/` goes here. This includes rename sources, a
+diff too large for the compare API to list (300 files), and a PR whose diff the
+API couldn't return. One migration PR is refreshed at a time, oldest approval
+first, as before. It must pass migration-order (duplicate numbers per app, graph
+check with `latest` merged in) against the `latest` it merges into. A migration
+PR in flight doesn't block the normal lane.
 
-## Trust boundary for contributor code
+## Why this is safe with strict on
 
-A candidate is a same-repository PR, so GitHub does not apply the fork rule
-(no secrets, read-only token) to it. Safety comes from what those workflows
-are able to do, and is enforced by `test_workflow_security`:
+Strict mode means no stale green result can merge. When any PR lands, every
+other in-flight PR is behind again and blocked. The next train run (woken by
+the push to `latest`) refreshes it against the new `latest`, and it has to pass
+again. Two migration PRs that each passed alone can't both land, because the
+second must retest after the first and migration-order then sees the clash.
 
-- Every workflow triggered by `pull_request` declares least-privilege permissions;
-  the only write grants (`docker-image` build `packages: write`, CodeQL
-  `security-events: write`) are skipped for `merge-train/batch-*` heads. Neither
-  is a required check and every member already ran both as its own PR.
-- No job that runs on a candidate references a repository secret other than the
-  token, and none gets OIDC. `AUTO_MERGE_TOKEN` appears only in trusted
-  workflows that never check out PR code (`merge-train.yml` at `latest`,
-  `owner-auto-merge.yml`, which skips candidates).
-- Workflow definitions that run on the candidate are those on `latest`, because
-  `.github/` changes cannot be in a candidate (the diff is verified).
-- Caches written by a PR run are scoped to that PR's ref and cannot poison
-  `latest`'s; `push` workflows are limited to `latest`/`release`, so pushing a
-  staging branch starts nothing.
+## What it costs and what it buys
 
-A bot-owned fork would be a stronger boundary but needs a new account and
-credential; this is not required by the design above. If the workflow audit
-ever fails, disable the lane with `MERGE_TRAIN_BATCH=false`.
+With strict on, at most one PR can merge per full CI run on a given `latest`.
+Each merge makes the rest retest. Running several refreshes at once doesn't
+raise that ceiling. What it removes is idle time:
 
-## Promotion and cancellation
+- the next PR is already testing when the current one lands,
+- a PR that turns red after its refresh no longer costs a whole serial slot,
+- no single PR (in flight, red, stuck or a refused fork) can hold every other
+  PR in place.
 
-The train never enables auto-merge at creation. When a candidate's three
-checks pass on its exact head, `latest` still equals the manifest base, and every
-member still has auto-merge on its recorded head, the train re-fetches state and
-enables native auto-merge (with `expectedHeadOid`). If GitHub refuses because the
-checks are already complete, it merges that exact head with a `sha`-pinned
-request after the same re-check. The account that does this is the owner's
-token, which can bypass rules, so the checks above (current base, CLEAN merge
-state, head match) are what keep it from acting as a bypass; there is a short
-window between re-check and merge that GitHub's strict rule closes if `latest`
-moves.
+The price is CI minutes. Of the PRs refreshed together, only the first to go
+green merges; the others' runs are discarded and they refresh again. With depth
+`d`, up to `d - 1` runs per merge are thrown away. Lower `MERGE_TRAIN_DEPTH`
+if runner minutes matter more than latency.
 
-The approval snapshot is each member's auto-merge on its exact head at staging
-and again at promotion. Revocation after that instant cannot be made atomic
-with the merge. Closing the candidate is the cancellation mechanism. Retired
-for: base moved, source head or approval changed, failed check, 2 hour timeout,
-batching disabled, policy unverifiable (checked via the runner's own credential
-against `rules/branches/latest`, with the reason logged). Failed candidates are
-tagged in their body; the same group of (PR, head) pairs is never restaged, and
-members are retried separately, so one bad member cannot stall the others.
+## Wakeups
 
-Candidates merge with a merge commit, so GitHub closes each source PR by
-ancestry with the author's commits intact. This was verified only with local
-git until the first real candidate merges; see the pull request for receipts.
-
-## Controls and wakeups
-
-`MERGE_TRAIN_BATCH=false` disables the lane and retires active candidates.
-`MERGE_TRAIN_DEPTH` sets the size (1 to 5). The train wakes on pushes to `latest`,
-PR events, and every finished required-check run on a pull request; a
-single-slot concurrency group collapses bursts. Dry run and the 15 minute
-schedule remain for recovery. Record per candidate: PRs merged, queue wait,
-runner minutes.
+The train runs on a push to `latest`, on PR events (opened, edited,
+auto-merge on/off, ready/draft, synchronize, reopened, closed), when App
+Tests, Lint or Migration Order finish on a PR, on a 15-minute schedule as a
+safety net, and by hand (dry run by default). CI events for heads that aren't
+a current approved PR are ignored. One run is pending at a time.
