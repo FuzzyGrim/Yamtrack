@@ -625,6 +625,14 @@ def report(options, receipts):
 
 def main():
     """Run fresh independent repeat processes; never attach to live workers."""
+    if "--freshness" in sys.argv[1:]:
+        # Production queue plan, real workers: see benchmark_celery_freshness.py.
+        from scripts import benchmark_celery_freshness
+
+        benchmark_celery_freshness.main(
+            [arg for arg in sys.argv[1:] if arg != "--freshness"]
+        )
+        return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--size", type=int, default=1000)
