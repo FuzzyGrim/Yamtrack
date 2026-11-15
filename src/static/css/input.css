@@ -3365,6 +3365,26 @@ html.light .theme-toggle-icon-moon {
   z-index: 6;
 }
 
+/* Desktop has room for the expanded status; touch cards keep their compact badge. */
+.media-quick-status { display: none; }
+@media (hover: hover) and (pointer: fine) and (min-width: 601px) {
+  .media-quick-status-original { display: none; }
+  .media-quick-status { display: block; position: absolute; top: 8px; left: 8px; z-index: 31; }
+  .media-quick-status-button { display: flex; align-items: center; gap: 0; height: 24px; padding: 4px 8px;
+    color: white; background: rgba(17, 24, 39, .9); border-radius: 6px; box-shadow: 0 4px 6px #0004; }
+  .media-quick-status-icon { flex: none; width: 16px; height: 16px; line-height: 16px; }
+  .media-quick-status-label { display: block; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
+    font-size: 12px; transition: max-width .2s ease, opacity .2s ease, margin .2s ease; }
+  .media-quick-status-active .media-quick-status-label { max-width: 130px; opacity: 1; margin-left: 6px; }
+  .media-card-visual [data-next-episode="true"] { transition: opacity .2s ease; }
+  .media-quick-status-active [data-next-episode="true"] { opacity: 0; pointer-events: none; }
+}
+.media-quick-status-error { position: absolute; z-index: 32; top: 36px; left: 8px; right: 8px;
+  padding: 4px; color: white; background: #991b1b; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .media-quick-status-label, .media-card-visual [data-next-episode="true"] { transition: none; }
+}
+
 .media-card-next-episode-compact {
   display: none;
 }
