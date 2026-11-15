@@ -794,6 +794,22 @@ def _schedule_missing_day_builds(user, day_list, start_date, end_date) -> None:
         )
 
 
+def _eager_day_builder(user):
+    """Build a batch of missing days the way the background sync does.
+
+    Eager (test) mode has no worker, so reads build their missing days
+    inline. Going through ``statistics_sync._build_days`` builds each slice
+    from one range-wide prefetch instead of ~13 queries per day, and writes
+    the same day payloads to the cache.
+    """
+    from app import statistics_sync
+
+    def build(days):
+        return statistics_sync._build_days(user, sorted(days, reverse=True), None, {})
+
+    return build
+
+
 def get_statistics_minutes_by_type(user, start_date, end_date, range_name=None):
     """Return only minute totals for a statistics range.
 
@@ -815,6 +831,7 @@ def get_statistics_minutes_by_type(user, start_date, end_date, range_name=None):
             user,
             day_list,
             build_missing=True,
+            build_days=_eager_day_builder(user),
         )
     result = _aggregate_minutes_per_media_type_from_days(
         user,
@@ -861,6 +878,7 @@ def get_statistics_data(user, start_date, end_date, range_name=None):
             start_date,
             end_date,
             build_missing=build_missing,
+            build_days=_eager_day_builder(user) if build_missing else None,
         )
         if not build_missing:
             _schedule_missing_day_builds(user, day_list, start_date, end_date)
