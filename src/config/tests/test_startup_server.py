@@ -74,3 +74,39 @@ class StartupServerTests(SimpleTestCase):
             # probe's TIME_WAIT connection can make this bind fail spuriously.
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(("", self.port))
+
+
+# The kernel may hand a process-wide SIGTERM to any thread. This sends it to a
+# helper thread on purpose, which is what happened on a loaded CI runner: an
+# untimed wait on the main thread never woke to run the handler, and the
+# server ignored the signal until it was killed.
+_SIGNAL_ON_ANOTHER_THREAD = """
+import signal, socket, sys, threading, time
+from config import startup_server
+
+with socket.socket() as sock:
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+
+
+def deliver():
+    time.sleep(0.5)
+    signal.pthread_kill(threading.get_ident(), signal.SIGTERM)
+
+
+threading.Thread(target=deliver).start()
+startup_server.serve(port)
+"""
+
+
+class StartupServerSignalThreadTests(SimpleTestCase):
+    def test_sigterm_on_another_thread_still_stops_the_server(self):
+        completed = subprocess.run(  # noqa: S603 - fixed interpreter and script
+            [sys.executable, "-c", _SIGNAL_ON_ANOTHER_THREAD],
+            cwd=SRC,
+            env={**os.environ, "PYTHONPATH": str(SRC)},
+            capture_output=True,
+            timeout=15,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr[-2000:])
