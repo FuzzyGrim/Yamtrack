@@ -2,7 +2,8 @@ function dateRangePicker() {
   return {
     isOpen: false,
     activeTab: "predefined",
-    selectedRange: "Last 12 Months",
+    selectedRange: "last-12-months",
+    selectedRangeLabel: gettext("Last 12 Months"),
     startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1))
       .toISOString()
       .split("T")[0],
@@ -10,17 +11,17 @@ function dateRangePicker() {
     customRangeLabel: "",
 
     predefinedRanges: [
-      { name: "Today" },
-      { name: "Yesterday" },
-      { name: "This Week" },
-      { name: "Last 7 Days" },
-      { name: "This Month" },
-      { name: "Last 30 Days" },
-      { name: "Last 90 Days" },
-      { name: "This Year" },
-      { name: "Last 6 Months" },
-      { name: "Last 12 Months" },
-      { name: "All Time" },
+      { key: "today", label: gettext("Today") },
+      { key: "yesterday", label: gettext("Yesterday") },
+      { key: "this-week", label: gettext("This Week") },
+      { key: "last-7-days", label: gettext("Last 7 Days") },
+      { key: "this-month", label: gettext("This Month") },
+      { key: "last-30-days", label: gettext("Last 30 Days") },
+      { key: "last-90-days", label: gettext("Last 90 Days") },
+      { key: "this-year", label: gettext("This Year") },
+      { key: "last-6-months", label: gettext("Last 6 Months") },
+      { key: "last-12-months", label: gettext("Last 12 Months") },
+      { key: "all-time", label: gettext("All Time") },
     ],
 
     init() {
@@ -42,14 +43,24 @@ function dateRangePicker() {
       this.isOpen = !this.isOpen;
     },
 
-    selectPredefinedRange(rangeName) {
-      this.selectedRange = rangeName;
-      this.updateDatesFromRange(rangeName);
+    setSelectedRange(rangeKey) {
+      const range = this.predefinedRanges.find(({ key }) => key === rangeKey);
+      if (!range) {
+        throw new Error(`Unknown predefined date range: ${rangeKey}`);
+      }
+
+      this.selectedRange = rangeKey;
+      this.selectedRangeLabel = range.label;
+    },
+
+    selectPredefinedRange(rangeKey) {
+      this.setSelectedRange(rangeKey);
+      this.updateDatesFromRange(rangeKey);
       this.isOpen = false;
       this.applyDateFilter();
     },
 
-    updateDatesFromRange(rangeName) {
+    updateDatesFromRange(rangeKey) {
       const today = new Date();
       // Set time to start of day to avoid timezone issues
       today.setHours(0, 0, 0, 0);
@@ -58,21 +69,21 @@ function dateRangePicker() {
 
       let shouldFormatDates = true;
 
-      switch (rangeName) {
-        case "Today":
+      switch (rangeKey) {
+        case "today":
           // Both start and end are today
           start = new Date(today);
           end = new Date(today);
           break;
 
-        case "Yesterday":
+        case "yesterday":
           // Both start and end are yesterday
           start = new Date(today);
           start.setDate(start.getDate() - 1);
           end = new Date(start);
           break;
 
-        case "This Week":
+        case "this-week":
           // Start from Monday of current week
           const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
           const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday the first day
@@ -81,37 +92,37 @@ function dateRangePicker() {
           end = new Date(today);
           break;
 
-        case "Last 7 Days":
+        case "last-7-days":
           start = new Date(today);
           start.setDate(start.getDate() - 6); // 6 days ago + today = 7 days
           end = new Date(today);
           break;
 
-        case "This Month":
+        case "this-month":
           // First day of current month to today
           start = new Date(today.getFullYear(), today.getMonth(), 1);
           end = new Date(today);
           break;
 
-        case "Last 30 Days":
+        case "last-30-days":
           start = new Date(today);
           start.setDate(start.getDate() - 29); // 29 days ago + today = 30 days
           end = new Date(today);
           break;
 
-        case "Last 90 Days":
+        case "last-90-days":
           start = new Date(today);
           start.setDate(start.getDate() - 89); // 89 days ago + today = 90 days
           end = new Date(today);
           break;
 
-        case "This Year":
+        case "this-year":
           // January 1st of current year to today
           start = new Date(today.getFullYear(), 0, 1);
           end = new Date(today);
           break;
 
-        case "Last 6 Months":
+        case "last-6-months":
           start = new Date(today);
           start.setMonth(start.getMonth() - 6);
           // If the day doesn't exist in the target month, it will roll over
@@ -123,7 +134,7 @@ function dateRangePicker() {
           end = new Date(today);
           break;
 
-        case "Last 12 Months":
+        case "last-12-months":
           start = new Date(today);
           start.setFullYear(start.getFullYear() - 1);
           // Handle the same day-of-month issue as with 6 months
@@ -133,11 +144,14 @@ function dateRangePicker() {
           end = new Date(today);
           break;
 
-        case "All Time":
+        case "all-time":
           this.startDate = "all";
           this.endDate = "all";
           shouldFormatDates = false;
           break;
+
+        default:
+          throw new Error(`Unknown predefined date range: ${rangeKey}`);
       }
 
       // Format dates as YYYY-MM-DD strings only if not "All Time"
@@ -169,7 +183,8 @@ function dateRangePicker() {
     },
 
     applyCustomRange() {
-      this.selectedRange = this.customRangeLabel;
+      this.selectedRange = null;
+      this.selectedRangeLabel = this.customRangeLabel;
       this.isOpen = false;
       this.applyDateFilter();
     },
@@ -230,10 +245,12 @@ function dateRangePicker() {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
-      const shortMonth = date.toLocaleString(undefined, { month: "short" });
-      const longMonth = date.toLocaleString(undefined, { month: "long" });
-      const shortWeekday = date.toLocaleString(undefined, { weekday: "short" });
-      const longWeekday = date.toLocaleString(undefined, { weekday: "long" });
+      // Use the page language set by Django, not the browser's locale
+      const locale = document.documentElement.lang || undefined;
+      const shortMonth = date.toLocaleString(locale, { month: "short" });
+      const longMonth = date.toLocaleString(locale, { month: "long" });
+      const shortWeekday = date.toLocaleString(locale, { weekday: "short" });
+      const longWeekday = date.toLocaleString(locale, { weekday: "long" });
       const ordinalSuffix = this.getOrdinalSuffix(date.getDate());
 
       const formatters = {
@@ -287,7 +304,7 @@ function dateRangePicker() {
     detectRangeFromDates() {
       // Check for All Time (arbitrary start date)
       if (this.startDate === "all" && this.endDate === "all") {
-        this.selectedRange = "All Time";
+        this.setSelectedRange("all-time");
         return;
       }
       // Parse the current start and end dates
@@ -309,7 +326,7 @@ function dateRangePicker() {
 
       // Check for Today
       if (isSameDay(startDate, today) && isSameDay(endDate, today)) {
-        this.selectedRange = "Today";
+        this.setSelectedRange("today");
         return;
       }
 
@@ -317,7 +334,7 @@ function dateRangePicker() {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       if (isSameDay(startDate, yesterday) && isSameDay(endDate, yesterday)) {
-        this.selectedRange = "Yesterday";
+        this.setSelectedRange("yesterday");
         return;
       }
 
@@ -327,7 +344,7 @@ function dateRangePicker() {
       const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       thisWeekStart.setDate(today.getDate() - diffToMonday);
       if (isSameDay(startDate, thisWeekStart) && isSameDay(endDate, today)) {
-        this.selectedRange = "This Week";
+        this.setSelectedRange("this-week");
         return;
       }
 
@@ -335,14 +352,14 @@ function dateRangePicker() {
       const last7DaysStart = new Date(today);
       last7DaysStart.setDate(today.getDate() - 6);
       if (isSameDay(startDate, last7DaysStart) && isSameDay(endDate, today)) {
-        this.selectedRange = "Last 7 Days";
+        this.setSelectedRange("last-7-days");
         return;
       }
 
       // Check for This Month
       const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
       if (isSameDay(startDate, thisMonthStart) && isSameDay(endDate, today)) {
-        this.selectedRange = "This Month";
+        this.setSelectedRange("this-month");
         return;
       }
 
@@ -350,7 +367,7 @@ function dateRangePicker() {
       const last30DaysStart = new Date(today);
       last30DaysStart.setDate(today.getDate() - 29);
       if (isSameDay(startDate, last30DaysStart) && isSameDay(endDate, today)) {
-        this.selectedRange = "Last 30 Days";
+        this.setSelectedRange("last-30-days");
         return;
       }
 
@@ -358,14 +375,14 @@ function dateRangePicker() {
       const last90DaysStart = new Date(today);
       last90DaysStart.setDate(today.getDate() - 89);
       if (isSameDay(startDate, last90DaysStart) && isSameDay(endDate, today)) {
-        this.selectedRange = "Last 90 Days";
+        this.setSelectedRange("last-90-days");
         return;
       }
 
       // Check for This Year
       const thisYearStart = new Date(today.getFullYear(), 0, 1);
       if (isSameDay(startDate, thisYearStart) && isSameDay(endDate, today)) {
-        this.selectedRange = "This Year";
+        this.setSelectedRange("this-year");
         return;
       }
 
@@ -389,7 +406,7 @@ function dateRangePicker() {
         isWithinOneDay(startDate, last6MonthsStart) &&
         isSameDay(endDate, today)
       ) {
-        this.selectedRange = "Last 6 Months";
+        this.setSelectedRange("last-6-months");
         return;
       }
 
@@ -405,7 +422,7 @@ function dateRangePicker() {
         isWithinOneDay(startDate, last12MonthsStart) &&
         isSameDay(endDate, today)
       ) {
-        this.selectedRange = "Last 12 Months";
+        this.setSelectedRange("last-12-months");
         return;
       }
 
@@ -413,7 +430,8 @@ function dateRangePicker() {
       this.customRangeLabel = `${this.formatDisplayDate(
         this.startDate
       )} - ${this.formatDisplayDate(this.endDate)}`;
-      this.selectedRange = this.customRangeLabel;
+      this.selectedRange = null;
+      this.selectedRangeLabel = this.customRangeLabel;
     },
   };
 }

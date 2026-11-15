@@ -8,6 +8,7 @@ This page covers working on Yamtrack from source.
 - [tailwindcss CLI](https://tailwindcss.com/docs/installation/tailwind-cli) (install with `npm install -g tailwindcss @tailwindcss/cli`)
 - Docker
 - Redis
+- [GNU gettext](https://www.gnu.org/software/gettext/) (`sudo apt install gettext` on Debian/Ubuntu, `brew install gettext` on macOS, `winget install mlocati.GetText` on Windows, which installs the [gettext-iconv-windows](https://mlocati.github.io/articles/gettext-iconv-windows.html) binaries recommended by Django)
 
 ## General setup
 
@@ -65,6 +66,18 @@ cd src
 uv run manage.py migrate
 ```
 
+### Compile translations
+
+The compiled translation catalogs (`.mo` files) are not committed, so build them from the `.po` files:
+
+```bash
+cd src
+uv run manage.py compilemessages
+```
+
+Run it again after pulling changes to the translations or editing them yourself.
+See [Localization](localization.md) for the translation workflow.
+
 ### Run the app
 
 The repository ships a `Procfile` that defines the web server, the Celery
@@ -108,6 +121,10 @@ Open the development server at:
 http://localhost:8000
 ```
 
+## Localization (i18n)
+
+See [Localization](localization.md).
+
 ## Documentation
 
 Install the docs dependency group, then serve the docs from the current checkout:
@@ -124,6 +141,8 @@ Install Playwright browsers before running integration tests:
 ```bash
 uv run playwright install
 ```
+
+Some tests check the translated text, so compile the translations first (see [Compile translations](#compile-translations)). Without them, those tests fail because the "translated" text is still English, with messages such as `'No media was imported.' == 'No media was imported.'`.
 
 Run the Django test suite from the `src` directory:
 
