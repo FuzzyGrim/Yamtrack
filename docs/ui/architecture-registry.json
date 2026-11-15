@@ -1137,7 +1137,7 @@
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Compiled by the Expo export through the MediaCardSlot native placement; no runtime interaction pass."
+          "evidence": "A physical Duo verified the Lists sheet rail close button at half and full height and dismissed it; Lists form interactions remain unverified."
         },
         "android": {
           "status": "unverified",
