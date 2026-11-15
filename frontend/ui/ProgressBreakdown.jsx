@@ -37,7 +37,7 @@ function initialOpen(model, seasons) {
 }
 
 function episodeCode(season, episode) {
-  return `${season.number}x${String(episode.number).padStart(2, '0')}`;
+  return `S${String(season.number).padStart(2, '0')}E${String(episode.number).padStart(2, '0')}`;
 }
 
 function seasonCount(season, labels) {

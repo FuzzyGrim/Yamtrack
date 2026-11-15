@@ -45,6 +45,7 @@ jobs:
       - name: Check migrations against the base branch
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           # Only latest has this problem; release PRs are not checked.
           if [ "$BASE_REF" != "latest" ]; then
@@ -54,6 +55,14 @@ jobs:
           # Fetch latest now rather than trusting the checkout, because this job
           # can be re-run after latest has moved.
           git fetch --no-tags origin latest
+          # Batch candidates must never change migrations, even if their branch
+          # is accidentally modified after the scheduler constructed it.
+          if [[ "$HEAD_REF" == merge-train/batch-* ]]; then
+            if [ -n "$(git diff --name-only --no-renames origin/latest...HEAD -- 'src/*/migrations/**')" ]; then
+              echo "::error::A cumulative batch may not change migration files."
+              exit 1
+            fi
+          fi
           python3 scripts/check_migration_order.py HEAD origin/latest
 
       - name: Find out whether the pull request changes migrations

@@ -171,7 +171,7 @@ class HistoryCalendarFeedTests(TestCase):
 
         body = self._feed()
 
-        self.assertIn("SUMMARY:Watched: Severance S2E5", body)
+        self.assertIn("SUMMARY:Watched: Severance S02E05", body)
 
     def test_reading_uses_its_own_verb(self):
         """Books are read, not watched."""

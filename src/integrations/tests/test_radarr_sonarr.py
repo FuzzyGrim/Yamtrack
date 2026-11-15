@@ -308,7 +308,10 @@ class ArrImporterTests(TestCase):
             api_key=helpers.encrypt("sonarr-key"),
         )
 
-    @patch("integrations.imports.radarr.upsert_collection_source_state")
+    @patch(
+        "integrations.imports.radarr.sync_collection_source_state",
+        return_value=(None, True),
+    )
     @patch("integrations.imports.radarr.services.get_media_metadata")
     @patch("integrations.imports.radarr.RadarrClient.movies")
     def test_radarr_import_uses_media_type_first_metadata_lookup(
@@ -342,7 +345,10 @@ class ArrImporterTests(TestCase):
             Sources.TMDB.value,
         )
 
-    @patch("integrations.imports.sonarr.upsert_collection_source_state")
+    @patch(
+        "integrations.imports.sonarr.sync_collection_source_state",
+        return_value=(None, True),
+    )
     @patch("integrations.imports.sonarr.services.get_media_metadata")
     @patch("integrations.imports.sonarr.SonarrClient.series")
     def test_sonarr_import_uses_media_type_first_metadata_lookup(

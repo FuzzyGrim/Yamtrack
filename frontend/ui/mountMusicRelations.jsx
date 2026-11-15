@@ -47,6 +47,10 @@ function openRelation(relation) {
   if (relation.href) window.location.assign(relation.href);
 }
 
+// The web card renders an img even when the server has no artwork. Keep the
+// release's person placeholder until a relation image is available.
+const placeholder = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180"><g transform="translate(42 72) scale(1.5)" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g></svg>')}`;
+
 function Grid({ props }) {
   const [palette, setPalette] = useState(readPalette);
   useEffect(() => {
@@ -60,7 +64,7 @@ function Grid({ props }) {
       scheme.removeEventListener('change', update);
     };
   }, []);
-  return <MusicView part="relations" relations={props.relations} labels={props.labels}
+  return <MusicView part="relations" relations={props.relations.map(relation => ({ ...relation, image: relation.image || placeholder }))} labels={props.labels}
     palette={palette} onOpenRelation={openRelation} />;
 }
 

@@ -115,7 +115,7 @@ def wetrakr_connect(request):
     if not client_id:
         messages.error(
             request,
-            "Add your WeTrakr app key in Providers > WeTrakr > Connection before connecting.",
+            "This instance has no WeTrakr app key, so WeTrakr cannot be connected.",
         )
         return redirect(f"{reverse('provider_detail', args=['wetrakr'])}?tab=connection")
     existing = WeTrakrAccount.objects.filter(user=request.user).first()

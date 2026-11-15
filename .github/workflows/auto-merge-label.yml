@@ -1,0 +1,69 @@
+name: Sync auto-merge label
+
+# Search open PRs with `label:auto-merge` or `-label:auto-merge`.
+# Reconcile periodically as a safety net for missed events and existing PRs.
+# This workflow runs trusted default-branch code and never checks out PR code.
+on:
+  pull_request_target:
+    types: [opened, reopened, closed, auto_merge_enabled, auto_merge_disabled]
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-label
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync labels with GitHub's current auto-merge state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          # Preserve an existing label's color and description.
+          if ! gh api "repos/$GH_REPO/labels/auto-merge" >/dev/null 2>&1; then
+            gh label create auto-merge --color 1d76db \
+              --description "GitHub auto-merge is enabled" || \
+              gh api "repos/$GH_REPO/labels/auto-merge" >/dev/null
+          fi
+
+          sync_pr() {
+            local number="$1" pr has_label wants_label
+            echo "Checking PR #$number"
+            # Read the current state instead of trusting a possibly delayed event.
+            pr=$(gh api "repos/$GH_REPO/pulls/$number")
+            has_label=$(jq '[.labels[].name] | index("auto-merge") != null' <<<"$pr")
+            wants_label=$(jq '.state == "open" and .auto_merge != null' <<<"$pr")
+            if [ "$wants_label" = true ] && [ "$has_label" = false ]; then
+              echo "Adding auto-merge to PR #$number"
+              gh api --method POST "repos/$GH_REPO/issues/$number/labels" -f 'labels[]=auto-merge' >/dev/null
+            elif [ "$wants_label" = false ] && [ "$has_label" = true ]; then
+              echo "Removing auto-merge from PR #$number"
+              gh api --method DELETE "repos/$GH_REPO/issues/$number/labels/auto-merge" >/dev/null
+            fi
+          }
+
+          if [ "$EVENT_NAME" = pull_request_target ]; then
+            sync_pr "$PR_NUMBER"
+          else
+            # Include closed labeled PRs so a missed close event is repaired too.
+            echo "Listing open pull requests"
+            open_prs=$(gh api --paginate "repos/$GH_REPO/pulls?state=open&per_page=100" --jq '.[].number')
+            echo "Listing closed pull requests with the label"
+            closed_prs=$(gh api --paginate "repos/$GH_REPO/issues?state=closed&labels=auto-merge&per_page=100" --jq '.[] | select(.pull_request) | .number')
+            for number in $open_prs $closed_prs; do
+              sync_pr "$number"
+            done
+          fi

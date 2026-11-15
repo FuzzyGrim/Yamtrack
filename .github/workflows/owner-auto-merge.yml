@@ -28,6 +28,7 @@ jobs:
     if: >-
       github.event.pull_request.user.login == github.repository_owner &&
       github.event.pull_request.head.repo.full_name == github.repository &&
+      !startsWith(github.event.pull_request.head.ref, 'merge-train/batch-') &&
       !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
@@ -36,6 +37,7 @@ jobs:
           GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN }}
           PR_ID: ${{ github.event.pull_request.node_id }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::AUTO_MERGE_TOKEN secret is not set."
@@ -50,6 +52,13 @@ jobs:
               }
             }'; then
             exit 0
+          fi
+
+          # Synthetic batches must exclusively use native auto-merge, never
+          # the administrator-token immediate merge fallback.
+          if [[ "$HEAD_REF" == merge-train/batch-* ]]; then
+            echo "::error::Batch auto-merge could not be enabled; no manual merge attempted."
+            exit 1
           fi
 
           # GitHub refuses auto-merge on a PR that can already merge, which

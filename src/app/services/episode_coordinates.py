@@ -72,7 +72,7 @@ def resolve_episode_coordinate(
     normalized_episode_number = int(episode_number)
     episode = episode_map.get(normalized_episode_number)
     if episode is None:
-        message = f"Episode {season_number}x{normalized_episode_number} was not found."
+        message = f"Episode S{int(season_number):02d}E{normalized_episode_number:02d} was not found."
         raise InvalidEpisodeCoordinateError(message)
     return EpisodeCoordinate(season_metadata=season_metadata, episode=episode)
 

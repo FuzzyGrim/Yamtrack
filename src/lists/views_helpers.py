@@ -140,6 +140,14 @@ def _get_completed_item_ids(user, item_ids):
             .values_list("item_id", flat=True)
             .distinct()
         )
+    from app.library_query.spec import ROUTING_MODEL
+    from app.library_query.trackers import tracker_sources
+
+    source = tracker_sources(user, MediaTypes.MUSIC.value, ROUTING_MODEL, include_albums=True)[0]
+    completed.update(
+        Item.objects.filter(pk__in=item_ids).filter(pk__in=source.item_ids(user, Q(status=Status.COMPLETED.value)))
+        .values_list("pk", flat=True)
+    )
     return completed
 
 
@@ -245,6 +253,24 @@ def _get_list_completed_counts(user, list_ids):
                 status=Status.COMPLETED.value,
             ).values("item_id"),
         )
+    from django.db.models import Exists, OuterRef
+
+    from app.models import PodcastShowTracker
+
+    show_tracker = PodcastShowTracker.objects.filter(
+        user=user,
+        status=Status.COMPLETED.value,
+        show__podcast_uuid=OuterRef("media_id"),
+        show__source=OuterRef("source"),
+    )
+    completed |= Q(item_id__in=Item.objects.filter(
+        media_type=MediaTypes.PODCAST.value,
+    ).filter(Exists(show_tracker)).values("pk"))
+    from app.library_query.spec import ROUTING_MODEL
+    from app.library_query.trackers import tracker_sources
+
+    source = tracker_sources(user, MediaTypes.MUSIC.value, ROUTING_MODEL, include_albums=True)[0]
+    completed |= Q(item_id__in=source.item_ids(user, Q(status=Status.COMPLETED.value)))
     return dict(
         CustomListItem.objects.filter(completed, custom_list_id__in=list_ids)
         .order_by()
@@ -841,6 +867,12 @@ def _attach_media_with_aggregation(item_list, media_user):
                 media_manager._aggregate_item_data(display_media, entries)
             media_by_item_id[item_id] = display_media
 
+    from app.services.podcast_list_tracking import podcast_show_trackers_for_items
+
+    media_by_item_id.update(podcast_show_trackers_for_items(media_user, item_list))
+    from app.services.music import album_trackers_for_list_items
+
+    media_by_item_id.update(album_trackers_for_list_items(media_user, item_list))
     for item in item_list:
         item.media = media_by_item_id.get(item.id)
     from app.media_list_filters import attach_card_collection_platforms

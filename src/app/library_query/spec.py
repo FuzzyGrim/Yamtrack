@@ -124,6 +124,7 @@ class LibraryQuery:
     sort_list_id: int | None = None
     union_list_ids: tuple[int, ...] = ()
     include_collection_only: bool = False
+    include_podcast_shows: bool = False
     dedupe_cross_provider: bool = True
     routing: str = ROUTING_LIBRARY
     provider_region: str = ""

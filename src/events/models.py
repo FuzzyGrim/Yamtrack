@@ -497,6 +497,9 @@ class Event(models.Model):
         if self.release_type:
             return f"{self.item} ({self.get_release_type_display()} release)"
 
+        if self.content_number is not None and self.item.media_type == MediaTypes.SEASON.value and self.item.season_number is not None:
+            return f"{self.item.title} {self.season_episode_label}"
+
         if self.content_number:
             return (
                 f"{self.item.__str__()} "

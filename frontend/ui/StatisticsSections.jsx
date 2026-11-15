@@ -424,7 +424,7 @@ export function StatisticsTalentSection({
 function OverviewPanel({ panel, palette, onSelectItem }) {
   const items = panel.items || [];
   const summary = items.map(item => `${item.title} ${item.subtitle || item.value || ''}`.trim()).join('. ');
-  return <View style={[styles.overviewPanel, { backgroundColor: palette.surfaceStrong, borderRadius: palette.radius }]}>
+  return <View testID="statistics-overview-panel" style={[styles.overviewPanel, { backgroundColor: palette.surfaceStrong, borderRadius: palette.radius }]}>
     <Text style={[styles.overviewPanelTitle, { color: palette.textSecondary }]}>{panel.title}</Text>
     {!items.length
       ? <View style={styles.overviewPanelEmpty}>
@@ -550,7 +550,7 @@ export function StatisticsMediaTypeOverview({
           <StatisticsHoursChart chart={chart} labels={labels} palette={colors} flat />
         </View>)}
         {panels.length ? <View style={[styles.panelGrid, stacked && styles.panelGridStacked]}>
-          {panels.map(panel => <View key={panel.key || panel.title} style={styles.panelCell}>
+          {panels.map(panel => <View key={panel.key || panel.title} style={[styles.panelCell, stacked && styles.panelCellStacked]}>
             <OverviewPanel panel={panel} palette={colors} onSelectItem={onSelectItem} />
           </View>)}
         </View> : null}
@@ -688,5 +688,6 @@ const styles = StyleSheet.create({
   panelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'stretch' },
   panelGridStacked: { flexDirection: 'column' },
   panelCell: { flexGrow: 1, flexBasis: '45%', minWidth: 240 },
+  panelCellStacked: { width: '100%', minWidth: 0, flexBasis: 'auto' },
   pressed: { opacity: 0.75 },
 });

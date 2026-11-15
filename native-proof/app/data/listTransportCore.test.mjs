@@ -212,6 +212,16 @@ test('Date Added sorts by membership timestamp within a day, not tracking creati
   assert.equal(rows[0].addedDate, '2026-11-09');
 });
 
+test('podcast list rows use tracking statuses and keep untracked rows blank', () => {
+  const rows = listItemsFromPayload({ items: { results: [
+    itemEntry({ id: 1, status: 1, item: { media_type: 'podcast', title: 'Show' } }),
+    itemEntry({ id: 2, status: 3, item: { media_type: 'podcast', title: 'Episode' } }),
+    itemEntry({ id: 3, status: null, item: { media_type: 'podcast', title: 'Untracked' } }),
+  ] } });
+  assert.deepEqual(rows.map(row => row.status), ['In progress', 'Completed', null]);
+  assert.deepEqual(rows.map(row => row.cardShape), ['square', 'square', 'square']);
+});
+
 test('activity entries carry the server description wording', () => {
   const entries = activityFromPayload({
     results: [

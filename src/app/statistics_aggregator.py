@@ -1286,6 +1286,62 @@ def _merge_undated_rows(acc, user, active_types):
             items_by_type[media_type][row["item_id"]] = existing
 
 
+def _merge_album_trackers(acc, user, active_types, start_date, end_date, is_all_time_query):
+    """Add the user's album trackers to the Music items.
+
+    Album trackers are separate from Music track plays. They count in
+    library and score statistics without inventing plays or listening time.
+    """
+    if MediaTypes.MUSIC.value not in active_types:
+        return
+    items_by_type = acc.items_by_type
+    AlbumTracker = apps.get_model("app", "AlbumTracker")
+    albums = list(
+        AlbumTracker.objects.filter(user=user)
+        .select_related("album")
+        .order_by("-updated_at", "-pk")
+    )
+    release_ids = {
+        row.album.musicbrainz_release_id
+        for row in albums
+        if row.album.musicbrainz_release_id
+    }
+    Album = apps.get_model("app", "Album")
+    release_groups = dict(
+        Album.objects.filter(musicbrainz_release_id__in=release_ids)
+        .exclude(musicbrainz_release_group_id__isnull=True)
+        .exclude(musicbrainz_release_group_id="")
+        .values_list("musicbrainz_release_id", "musicbrainz_release_group_id")
+    )
+    seen_albums = set()
+    for tracker in albums:
+        album = tracker.album
+        identity = (
+            album.musicbrainz_release_group_id
+            or release_groups.get(album.musicbrainz_release_id)
+            or album.musicbrainz_release_id
+            or f"local:{album.pk}"
+        )
+        if identity in seen_albums:
+            continue
+        seen_albums.add(identity)
+        dates = [value for value in (tracker.start_date, tracker.end_date) if value]
+        if not is_all_time_query and not any(
+            (start_date is None or value >= start_date)
+            and (end_date is None or value <= end_date)
+            for value in dates
+        ):
+            continue
+        items_by_type[MediaTypes.MUSIC.value][f"album:{identity}"] = {
+            "item_id": None,
+            "media_id": None,
+            "media_type": MediaTypes.MUSIC.value,
+            "status": tracker.status,
+            "score": float(tracker.score) if tracker.score is not None else None,
+            "activity_dt": tracker.end_date or tracker.start_date or tracker.created_at,
+        }
+
+
 # --- Status, scores and top rated ------------------------------------------
 
 
@@ -1380,11 +1436,40 @@ def _user_score_scale(user):
     return score_scale_max
 
 
-def _apply_top_rated_scores(media_list, score_map):
-    for media in media_list:
-        score = score_map.get((media._meta.model_name, media.id))
-        if score is not None:
-            media.aggregated_score = score
+def _top_rated_ref(meta):
+    return (meta.get("media_type"), meta.get("media_id"), meta.get("item_id"))
+
+
+def _load_grouped_anime(refs):
+    """Load grouped anime shows: TV rows a flat Anime id would not find."""
+    TV = apps.get_model("app", MediaTypes.TV.value)
+    grouped = {
+        (tv.pk, tv.item_id): tv
+        for tv in TV.objects.filter(pk__in=[ref[1] for ref in refs]).select_related(
+            "item"
+        )
+    }
+    loaded = {}
+    for ref in refs:
+        tv = grouped.get((ref[1], ref[2]))
+        if tv:
+            tv.route_media_type = MediaTypes.ANIME.value
+            tv.item.route_media_type = MediaTypes.ANIME.value
+            loaded[ref] = tv
+    return loaded
+
+
+def _annotate_top_rated_refs(refs, media_map):
+    """Annotate the rows of ``refs``; a row deleted meanwhile is left out."""
+    annotated = stats._annotate_top_rated_media([media_map[ref] for ref in refs])
+    by_identity = {(row._meta.concrete_model, row.pk): row for row in annotated}
+    loaded = {}
+    for ref in refs:
+        row = media_map[ref]
+        found = by_identity.get((row._meta.concrete_model, row.pk))
+        if found is not None:
+            loaded[ref] = found
+    return loaded
 
 
 def _build_scores_and_top_rated(acc, distribution_types, score_scale_max, row_memo):
@@ -1452,15 +1537,28 @@ def _build_scores_and_top_rated(acc, distribution_types, score_scale_max, row_me
         meta for _, _, meta in sorted(top_rated_heap, key=lambda x: (-x[0], x[1]))
     ]
 
-    media_refs = [
-        (meta.get("media_type"), meta.get("media_id")) for meta in top_rated_meta
-    ]
+    media_refs = [_top_rated_ref(meta) for meta in top_rated_meta]
     for metas in top_rated_by_type.values():
-        media_refs.extend(
-            (meta.get("media_type"), meta.get("media_id")) for meta in metas
-        )
+        media_refs.extend(_top_rated_ref(meta) for meta in metas)
 
-    media_map = _shared_media_objects(row_memo, media_refs)
+    # A card names its row by type and id, plus the item when the id alone is
+    # ambiguous (a grouped anime show lives in the TV table).
+    fetched = _shared_media_objects(
+        row_memo, {(kind, pk) for kind, pk, _ in media_refs}
+    )
+    media_map = {}
+    grouped_refs = []
+    for ref in set(media_refs):
+        kind, pk, item_id = ref
+        media = fetched.get((kind, pk))
+        if media and (not item_id or media.item_id == item_id):
+            media_map[ref] = media
+        elif kind == MediaTypes.ANIME.value and pk and item_id:
+            grouped_refs.append(ref)
+    if grouped_refs:
+        media_map.update(
+            _shared_rows(row_memo, "grouped_anime_rows", grouped_refs, _load_grouped_anime)
+        )
     # The overall list and the per-type lists mostly name the same rows, and
     # so do the ranges of a pass. Annotate each row once per pass (the
     # annotation re-reads the row and looks up its progress total); both
@@ -1470,19 +1568,11 @@ def _build_scores_and_top_rated(acc, distribution_types, score_scale_max, row_me
         row_memo,
         "top_rated_rows",
         annotated_refs,
-        lambda refs: dict(
-            zip(
-                refs,
-                stats._annotate_top_rated_media([media_map[ref] for ref in refs]),
-                strict=True,
-            )
-        ),
+        lambda refs: _annotate_top_rated_refs(refs, media_map),
     )
     top_rated_media = [
         annotated_map[ref]
-        for ref in (
-            (meta.get("media_type"), meta.get("media_id")) for meta in top_rated_meta
-        )
+        for ref in (_top_rated_ref(meta) for meta in top_rated_meta)
         if ref in annotated_map
     ]
 
@@ -1490,30 +1580,27 @@ def _build_scores_and_top_rated(acc, distribution_types, score_scale_max, row_me
     for media_type, metas in top_rated_by_type.items():
         top_rated_by_type_media[media_type] = [
             annotated_map[ref]
-            for ref in (
-                (meta.get("media_type"), meta.get("media_id")) for meta in metas
-            )
+            for ref in (_top_rated_ref(meta) for meta in metas)
             if ref in annotated_map
         ]
 
     top_rated_score_map = {}
     for meta in top_rated_meta:
-        media_type = meta.get("media_type")
-        media_id = meta.get("media_id")
+        ref = _top_rated_ref(meta)
         score = meta.get("score")
-        if media_type and media_id and score is not None:
-            top_rated_score_map[(media_type, media_id)] = score
+        if ref[0] and ref[1] and score is not None:
+            top_rated_score_map[ref] = score
     for metas in top_rated_by_type.values():
         for meta in metas:
-            media_type = meta.get("media_type")
-            media_id = meta.get("media_id")
+            ref = _top_rated_ref(meta)
             score = meta.get("score")
-            if media_type and media_id and score is not None:
-                top_rated_score_map[(media_type, media_id)] = score
+            if ref[0] and ref[1] and score is not None:
+                top_rated_score_map[ref] = score
 
-    _apply_top_rated_scores(top_rated_media, top_rated_score_map)
-    for media_list in top_rated_by_type_media.values():
-        _apply_top_rated_scores(media_list, top_rated_score_map)
+    for ref, media in annotated_map.items():
+        score = top_rated_score_map.get(ref)
+        if score is not None:
+            media.aggregated_score = score
 
     score_distribution_payload = {
         "labels": [str(score) for score in score_range],
@@ -2810,6 +2897,9 @@ def _aggregate_statistics_from_days(
     active_types = _active_media_types(user, acc)
     if is_all_time_query:
         _merge_undated_rows(acc, user, active_types)
+    _merge_album_trackers(
+        acc, user, active_types, start_date, end_date, is_all_time_query
+    )
     clock.mark("undated")
 
     media_count, distribution_types, status_distribution, status_payload = (

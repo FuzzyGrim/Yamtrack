@@ -24,6 +24,8 @@ IMPORT_COUNT_METRIC_KEYS = frozenset(
         "rejected",
         "updated",
         "skipped",
+        # Rows the upstream reported exactly as before: looked at, not written.
+        "unchanged",
         "baseline",
         "skipped_ignored",
         "skipped_missing_ids",
@@ -234,6 +236,7 @@ def format_import_message(imported_counts, warning_messages=None):
         ("created", "created"),
         ("updated", "updated"),
         ("skipped", "skipped (unchanged)"),
+        ("unchanged", "unchanged"),
         ("baseline", "starting playtimes remembered"),
         ("skipped_missing_ids", "skipped (missing IDs)"),
         ("skipped_existing", "skipped (existing)"),

@@ -3,15 +3,16 @@ name: Merge Train
 # latest requires pull requests to be up to date before they merge, and GitHub's
 # merge queue is not available on a personal repository, so auto-merge alone
 # stalls once the first PR lands. This keeps the next approved PR (one with
-# auto-merge on) up to date, one at a time, so auto-merge can finish it. See
+# auto-merge on) up to date, one at a time, preferring green work with an
+# aging rule, so auto-merge can finish it. See
 # scripts/merge_train.py for the rules. Run it by hand with "dry run" ticked to
 # see what it would do without touching anything.
 #
 # It runs when latest moves, or a pull request's auto-merge, readiness, head,
 # or closed state changes. GitHub auto-merge already responds to required CI
-# completing, so workflow_run completion triggers only spawn extra train runs
-# for unrelated PRs, including on every failing test retry. The 15 minute
-# schedule is only a safety net: GitHub delays and drops scheduled runs (about
+# completing successfully. Failed required CI must wake the train because
+# no push or PR event is guaranteed to follow. Ignore unrelated/obsolete heads.
+# The 15 minute schedule is only a safety net: GitHub delays and drops scheduled runs (about
 # 5 of 96 ran on 2026-10-19). Pull request and CI events from forks run this
 # workflow as it is on latest, never the fork's copy, and nothing from the pull
 # request is checked out or run: the script only reads the GitHub API.
@@ -32,6 +33,8 @@ on:
     branches:
       - latest
     types:
+      - opened
+      - edited
       - auto_merge_enabled
       - auto_merge_disabled
       - ready_for_review
@@ -39,6 +42,9 @@ on:
       - synchronize
       - reopened
       - closed
+  workflow_run:
+    workflows: ["App Tests", "Lint", "Migration Order"]
+    types: [completed]
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
@@ -48,20 +54,28 @@ on:
         type: boolean
         default: true
 
-concurrency:
-  group: merge-train
-  cancel-in-progress: false
-
 permissions:
   contents: read
 
 jobs:
   merge-train:
+    # Any finished required-check run on a pull request wakes the train: a
+    # failure frees the queue, a success can complete a candidate or make a
+    # source eligible. The script ignores heads that are neither an approved
+    # source nor a candidate. Only one run may be pending per concurrency
+    # group, so bursts of check completions collapse into a single run.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.event == 'pull_request'
+    concurrency:
+      group: merge-train
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: latest
           persist-credentials: false
 
       - name: Update the next pull request in line
@@ -69,6 +83,9 @@ jobs:
           GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN }}
           GH_REPO: ${{ github.repository }}
           DRY_RUN: ${{ inputs.dry_run }}
+          CI_HEAD: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
+          MERGE_TRAIN_BATCH: ${{ vars.MERGE_TRAIN_BATCH != 'false' }}
+          MERGE_TRAIN_DEPTH: ${{ vars.MERGE_TRAIN_DEPTH || '3' }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::AUTO_MERGE_TOKEN secret is not set."

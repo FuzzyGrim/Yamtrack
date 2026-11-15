@@ -8,36 +8,10 @@
     {% include "users/components/outbound_service_activity.html" with counts=wetrakr_sync.counts recent=wetrakr_sync.recent last_flushed=wetrakr_sync.binding.last_flushed_at %}
   {% else %}
   {% if account.is_pending %}
-    {% if not provider_tab or provider_tab == "connection" %}
-    <div class="rounded-md border border-indigo-500/30 bg-indigo-500/10 p-3 space-y-2"
-         x-data="{
-           interval: {{ account.device_interval }},
-           async tick() {
-             try {
-               const response = await fetch('{% url 'wetrakr_poll' %}', {method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'}});
-               const data = await response.json();
-               if (data.state !== 'pending') { window.location.reload(); return; }
-               this.interval = data.interval || this.interval;
-             } catch (error) { /* keep waiting */ }
-             setTimeout(() => this.tick(), this.interval * 1000);
-           }
-         }"
-         x-init="setTimeout(() => tick(), interval * 1000)">
-      <p class="text-sm text-[var(--color-text)] font-medium">{% translate "Open WeTrakr and enter this code to approve Floppy:" %}</p>
-      <p class="text-2xl font-mono tracking-widest text-[var(--color-text)]">{{ account.user_code }}</p>
-      <p class="text-sm"><a href="{{ account.verification_url }}" target="_blank" rel="noopener noreferrer" class="text-[var(--color-link)] hover:underline">{{ account.verification_url }}</a></p>
-      <p class="text-xs text-[var(--color-text-muted)]">{% translate "This page connects on its own once you approve." %}</p>
-      <form method="post" action="{% url 'wetrakr_cancel' %}">
-        {% csrf_token %}
-        <button type="submit" class="text-sm text-[var(--color-link)] hover:underline cursor-pointer">{% translate "Cancel" %}</button>
-      </form>
-    </div>
-    {% else %}
-      <p class="text-sm"><a class="text-[var(--color-link)] underline" href="{% url 'provider_detail' 'wetrakr' %}?tab=connection">{% translate "Finish authorizing WeTrakr on the Connection tab." %}</a></p>
-    {% endif %}
+    <p class="text-sm"><a class="text-[var(--color-link)] underline" href="{% url 'provider_detail' 'wetrakr' %}?tab=connection">{% translate "Finish authorizing WeTrakr on the Connection tab." %}</a></p>
   {% elif account.is_connected or account.connection_broken and account.refresh_token %}
     {% if account.connection_broken %}
-      <div class="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-[var(--color-warning-text)]">{% translate "WeTrakr rejected your login. Disconnect and connect again." %}</div>
+      <div class="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-[var(--color-warning-text)]">{% translate "WeTrakr rejected your login. Reconnect on the Connection tab." %}</div>
     {% elif account.last_error_message %}
       <div class="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-[var(--color-warning-text)]">{{ account.last_error_message }}</div>
     {% endif %}
@@ -89,26 +63,11 @@
     {% if not provider_tab or provider_tab == "activity" %}
       {% include "users/components/outbound_service_activity.html" with counts=wetrakr_sync.counts recent=wetrakr_sync.recent last_flushed=wetrakr_sync.binding.last_flushed_at %}
     {% endif %}
-    {% if not provider_tab or provider_tab == "connection" %}
-    <form method="post" action="{% url 'wetrakr_disconnect' %}">
-      {% csrf_token %}
-      <button type="submit" class="text-sm text-[var(--color-link)] hover:underline cursor-pointer">{% translate "Disconnect WeTrakr" %}</button>
-    </form>
-    {% endif %}
   {% elif wetrakr_sync.has_key %}
-    {% if not provider_tab or provider_tab == "connection" %}
-    <form method="post" action="{% url 'wetrakr_connect' %}">
-      {% csrf_token %}
-      {% button _("Connect WeTrakr") "primary" "sm" "full" submit=True %}
-    </form>
-    {% else %}
-      <p class="text-sm"><a class="text-[var(--color-link)] underline" href="{% url 'provider_detail' 'wetrakr' %}?tab=connection">{% translate "Connect WeTrakr to use outbound sync." %}</a></p>
-    {% endif %}
+    <p class="text-sm"><a class="text-[var(--color-link)] underline" href="{% url 'provider_detail' 'wetrakr' %}?tab=connection">{% translate "Connect WeTrakr to use outbound sync." %}</a></p>
   {% else %}
     <div class="rounded-md border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-gray-300">
-      {% translate "WeTrakr gives out app keys on request. Once you have one, add it under" %}
-      <a href="{% url 'provider_detail' 'wetrakr' %}?tab=connection" class="text-[var(--color-link)] hover:underline">{% translate "Connection credentials" %}</a>
-      {% translate "and come back to connect." %}
+      {% translate "This instance has no WeTrakr app key, so WeTrakr cannot be connected." %}
     </div>
   {% endif %}
   {% endif %}
