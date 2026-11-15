@@ -2047,6 +2047,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -2225,6 +2226,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -2408,6 +2410,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -2518,6 +2521,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -2700,6 +2704,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -2887,6 +2892,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -3003,6 +3009,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -3163,6 +3170,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -3328,6 +3336,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -3458,6 +3467,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -3610,6 +3620,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -3756,6 +3767,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -3894,6 +3906,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -4037,6 +4050,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -4167,6 +4181,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -4306,6 +4321,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -4451,6 +4467,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -4579,6 +4596,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -4724,6 +4742,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -4883,6 +4902,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5044,6 +5064,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5184,6 +5205,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5316,6 +5338,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5453,6 +5476,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5577,6 +5601,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5710,6 +5735,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5849,6 +5875,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -5971,6 +5998,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -6110,6 +6138,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -6263,6 +6292,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -6397,6 +6427,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -6523,6 +6554,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -6654,6 +6686,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -6772,6 +6805,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -6899,6 +6933,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -7032,6 +7067,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -7148,6 +7184,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -7281,6 +7318,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -7424,6 +7462,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -7562,6 +7601,7 @@ paths:
         schema:
           type: string
           enum:
+          - anilist
           - bgg
           - comicvine
           - hardcover
@@ -8282,6 +8322,7 @@ components:
       enum:
       - tmdb
       - mal
+      - anilist
       - mangaupdates
       - igdb
       - openlibrary
@@ -8293,6 +8334,7 @@ components:
       description: |-
         * `tmdb` - The Movie Database
         * `mal` - MyAnimeList
+        * `anilist` - AniList
         * `mangaupdates` - MangaUpdates
         * `igdb` - Internet Game Database
         * `openlibrary` - Open Library
@@ -8965,6 +9007,7 @@ components:
       enum:
       - tmdb
       - mal
+      - anilist
       - mangaupdates
       - igdb
       - openlibrary
@@ -8976,6 +9019,7 @@ components:
       description: |-
         * `tmdb` - tmdb
         * `mal` - mal
+        * `anilist` - anilist
         * `mangaupdates` - mangaupdates
         * `igdb` - igdb
         * `openlibrary` - openlibrary
@@ -8987,6 +9031,7 @@ components:
       enum:
       - tmdb
       - mal
+      - anilist
       - mangaupdates
       - igdb
       - openlibrary
@@ -8997,6 +9042,7 @@ components:
       description: |-
         * `tmdb` - tmdb
         * `mal` - mal
+        * `anilist` - anilist
         * `mangaupdates` - mangaupdates
         * `igdb` - igdb
         * `openlibrary` - openlibrary

@@ -99,11 +99,17 @@ class CalendarTests(YamtrackApiTestCase):
         self.assertIn(future_event.id, returned_ids)
         self.assertNotIn(earlier_event.id, returned_ids)
 
+        # start_date alone ends at the end of that month, so keep the start
+        # in the future event's month while still excluding the earlier event
+        start_only_date = max(
+            future_event_date.replace(day=1),
+            earlier_event_date + timezone.timedelta(days=1),
+        )
         response = self.call_api(
             "get",
             "api_calendar",
             headers=self.auth_headers,
-            params={"start_date": future_event_date.isoformat()},
+            params={"start_date": start_only_date.isoformat()},
         )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
