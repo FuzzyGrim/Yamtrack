@@ -252,11 +252,39 @@ it needs its own change with the maintainer reviewing the ported functions and
 the upgrade matrix (`scripts/replay_upgrade_matrix.sh`) replayed. It is not
 something to bolt onto an unrelated PR.
 
-**The cheap prerequisite worth doing first:** move the idempotent operations
-into one shared module (e.g. `users/migrations/_operations.py`) that new
-migrations import, and give them `reduce()`. That does not touch a single
-shipped migration's behaviour, and it means the *next* squash optimizes
-properly instead of dragging 410 operations forward.
+**The prerequisite, now done (November 2026).** The idempotent operations
+live in one shared module, `src/app/migration_operations.py`, and
+`check_migration_hygiene --strict` rejects any new migration that defines one
+inline. By then the inline copies had grown from 21 files to 102 (75
+`AddFieldIfNotExists`, 39 `AddConstraintIfNotExists`, 27
+`RemoveConstraintIfExists`, 13 `AddIndexIfNotExists`, 5
+`CreateModelIfNotExists`, 1 `RemoveFieldIfExists`). Those 102 files are
+frozen on an allowlist and were not touched.
+
+Measuring it corrected point 1 above. The optimizer is *not* blind to the
+inline copies: Django's `reduce()` matches by `isinstance`, so an inline
+`AddConstraintIfNotExists` followed by an inline `RemoveConstraintIfExists`
+of the same name already cancels (2 operations to 0 in a scratch squash).
+What actually blocks a squash is the operations that survive: the writer
+serializes an inline class as `users.migrations.0038_x.AddFieldIfNotExists(...)`,
+which is a `SyntaxError` because the module name starts with a digit, and it
+flags every such migration as needing hand-copying. The shared classes
+serialize as `app.migration_operations.AddFieldIfNotExists(...)` and import
+cleanly. They also keep their class when the optimizer merges (Django's own
+`AddField` + `AlterField` merge returns a plain `AddField`, silently dropping
+idempotence), and `CreateModelIfNotExists` refuses to absorb later field
+changes, which would be lost when the table already exists.
+
+The 410 surviving operations are mostly ordering, not class identity: Django
+will not move a constraint operation across another operation on the same
+model, so add, alter-field, remove sequences stay as they are. That is the
+same for Django's own classes.
+
+**What a `users` squash still needs:** hand-porting and maintainer review of
+the 31 `RunPython` functions; replacing the `lambda` in `0038` that blocks
+serialization; rewriting the surviving inline operations in the squashed file
+to the shared imports; and a full `scripts/replay_upgrade_matrix.sh` replay on
+SQLite and PostgreSQL with drift scenarios.
 
 ## Cause 2: password hashing, 42% of an auth-heavy module
 
