@@ -36,7 +36,7 @@ on:
 # run, and its report never runs. Publish gate reports queue separately and are
 # never cancelled mid-write.
 concurrency:
-  group: latest-health-${{ github.event_name == 'workflow_run' && 'gate' || 'browser' }}
+  group: latest-health-${{ github.event_name == 'workflow_run' && 'gate' || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_run' }}
 
 permissions:
