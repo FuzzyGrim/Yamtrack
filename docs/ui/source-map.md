@@ -828,7 +828,7 @@ Shared CalendarLinks accepts a session-required state from CalendarScreen. Calen
 Status: `Partial / coexisting`
 
 - `src/templates/events/calendar.html`
-- `src/templates/events/components/calendar_grid.html`
+- `src/templates/events/components/calendar_grid.html` (pre-paint agenda: selected day's panel only, SURFACE-16)
 - `src/templates/events/components/calendar_list.html`
 - `frontend/ui/mountCalendarLinks.jsx`
 

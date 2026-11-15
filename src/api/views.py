@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import IntegrityError
-from django.db.models import Exists, OuterRef, Subquery
+from django.db.models import Exists, OuterRef, Prefetch, Subquery
 from django.db.utils import OperationalError
 from django.utils.timezone import datetime, localdate, make_aware
 
@@ -226,7 +226,19 @@ class CalendarView(drf_views.APIView):
             )
 
         try:
-            releases = Event.objects.get_user_events(request.user, first_day, last_day)
+            # The serializer writes alert_failed_users for every event. Without
+            # the prefetch that was one whole-row user query per event: 800 of
+            # the Expo app's 817 queries for a 10k-library month (SURFACE-16).
+            releases = Event.objects.get_user_events(
+                request.user,
+                first_day,
+                last_day,
+            ).prefetch_related(
+                Prefetch(
+                    "alert_failed_users",
+                    queryset=get_user_model().objects.only("id"),
+                ),
+            )
         except Exception:
             logger.exception("Error occurred while fetching events.")
             return Response(

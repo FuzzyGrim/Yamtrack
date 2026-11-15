@@ -63,9 +63,15 @@
       </div>
     </div>
 
-    {% for day in days_in_month %}
+    {% comment %}
+      Pre-paint only. The calendar island replaces this subtree from
+      calendar_props, so only the selected day's panel (the one visible before
+      it mounts) is rendered: all 31 hidden panels were most of the page's
+      render time on large libraries (SURFACE-16).
+    {% endcomment %}
+    {% with day=selected_day %}
       {% with releases=release_dict|get_item:day %}
-        <div class="p-3 space-y-2 {% if day != selected_day %}hidden{% endif %}" data-day-panel="{{ day }}">
+        <div class="p-3 space-y-2" data-day-panel="{{ day }}">
           {% for release in releases %}
             <a data-release-media-type="{{ release.item.media_type }}" data-release-type="{{ release.release_type }}"
                data-release-status="{{ release.status|default_if_none:"" }}"
@@ -95,7 +101,7 @@
           </div>
         </div>
       {% endwith %}
-    {% endfor %}
+    {% endwith %}
   </div>
 </div>
 
