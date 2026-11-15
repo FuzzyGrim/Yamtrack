@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  activitySessionQuery,
   activityLine,
   activityLineWithWatched,
   detailHeaderText,
@@ -19,6 +20,16 @@ import {
   trackingEntriesFromPayload,
 } from './detailTransportCore.js';
 import { getDatePreferences, setDatePreferences } from './userDate.js';
+
+test('activity sessions use the web history filters for detail identities', () => {
+  assert.deepEqual(activitySessionQuery({ mediaType: 'episode', source: 'tmdb', mediaId: '42', seasonNumber: 0, episodeNumber: 3 }),
+    { media_type: 'tv', source: 'tmdb', media_id: '42', season_number: 0, episode_number: 3 });
+  assert.equal(activitySessionQuery({ mediaType: 'anime', detailType: 'season', source: 'mal', mediaId: '1' }).media_type, 'tv');
+  assert.equal(activitySessionQuery({ mediaType: 'game', source: 'igdb', mediaId: '1' }).logging_style, 'sessions');
+  assert.deepEqual(activitySessionQuery({ musicKind: 'album', musicId: 7 }), { album: 7 });
+  assert.deepEqual(activitySessionQuery({ podcastId: 8 }), { media_type: 'podcast', podcast_show: 8 });
+  assert.equal(activitySessionQuery({ musicKind: 'artist' }), null);
+});
 
 test('identityFromItem prefers an explicit identity object', () => {
   assert.deepEqual(

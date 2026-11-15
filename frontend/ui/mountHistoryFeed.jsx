@@ -241,6 +241,7 @@ function Adapter({ host, props }) {
       setActivityEntry({
         ...entry,
         sessions: payload.sessions || [],
+        activityIntensity: payload.activityIntensity || {},
         sessionStats: payload.stats || [],
       });
     } catch (error) {

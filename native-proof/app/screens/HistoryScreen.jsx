@@ -305,7 +305,7 @@ export default function HistoryScreen({ navigate, onBack, params, transport: inj
       .then(payload => {
         if (!Array.isArray(payload?.sessions) || !payload.sessions.length) return;
         setActivityEntry(current => (current?.key === entry.key
-          ? { ...entry, sessions: payload.sessions }
+          ? { ...entry, sessions: payload.sessions, activityIntensity: payload.activityIntensity || {} }
           : current));
       })
       .catch(() => {

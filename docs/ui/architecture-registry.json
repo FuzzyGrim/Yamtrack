@@ -893,15 +893,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Mounted through the web adapter into the static tracking date/time fields; build and targeted tests only, no browser pass."
+          "evidence": "Seeded detail activity dialog inspected in Chromium at desktop and phone widths; day selection, accessibility labels and month navigation exercised. Marker spacing compared in a shared picker fixture. The History dialog remains unverified."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Expo export --platform all compiles the picker in the Calendar screen; no simulator run was performed."
+          "evidence": "Activity intensity and updated marker spacing inspected in Expo Go fixtures on iPhone 16 Pro; full dialog integration remains unverified."
         },
         "android": {
-          "status": "verified",
-          "evidence": "Android 15 Pixel 7 AVD: rendered the shared date-time field on Calendar; no picker, time or timezone interaction and no TalkBack pass."
+          "status": "unverified",
+          "evidence": "Activity intensity and updated marker spacing inspected in Expo Go fixtures on an API 35 emulator; full dialog integration remains unverified."
         }
       }
     },
@@ -1040,6 +1040,7 @@
         "HistoryActivitySummary",
         "HistoryFilterPanel",
         "HistoryState",
+        "HistoryActivityCalendar",
         "HistoryActivityDialog",
         "HistoryEditDialog",
         "HistoryDeleteDialog"
@@ -5560,7 +5561,7 @@
     },
     "frontend/ui/mountDateTimePicker.jsx": {
       "register": "DATE-TIME",
-      "purpose": "Mount the shared picker on the browser field and keep the hidden input, htmx events, status autofill, paired dates, copy and clear behavior."
+      "purpose": "Mount the shared picker for browser fields and activity history; bridge hidden input and form events, or synchronize the activity calendar with the server-owned session list."
     },
     "frontend/ui/mountRatingChip.jsx": {
       "register": "RATING",

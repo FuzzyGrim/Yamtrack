@@ -672,9 +672,13 @@ Song and podcast episode tracking uses the shared TrackDialog and TrackForm, wit
 
 ### DATE-TIME — Field picker and activity calendar
 
+- Activity history calendar: `Partial / coexisting`. `DateTimePicker` owns the shared calendar in the detail activity dialog and History dialog; the web adapter connects selection and scrolling to the server-owned session list. Native History and detail use the shared picker and `HistoryActivityCalendar` with the sessions API. Server-rendered session rows and legacy field-picker consumers remain; retire their legacy owners after their consumers migrate. The activity calendar uses server-calculated monthly intensity. Browser: seeded detail dialog inspected at desktop and phone widths; day selection and month navigation exercised. iOS: Expo Go fixture inspected on iPhone 16 Pro. Android: Expo Go fixture inspected on an API 35 emulator. Full native dialog integration remains unverified.
+- Marker spacing: shared `DateTimePicker` positions activity dots and the selected-day background for web, iOS and Android; the calendar consumers and legacy retirement conditions remain as above. Browser and native fixture comparisons cover the spacing adjustment.
+
 - Purpose/usage: tracking dates and session history, distinct from release calendar.
-- Status: `Legacy`. Alpine date-time picker and activity calendar; no React component.
-- Implementation: `src/templates/app/components/date_time_picker.html`, `calendar.html`, `src/static/js/dateTimePicker.js`, `calendar.js`.
+- Status: `Partial / coexisting`. Shared `DateTimePicker` serves migrated fields and activity calendars; Alpine field-picker consumers remain.
+- Native readiness: `Primitives`. Shared date and activity presentation uses React Native primitives; legacy field consumers remain on web.
+- Implementation: `frontend/ui/DateTimePicker.jsx`, `mountDateTimePicker.jsx`; legacy `src/templates/app/components/date_time_picker.html`, `calendar.html`, `src/static/js/dateTimePicker.js`, `calendar.js`.
 - Contract: clear/current/release/copy, optional time, 12/24h/week-start/locale, six-week grid/month/year, marked/selectable days, hidden values/events and Escape.
 - Data: owning field/history configuration and user preferences.
 - Reuse/blockers: calculations shareable; native field/popup, timezone and focus semantics need proof.

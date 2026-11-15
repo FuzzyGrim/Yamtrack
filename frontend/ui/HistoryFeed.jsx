@@ -617,6 +617,20 @@ function ScoreStars({ entry, copy, colors, onSelect }) {
   </View>;
 }
 
+export function HistoryActivityCalendar({ sessions, activityIntensity, selectedDay, onSelectDay, palette }) {
+  const dates = sessions.map(session => session.date).filter(Boolean);
+  return <View>
+    <Text style={{ color: palette.text }}>Select a day to view its activity.</Text>
+    <DateTimePicker inline value={selectedDay} initialViewDate={sessions[0]?.date}
+      markerDays={dates} selectableDays={dates} activityIntensity={activityIntensity}
+      palette={palette} onChange={onSelectDay} />
+    {selectedDay ? sessions.filter(session => session.date === selectedDay).map((session, index) =>
+      <Text key={session.key || index} style={{ color: palette.text }}>
+        {[session.when, session.label, session.runtime].filter(Boolean).join(' · ')}
+      </Text>) : null}
+  </View>;
+}
+
 export function HistoryActivityDialog({
   entry,
   labels,
@@ -659,6 +673,8 @@ export function HistoryActivityDialog({
         <View style={styles.dayPickerRow}>
           <View style={styles.dayPickerField}>
             <DateTimePicker value={selectedDay} trackTime={false} markerDays={markerDays}
+              activityIntensity={entry.activityIntensity}
+              selectableDays={markerDays}
               labels={{ field: copy.jumpToDay }} palette={dateTimePalette(colors)}
               onChange={next => setSelectedDay(next || '')} />
           </View>

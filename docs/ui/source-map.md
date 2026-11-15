@@ -620,7 +620,10 @@ Status: `Partial / coexisting`
 
 ## DATE-TIME
 
-Status: `Legacy`
+Status: `Partial / coexisting`
+
+- Activity history calendar is `Partial / coexisting`: `frontend/ui/DateTimePicker.jsx` and `mountDateTimePicker.jsx` own the web detail calendar, with `sessionHistory.js` bridging the server-owned list; `HistoryFeed.jsx` supplies `HistoryActivityCalendar` to native `DetailFeatures.jsx`, and native `HistoryScreen.jsx` uses the same picker. Remaining legacy field-picker consumers retire with their own migration. Browser: seeded detail dialog inspected and selection and month navigation exercised. iOS and Android: Expo Go intensity fixtures inspected; complete native dialog integration remains unverified.
+- Shared `DateTimePicker` activity markers and selected-day background use the same spacing on web, iOS and Android. Browser, iOS and Android fixture comparisons cover the spacing adjustment; the consumers and remaining legacy ownership are unchanged.
 
 - `src/static/js/calendar.js`
 - `src/static/js/dateTimePicker.js`
