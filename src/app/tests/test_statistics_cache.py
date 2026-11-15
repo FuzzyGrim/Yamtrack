@@ -1578,8 +1578,10 @@ class RequestPathDayBuildTests(TestCase):
         mock_apply_async.assert_called_once()
 
     def test_eager_mode_still_builds_inline(self):
+        # Eager reads build missing days through the sync's slice builder,
+        # which calls the day builder from its own module.
         with patch(
-            "app.statistics_aggregator.build_stats_for_day",
+            "app.statistics_day_builder.build_stats_for_day",
             return_value={"totals": {"minutes_by_type": {"movie": 60}}},
         ) as mock_build_day:
             result = statistics_cache.get_statistics_minutes_by_type(
