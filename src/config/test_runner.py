@@ -514,20 +514,6 @@ class ResilientDiscoverRunner(DiscoverRunner):
         tests = list(iter_test_cases(suite))
         modules = {test_sharding.module_of(test) for test in tests}
         assignment = test_sharding.assign(modules, test_sharding.load_weights(), count)
-        # INJECTION (throwaway): force the crash/hang modules, then break the split.
-        for name in modules:
-            if name.endswith("test_aaa_injected_crash"):
-                assignment[name] = 4
-            if name.endswith("test_aaa_injected_hang"):
-                assignment[name] = 5
-        if index == 1:
-            dropped = sorted(m for m in modules if assignment[m] == 1)[0]
-            assignment[dropped] = 0
-            self.log(f"[injection] dropped {dropped} from shard 1")
-        if index == 2:  # noqa: PLR2004
-            stolen = sorted(m for m in modules if assignment[m] == 3)[0]  # noqa: PLR2004
-            assignment[stolen] = 2
-            self.log(f"[injection] shard 2 also takes {stolen}")
         kept = [
             test for test in tests if assignment[test_sharding.module_of(test)] == index
         ]
