@@ -295,6 +295,24 @@ database). Stale → `ensure_sync` (gated, idempotent) and serve it anyway. None
 → an empty payload with `statistics_building=True`, and an urgent sync.
 `/api/cache-status/` reports the snapshot and never touches a running sync.
 
+A **custom range** (any dates that are not a predefined range, on web and in
+`/api/v1/statistics/overview/`) has no snapshot. It is added up from its day
+payloads, which for a full history at 10k items is seconds of web CPU, so
+`statistics_cache._custom_range_result` remembers the result for 15 minutes
+under a token made of what makes a snapshot stale: the change generation, the
+local day and timezone, the snapshot and day schema versions, plus the dates
+and the user preferences the aggregate reads. Any mark (`mark_days`,
+`mark_aggregate`, preference changes) therefore reaches the next load with no
+invalidation of its own. The comparison period's minutes are remembered the
+same way. A result is not kept when a day payload was missing (the background
+build that fills it in marks nothing), while a bulk import runs (its marks
+are deferred) or while a full sweep is pending (it rebuilds day payloads
+without a mark). Each user keeps one entry per kind, so a new range replaces the
+last. A second request for the same range while the first is computing waits
+for it (`cache_utils.wait_for_build`) instead of computing it again. The walk
+also reports the days it found missing, so scheduling their background build
+no longer reads the whole range a second time.
+
 Eager/test mode (`CELERY_TASK_ALWAYS_EAGER` or `TESTING`) has no worker, so the
 read path rebuilds the requested range inline and `ensure_sync` is a no-op.
 Custom ranges and the comparison-period minutes build their missing days the
