@@ -658,6 +658,7 @@ def resolve_routes(user, long_show):
     from django.utils.text import slugify
 
     from app.models import Album, Item, PodcastShow
+    from app.podcast_views import podcast_show_url
 
     routes = dict(ROUTES)
     movie = (
@@ -698,7 +699,8 @@ def resolve_routes(user, long_show):
     ):
         show = PodcastShow.objects.filter(podcast_uuid=uuid).first()
         if show is not None:
-            routes[name] = reverse("podcast_show_detail", args=[show.pk])
+            # The show's one page; the old show URL only redirects here.
+            routes[name] = podcast_show_url(show)
     return {name: path for name, path in routes.items() if path}
 
 
