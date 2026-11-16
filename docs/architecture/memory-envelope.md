@@ -518,7 +518,7 @@ is the next step if it still shows on the minimal tier.
 ## Still unverified, and still unfixed
 
 **What memory limit the snapshot requires: 768 MiB, measured.** The ladder
-ran on 2026-11-16 at `ab5666caa` (pinned copy from CONC-43) against a
+ran on the pinned copy (CONC-43) against a
 synthetic 2.43 GB database (622,592 pages; 184,800 items, 201,600 episodes,
 403,200 history rows; wide `watch_providers` make `app_item` 2.2 GB of it),
 with the whole stack (gunicorn, Celery with beat, nginx) idle in the same
@@ -549,14 +549,12 @@ container. Every copy was pinned with `restarts=0`.
   five minutes.
 
 So the stepped, pinned copy is adequate and the incremental-backup question
-stays closed. Limits of the evidence: Docker Desktop on macOS (kernel
-6.10.14-linuxkit, 7.65 GiB VM), whose virtual disk is slower than a NAS, so
-durations are only comparable to each other; another session used Docker at
-the same time, which is why one unconstrained run took 386 s; the ladder
-triggers the task through `manage.py shell`, which adds about 90 MB of
-`anon` that a Celery worker would not; and the fixture is lighter on
-episodes and history than production, which affects `quick_check` time more
-than cache.
+stays closed. Limits of the evidence: it was measured under Docker Desktop,
+whose virtual disk is slower than a NAS, so durations are only comparable to
+each other; the ladder triggers the task through `manage.py shell`, which adds
+about 90 MB of `anon` that a Celery worker would not; and the fixture is
+lighter on episodes and history than production, which affects `quick_check`
+time more than cache.
 
 **Whether the Trakt reconcile fix holds in a container.** The allocation
 profile is structurally bounded and benchmarked, but `tracemalloc` is Python
