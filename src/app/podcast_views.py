@@ -69,6 +69,152 @@ def user_podcasts_by_episode(user, show, episodes):
     return by_episode
 
 
+PODCAST_DETAIL_SOURCES = frozenset(
+    {
+        Sources.POCKETCASTS.value,
+        Sources.GPODDER.value,
+        Sources.AUDIOBOOKSHELF.value,
+        Sources.MANUAL.value,
+    },
+)
+
+
+def ordered_episodes(show):
+    """Return the show's episodes newest first, undated ones last.
+
+    The one ordering every podcast episode list uses: the show page's first
+    page, the infinite-scroll pages and the API pages.
+    """
+    from datetime import datetime
+
+    from django.db.models import DateTimeField, Value
+    from django.db.models.functions import Coalesce
+
+    from app.models import PodcastEpisode
+
+    return (
+        PodcastEpisode.objects.filter(show=show)
+        .annotate(
+            published_or_old=Coalesce(
+                "published",
+                Value(datetime(1970, 1, 1, tzinfo=UTC), output_field=DateTimeField()),
+            ),
+        )
+        .order_by("-published_or_old", "-episode_number")
+    )
+
+
+def podcast_show_url(show):
+    """Return the URL of a show's page.
+
+    Every show has one page, the detail page that pages its episodes. A show
+    from a source that page does not route by opens under Pocket Casts, which
+    is how History and Statistics link to shows.
+    """
+    from django.urls import reverse
+
+    source = show.source if show.source in PODCAST_DETAIL_SOURCES else Sources.POCKETCASTS.value
+    return reverse(
+        "media_details",
+        kwargs={
+            "source": source,
+            "media_type": MediaTypes.PODCAST.value,
+            "media_id": show.podcast_uuid,
+            "title": app_tags.slug(show.title or "") or "podcast",
+        },
+    )
+
+
+def podcast_show_totals(user, show):
+    """Return the viewer's listen totals for a show, counted in SQL.
+
+    A show with thousands of listens is summed by the database rather than
+    loaded row by row. ``first_played`` and ``last_played`` span each
+    listen's start, end or creation time, in that order of preference.
+    """
+    from django.db.models import Count, Max, Min, Q, Sum
+    from django.db.models.functions import Coalesce
+
+    from app.models import Podcast, Status
+
+    totals = Podcast.objects.filter(user=user, show=show).aggregate(
+        listened=Count("id"),
+        minutes=Coalesce(Sum("progress"), 0),
+        completed=Count(
+            "id",
+            filter=Q(end_date__isnull=False) | Q(status=Status.COMPLETED.value),
+        ),
+        first_played=Min(Coalesce("start_date", "end_date", "created_at")),
+        last_played=Max(Coalesce("end_date", "start_date", "created_at")),
+    )
+    totals["minutes"] = int(totals["minutes"] or 0)
+    return totals
+
+
+class PodcastEpisodeAdapter:
+    """A PodcastEpisode shaped like a music Track for the shared track modal."""
+
+    def __init__(self, episode):
+        """Copy the fields the track modal reads."""
+        self.title = episode.title
+        self.description = episode.description or ""
+        self.track_number = episode.episode_number
+        self.duration_formatted = episode.duration_formatted
+        self.musicbrainz_recording_id = None
+        self.id = episode.id
+        self.published = episode.published
+        self.episode_uuid = episode.episode_uuid
+
+
+class PodcastShowAdapter:
+    """A PodcastShow shaped like a music Album for the shared track modal."""
+
+    def __init__(self, show):
+        """Copy the fields the track modal reads."""
+        self.image = show.image or settings.IMG_NONE
+        self.release_date = None
+        self.id = show.id
+
+
+class _HistoryListProxy:
+    """The slice of a history manager the episode templates call."""
+
+    def __init__(self, history_list):
+        self._history = history_list
+
+    def all(self):
+        return self._history
+
+    def count(self):
+        return len(self._history)
+
+
+class PodcastHistoryWrapper:
+    """One listen of an episode with its completed plays, for the track modal."""
+
+    def __init__(self, podcast, item, history_list):
+        """Wrap ``podcast`` with its ``item`` and newest-first plays."""
+        self.item = item
+        self.id = podcast.id
+        self._history_list = history_list
+        self.in_progress_instance_id = podcast.id if not podcast.end_date else None
+
+    @property
+    def completed_play_count(self):
+        """Return how many completed plays the page loaded."""
+        return len(self._history_list)
+
+    @property
+    def has_in_progress_entry(self):
+        """Return whether this listen is still unfinished."""
+        return bool(self.in_progress_instance_id)
+
+    @property
+    def history(self):
+        """Return the plays behind a manager-like ``all()``/``count()``."""
+        return _HistoryListProxy(self._history_list)
+
+
 def completed_plays_by_podcast_id(podcast_ids, limit=None):
     """Return ``{podcast_id: [PodcastPlay, ...]}``, newest completed play first.
 
@@ -356,52 +502,16 @@ def podcast_episode_delete(request, episode_id):
 
 @require_GET
 def podcast_show_detail(request, show_id):
-    """Return the detail page for a podcast show."""
-    from datetime import datetime
+    """Send the old show URL to the show's one page.
 
-    from django.db.models import DateTimeField, Value
-    from django.db.models.functions import Coalesce
-
-    from app.models import Podcast, PodcastEpisode, PodcastShow, PodcastShowTracker
+    This page used to list every episode and check each one against every
+    listen, so a long show took many seconds. The detail page shows the
+    same show a page of episodes at a time.
+    """
+    from app.models import PodcastShow
 
     show = get_object_or_404(PodcastShow, id=show_id)
-
-    tracker = PodcastShowTracker.objects.filter(user=request.user, show=show).first()
-
-    episodes = (
-        PodcastEpisode.objects.filter(show=show)
-        .annotate(
-            published_or_old=Coalesce(
-                "published",
-                Value(datetime(1970, 1, 1, tzinfo=UTC), output_field=DateTimeField()),
-            ),
-        )
-        .order_by("-published_or_old", "-episode_number")
-    )
-
-    user_podcasts = list(
-        Podcast.objects.filter(
-            user=request.user,
-            show=show,
-        ).select_related("episode", "item")
-    )
-
-    total_episodes = episodes.count()
-    total_listened = len(user_podcasts)
-    total_minutes = sum(podcast.progress or 0 for podcast in user_podcasts)
-
-    context = {
-        "user": request.user,
-        "show": show,
-        "episodes": episodes,
-        "user_podcasts": user_podcasts,
-        "tracker": tracker,
-        "total_episodes": total_episodes,
-        "total_listened": total_listened,
-        "total_minutes": total_minutes,
-        "episode_manager_props": episode_manager_props(request, show),
-    }
-    return render(request, "app/podcast_show_detail.html", context)
+    return redirect(podcast_show_url(show))
 
 
 @require_GET
@@ -419,12 +529,7 @@ def podcast_episodes_api(request, show_id):
 
     Returns HTML fragments for infinite scroll if format=html, otherwise JSON.
     """
-    from datetime import datetime
-
-    from django.db.models import DateTimeField, Value
-    from django.db.models.functions import Coalesce
-
-    from app.models import Podcast, PodcastEpisode, PodcastShow
+    from app.models import Podcast, PodcastShow
 
     show = get_object_or_404(PodcastShow, id=show_id)
     format_type = request.GET.get("format", "json")
@@ -436,16 +541,7 @@ def podcast_episodes_api(request, show_id):
         page = 1
         page_size = 20
 
-    episodes_qs = (
-        PodcastEpisode.objects.filter(show=show)
-        .annotate(
-            published_or_old=Coalesce(
-                "published",
-                Value(datetime(1970, 1, 1, tzinfo=UTC), output_field=DateTimeField()),
-            ),
-        )
-        .order_by("-published_or_old", "-episode_number")
-    )
+    episodes_qs = ordered_episodes(show)
     total_count = episodes_qs.count()
 
     start = (page - 1) * page_size
@@ -487,11 +583,14 @@ def podcast_episodes_api(request, show_id):
         for episode in episodes
     ]
 
-    enriched_episodes_raw = helpers.enrich_items_with_user_data(
-        request,
-        episode_items_data,
-        user=request.user,
-    )
+    enriched_by_media_id = {
+        enriched["item"]["media_id"]: enriched
+        for enriched in helpers.enrich_items_with_user_data(
+            request,
+            episode_items_data,
+            user=request.user,
+        )
+    }
 
     has_more = end < total_count
     next_page = page + 1 if has_more else None
@@ -501,89 +600,19 @@ def podcast_episodes_api(request, show_id):
 
         episode_list = []
         for episode_obj in episodes:
-            enriched = None
-            for e in enriched_episodes_raw:
-                if e["item"]["media_id"] == episode_obj.episode_uuid:
-                    enriched = e
-                    break
-
+            enriched = enriched_by_media_id.get(episode_obj.episode_uuid)
+            item = enriched["item"] if enriched else episode_items_map.get(
+                episode_obj.episode_uuid,
+            )
             duration_str = helpers.seconds_to_hm(episode_obj.duration)
 
             user_podcast = episode_podcast_map.get(episode_obj.id)
-
-            class PodcastEpisodeAdapter:
-                def __init__(self, episode):
-                    self.title = episode.title
-                    self.description = episode.description or ""
-                    self.track_number = episode.episode_number
-                    self.duration_formatted = (
-                        self._format_duration(episode.duration)
-                        if episode.duration
-                        else None
-                    )
-                    self.musicbrainz_recording_id = None
-                    self.id = episode.id
-                    self.published = episode.published
-                    self.episode_uuid = episode.episode_uuid
-
-                def _format_duration(self, seconds):
-                    hours = seconds // 3600
-                    minutes = (seconds % 3600) // 60
-                    secs = seconds % 60
-                    if hours > 0:
-                        return f"{hours}:{minutes:02d}:{secs:02d}"
-                    return f"{minutes}:{secs:02d}"
-
-            class PodcastShowAdapter:
-                def __init__(self, show):
-                    self.image = show.image or settings.IMG_NONE
-                    self.release_date = None
-                    self.id = show.id
-
             all_history = []
             if user_podcast:
                 all_history = completed_plays.get(user_podcast.id, [])
-
-                class PodcastHistoryWrapper:
-                    def __init__(self, podcast, item, history_list):
-                        self.item = item
-                        self.id = podcast.id
-                        self._history_list = history_list
-                        self.in_progress_instance_id = (
-                            podcast.id if not podcast.end_date else None
-                        )
-
-                    @property
-                    def completed_play_count(self):
-                        return len(self._history_list)
-
-                    @property
-                    def has_in_progress_entry(self):
-                        return bool(self.in_progress_instance_id)
-
-                    @property
-                    def history(self):
-                        class HistoryProxy:
-                            def __init__(self, history_list):
-                                self._history = history_list
-
-                            def all(self):
-                                return self._history
-
-                            def count(self):
-                                return len(self._history)
-
-                        return HistoryProxy(self._history_list)
-
-                item = episode_items_map.get(episode_obj.episode_uuid)
-                podcast_wrapper = PodcastHistoryWrapper(
-                    user_podcast, enriched["item"] if enriched else item, all_history
-                )
+                podcast_wrapper = PodcastHistoryWrapper(user_podcast, item, all_history)
             else:
-                item = episode_items_map.get(episode_obj.episode_uuid)
-                podcast_wrapper = _DummyPodcastWrapper(
-                    enriched["item"] if enriched else item
-                )
+                podcast_wrapper = _DummyPodcastWrapper(item)
 
             episode_list.append(
                 {
@@ -599,7 +628,7 @@ def podcast_episodes_api(request, show_id):
                     "website_url": episode_obj.website_url,
                     "history": all_history,
                     "media": enriched["media"] if enriched else None,
-                    "item": enriched["item"] if enriched else item,
+                    "item": item,
                     "media_id": episode_obj.episode_uuid,
                     "source": show.source,
                     "media_type": MediaTypes.PODCAST.value,
@@ -632,11 +661,7 @@ def podcast_episodes_api(request, show_id):
     # Return JSON
     episode_list = []
     for episode_obj in episodes:
-        enriched = None
-        for e in enriched_episodes_raw:
-            if e["item"]["media_id"] == episode_obj.episode_uuid:
-                enriched = e
-                break
+        enriched = enriched_by_media_id.get(episode_obj.episode_uuid)
 
         duration_str = helpers.seconds_to_hm(episode_obj.duration)
 
@@ -741,7 +766,7 @@ def podcast_show_save(request):
     if next_url:
         redirect_response = redirect(next_url)
     else:
-        redirect_response = redirect("podcast_show_detail", show_id=show.id)
+        redirect_response = redirect(podcast_show_url(show))
     if request.headers.get("HX-Request"):
         return HttpResponse(status=204, headers={"HX-Redirect": redirect_response.url})
     return redirect_response
@@ -771,7 +796,7 @@ def podcast_show_delete(request):
     if next_url:
         redirect_response = redirect(next_url)
     else:
-        redirect_response = redirect("podcast_show_detail", show_id=show.id)
+        redirect_response = redirect(podcast_show_url(show))
     if request.headers.get("HX-Request"):
         return HttpResponse(status=204, headers={"HX-Redirect": redirect_response.url})
     return redirect_response

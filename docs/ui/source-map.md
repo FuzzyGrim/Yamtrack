@@ -165,7 +165,7 @@ Shared `Badge` lives in `frontend/ui/controls` and `controls.css` (FORM-CONTROLS
 - `frontend/ui/mountBadge.jsx`
 - `src/templates/users/components/badge.html`
 - `src/users/templatetags/ui_tags.py` (`{% badge %}`)
-- Consumers: `app/podcast_show_detail.html`, `app/episode_details.html`, `app/music_album_detail.html`, `app/components/detail_music_artist.html`, `detail_music_album.html`, `detail_music_track.html`, `detail_secondary_content.html`, `cells/media_genres_cell.html`, `media_metadata_panel.html`, `lists/components/add_item_preview_modal.html`, `recommend_preview_modal.html`, `integrations/library_panel.html`, `integrations/seerr_status.html`, `users/components/whats_new.html`, `users/onboarding/metadata.html`
+- Consumers: `app/episode_details.html`, `app/music_album_detail.html`, `app/components/detail_music_artist.html`, `detail_music_album.html`, `detail_music_track.html`, `detail_secondary_content.html`, `cells/media_genres_cell.html`, `media_metadata_panel.html`, `lists/components/add_item_preview_modal.html`, `recommend_preview_modal.html`, `integrations/library_panel.html`, `integrations/seerr_status.html`, `users/components/whats_new.html`, `users/onboarding/metadata.html`
 
 ## BUTTON
 
@@ -707,7 +707,6 @@ The artist relation and album grids are React islands over server-rendered fallb
 - `src/templates/app/components/detail_music_track_history_line.html`
 - `src/templates/app/components/podcast_episode_list.html` (optional episode description and empty state)
 - `src/templates/app/music_album_detail.html`
-- `src/templates/app/podcast_show_detail.html`
 - `frontend/pages/MusicView.jsx`
 - `frontend/ui/MusicAlbumCard.jsx`
 - `frontend/ui/MusicParts.jsx`
