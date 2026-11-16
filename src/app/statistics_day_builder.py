@@ -154,6 +154,52 @@ def _fetch_overlap_rows(
     )
 
 
+# Days further apart than this get separate prefetches. One prefetch is about a
+# dozen queries; a span reads every row between its first and last day, so
+# fetching a day four years back together with today read four years of rows.
+# Measured on a 40,000-play library, splitting stops paying off near a month.
+PREFETCH_MAX_GAP_DAYS = 31
+
+
+def _prefetch_runs(day_list, max_gap_days=PREFETCH_MAX_GAP_DAYS):
+    """Group days into runs whose neighbouring days are at most ``max_gap_days`` apart."""
+    runs = []
+    for day in sorted(set(day_list)):
+        if runs and (day - runs[-1][-1]).days <= max_gap_days:
+            runs[-1].append(day)
+        else:
+            runs.append([day])
+    return runs
+
+
+class SpanPrefetches:
+    """Prefetches for a list of days, one per run of nearby days, built on first use.
+
+    ``for_day(day)`` returns the prefetch of the run holding ``day``. Each day's
+    rows are the ones a single span-wide prefetch would bucket to it: a run's
+    span covers the day, and bucketing keeps only the run's own days.
+    """
+
+    def __init__(self, user, day_list):
+        """Group ``day_list`` into runs; nothing is fetched yet."""
+        self.user = user
+        self._run_of = {}
+        self._runs = _prefetch_runs(day_list)
+        for index, run in enumerate(self._runs):
+            for day in run:
+                self._run_of[day] = index
+        self._built = {}
+
+    def for_day(self, day):
+        """Return the prefetch for ``day``'s run, or None for a day not in the list."""
+        index = self._run_of.get(day)
+        if index is None:
+            return None
+        if index not in self._built:
+            self._built[index] = _build_prefetch_for_range(self.user, self._runs[index])
+        return self._built[index]
+
+
 def _build_prefetch_for_range(user, day_list):
     """Bulk-fetch every media model once across `day_list`'s full span, bucketed by day.
 
