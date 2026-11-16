@@ -71,7 +71,12 @@ def serve(port: object) -> None:
     signal.signal(signal.SIGTERM, _shutdown)
     signal.signal(signal.SIGINT, _shutdown)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    stop.wait()
+    # Python runs signal handlers only on the main thread, and only when it
+    # executes bytecode. The kernel may deliver SIGTERM to the serving thread
+    # instead, and then an untimed wait never wakes to run the handler: the
+    # server ignored the entrypoint's SIGTERM. Wake regularly so it cannot.
+    while not stop.wait(0.2):
+        pass
     server.shutdown()
     server.server_close()
 

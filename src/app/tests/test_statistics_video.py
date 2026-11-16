@@ -1,6 +1,7 @@
 import datetime
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 
@@ -12,6 +13,9 @@ class VideoStatisticsTests(TestCase):
     """Watched videos count toward Statistics, one play per watched day."""
 
     def setUp(self):
+        # Day and range statistics live in the shared cache, keyed by user id;
+        # SQLite reuses ids after rollback, so start every test empty.
+        cache.clear()
         self.user = get_user_model().objects.create_user(
             username="viewer", password="password123"
         )

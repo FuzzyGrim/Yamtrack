@@ -8,9 +8,14 @@ on the pull request. These tests hold the workflow to that, so a later edit
 that gives the publish gate a test of its own fails here instead of being
 skipped silently on the next merge.
 
-If one of these fails because the shard step was rewritten (for example test
-selection moved into a script), re-establish the property for the new wiring
-and update this file with it. Do not delete the check.
+Test selection lives in scripts/ci_tests.sh, called by the shard's "Run
+Tests" step with the mode (pr, release, full) as the step's only input. The
+check below runs that script for every matrix entry, on both events, with
+scripts/test.sh replaced by a recorder.
+
+If one of these fails because the shard step was rewritten, re-establish the
+property for the new wiring and update this file with it. Do not delete the
+check.
 
 Run: .venv/bin/python -m unittest scripts/tests/test_reuse_pr_workflow.py
 """
@@ -18,6 +23,7 @@ Run: .venv/bin/python -m unittest scripts/tests/test_reuse_pr_workflow.py
 import ast
 import itertools
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -28,13 +34,19 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 APP_TESTS = ROOT / ".github" / "workflows" / "app-tests.yml"
 DOCKER_IMAGE = ROOT / ".github" / "workflows" / "docker-image.yml"
+CI_TESTS = ROOT / "scripts" / "ci_tests.sh"
 TEST_SOURCES = (ROOT / "src", ROOT / "mcp_server")
 
 # Expressions the shard's test step may read, and nothing else. Each one is
 # substituted per case below. A new expression is a new way for the two paths
 # to differ, so it fails the test until it is accounted for here.
-KNOWN_EXPRESSIONS = {"github.event_name", "matrix.suite"}
+KNOWN_EXPRESSIONS = {"matrix.role"}
 SELECTION_STEP = "Run Tests"
+# The step's one input, and how it maps each event to a mode of ci_tests.sh.
+MODE_EXPRESSION = (
+    "${{ github.event_name == 'pull_request' && 'pr' || "
+    "inputs.release_quality_gates && 'release' || 'full' }}"
+)
 
 # Options of scripts/test.sh that take a value, and the ones that choose tests.
 VALUE_OPTIONS = {"--exclude-tag", "--tag", "--durations", "--shard"}
@@ -65,11 +77,33 @@ def selection_step(job: dict) -> dict:
     return steps[0]
 
 
-def invocations(script: str, *, event: str, suite: str, apps: str, release: bool):
-    """Run the step's script with scripts/test.sh replaced by a recorder.
+def mode_for(step: dict, *, event: str, release: bool) -> str:
+    """Evaluate the step's CI_TEST_MODE for one event."""
+    expression = squash(step.get("env", {}).get("CI_TEST_MODE", ""))
+    if expression != MODE_EXPRESSION:
+        msg = f"CI_TEST_MODE is {expression!r}; update MODE_EXPRESSION and this check"
+        raise AssertionError(msg)
+    if event == "pull_request":
+        return "pr"
+    return "release" if release else "full"
 
-    Returns the argument lists of every scripts/test.sh call it makes.
+
+RECORDER = """#!/usr/bin/env bash
+{
+  printf '%s\\x1f' "$@"
+  if [ -n "${FLOPPY_TEST_SHARD:-}" ]; then printf '%s\\x1f' --shard "$FLOPPY_TEST_SHARD"; fi
+  printf '\\n'
+} >> "$CALLS"
+"""
+
+
+def invocations(step: dict, *, event: str, shard: dict, release: bool):
+    """Run the step, and ci_tests.sh, with scripts/test.sh replaced by a recorder.
+
+    Returns the argument lists of every scripts/test.sh call. FLOPPY_TEST_SHARD
+    is recorded as ``--shard <i>/<n>``.
     """
+    script = step["run"]
     found = set(re.findall(r"\$\{\{\s*([^}]*?)\s*\}\}", script))
     unknown = found - KNOWN_EXPRESSIONS
     if unknown:
@@ -78,14 +112,18 @@ def invocations(script: str, *, event: str, suite: str, apps: str, release: bool
             "value differs between a pull request and the publish gate"
         )
         raise AssertionError(msg)
-    script = re.sub(r"\$\{\{\s*github\.event_name\s*\}\}", event, script)
-    script = re.sub(r"\$\{\{\s*matrix\.suite\s*\}\}", suite, script)
+    script = re.sub(r"\$\{\{\s*matrix\.role\s*\}\}", shard["role"], script)
     with tempfile.TemporaryDirectory() as scratch:
-        log = Path(scratch) / "calls"
-        recorder = 'record() { printf "%s\\x1f" "$@" >> "$CALLS"; printf "\\n" >> "$CALLS"; }\n'
-        body = recorder + script.replace("scripts/test.sh", "record")
+        root = Path(scratch)
+        (root / "scripts").mkdir()
+        shutil.copy(CI_TESTS, root / "scripts" / "ci_tests.sh")
+        recorder = root / "scripts" / "test.sh"
+        recorder.write_text(RECORDER, encoding="utf-8")
+        recorder.chmod(0o755)
+        log = root / "calls"
         subprocess.run(  # noqa: S603
-            ["bash", "-euo", "pipefail", "-c", body],  # noqa: S607
+            ["bash", "-euo", "pipefail", "-c", script],  # noqa: S607
+            cwd=root,
             check=True,
             capture_output=True,
             text=True,
@@ -93,8 +131,9 @@ def invocations(script: str, *, event: str, suite: str, apps: str, release: bool
             env={
                 "PATH": "/usr/bin:/bin",
                 "CALLS": str(log),
-                "TEST_APPS": apps,
-                "RELEASE_QUALITY_GATES": "true" if release else "false",
+                "CI_TEST_MODE": mode_for(step, event=event, release=release),
+                "FLOPPY_TEST_SHARD": str(shard.get("shard") or ""),
+                "FLOPPY_TEST_ACCOUNTING_DIR": str(root / "accounting"),
             },
         )
         lines = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
@@ -172,20 +211,20 @@ class PublishGateNeedsNothingThePullRequestSkippedTests(unittest.TestCase):
 
     def test_every_shard_selects_no_test_the_pull_request_left_out(self):
         job = shard_job()
-        script = selection_step(job)["run"]
+        step = selection_step(job)
         shards = job["strategy"]["matrix"]["include"]
         self.assertTrue(shards, "test_shards has no matrix entries")
         for shard in shards:
-            suite, apps = shard["suite"], shard.get("apps", "")
+            suite = shard["suite"]
             with self.subTest(suite=suite):
-                pull = invocations(
-                    script, event="pull_request", suite=suite, apps=apps, release=False
-                )
-                gate = invocations(
-                    script, event="push", suite=suite, apps=apps, release=True
-                )
+                pull = invocations(step, event="pull_request", shard=shard, release=False)
+                gate = invocations(step, event="push", shard=shard, release=True)
                 self.assertEqual(len(pull), 1, f"{suite}: pull request calls {pull}")
-                self.assertEqual(len(gate), 1, f"{suite}: publish gate calls {gate}")
+                self.assertLessEqual(len(gate), 1, f"{suite}: publish gate calls {gate}")
+                if not gate:
+                    # The gate runs nothing here (the browser shard), so it
+                    # cannot need anything the pull request skipped.
+                    continue
                 p_labels, p_tags, p_excluded, p_flags = parse(pull[0])
                 g_labels, g_tags, g_excluded, g_flags = parse(gate[0])
 
@@ -228,9 +267,18 @@ class PublishGateNeedsNothingThePullRequestSkippedTests(unittest.TestCase):
             self.assertNotIn(needle, text)
         step = selection_step(shard_job())
         self.assertNotIn("secrets.", yaml.safe_dump(step))
-        self.assertEqual(
-            set(step.get("env", {})), {"RELEASE_QUALITY_GATES"}, "new step input"
+        self.assertEqual(set(step.get("env", {})), {"CI_TEST_MODE"}, "new step input")
+
+    def test_the_recorder_sees_every_shard(self):
+        # Guards the harness: a unit shard on the pull request makes one call,
+        # carrying its FLOPPY_TEST_SHARD.
+        job = shard_job()
+        unit = next(s for s in job["strategy"]["matrix"]["include"] if s["role"] == "unit")
+        calls = invocations(
+            selection_step(job), event="pull_request", shard=unit, release=False
         )
+        self.assertEqual(len(calls), 1)
+        self.assertIn(unit["shard"], calls[0])
 
 
 class SkippingIsReachableOnlyThroughTheDecisionTests(unittest.TestCase):

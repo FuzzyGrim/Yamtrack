@@ -50,19 +50,23 @@ needing the fallback means the underlying race is still there.
 from __future__ import annotations
 
 import ctypes
+import json
 import logging
 import multiprocessing
 import multiprocessing.pool as mp_pool
 import os
 import time
+import unittest
 from collections import defaultdict
+from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models.signals import pre_migrate
 from django.test.runner import DiscoverRunner, ParallelTestSuite
 from django.test.utils import iter_test_cases
 
-from config import test_db_template
+from config import test_db_template, test_sharding
 
 logger = logging.getLogger(__name__)
 
@@ -329,6 +333,124 @@ class ResilientParallelTestSuite(ParallelTestSuite):
         return received
 
 
+SELECTED_FILE = "selected.txt"
+REPORTED_FILE = "reported.txt"
+MODULE_SECONDS_FILE = "module_seconds.json"
+
+
+# Read once by the runner that owns the process, then removed from the
+# environment. A test that builds its own runner, or starts a subprocess, must
+# not inherit them: one did, in this suite's own tests, and rewrote the shard's
+# selected.txt with a list of its own (caught by the accounting check).
+_OWNED_VARIABLES = (
+    "FLOPPY_TEST_SHARD",
+    "FLOPPY_TEST_ACCOUNTING_DIR",
+    "FLOPPY_TEST_LIST_ONLY",
+)
+
+
+def _claim_environment() -> dict[str, str]:
+    """Take this run's sharding and accounting settings out of ``os.environ``.
+
+    ``FLOPPY_TEST_ACCOUNTING_DIR`` receives three files:
+
+    * ``selected.txt``: the sorted IDs this process kept after tags and
+      ``FLOPPY_TEST_SHARD`` were applied, written before any test runs;
+    * ``reported.txt``: one ID per line for every outcome reported (pass,
+      fail, error, skip, expected or unexpected failure), appended and flushed
+      as it happens, so a process that dies mid-run leaves what it finished;
+    * ``module_seconds.json``: wall seconds per test module, including class
+      setup, for refreshing ``test_shard_weights.json``.
+
+    ``scripts/check_test_accounting.py`` compares them across shards.
+    ``FLOPPY_TEST_LIST_ONLY=1`` writes ``selected.txt`` and runs nothing.
+    """
+    return {
+        name: os.environ.pop(name) for name in _OWNED_VARIABLES if name in os.environ
+    }
+
+
+class _AccountingSink:
+    """Appends reported test IDs and totals wall time per module."""
+
+    def __init__(self, directory: Path):
+        directory.mkdir(parents=True, exist_ok=True)
+        self.directory = directory
+        self._reported = (directory / REPORTED_FILE).open("a", encoding="utf-8")
+        self.module_seconds: dict[str, float] = defaultdict(float)
+
+    def reported(self, test) -> None:
+        self._reported.write(f"{test.id()}\n")
+        self._reported.flush()
+
+    def timed(self, test, seconds: float) -> None:
+        self.module_seconds[test_sharding.module_of(test)] += seconds
+
+    def close(self) -> None:
+        self._reported.close()
+        payload = {
+            name: round(seconds, 3)
+            for name, seconds in sorted(self.module_seconds.items())
+        }
+        (self.directory / MODULE_SECONDS_FILE).write_text(
+            json.dumps(payload, indent=1, sort_keys=True) + "\n"
+        )
+
+
+def _recording_result_class(base, sink: _AccountingSink):
+    """Subclass ``base`` so every outcome and every test's wall time is kept.
+
+    Time is measured stop-to-stop, so the gap before a test (its class's
+    ``setUpClass`` and the previous class's ``tearDownClass``) counts towards
+    its module. That is what a shard actually pays for the module.
+    """
+
+    class RecordingTestResult(base):
+        _last_stop: float | None = None
+
+        def startTest(self, test):  # noqa: N802  # unittest's API
+            if self._last_stop is None:
+                self._last_stop = time.monotonic()
+            super().startTest(test)
+
+        def stopTest(self, test):  # noqa: N802
+            super().stopTest(test)
+            now = time.monotonic()
+            sink.timed(test, now - (self._last_stop or now))
+            self._last_stop = now
+
+        def addSuccess(self, test):  # noqa: N802
+            super().addSuccess(test)
+            sink.reported(test)
+
+        def addFailure(self, test, err):  # noqa: N802
+            super().addFailure(test, err)
+            sink.reported(test)
+
+        def addError(self, test, err):  # noqa: N802
+            super().addError(test, err)
+            sink.reported(test)
+
+        def addSkip(self, test, reason):  # noqa: N802
+            super().addSkip(test, reason)
+            sink.reported(test)
+
+        def addExpectedFailure(self, test, err):  # noqa: N802
+            super().addExpectedFailure(test, err)
+            sink.reported(test)
+
+        def addUnexpectedSuccess(self, test):  # noqa: N802
+            super().addUnexpectedSuccess(test)
+            sink.reported(test)
+
+        def addSubTest(self, test, subtest, err):  # noqa: N802
+            # A failing subtest replaces the test's own addSuccess.
+            super().addSubTest(test, subtest, err)
+            sink.reported(test)
+
+    return RecordingTestResult
+
+
 class ResilientDiscoverRunner(DiscoverRunner):
     """``DiscoverRunner`` that defaults to serial, and survives parallel.
 
@@ -360,6 +482,84 @@ class ResilientDiscoverRunner(DiscoverRunner):
         """Override whatever ``--parallel`` asked for with the configured value."""
         super().__init__(*args, **kwargs)
         self.parallel = _configured_parallel(self.parallel)
+        self._sink: _AccountingSink | None = None
+        owned = _claim_environment()
+        self._shard_spec = owned.get("FLOPPY_TEST_SHARD")
+        raw_dir = owned.get("FLOPPY_TEST_ACCOUNTING_DIR")
+        self._accounting_dir = Path(raw_dir) if raw_dir else None
+        self._list_only = owned.get("FLOPPY_TEST_LIST_ONLY") == "1"
+
+    def build_suite(self, test_labels=None, **kwargs):
+        """Apply ``FLOPPY_TEST_SHARD`` after tags, then write ``selected.txt``."""
+        shard = test_sharding.parse_shard(self._shard_spec)
+        if shard is not None and self.parallel > 1:
+            message = (
+                "FLOPPY_TEST_SHARD splits the run into separate serial "
+                "processes; it cannot be combined with FLOPPY_TEST_PARALLEL > 1."
+            )
+            raise ImproperlyConfigured(message)
+        suite = super().build_suite(test_labels, **kwargs)
+        if shard is not None:
+            suite = self._keep_shard(suite, *shard)
+        directory = self._accounting_dir
+        if directory is not None:
+            directory.mkdir(parents=True, exist_ok=True)
+            ids = sorted(test.id() for test in iter_test_cases(suite))
+            (directory / SELECTED_FILE).write_text(
+                "".join(f"{test_id}\n" for test_id in ids)
+            )
+        return suite
+
+    def _keep_shard(self, suite, index: int, count: int):
+        tests = list(iter_test_cases(suite))
+        modules = {test_sharding.module_of(test) for test in tests}
+        assignment = test_sharding.assign(modules, test_sharding.load_weights(), count)
+        kept = [
+            test for test in tests if assignment[test_sharding.module_of(test)] == index
+        ]
+        kept_modules = {test_sharding.module_of(test) for test in kept}
+        self.log(
+            f"[test-shard] {index}/{count}: kept {len(kept)} of {len(tests)} "
+            f"tests, {len(kept_modules)} of {len(modules)} modules."
+        )
+        return self.test_suite(kept)
+
+    def run_tests(self, test_labels, **kwargs):
+        """With ``FLOPPY_TEST_LIST_ONLY=1``, only discover: no database, no tests."""
+        if not self._list_only:
+            return super().run_tests(test_labels, **kwargs)
+        if self._accounting_dir is None:
+            message = "FLOPPY_TEST_LIST_ONLY=1 needs FLOPPY_TEST_ACCOUNTING_DIR."
+            raise ImproperlyConfigured(message)
+        self.setup_test_environment()
+        try:
+            suite = self.build_suite(test_labels)
+            # A module that fails to import is a _FailedTest here. Listing it
+            # would hide the problem behind a passing discover job.
+            broken = [
+                test.id()
+                for test in iter_test_cases(suite)
+                if isinstance(test, unittest.loader._FailedTest)
+            ]
+        finally:
+            self.teardown_test_environment()
+        if broken:
+            self.log("[test-list] these test modules could not be loaded:")
+            for test_id in broken:
+                self.log(f"  {test_id}")
+            return len(broken)
+        self.log(f"[test-list] wrote {SELECTED_FILE} to {self._accounting_dir}.")
+        return 0
+
+    def get_resultclass(self):
+        """Record every outcome when ``FLOPPY_TEST_ACCOUNTING_DIR`` is set."""
+        base = super().get_resultclass()
+        directory = self._accounting_dir
+        if directory is None:
+            return base
+        if self._sink is None:
+            self._sink = _AccountingSink(directory)
+        return _recording_result_class(base or unittest.TextTestResult, self._sink)
 
     def _template_applies(self, aliases) -> bool:
         """Whether this run builds the one in-memory SQLite test database."""
@@ -446,7 +646,12 @@ class ResilientDiscoverRunner(DiscoverRunner):
             if self.durations is not None
             else {}
         )
-        result = super().run_suite(suite, **kwargs)
+        try:
+            result = super().run_suite(suite, **kwargs)
+        finally:
+            if self._sink is not None:
+                self._sink.close()
+                self._sink = None
         if self.durations is not None:
             modules = defaultdict(float)
             for test, elapsed in result.collectedDurations:
