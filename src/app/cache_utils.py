@@ -301,30 +301,49 @@ def register_media_list_cache_key(user_id: int, cache_key: str) -> None:
 
 MEDIA_LIST_BUILD_LOCK_TTL = 20  # seconds — a crashed builder frees readers fast
 MEDIA_LIST_BUILD_WAIT = 5.0  # seconds a follower waits before building anyway
-_MEDIA_LIST_BUILD_POLL = 0.05
+_BUILD_POLL = 0.05
 
 
-def acquire_media_list_build_lock(cache_key: str) -> bool:
-    """Claim the right to rebuild ``cache_key``; False if a builder is running."""
-    return bool(cache.add(f"{cache_key}_building", 1, MEDIA_LIST_BUILD_LOCK_TTL))
+def acquire_build_lock(cache_key: str, ttl: int) -> bool:
+    """Claim the right to build ``cache_key``; False if a builder is running.
+
+    A request that loses waits with ``wait_for_build`` instead of computing
+    the same result a second time.
+    """
+    return bool(cache.add(f"{cache_key}_building", 1, ttl))
 
 
-def release_media_list_build_lock(cache_key: str) -> None:
-    """Drop the build lock once the result is cached."""
+def release_build_lock(cache_key: str) -> None:
+    """Drop the build lock once the result is cached (or was not cacheable)."""
     cache.delete(f"{cache_key}_building")
 
 
-def wait_for_media_list_build(cache_key: str, is_ready) -> bool:
+def wait_for_build(cache_key: str, is_ready, wait: float) -> bool:
     """Poll until ``is_ready()`` or the lock clears; False means build it yourself."""
-    deadline = time.monotonic() + MEDIA_LIST_BUILD_WAIT
+    deadline = time.monotonic() + wait
     lock_key = f"{cache_key}_building"
     while time.monotonic() < deadline:
         if is_ready():
             return True
         if cache.get(lock_key) is None:
             return is_ready()
-        time.sleep(_MEDIA_LIST_BUILD_POLL)
+        time.sleep(_BUILD_POLL)
     return is_ready()
+
+
+def acquire_media_list_build_lock(cache_key: str) -> bool:
+    """Claim the right to rebuild a media list entry; False if one is running."""
+    return acquire_build_lock(cache_key, MEDIA_LIST_BUILD_LOCK_TTL)
+
+
+def release_media_list_build_lock(cache_key: str) -> None:
+    """Drop the build lock once the result is cached."""
+    release_build_lock(cache_key)
+
+
+def wait_for_media_list_build(cache_key: str, is_ready) -> bool:
+    """Poll until ``is_ready()`` or the lock clears; False means build it yourself."""
+    return wait_for_build(cache_key, is_ready, MEDIA_LIST_BUILD_WAIT)
 
 
 def clear_media_list_cache_for_user(user_id: int) -> None:
