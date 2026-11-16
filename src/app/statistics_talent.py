@@ -351,11 +351,11 @@ def _get_person_talent_totals_from_context(user, person, context):
     director_credit_item_ids = set()
     writer_credit_item_ids = set()
 
+    # One person has at most a few hundred credits, read through the person
+    # index. Filtering by the played IDs in SQL meant an IN list of every
+    # played item, thousands of index probes that took a minute on slow disks.
     person_credits = (
-        ItemPersonCredit.objects.filter(
-            item_id__in=played_item_ids,
-            person_id=person.id,
-        )
+        ItemPersonCredit.objects.filter(person_id=person.id)
         .order_by()
         .values_list(
             "item_id",
@@ -367,6 +367,8 @@ def _get_person_talent_totals_from_context(user, person, context):
         )
     )
     for credit in person_credits.iterator(chunk_size=500):
+        if credit.item_id not in played_item_ids:
+            continue
         item_media_type = item_media_type_by_id.get(credit.item_id)
         if not item_media_type:
             continue
