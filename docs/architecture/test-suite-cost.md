@@ -29,19 +29,53 @@ correctly reported `Decision: run` with the reason
 `no pull request is associated with this commit`, so the full gate
 was selected. The run's eventual completion is tracked separately.
 
-**Still not proven:** a squash merge and a merge while the PR branch
-is behind `latest`; an end-to-end scratch-repository exercise with
-the reuse variable enabled and the three shards skipped. Unit tests
-cover the decision paths, but do not replace those live exercises.
-Keep `REUSE_PR_TEST_RESULTS` unset until those cases are checked and
-the maintainer approves the 72-hour age limit and trust assumptions
-in #1917. Track outstanding validation in
-[#1918](https://github.com/dannyvfilms/Floppy/issues/1918).
+**Switched on 2026-11-13.** `REUSE_PR_TEST_RESULTS` has been `true`
+since then. The cases that were "not proven" above have all happened on
+`latest` itself, in the 32 `Docker Image` push runs from then to
+2026-11-15:
 
-This is a *correctness* observation, not a before/after speed
-benchmark: collect controlled CI medians and an enabled-vs-disabled
-publish latency comparison separately. Do not treat different commits
-or runs with broken distribution verification as a controlled baseline.
+| Case | Example | Decision |
+| --- | --- | --- |
+| Up-to-date merge commit | [#1996](https://github.com/dannyvfilms/Floppy/actions/runs/43733184735) and 18 more | Reused, trees equal |
+| Squash merge | [#1974](https://github.com/dannyvfilms/Floppy/actions/runs/43680572742), [#1562](https://github.com/dannyvfilms/Floppy/actions/runs/43505694059) | Reused, trees equal |
+| Squash merged while behind | [#1998](https://github.com/dannyvfilms/Floppy/actions/runs/43670473917) | Full gate: tested tree differs |
+| Merged while the PR run was still going | [#1987](https://github.com/dannyvfilms/Floppy/actions/runs/43652629220), [#1988](https://github.com/dannyvfilms/Floppy/actions/runs/43655717286) | Full gate: run in progress or queued |
+| Direct push, including merge commits pushed by hand | [eed87a907](https://github.com/dannyvfilms/Floppy/actions/runs/43671959036) and 7 more | Full gate: no pull request |
+| Reused, then an always-run job failed | [#1989](https://github.com/dannyvfilms/Floppy/actions/runs/43664812425) | Upgrade (PostgreSQL) failed, no image published |
+
+On every reused run the shards show as skipped, `test (3.12)` passed,
+and migration checks, OAuth, both upgrade replays, release lint and the
+image smoke still ran.
+
+Push to built image, from the same runs:
+
+| Gate | Runs | Median | Range |
+| --- | --- | --- | --- |
+| Reused | 20 | 15.1 min | 10.7 to 16.6 min |
+| Full | 6 | 25.0 min | 23.3 to 27.8 min |
+
+The full-gate row includes three shadow-mode runs from 2026-11-12; only
+six full-gate runs published an image, because most direct pushes in
+this window failed a shard.
+
+These are different commits on shared runners, not a controlled A/B, but
+the gap is the shard time and is consistent across every run.
+
+The one thing tree equality cannot prove is that the publish gate runs
+no test the pull request skipped, because the same workflow file picks
+tests by event. `scripts/tests/test_reuse_pr_workflow.py` holds that:
+it runs the shard's test step for both events and fails if the gate
+would select a label, tag or test the pull request did not. It also
+checks that only the decision can skip the shards and that the
+roll-up and the image build still need every always-run job. If that
+test breaks because test selection was rewritten, prove the property
+again for the new wiring; do not delete it.
+
+If GitHub stops reporting the tested commit for runs, reuse stops on
+every merge (safe) and the decision job raises a warning on the run.
+
+Remaining follow-ups are in
+[#1918](https://github.com/dannyvfilms/Floppy/issues/1918).
 
 
 The suite got slow enough that waiting on it became the bottleneck for both
@@ -635,6 +669,44 @@ Now:
   run on `latest`.
 
 The two workflows list the shards separately. Change them together.
+
+## Knowing when latest itself is broken
+
+From 12 to 15 November 2026, 30 of 100 pull request runs of App Tests failed.
+27 of those fell in four windows where unrelated branches failed the same
+tests, and each window began with a push to `latest` and ended when a fix
+reached it (one began when the date entered the Discover holiday window).
+Three of the four were non-browser tests: the publish gate went red on
+`latest` within about 20 minutes, but a red run on `latest` tells nobody. The
+fourth was four Playwright tests, which the publish gate leaves out on
+purpose, so nothing on `latest` ran them at all.
+
+`latest-health.yml` closes both gaps without gating anything:
+
+- On every push to `latest` it runs the browser tests pull requests must
+  pass: `scripts/test.sh app integrations --tag playwright --exclude-tag
+  flaky_alphabet_rail`, with real migrations. A newer push cancels the
+  older run.
+- When the publish gate finishes for a push to `latest`, it reads the
+  gate's test shards.
+- `scripts/latest_health.py` keeps one issue, **Tests are failing on
+  latest**: opened on the first failure with the failing tests, the first
+  bad commit and the range since the last good one; edited while anything
+  still fails; commented on and closed only when both sources have passed
+  cleanly. The closed issue keeps each source's last result, so a result for
+  an older commit than the one recorded is ignored even when nothing is open. A run that could not tell
+  (Chromium did not install or start, a job was killed, no test was named)
+  is "unknown" and never opens or closes the issue.
+- When a pull request's shards fail, the **Compare failures with latest**
+  job in `app-tests.yml` writes one line in the run summary: whether the
+  same tests are failing on `latest`. It says green only when both sources
+  passed `latest`'s newest commit; otherwise, or if it cannot read the
+  state, it says "unknown". It is not required and never fails.
+
+If the browser command in `app-tests.yml` changes (for example a separate
+browser shard), change the one in `latest-health.yml` with it.
+
+Rollback: delete `latest-health.yml` and the `baseline_note` job.
 
 ## Reusing a pull request's test result on the publish gate
 

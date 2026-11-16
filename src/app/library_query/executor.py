@@ -786,10 +786,12 @@ def _attach_media(
             light_rows=True,
         )
         aggregated = BasicMedia.objects._aggregate_duplicate_data(rows, user, media_type)
+        # The newest row by creation, the higher id on a tie (bulk imports
+        # share timestamps), as the "updated" sort's SQL form reads it.
         latest = {}
         for media in aggregated:
             current = latest.get(media.item_id)
-            if current is None or media.created_at > current.created_at:
+            if current is None or (media.created_at, media.pk) > (current.created_at, current.pk):
                 latest[media.item_id] = media
         if media_type == MediaTypes.PODCAST.value:
             from app.services.podcast_list_tracking import (

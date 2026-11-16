@@ -451,6 +451,20 @@ def _build_prefetch_for_range(user, day_list):
         reading_prefetch[media_type] = _bucket_overlap_rows(rows, day_list_set)
     prefetch["reading"] = reading_prefetch
 
+    if MediaTypes.BOOK.value in active_media_types:
+        # Same window and local-day bucketing as the per-day SUM below.
+        BookListeningSession = apps.get_model("app", "BookListeningSession")
+        listening_minutes = defaultdict(int)
+        for row in BookListeningSession.objects.filter(
+            book__user=user,
+            started_at__gte=range_start,
+            started_at__lt=range_end,
+        ).values("started_at", "minutes"):
+            day = _normalize_day_value(row["started_at"])
+            if day in day_list_set:
+                listening_minutes[day] += row["minutes"] or 0
+        prefetch["listening_minutes"] = listening_minutes
+
     # Resolve which TMDB candidates still need credits backfill once for the
     # whole range; per-day builds intersect against this instead of issuing
     # the same ~5 resolver queries on every day with a TMDB play.
@@ -1841,7 +1855,13 @@ def build_stats_for_day(
                             )
 
     listening_minutes = 0
-    if MediaTypes.BOOK.value in active_media_types:
+    if (
+        MediaTypes.BOOK.value in active_media_types
+        and prefetch is not None
+        and "listening_minutes" in prefetch
+    ):
+        listening_minutes = prefetch["listening_minutes"].get(day, 0)
+    elif MediaTypes.BOOK.value in active_media_types:
         BookListeningSession = apps.get_model("app", "BookListeningSession")
         listening_minutes = (
             BookListeningSession.objects.filter(

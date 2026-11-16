@@ -413,6 +413,34 @@ def summary(decision: Decision) -> str:
     return "\n".join(lines) + "\n"
 
 
+# Reasons that mean GitHub stopped describing runs the way this script relies
+# on, rather than an ordinary "this push was not tested". Reuse then stops,
+# which is safe, but on every merge, so it is raised as a warning on the run
+# instead of only sitting in the job summary.
+CANARY_REASONS = (
+    "run does not report the commit it tested",
+    "run reports more than one tested commit",
+    "run reports an unreadable tested commit",
+    "run references a workflow by something other than its tested commit",
+    "unexpected ",
+    "error: ",
+)
+
+
+def warning(decision: Decision) -> str | None:
+    """Return a workflow warning when a pull request merge failed for a canary."""
+    if decision.evaluated == REUSE or "pull request" not in decision.evidence:
+        return None
+    if not decision.reason.startswith(CANARY_REASONS):
+        return None
+    return (
+        "::warning title=PR test result not reused::"
+        f"{one_line(decision.reason)}. The full gate ran. If this repeats on every "
+        "merge, GitHub changed what it reports for workflow runs; see "
+        "scripts/reuse_pr_tests.py."
+    )
+
+
 def github_api(base_url: str, token: str):
     """Return a function that GETs one GitHub API path and parses the JSON."""
 
@@ -462,6 +490,9 @@ def main() -> int:
 
     print(text)
     print(f"decision={decision.decision}")
+    alert = warning(decision)
+    if alert:
+        print(alert)
     try:
         if env.get("GITHUB_OUTPUT"):
             with Path(env["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
