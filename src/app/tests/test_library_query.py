@@ -296,6 +296,102 @@ class DateAddedSortTests(LibraryQueryTestCase):
         self.assertEqual(ids, [new_item.pk, old_item.pk])
 
 
+class UpdatedSortTests(LibraryQueryTestCase):
+    """Updated reads progressed_at off the newest row, in SQL and on a scan."""
+
+    def _item(self, key):
+        return Item.objects.create(
+            media_id=f"updated-{key}",
+            source=Sources.TMDB.value,
+            media_type=MOVIE,
+            title=f"Updated {key}",
+            image="https://example.com/i.jpg",
+        )
+
+    def _row(self, item, *, created, progressed):
+        row = self.track(item, status=Status.COMPLETED.value)
+        Movie.objects.filter(pk=row.pk).update(
+            created_at=self.now - timedelta(days=created),
+            progressed_at=self.now - timedelta(days=progressed),
+        )
+        return row
+
+    def _orders(self, direction):
+        executor = LibraryQueryExecutor(
+            self.user, _query(sort=SortSpec("updated", direction)),
+        )
+        page = executor.page(0, 100)
+        return page, [item.pk for item in page.items], [row[-1] for row in executor._scan_ranked]
+
+    def test_newest_row_wins_over_the_latest_progress(self):
+        """Repeat rows: the newest row's value counts, not the maximum."""
+        # The older row has the most recent progress; the newest row does not.
+        repeated = self._item("repeated")
+        self._row(repeated, created=30, progressed=1)
+        self._row(repeated, created=2, progressed=20)
+        self._row(repeated, created=10, progressed=5)
+        middle = self._item("middle")
+        self._row(middle, created=3, progressed=10)
+        # Two rows created together: the higher id is the newest.
+        tied = self._item("tied")
+        first = self._row(tied, created=4, progressed=2)
+        second = self._row(tied, created=4, progressed=15)
+        self.assertGreater(second.pk, first.pk)
+        self.library(6)
+
+        for direction in ("desc", "asc"):
+            with self.subTest(direction=direction):
+                page, sql_ids, scan_ids = self._orders(direction)
+                self.assertTrue(page.used_sql)
+                self.assertEqual(sql_ids, scan_ids)
+                ours = [pk for pk in sql_ids if pk in {repeated.pk, middle.pk, tied.pk}]
+                expected = [middle.pk, tied.pk, repeated.pk]
+                self.assertEqual(ours, expected if direction == "desc" else expected[::-1])
+
+    def test_tracked_podcast_show_has_no_value(self):
+        """A show tracker replaces the podcast row, and it has no progressed_at."""
+        from app.models import Podcast, PodcastShow, PodcastShowTracker
+
+        podcast = MediaTypes.PODCAST.value
+        for index in range(4):
+            item = Item.objects.create(
+                media_id=f"pod-{index}",
+                source=Sources.POCKETCASTS.value,
+                media_type=podcast,
+                title=f"Podcast {index}",
+                image="https://example.com/i.jpg",
+            )
+            row = self.track(item, model=Podcast, status=Status.IN_PROGRESS.value)
+            Podcast.objects.filter(pk=row.pk).update(progressed_at=self.now - timedelta(days=index))
+        show = PodcastShow.objects.create(
+            podcast_uuid="pod-1", source=Sources.POCKETCASTS.value, title="Show", image="/c.jpg",
+        )
+        PodcastShowTracker.objects.create(user=self.user, show=show)
+        for include_shows in (False, True):
+            for direction in ("desc", "asc"):
+                with self.subTest(include_shows=include_shows, direction=direction):
+                    query = LibraryQuery(
+                        media_types=(podcast,),
+                        sort=SortSpec("updated", direction),
+                        include_podcast_shows=include_shows,
+                    )
+                    executor = LibraryQueryExecutor(self.user, query)
+                    page = executor.page(0, 100)
+                    self.assertTrue(page.used_sql)
+                    sql_ids = [item.pk for item in page.items]
+                    self.assertEqual(sql_ids, [row[-1] for row in executor._scan_ranked])
+                    self.assertEqual(
+                        Item.objects.get(pk=sql_ids[-1]).media_id, "pod-1",
+                    )
+
+    def test_shows_scan_and_agree(self):
+        """TV derives progressed_at from episodes, so it stays on the scan path."""
+        query = LibraryQuery(
+            media_types=(MediaTypes.TV.value,), sort=SortSpec("updated", "desc"),
+        )
+        self.assertFalse(LibraryQueryExecutor(self.user, query).uses_sql)
+
+
 class StatusSemanticsTests(LibraryQueryTestCase):
     """``latest`` follows the newest row; ``any`` accepts any row."""
 

@@ -42,6 +42,7 @@ from django.conf import settings
 from django.db import connections
 
 from app import db_diagnostics, request_timing
+from config.runtime_profile import anon_resident_bytes_from_statm
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,9 @@ class MemorySample:
     """One boundary's view of both envelopes. Every field may be None."""
 
     rss_bytes: int | None = None
+    # The anonymous part of rss_bytes: what recycling the process returns.
+    # The rest is mostly the memory-mapped database (page cache).
+    rss_anon_bytes: int | None = None
     hwm_bytes: int | None = None
     cgroup_current_bytes: int | None = None
     cgroup_anon_bytes: int | None = None
@@ -122,7 +126,11 @@ def _process_rss_bytes() -> int | None:
     peak that never falls, and ``/proc/self/status`` costs a full formatting
     pass -- it is read once more below, for the peak we actually want.
     """
-    contents = _read_text(_PROC_SELF_STATM)
+    return _rss_from_statm(_read_text(_PROC_SELF_STATM))
+
+
+def _rss_from_statm(contents: str | None) -> int | None:
+    """Return the resident field of a statm line, in bytes."""
     if not contents:
         return None
     fields = contents.split()
@@ -199,8 +207,10 @@ def sample_memory() -> MemorySample:
     still gets a usable (entirely unknown) sample rather than a 500.
     """
     stat = _cgroup_stat()
+    statm = _read_text(_PROC_SELF_STATM)
     return MemorySample(
-        rss_bytes=_process_rss_bytes(),
+        rss_bytes=_rss_from_statm(statm),
+        rss_anon_bytes=anon_resident_bytes_from_statm(statm),
         hwm_bytes=_process_hwm_bytes(),
         cgroup_current_bytes=_cgroup_int("memory.current"),
         cgroup_anon_bytes=stat.get("anon"),
@@ -287,12 +297,17 @@ def _high_water_reasons(before: MemorySample, after: MemorySample, duration_ms: 
 
 
 def _near_ceiling(after: MemorySample, role: str) -> bool:
-    """Return whether this process ended close enough to be recycled soon."""
+    """Return whether this process ended close enough to be recycled soon.
+
+    Compared on the anonymous size, as the recyclers themselves now are
+    (config.gunicorn and config.celery): mapped database pages do not count.
+    """
     ceiling = role_ceiling_bytes(role)
-    if not ceiling or after.rss_bytes is None:
+    size = after.rss_anon_bytes if after.rss_anon_bytes is not None else after.rss_bytes
+    if not ceiling or size is None:
         return False
     ratio = settings.MEMORY_HIGH_WATER_CEILING_RATIO
-    return ratio > 0 and after.rss_bytes >= ceiling * ratio
+    return ratio > 0 and size >= ceiling * ratio
 
 
 def _format(value) -> str:
@@ -331,6 +346,8 @@ def report_boundary(
         "rss_before": _format(before.rss_bytes),
         "rss_after": _format(after.rss_bytes),
         "rss_delta": _format(_delta(after.rss_bytes, before.rss_bytes)),
+        "rss_anon_before": _format(before.rss_anon_bytes),
+        "rss_anon_after": _format(after.rss_anon_bytes),
         "hwm_before": _format(before.hwm_bytes),
         "hwm_after": _format(after.hwm_bytes),
         "cgroup_before": _format(before.cgroup_current_bytes),

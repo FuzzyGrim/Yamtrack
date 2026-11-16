@@ -151,6 +151,20 @@ built first, so its recorded `stats:sync:range_seconds` can understate what it
 costs at the start of a continuation; the first range of a task always runs,
 so this can only let one range start a little late, never stop one starting.
 
+Those rows are narrow. The cards read a few item columns (title, image, ids,
+numbers), so every place that loads a row a range payload keeps defers the
+wide item columns in `history_cache_utils.HISTORY_UNREAD_ITEM_FIELDS`
+(`watch_providers` alone is ~146 KiB a TMDB title): `_fetch_media_objects`,
+`hydrate_payload`'s `_fetch_instances`, and `stats._annotate_top_rated_media`,
+including the season and episode items it prefetches under a show. The one
+exception is a manual anime, manga or comic in the top-rated cards, loaded
+whole because its progress total is read from its custom details. A deferred
+column that something does read comes back with one query per row, so
+`test_statistics_narrow_rows` fails on any such query while a range is built
+or rendered. The change needs no cache or schema bump: the snapshot format
+(references) is unchanged, and an entry cached with whole rows before an
+upgrade renders exactly as a narrow one.
+
 The ranges do not share their walk over the day payloads. On the profiled
 library (3,414 active days) the walks of every bounded range together cost
 about a quarter of a second of CPU per heavy pass, against several seconds for
@@ -265,7 +279,13 @@ database). Stale → `ensure_sync` (gated, idempotent) and serve it anyway. None
 
 Eager/test mode (`CELERY_TASK_ALWAYS_EAGER` or `TESTING`) has no worker, so the
 read path rebuilds the requested range inline and `ensure_sync` is a no-op.
-Tests that exercise the real queueing override both settings and patch
+Custom ranges and the comparison-period minutes build their missing days the
+way the sync does (`statistics_cache._eager_day_builder` →
+`statistics_sync._build_days`, one range-wide prefetch per slice), not one day
+at a time; the day payloads and stored rows are the same
+(`app/tests/test_statistics_eager_day_builds.py`). An empty library's page went
+from about 9,000 queries to under 500. The prefetch also carries audiobook
+listening minutes, so a prefetched day issues no query of its own. Tests that exercise the real queueing override both settings and patch
 `app.tasks_interactive.statistics_sync_task.apply_async`
 (`app/tests/test_statistics_sync.py`).
 

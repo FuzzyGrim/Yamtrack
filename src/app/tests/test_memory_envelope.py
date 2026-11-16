@@ -57,6 +57,8 @@ class SampleMemoryTests(SimpleTestCase):
             sample = memory_envelope.sample_memory()
 
         self.assertEqual(sample.rss_bytes, 2048 * _PAGE)
+        # resident 2048 pages minus 300 shared (file and shmem) pages.
+        self.assertEqual(sample.rss_anon_bytes, (2048 - 300) * _PAGE)
         self.assertEqual(sample.hwm_bytes, 16384 * 1024)
         self.assertEqual(sample.cgroup_current_bytes, 1073741824)
         self.assertEqual(sample.cgroup_anon_bytes, 104857600)
@@ -266,6 +268,31 @@ class ReportBoundaryTests(SimpleTestCase):
 
         self.assertEqual(reasons, ("near_recycle_ceiling",))
         self.assertIn(f"ceiling={400 * 1024 * 1024}", events[0])
+
+    def test_mapped_database_pages_are_not_near_the_ceiling(self):
+        """The ceiling is compared on what a recycle returns, as the recyclers do.
+
+        A worker that has read a large table holds the memory-mapped database
+        in its RSS. That is page cache; retiring the worker frees none of it.
+        """
+        sample = memory_envelope.MemorySample(
+            rss_bytes=390 * 1024 * 1024,
+            rss_anon_bytes=150 * 1024 * 1024,
+        )
+        reasons, _events = self.report(sample, sample, duration_ms=1.0)
+
+        self.assertEqual(reasons, ())
+
+    def test_anonymous_growth_near_the_ceiling_is_reported(self):
+        """Python's own memory near the ceiling still names the boundary."""
+        sample = memory_envelope.MemorySample(
+            rss_bytes=395 * 1024 * 1024,
+            rss_anon_bytes=380 * 1024 * 1024,
+        )
+        reasons, events = self.report(sample, sample, duration_ms=1.0)
+
+        self.assertEqual(reasons, ("near_recycle_ceiling",))
+        self.assertIn(f"rss_anon_after={380 * 1024 * 1024}", events[0])
 
     @override_settings(GUNICORN_MAX_WORKER_MEMORY_BYTES=0)
     def test_disabled_ceiling_never_reports_near_ceiling(self):
