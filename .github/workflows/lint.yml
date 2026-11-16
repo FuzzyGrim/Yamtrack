@@ -45,6 +45,9 @@ jobs:
       - name: Ruff
         run: uv run --no-sync ruff check src mcp_server
 
+      - name: Code map points at existing files
+        run: python3 scripts/check_code_map.py
+
       - name: Dependency vulnerabilities
         run: scripts/audit_dependencies.sh
 
