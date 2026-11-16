@@ -5,9 +5,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models import (
     Case,
-    Exists,
     IntegerField,
-    OuterRef,
+    Min,
     Q,
     UniqueConstraint,
     Value,
@@ -393,26 +392,46 @@ class EventManager(models.Manager):
         if not active_tv_shows:
             return Q()
 
-        # A dropped/paused season hides itself and every later season of the
-        # same show. Checking "does an inactive season at or before this
-        # season's number exist" via a correlated Exists avoids compiling one
-        # OR clause per active show with a dropped season.
-        dropped_season_exists = Exists(
+        season_query = Q(
+            item__media_type=MediaTypes.SEASON.value,
+            item__media_id__in=active_tv_shows,
+        )
+        hidden_season_ids = self._dropped_season_item_ids(user, active_tv_shows)
+        if hidden_season_ids:
+            season_query &= ~Q(item_id__in=hidden_season_ids)
+        return season_query
+
+    def _dropped_season_item_ids(self, user, show_media_ids):
+        """Return Season `Item` ids hidden by a dropped or paused season.
+
+        A dropped/paused season hides itself and every later season of the
+        same show. This used to be a correlated EXISTS in the calendar query,
+        which SQLite ran once per event in the month, each time walking every
+        season the user tracks: at 10k items that was 2 of the page's 3.4
+        seconds (SURFACE-16). Two small queries up front give the same rows.
+        """
+        first_hidden_number = dict(
             Season.objects.filter(
                 user=user,
-                item__media_id=OuterRef("item__media_id"),
                 status__in=INACTIVE_TRACKING_STATUSES,
-                item__season_number__lte=OuterRef("item__season_number"),
-            ),
-        )
-
-        return (
-            Q(
-                item__media_type=MediaTypes.SEASON.value,
-                item__media_id__in=active_tv_shows,
+                item__media_id__in=show_media_ids,
+                item__season_number__isnull=False,
             )
-            & ~Q(dropped_season_exists)
+            .values("item__media_id")
+            .annotate(first_number=Min("item__season_number"))
+            .values_list("item__media_id", "first_number"),
         )
+        if not first_hidden_number:
+            return []
+        return [
+            item_id
+            for item_id, media_id, season_number in Item.objects.filter(
+                media_type=MediaTypes.SEASON.value,
+                media_id__in=first_hidden_number,
+                season_number__isnull=False,
+            ).values_list("id", "media_id", "season_number")
+            if season_number >= first_hidden_number[media_id]
+        ]
 
     def sort_with_sentinel_last(self, queryset):
         """Sort events with sentinel time last."""
