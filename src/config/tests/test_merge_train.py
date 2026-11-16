@@ -483,24 +483,43 @@ class MainTests(TestCase):
             )
         self.assertFalse([c for c in fake.calls if "mutation" in " ".join(c)])
 
-    def test_old_failed_check_is_refreshed_once_after_latest_advances(self):
+    def test_old_failed_check_is_refreshed_after_latest_advances(self):
         old = pr(1, checks=OLD_LINT_FAILURE)
+        body = old["body"]
         code, fake = self.run_train([old], {1: 2})
         self.assertEqual((code, fake.updated), (0, [1]))
-        self.assertIn(f"merge-train-base:{LATEST_SHA}", old["body"])
+        self.assertEqual(old["body"], body)  # no PR edit, so no extra train wakeup
 
-    def test_old_failed_check_is_not_retried_against_same_base(self):
+    def test_legacy_attempt_marker_still_blocks_a_second_retry_on_the_same_base(self):
         old = pr(1, checks=OLD_LINT_FAILURE)
         old["_latest_oid"] = LATEST_SHA
         old["_latest_date"] = "2026-10-05T10:00:00Z"
         old["body"] += f"\n<!-- merge-train-base:{LATEST_SHA} -->"
         self.assertEqual(train.judge(old, 2, NOW)[0], "skip")
 
-    def test_failed_fork_update_records_refusal(self):
+    def test_refusal_does_not_park_a_pr_until_latest_moves(self):
+        """#1923 on 2026-11-16: one 403 used to skip it for the whole base."""
         old = pr(1, fork=True, checks=OLD_LINT_FAILURE)
+        old["_latest_oid"] = LATEST_SHA
+        old["_latest_date"] = "2026-10-05T10:00:00Z"
+        old["body"] += f"\n<!-- merge-train-base:{LATEST_SHA}:refused -->"
+        self.assertEqual(train.judge(old, 2, NOW)[0], "update")
+        body = old["body"]
         code, fake = self.run_train([old], {1: 2}, {1: FORBIDDEN})
-        self.assertEqual((code, fake.updated), (0, []))
-        self.assertIn(f"merge-train-base:{LATEST_SHA}:refused", old["body"])
+        self.assertEqual((code, fake.updated, old["body"]), (0, [], body))
+        code, fake = self.run_train([old], {1: 2})
+        self.assertEqual((code, fake.updated), (0, [1]))
+
+    def test_refusal_reports_githubs_own_reason(self):
+        stderr = (
+            "gh: Resource not accessible by personal access token (HTTP 403)\n{...}"
+        )
+        line = train._refusal(stderr)
+        self.assertIn(
+            "GitHub said: Resource not accessible by personal access token (HTTP 403)",
+            line,
+        )
+        self.assertNotIn("{...}", line)
 
     def test_dry_run_updates_nothing(self):
         code, fake = self.run_train([pr(1), pr(2)], {1: 2, 2: 2}, argv=["--dry-run"])

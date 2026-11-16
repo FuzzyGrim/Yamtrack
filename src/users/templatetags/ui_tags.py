@@ -999,16 +999,19 @@ def _person_hero_props(context):
                     "%(value_1)s show", "%(value_1)s shows", count,
                 ) % {"value_1": count},
             })
-        counts.append({
-            "label": ngettext(
-                "%(count)s tracked read" if is_author else "%(count)s tracked play",
-                "%(count)s tracked reads" if is_author else "%(count)s tracked plays",
-                tracked_plays_count,
-            ) % {"count": tracked_plays_count},
-        })
-        tracked_hours_count = context.get("tracked_hours_count")
-        if tracked_hours_count:
-            counts.append({"label": str(tracked_hours_count)})
+        if context.get("talent_pending"):
+            counts.append({"label": _("Counting plays")})
+        else:
+            counts.append({
+                "label": ngettext(
+                    "%(count)s tracked read" if is_author else "%(count)s tracked play",
+                    "%(count)s tracked reads" if is_author else "%(count)s tracked plays",
+                    tracked_plays_count,
+                ) % {"count": tracked_plays_count},
+            })
+            tracked_hours_count = context.get("tracked_hours_count")
+            if tracked_hours_count:
+                counts.append({"label": str(tracked_hours_count)})
 
     return {
         "kind": "person",

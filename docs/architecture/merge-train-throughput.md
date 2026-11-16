@@ -17,7 +17,9 @@ Any open, non-draft PR targeting `latest` with native auto-merge on. Owner or
 contributor, fork or not, makes no difference. A fork whose author turned off
 "Allow edits from maintainers", or one GitHub refuses to let the token update
 (HTTP 403), can't be refreshed. That fork is reported as a manual handoff, and
-everything else keeps moving.
+everything else keeps moving. The job summary quotes GitHub's reason for a
+refusal. A refused PR is retried on every run, because a refusal changes nothing
+on the branch.
 
 Skipped, with the reason in the job summary: real merge conflicts, failed
 required checks, required checks hung for hours or never started, a green PR
@@ -36,7 +38,7 @@ running or green never blocks the others. Free slots are filled in this order:
    starve.
 2. Other approved PRs, oldest approval first.
 3. PRs whose required check failed before `latest` moved get one refresh per new
-   `latest`. A body marker records the attempt.
+   `latest`.
 
 **Migration lane.** Any PR whose diff against `latest` adds, deletes or renames
 anything under `src/*/migrations/` goes here. This includes rename sources, a

@@ -45,6 +45,17 @@ row commit reads pre-write rows and republishes them under the new era. The
 next invalidation (any save) or staleness timer repairs it; this window
 existed before the era protocol and is unchanged by it.
 
+Day refreshes are deduped per set of days (`_refresh_dedupe_key`): while one
+is queued or running, another request for the same days is not queued. Such a
+request leaves a marker (`_refresh_rerun_key`) instead of vanishing. The
+refresh reads the marker before it reads rows and again when it finishes; a
+marker that appeared in between means a change landed after its read, so it
+queues one more pass. A marker already there at the start is covered by the
+read and is cleared. A finishing refresh releases only its own dedupe key, and
+the style lock only while that lock still names it, so a request for other
+days that is still waiting keeps its lock. Regression:
+`app.tests.test_history_refresh_rerun`.
+
 Regression: `app.tests.test_history_index_race_safety` drives the original
 interleavings deterministically (patched cache/build calls, never sleeps):
 lost-registry registrations, invalidation between row read and publish,
