@@ -190,6 +190,21 @@ class RefreshWeightsTests(unittest.TestCase):
         self.assertEqual(document["modules"], {"a": 1.5, "b": 2.0, "c": 3.25})
         self.assertIn("123", document["source"])
 
+    def test_averages_a_module_seen_in_several_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name, seconds in (("r1-u1", {"a": 2.0}), ("r2-u3", {"a": 4.0, "b": 1})):
+                (root / name).mkdir()
+                (root / name / "module_seconds.json").write_text(json.dumps(seconds))
+            output = root / "weights.json"
+            subprocess.run(  # noqa: S603
+                [sys.executable, str(REFRESH), "--run", "1", "--run", "2",
+                 "--output", str(output), str(root / "r1-u1"), str(root / "r2-u3")],
+                check=True, capture_output=True,
+            )
+            document = json.loads(output.read_text())
+        self.assertEqual(document["modules"], {"a": 3.0, "b": 1.0})
+
 
 if __name__ == "__main__":
     unittest.main()

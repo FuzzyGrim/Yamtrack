@@ -10,7 +10,9 @@ green run and pass their directories:
     python3 scripts/refresh_test_shard_weights.py --run <run-id> /tmp/acc/*
 
 Only the non-browser shards matter: they are the ones split by these weights.
-The shards are disjoint, so a module's seconds are summed across them.
+Directories from several runs may be passed together (repeat --run): a module
+appears in one shard per run, so its weight is the mean of its appearances.
+Averaging two or three runs smooths out a slow runner.
 Stale weights only cost balance, never completeness.
 """
 
@@ -26,8 +28,9 @@ WEIGHTS = Path(__file__).resolve().parent.parent / "src/config/test_shard_weight
 
 
 def merge(directories: list[Path]) -> dict[str, float]:
-    """Sum module seconds across shard directories."""
+    """Average each module's seconds over the shard directories that ran it."""
     totals: dict[str, float] = defaultdict(float)
+    seen: dict[str, int] = defaultdict(int)
     for directory in directories:
         path = directory / "module_seconds.json"
         if not path.is_file():
@@ -35,13 +38,16 @@ def merge(directories: list[Path]) -> dict[str, float]:
             raise SystemExit(message)
         for module, seconds in json.loads(path.read_text()).items():
             totals[module] += float(seconds)
-    return {module: round(totals[module], 2) for module in sorted(totals)}
+            seen[module] += 1
+    return {module: round(totals[module] / seen[module], 2) for module in sorted(totals)}
 
 
 def main(argv: list[str] | None = None) -> int:
     """Write the merged weights file."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--run", required=True, help="the CI run id, for the record")
+    parser.add_argument(
+        "--run", required=True, action="append", help="a CI run id, for the record"
+    )
     parser.add_argument("directories", nargs="+", type=Path)
     parser.add_argument("--output", type=Path, default=WEIGHTS)
     args = parser.parse_args(argv)
@@ -49,8 +55,9 @@ def main(argv: list[str] | None = None) -> int:
     modules = merge(args.directories)
     document = {
         "source": (
-            f"App Tests run {args.run}, {len(args.directories)} non-browser "
-            "shards. Refresh with scripts/refresh_test_shard_weights.py."
+            f"App Tests run(s) {', '.join(args.run)}: mean of "
+            f"{len(args.directories)} non-browser shard results. "
+            "Refresh with scripts/refresh_test_shard_weights.py."
         ),
         "modules": modules,
     }

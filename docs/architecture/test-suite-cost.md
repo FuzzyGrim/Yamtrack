@@ -1,6 +1,85 @@
 # What the test suite costs
 
 
+## Balanced shards (November 2026)
+
+[PR #2005](https://github.com/dannyvfilms/Floppy/pull/2005) replaced the
+three app-label shards (`app`, `integrations`, `other`) with six shards of
+roughly equal cost, and made `test (3.12)` prove on every run that each
+required test ran exactly once.
+
+**Why.** Shards were whole Django apps. `app` held more than half the test
+time, so the required check finished when `app` did (18 to 30 minutes) while
+`integrations` sat idle after 5. Browser tests lived inside `app`, so a
+browser failure was reported only at the end of the longest job.
+
+**Layout.**
+
+| Shard | Runs | Chromium |
+| --- | --- | --- |
+| `test (browser, 3.12)` | every required Playwright test (`app` and `integrations`, minus `flaky_alphabet_rail` on pull requests) | yes, the only shard that installs it |
+| `test (unit-1 … unit-5, 3.12)` | every other test of every app, split by module with `FLOPPY_TEST_SHARD=<i>/5` | no |
+
+What must run, per mode (`pr`, `release`, `full`), and how the shards cover it,
+are side by side in `scripts/ci_tests.sh`. The tag rules are unchanged:
+`network` is excluded everywhere, `slow` is included, users/lists/events/api/
+config Playwright stays in the non-blocking `Browser E2E (other, diagnostic)`
+job, and the publish gate runs no Playwright. MCP and `scripts/` tests run once
+per run in `Migration, MCP and script checks`, so they also run when the
+publish gate reuses a pull request's result.
+
+**Each shard is its own serial process.** Not Django's `--parallel` pool, which
+loses results ("Cause 3" below). `FLOPPY_TEST_PARALLEL=1` stays set, and the
+runner refuses `FLOPPY_TEST_SHARD` together with a pool.
+
+**Assignment** (`src/config/test_sharding.py`). The unit is the test module, so
+class fixtures are never split. Modules named in
+`src/config/test_shard_weights.json` are placed heaviest first on the lightest
+shard; a module missing from it goes to `sha256(name) mod n`. The result depends
+only on the sorted module list, the weights file and the count, so every
+module lands in exactly one shard by construction. Stale weights cost balance,
+never completeness.
+
+**Accounting.** With `FLOPPY_TEST_ACCOUNTING_DIR` set, the runner writes:
+
+* `selected.txt`: the IDs this process kept, before any test runs;
+* `reported.txt`: one line per outcome (pass, fail, error, skip), flushed as it
+  happens, so a process that dies leaves what it finished. A class or module
+  that fails or skips in its setup is reported once, as `setUpClass (<class>)`,
+  and counts for every test in it;
+* `module_seconds.json`: wall seconds per module, class setup included.
+
+The runner takes `FLOPPY_TEST_SHARD`, `FLOPPY_TEST_ACCOUNTING_DIR` and
+`FLOPPY_TEST_LIST_ONLY` out of the environment when it starts. A test that
+builds its own runner, or starts a subprocess, must not inherit them: on the
+first CI run one did and rewrote a shard's `selected.txt`, which the check
+caught.
+
+`Discover required tests` lists the required set with
+`FLOPPY_TEST_LIST_ONLY=1` (no database, about 25 seconds, and it fails if a test
+module cannot be imported). `test (3.12)` then runs
+`scripts/check_test_accounting.py` and fails, naming the tests, unless the
+shards' selected IDs equal the discovered IDs, no two shards share an ID, and
+every selected ID has a result. It runs on the publish gate too; it is skipped
+only when the gate reuses a pull request result, whose own run passed it.
+
+**Refreshing weights.** After a green run:
+
+```bash
+gh run download <run-id> -R dannyvfilms/Floppy -p 'test-accounting-unit-*' -D /tmp/acc
+python3 scripts/refresh_test_shard_weights.py --run <run-id> /tmp/acc/*
+```
+
+**Locally:** `scripts/test.sh --shards N [label ...]` starts N serial
+processes, waits for all of them, prints each exit status and a bounded
+summary (full logs in `.floppy/shards/`), and fails if any failed.
+
+**Rollback:** restore the three app-label matrix entries. The runner ignores
+sharding while `FLOPPY_TEST_SHARD` is unset.
+
+<!-- CI-33 measurements are appended below once the benchmark runs finish. -->
+
+
 ## November 12, 2026: publish-gate evidence
 
 [PR #1917](https://github.com/dannyvfilms/Floppy/pull/1917) moved
