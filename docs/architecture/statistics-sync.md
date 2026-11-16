@@ -287,8 +287,9 @@ and the user preferences the aggregate reads. Any mark (`mark_days`,
 `mark_aggregate`, preference changes) therefore reaches the next load with no
 invalidation of its own. The comparison period's minutes are remembered the
 same way. A result is not kept when a day payload was missing (the background
-build that fills it in marks nothing) or while a bulk import runs (its marks
-are deferred). Each user keeps one entry per kind, so a new range replaces the
+build that fills it in marks nothing), while a bulk import runs (its marks
+are deferred) or while a full sweep is pending (it rebuilds day payloads
+without a mark). Each user keeps one entry per kind, so a new range replaces the
 last. A second request for the same range while the first is computing waits
 for it (`cache_utils.wait_for_build`) instead of computing it again. The walk
 also reports the days it found missing, so scheduling their background build

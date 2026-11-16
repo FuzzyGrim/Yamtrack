@@ -851,15 +851,21 @@ def _remember_custom_range(kind, user, key, value, missing_days) -> None:
 
     Nothing marks a change when the background task fills in a missing day,
     so a result read with a day missing is never kept; the next visit reads
-    the days again. A bulk import defers its marks until it ends, so nothing
-    is kept while one runs either. Each user keeps one entry per kind: a new
-    range replaces the last one.
+    the days again. A bulk import defers its marks until it ends, and a
+    pending full sweep rebuilds day payloads without a new mark, so nothing is
+    kept while either is outstanding. Each user keeps one entry per kind: a
+    new range replaces the last one.
     """
     if missing_days:
         return
     from app import statistics_sync
+    from app.models import StatisticsSyncState
 
     if statistics_sync._bulk_import_active(user.id):
+        return
+    if StatisticsSyncState.objects.filter(
+        user_id=user.id, full_sweep_requested_at__isnull=False
+    ).exists():
         return
     slot_key = _custom_range_slot_key(kind, user.id)
     previous = cache.get(slot_key)

@@ -20,7 +20,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from app import cache_utils, statistics_aggregator, statistics_cache, statistics_sync
-from app.models import Item, MediaTypes, Movie, Sources, Status
+from app.models import Item, MediaTypes, Movie, Sources, StatisticsSyncState, Status
 
 RANGE_START = date(2024, 3, 1)
 RANGE_END = date(2024, 3, 31)
@@ -50,6 +50,11 @@ class CustomRangeCacheTests(TestCase):
         self.start = _aware(RANGE_START)
         self.end = _aware(RANGE_END, end=True)
         self._movie("m1", day=date(2024, 3, 10), score=8)
+        # A user's first mark requests a full sweep; in production the sync
+        # clears it, and nothing is remembered until it has.
+        StatisticsSyncState.objects.filter(user=self.user).update(
+            full_sweep_requested_at=None
+        )
 
     def tearDown(self):
         cache.clear()
@@ -139,8 +144,6 @@ class CustomRangeCacheTests(TestCase):
 
     def test_a_generation_that_comes_round_again_does_not_match(self):
         # A restored database can give the counter a value it had before.
-        from app.models import StatisticsSyncState
-
         with self._counting_aggregate() as aggregate:
             self._read()
             StatisticsSyncState.objects.filter(user=self.user).update(
@@ -206,6 +209,19 @@ class CustomRangeCacheTests(TestCase):
             patch.object(statistics_sync, "_bulk_import_active", return_value=True),
             self._counting_aggregate() as aggregate,
         ):
+            self._read()
+            self._read()
+        self.assertEqual(aggregate.call_count, 2)
+
+    def test_nothing_is_kept_while_a_full_sweep_is_pending(self):
+        # An import requests a sweep that rebuilds day payloads without a mark.
+        self._read()
+        StatisticsSyncState.objects.filter(user=self.user).update(
+            full_sweep_requested_at=timezone.now()
+        )
+        cache.delete(statistics_cache._custom_range_slot_key("range", self.user.id))
+        self.end = _aware(RANGE_END - timedelta(days=2), end=True)
+        with self._counting_aggregate() as aggregate:
             self._read()
             self._read()
         self.assertEqual(aggregate.call_count, 2)
