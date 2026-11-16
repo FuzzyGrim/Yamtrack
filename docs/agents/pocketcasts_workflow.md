@@ -9,7 +9,7 @@ This document captures the end-to-end Pocket Casts workflow in Yamtrack: connect
 - **Recurring task**: `src/integrations/tasks.py` (`import_pocketcasts_history`).
 - **RSS episode refresh**: `src/events/tasks.py` (`refresh_podcast_episodes`).
 - **Podcast models**: `src/app/models.py` (`PodcastShow`, `PodcastEpisode`, `Podcast`, `PodcastShowTracker`).
-- **Podcast UI**: `src/app/views.py` (`media_details` for pocketcasts, `podcast_show_detail`, `podcast_save`, `podcast_mark_all_played`) plus list adapters.
+- **Podcast UI**: `src/app/views.py` (`media_details` for pocketcasts, which is the one show page; `podcast_show_detail` only redirects there via `podcast_show_url`; `podcast_save`, `podcast_mark_all_played`) plus list adapters.
 - **External sources**: `src/integrations/pocketcasts_api.py`, `src/integrations/podcast_rss.py`, `src/integrations/pocketcasts_artwork.py`, and `src/app/providers/pocketcasts.py` (iTunes search/lookup).
 
 ## Data model (podcasts)
