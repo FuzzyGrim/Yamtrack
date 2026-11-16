@@ -1,6 +1,108 @@
 # What the test suite costs
 
 
+## Balanced shards (November 2026)
+
+[PR #2005](https://github.com/dannyvfilms/Floppy/pull/2005) replaced the
+three app-label shards (`app`, `integrations`, `other`) with six shards of
+roughly equal cost, and made `test (3.12)` prove on every run that each
+required test ran exactly once.
+
+**Why.** Shards were whole Django apps. `app` held more than half the test
+time, so the required check finished when `app` did (18 to 30 minutes) while
+`integrations` sat idle after 5. Browser tests lived inside `app`, so a
+browser failure was reported only at the end of the longest job.
+
+**Layout.**
+
+| Shard | Runs | Chromium |
+| --- | --- | --- |
+| `test (browser, 3.12)` | every required Playwright test (`app` and `integrations`, minus `flaky_alphabet_rail` on pull requests) | yes, the only shard that installs it |
+| `test (unit-1 … unit-5, 3.12)` | every other test of every app, split by module with `FLOPPY_TEST_SHARD=<i>/5` | no |
+
+What must run, per mode (`pr`, `release`, `full`), and how the shards cover it,
+are side by side in `scripts/ci_tests.sh`. The tag rules are unchanged:
+`network` is excluded everywhere, `slow` is included, users/lists/events/api/
+config Playwright stays in the non-blocking `Browser E2E (other, diagnostic)`
+job, and the publish gate runs no Playwright. MCP and `scripts/` tests run once
+per run in `Migration, MCP and script checks`, so they also run when the
+publish gate reuses a pull request's result.
+
+**Each shard is its own serial process.** Not Django's `--parallel` pool, which
+loses results ("Cause 3" below). `FLOPPY_TEST_PARALLEL=1` stays set, and the
+runner refuses `FLOPPY_TEST_SHARD` together with a pool.
+
+**Assignment** (`src/config/test_sharding.py`). The unit is the test module, so
+class fixtures are never split. Modules named in
+`src/config/test_shard_weights.json` are placed heaviest first on the lightest
+shard; a module missing from it goes to `sha256(name) mod n`. The result depends
+only on the sorted module list, the weights file and the count, so every
+module lands in exactly one shard by construction. Stale weights cost balance,
+never completeness.
+
+**Accounting.** With `FLOPPY_TEST_ACCOUNTING_DIR` set, the runner writes:
+
+* `selected.txt`: the IDs this process kept, before any test runs;
+* `reported.txt`: one line per outcome (pass, fail, error, skip), flushed as it
+  happens, so a process that dies leaves what it finished. A class or module
+  that fails or skips in its setup is reported once, as `setUpClass (<class>)`,
+  and counts for every test in it;
+* `module_seconds.json`: wall seconds per module, class setup included.
+
+The runner takes `FLOPPY_TEST_SHARD`, `FLOPPY_TEST_ACCOUNTING_DIR` and
+`FLOPPY_TEST_LIST_ONLY` out of the environment when it starts. A test that
+builds its own runner, or starts a subprocess, must not inherit them: on the
+first CI run one did and rewrote a shard's `selected.txt`, which the check
+caught.
+
+`Discover required tests` lists the required set with
+`FLOPPY_TEST_LIST_ONLY=1` (no database, about 25 seconds, and it fails if a test
+module cannot be imported). `test (3.12)` then runs
+`scripts/check_test_accounting.py` and fails, naming the tests, unless the
+shards' selected IDs equal the discovered IDs, no two shards share an ID, and
+every selected ID has a result. It runs on the publish gate too; it is skipped
+only when the gate reuses a pull request result, whose own run passed it.
+
+**Refreshing weights.** After a green run:
+
+```bash
+gh run download <run-id> -R dannyvfilms/Floppy -p 'test-accounting-unit-*' -D /tmp/acc
+python3 scripts/refresh_test_shard_weights.py --run <run-id> /tmp/acc/*
+```
+
+**Locally:** `scripts/test.sh --shards N [label ...]` starts N serial
+processes, waits for all of them, prints each exit status and a bounded
+summary (full logs in `.floppy/shards/`), and fails if any failed.
+
+**Rollback:** restore the three app-label matrix entries. The runner ignores
+sharding while `FLOPPY_TEST_SHARD` is unset.
+
+**Measured** (pull request runs, wall time from the first job starting to
+`test (3.12)` finishing; queueing for runners excluded where it dominated):
+
+| | before (app-label shards) | after (browser + 5 unit shards) |
+| --- | --- | --- |
+| required check, median | 22.8 min (3 runs; 24.3 min over the 100 runs before Nov 11) | 10.0 min (5 green runs: 11.0, 10.8, 10.0, 9.6, 9.1) |
+| longest shard | `app`, 18 to 26 min | a unit shard, 7 to 9 min |
+| browser failure reported after | the end of `app` (median 28 min to red) | 3.9 min into `test (browser)` |
+| runner minutes per run | 54 to 75 | 60 to 64 |
+| discovery | none | 25 to 30 s, no database |
+
+Unit shards vary between 5 and 9 minutes on the same weights; that is runner
+speed, not the weights (the same module costs up to 30% more on a slow runner).
+Local, `scripts/test.sh --shards 4 integrations` took 77 to 102 s against 246
+to 396 s serially.
+
+**What the accounting has caught so far.** A test building its own runner
+inherited a shard's accounting (fixed in the runner, above), and regrouping
+exposed `test_statistics_undated_range` reading a day-statistics cache entry
+left by an earlier test: the fake Redis is process-wide and SQLite reuses user
+IDs after rollback. Statistics tests that call `get_statistics_data` now clear
+the cache in `setUp`. Regrouping also surfaced a real bug in
+`config.startup_server`, which ignored SIGTERM when the kernel delivered it to
+the serving thread.
+
+
 ## November 12, 2026: publish-gate evidence
 
 [PR #1917](https://github.com/dannyvfilms/Floppy/pull/1917) moved
@@ -763,10 +865,10 @@ What this means in practice:
 | Tag, `release`, manual run | Full gate: not applicable |
 
 Still run on the pushed commit every time: migration hygiene and
-`makemigrations --check` (the `Migration checks` job, because hygiene reads
-the upstream baseline at run time), OAuth on PostgreSQL, both upgrade
-replays, release lint and the image smoke. MCP and script tests run in the
-`app` shard and are reused with it.
+`makemigrations --check` (the `Migration, MCP and script checks` job,
+because hygiene reads the upstream baseline at run time), the MCP server and
+`scripts/` tests (same job), OAuth on PostgreSQL, both upgrade replays,
+release lint and the image smoke.
 
 The `test (3.12)` job passes when the shards succeeded, or when the decision
 job succeeded, said `reuse`, and the shards were skipped. A pull request run
@@ -782,7 +884,7 @@ Coverage is unaffected: `coverage.yml` runs its own shards on every push to
 
 The migration floor is paid once per set of migration inputs, not once per
 command or per CI job. `scripts/test.sh` sets `FLOPPY_TEST_DB_TEMPLATE=1` for
-local runs, and `app-tests.yml` sets it for the test shards and the browser
+local runs, and `app-tests.yml` sets it for the test shards and the diagnostic browser
 job. The
 first run replays every migration as before and then saves the result to
 `.floppy/testdb-<key>-<contents>.sqlite3`. Later runs copy that file into the
@@ -871,7 +973,7 @@ gap and it should be reported.
 | any key input changes (a migration added, edited or renamed; the lockfile; settings; the runner) | full replay in that run |
 | "Migrated test database" job | once per run when the key is new; otherwise a restore plus a `migrate` that must apply nothing |
 | CI test shards and browser job | only when the saved database is missing, damaged or keyed differently |
-| `Migration checks` (hygiene `--strict`, missing-migration check) | every run |
+| `Migration, MCP and script checks` (hygiene `--strict`, missing-migration check) | every run |
 | `OAuth (PostgreSQL)` | every run, on PostgreSQL |
 | `coverage.yml` shards | every run (reuse is not set there) |
 | `Upgrade (sqlite)` and `Upgrade (postgres)` | every run, with retained user data |

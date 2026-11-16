@@ -1,6 +1,7 @@
 import datetime
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 
@@ -30,6 +31,9 @@ class SummaryStatsByTypeMergePiecesTests(TestCase):
     """The raw pieces the page adds up when several media types are selected."""
 
     def setUp(self):
+        # Day and range statistics live in the shared cache, keyed by user id;
+        # SQLite reuses ids after rollback, so start every test empty.
+        cache.clear()
         self.user = get_user_model().objects.create_user(
             username="multi-type-stats",
             password="password123",
