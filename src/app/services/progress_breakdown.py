@@ -385,7 +385,7 @@ def build_progress_breakdown(*, tv=None, season=None):
     prefetch_related_objects(
         [row for row in tracked if row.is_rewatching],
         Prefetch("episodes", queryset=Episode.objects.select_related("item").only(
-            "id", "related_season_id", "status", "end_date", "created_at",
+            "id", "related_season_id", "status", "dropped", "end_date", "created_at",
             "item__id", "item__episode_number",
         )),
     )

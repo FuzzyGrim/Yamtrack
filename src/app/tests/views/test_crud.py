@@ -1475,6 +1475,63 @@ class EditMedia(TestCase):
         self.assertEqual(new_entry.end_date.date().isoformat(), "2025-01-03")
         self.assertEqual(new_entry.watch_operation_id, operation_id)
 
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_adding_watch_date_to_open_episode_play_completes_it(self, metadata_mock):
+        """A paused check-in's open play edited with a watch date is a finished watch.
+
+        The track modal edits the latest play, so marking an episode watched
+        while a check-in left it open submits the prefilled In Progress status.
+        """
+        metadata_mock.return_value = {"season/1": {"episodes": []}}
+        season_item = Item.objects.create(
+            media_id="episode-open-1",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Open Play",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=season_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        episode_item = Item.objects.create(
+            media_id="episode-open-1",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Episode One",
+            season_number=1,
+            episode_number=1,
+        )
+        episode = Episode.objects.create(
+            item=episode_item,
+            related_season=season,
+            status=Status.IN_PROGRESS.value,
+            start_date=datetime.datetime(2025, 1, 2, 20, 0, tzinfo=datetime.UTC),
+            entry_source="check-in",
+        )
+
+        response = self.client.post(
+            reverse("episode_save"),
+            {
+                "instance_id": episode.id,
+                "media_id": episode_item.media_id,
+                "source": episode_item.source,
+                "media_type": MediaTypes.EPISODE.value,
+                "season_number": 1,
+                "episode_number": 1,
+                "status": Status.IN_PROGRESS.value,
+                "start_date": "2025-01-02T20:00",
+                "end_date": "2025-01-02T20:25",
+                "entry_source": "check-in",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        episode.refresh_from_db()
+        self.assertEqual(episode.status, Status.COMPLETED.value)
+        self.assertIsNotNone(episode.end_date)
+
     def test_edit_movie_htmx_returns_inline_detail_update(self):
         """HTMX saves should update the detail tracker in place."""
         item = Item.objects.create(

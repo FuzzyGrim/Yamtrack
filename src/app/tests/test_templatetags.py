@@ -29,6 +29,19 @@ from app.tests.card_props import card_model, card_text, render_card_template
 from users.models import DateFormatChoices, TimeFormatChoices
 
 
+class WatchedCountTests(SimpleTestCase):
+    def test_counts_only_finished_plays(self):
+        """An open check-in play and a dropped row are history, not watches."""
+        history = [
+            SimpleNamespace(status=Status.COMPLETED.value, dropped=False),
+            SimpleNamespace(status=Status.IN_PROGRESS.value, dropped=False),
+            SimpleNamespace(status=Status.DROPPED.value, dropped=True),
+        ]
+        self.assertEqual(app_tags.watched_count(history), 1)
+        self.assertEqual(app_tags.watched_count(history[1:]), 0)
+        self.assertEqual(app_tags.watched_count([]), 0)
+
+
 class FutureDateTests(SimpleTestCase):
     def test_only_known_dates_after_today_are_future(self):
         today = timezone.localdate()

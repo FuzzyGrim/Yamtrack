@@ -192,16 +192,16 @@ def _movie_state(rows):
 def _derive_episode(user, item):
     """Derive episode state.
 
-    Every Episode row is one watch, and a dropped row is explicitly not one, so
-    the play count is the number of undropped rows — the same rule the episode
-    checkmark uses through ``app_tags.watched_count``.
+    The play count is the number of plays ``Episode.watch_q`` counts as a
+    watch, the same rule the episode checkmark uses through
+    ``app_tags.watched_count``. An open check-in play is not a watch yet.
     """
     episode_model = apps.get_model(app_label="app", model_name=MediaTypes.EPISODE.value)
     rows = episode_model.objects.filter(
+        episode_model.watch_q(),
         item=item,
         related_season__user=user,
         related_season__order_archived=False,
-        dropped=False,
     )
 
     dates = [row.end_date for row in rows if row.end_date]
