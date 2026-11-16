@@ -249,3 +249,46 @@ class MeasurementProtocolTests(SimpleTestCase):
         )
         with self.assertRaisesMessage(ValueError, "legacy BENCH-01"):
             harness.baseline_comparison(before, {"schema_version": 1})
+
+
+class LoadingExtrasTests(TestCase):
+    def test_loading_extras_add_long_show_events_tags_and_artwork(self):
+        import events.tasks
+        from app.benchmark_data import add_loading_extras
+        from events.models import Event
+
+        with (
+            patch(
+                "requests.sessions.Session.request",
+                side_effect=AssertionError("Provider I/O"),
+            ),
+            patch("celery.app.task.Task.apply_async", return_value=None),
+        ):
+            build_dataset(100, 1729)
+            user = User.objects.get(username="bench-user-1")
+            show = add_loading_extras(user, 1729)
+        self.assertEqual(show.media_id, "bench-long-show")
+        seasons = models.Season.objects.filter(item__media_id="bench-long-show")
+        self.assertEqual(seasons.count(), 16)
+        self.assertEqual(
+            models.Episode.objects.filter(item__media_id="bench-long-show").count(),
+            154,
+        )
+        self.assertGreater(Event.objects.count(), 0)
+        self.assertEqual(models.Tag.objects.filter(user=user).count(), 40)
+        self.assertEqual(
+            models.Track.objects.filter(album__title="Synthetic Long Album").count(),
+            40,
+        )
+        self.assertEqual(
+            models.PodcastEpisode.objects.filter(
+                show__podcast_uuid="bench-podcast-small"
+            ).count(),
+            60,
+        )
+        self.assertFalse(models.Item.objects.filter(image="").exists())
+        self.assertTrue(
+            models.Item.objects.filter(media_type="game")
+            .first()
+            .image.startswith("https://images.igdb.com/igdb/image/upload/t_original/")
+        )
