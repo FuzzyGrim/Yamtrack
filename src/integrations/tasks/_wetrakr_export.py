@@ -64,9 +64,9 @@ def _movie_plays(user):
 
 def _episode_plays(user):
     return Episode.objects.filter(
+        Episode.watch_q(),
         related_season__user=user,
         related_season__order_archived=False,
-        dropped=False,
         item__isnull=False,
         end_date__isnull=False,
     ).values_list("item_id", "end_date")
@@ -119,9 +119,9 @@ def library_preview(user):
         )
         .count()
         + Episode.objects.filter(
+            Episode.watch_q(),
             related_season__user=user,
             related_season__order_archived=False,
-            dropped=False,
             end_date__isnull=True,
         ).count()
     )

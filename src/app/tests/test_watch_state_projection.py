@@ -183,7 +183,7 @@ class MovieProjectionTests(TestCase):
 
 
 class EpisodeProjectionTests(TestCase):
-    """Every episode row is one watch, and a dropped row is explicitly not one."""
+    """Only a finished episode play is a watch; open and dropped plays are not."""
 
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="owner")
@@ -250,6 +250,25 @@ class EpisodeProjectionTests(TestCase):
         state = effective_state(self.user, self.episode_item)
         self.assertFalse(state.watched)
         self.assertEqual(state.play_count, 0)
+
+    def test_an_open_play_is_not_a_watch_until_it_finishes(self):
+        """A check-in's In Progress play counts once it completes, not before."""
+        play = Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            start_date=_dt(1),
+            status=Status.IN_PROGRESS.value,
+        )
+        state = effective_state(self.user, self.episode_item)
+        self.assertFalse(state.watched)
+        self.assertEqual(state.play_count, 0)
+
+        play.status = Status.COMPLETED.value
+        play.end_date = _dt(1, hour=13)
+        play.save()
+        state = effective_state(self.user, self.episode_item)
+        self.assertTrue(state.watched)
+        self.assertEqual(state.play_count, 1)
 
     def test_deleting_the_watch_clears_the_state(self):
         episode = Episode.objects.create(

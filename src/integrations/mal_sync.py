@@ -647,7 +647,7 @@ def grouped_sync_entries(user, tv=None, mapping_issues=None, progress_callback=N
             previous = coordinates.get(watch.item_id)
             # A play left in progress isn't a watch; an earlier finished play
             # or a watched state still counts.
-            finished = watch.status == Status.COMPLETED.value and not watch.dropped
+            finished = Episode.is_watch(watch)
             watched = finished or bool(previous and previous[1])
             score = watch.related_season.score
             coordinates[watch.item_id] = (

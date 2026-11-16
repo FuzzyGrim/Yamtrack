@@ -50,10 +50,12 @@ def get_user_media(user, start_date, end_date):
         if _all_time:
             # No date filtering for "All Time"
             base_episodes = Episode.all_objects.filter(
+                Episode.watch_q(),
                 related_season__user=user,
             )
         else:
             base_episodes = Episode.all_objects.filter(
+                Episode.watch_q(),
                 related_season__user=user,
                 end_date__range=(start_date, end_date),
             )

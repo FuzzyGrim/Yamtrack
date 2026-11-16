@@ -562,7 +562,7 @@ def _has_dateless_movie_or_episode_activity(user) -> bool:
         return True
     Episode = apps.get_model("app", "Episode")
     return Episode.objects.filter(
-        related_season__user=user, end_date__isnull=True
+        Episode.watch_q(), related_season__user=user, end_date__isnull=True
     ).exists()
 
 
