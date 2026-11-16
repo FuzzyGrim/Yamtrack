@@ -95,6 +95,12 @@ database upsert per range to avoid a read-then-write lock upgrade.
    sweep every day payload the cache is missing (a missing
    `stats:sync:day_epoch:{uid}` key, written without a TTL, means the cache was
    flushed). Clear each slice's dirty rows as it lands.
+   Within a slice, days no more than `PREFETCH_MAX_GAP_DAYS` (31) apart share
+   one prefetch, built when the first of them is reached
+   (`statistics_day_builder.SpanPrefetches`). A prefetch reads every row
+   between its first and last day, so a save on a day four years back used to
+   read four years of plays just to rebuild it alongside today: on a
+   40,000-play library 1.8 s and 28 MiB, against 0.08 s and 0.2 MiB now.
 4. Publish ranges that trail: the hot ranges (Today … Last 30 Days) on every
    pass — a scrobble reaches them in seconds. The heavy ranges (Last 90 Days …
    All Time, the user's default first among them) wait until changes have been

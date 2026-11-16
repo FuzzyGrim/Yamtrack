@@ -981,10 +981,7 @@ def _build_days(
     lease_token: str | None = None,
 ) -> int:
     """Build day payloads in slices; clear each slice's dirty rows as it lands."""
-    from app.statistics_day_builder import (
-        _build_prefetch_for_range,
-        build_stats_for_day,
-    )
+    from app.statistics_day_builder import SpanPrefetches, build_stats_for_day
     from app.statistics_refresh import _enqueue_collected_backfills
 
     credit_hints = 0
@@ -995,7 +992,8 @@ def _build_days(
         if lease_token is not None and not _renew_lease(user.id, lease_token):
             raise _LostLeaseError
         chunk = days[offset : offset + size]
-        prefetch = _build_prefetch_for_range(user, chunk)
+        # Nearby days share one prefetch; a far-off dirty day gets its own.
+        prefetches = SpanPrefetches(user, chunk)
         collector = {
             "runtime_item_ids": set(),
             "genre_item_ids": set(),
@@ -1016,7 +1014,7 @@ def _build_days(
                 user.id,
                 day,
                 user=user,
-                prefetch=prefetch,
+                prefetch=prefetches.for_day(day),
                 defer_cache_write=True,
                 backfill_collector=collector,
             )
