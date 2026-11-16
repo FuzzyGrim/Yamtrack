@@ -600,8 +600,9 @@ class LibraryQueryExecutor:
         batch_values = self.sort.batch_values if with_sort and not sql_sort else None
         if with_sort and not sql_sort and batch_values is None:
             python_key = sort_registry.python_key(self.query.sort.key)
-            # A tracker value computed in Python reads the aggregated row.
-            needs.add(filter_registry.NEEDS_MEDIA)
+            if not self.sort.item_only:
+                # A tracker value computed in Python reads the aggregated row.
+                needs.add(filter_registry.NEEDS_MEDIA)
         requested_direction = self.query.sort.direction
         # Shows are attached as facts, not as hydrated trackers, when every
         # reader of the tracker row in this scan says facts are all it reads.

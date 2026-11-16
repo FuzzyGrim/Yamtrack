@@ -5,12 +5,13 @@ pages tile the full ordering without gaps or repeats, and the cost of a page
 does not grow with the library - independent of any surface that uses it.
 """
 
+from collections import Counter
 from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
 
 from django.contrib.auth import get_user_model
-from django.db import connection
+from django.db import connection, models
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -23,6 +24,7 @@ from app.models import (
     TV,
     CollectionEntry,
     Episode,
+    Game,
     Item,
     ItemTag,
     MediaTypes,
@@ -621,7 +623,7 @@ class PageCostTests(LibraryQueryTestCase):
             seen_batch_sizes.append(len(batch))
             return original(user, batch, needs, **kwargs)
 
-        query = _query(sort=SortSpec("time_to_beat", "asc"))
+        query = _query(sort=SortSpec("runtime", "asc"))
         with mock.patch.object(executor_module, "_attach_media", spy):
             page = LibraryQueryExecutor(self.user, query, batch_size=16).page(0, 10)
         self.assertFalse(page.used_sql)
@@ -629,6 +631,54 @@ class PageCostTests(LibraryQueryTestCase):
         self.assertEqual(len(page.items), 10)
         self.assertTrue(seen_batch_sizes)
         self.assertLessEqual(max(seen_batch_sizes), 16)
+
+    def test_a_sort_that_reads_only_the_item_loads_no_tracker(self):
+        """Time to beat and author scan the candidate items alone."""
+        self.library(60)
+        for key in ("time_to_beat", "author"):
+            with self.subTest(sort=key), mock.patch.object(
+                executor_module, "_attach_media", side_effect=AssertionError(key),
+            ):
+                page = LibraryQueryExecutor(
+                    self.user, _query(sort=SortSpec(key, "asc")), batch_size=16,
+                ).page(0, 10)
+                self.assertFalse(page.used_sql)
+                self.assertEqual(page.total, 60)
+
+
+class ItemOnlySortPageTests(TestCase):
+    """Ordering games by time to beat hydrates one page of trackers."""
+
+    def test_time_to_beat_builds_trackers_for_the_page_only(self):
+        """The scan reads game items; Game rows are built for the cards."""
+        user = get_user_model().objects.create_user(username="ttb", password="x")
+        items = Item.objects.bulk_create(
+            Item(
+                media_id=str(5000 + index),
+                source=Sources.IGDB.value,
+                media_type=MediaTypes.GAME.value,
+                title=f"Game {index}",
+                image="https://example.com/i.jpg",
+                provider_game_lengths={"igdb": {"summary": {"normally_seconds": index * 600}}} if index % 3 else {},
+            )
+            for index in range(90)
+        )
+        Game.objects.bulk_create(
+            Game(item=item, user=user, status=Status.COMPLETED.value) for item in items
+        )
+        self.client.force_login(user)
+        built = Counter()
+        original = models.Model.from_db.__func__
+
+        def from_db(cls, db, field_names, values):
+            built[cls.__name__] += 1
+            return original(cls, db, field_names, values)
+
+        with mock.patch.object(models.Model, "from_db", classmethod(from_db)):
+            response = self.client.get("/medialist/game?sort=time_to_beat&direction=asc&status=All")
+        page = response.context["media_list"]
+        self.assertEqual(page.paginator.count, 90)
+        self.assertLessEqual(built["Game"], len(page.object_list))
 
 
 class LargeTvBatchTests(LibraryQueryTestCase):

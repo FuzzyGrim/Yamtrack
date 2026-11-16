@@ -36,6 +36,8 @@ HOME_SORTS = (
     "home_completion",
     "home_episodes_left",
 )
+# The library's own sorts that read a show only through ``TrackedShow``.
+LIBRARY_SORTS = ("progress", "plays", "start_date", "end_date", "last_watched", "time_left")
 NEEDS = {filter_registry.NEEDS_MEDIA, filter_registry.NEEDS_MAX_PROGRESS}
 WATCHED_ON = BASE + timedelta(days=600)
 
@@ -168,6 +170,7 @@ class TrackedShowTests(ShowFactsLibrary):
                 "progress": media.progress,
                 "progressed_at": media.progressed_at,
                 "end_date": media.end_date,
+                "start_date": media.start_date,
                 "max_progress": media.max_progress,
                 "breakdown": dict(media.released_episode_breakdown),
                 "episodes_left": media.episodes_left,
@@ -213,7 +216,7 @@ class ShelfOrderIdentityTests(ShowFactsLibrary):
     def test_each_sort_and_progress_filter_orders_alike(self):
         """Both directions agree for each sort, status scope and progress filter."""
         distinct_orders = set()
-        for sort_key in (*HOME_SORTS, "title"):
+        for sort_key in (*HOME_SORTS, *LIBRARY_SORTS, "title"):
             for statuses in ((), (Status.IN_PROGRESS.value,)):
                 for progress in ("all", "not_caught_up", "caught_up"):
                     if sort_key == "title" and progress == "all":
@@ -287,7 +290,7 @@ class FactsOptInTests(ShowFactsLibrary):
 
     def test_home_sorts_and_the_progress_filter_use_facts(self):
         """Each declared sort, and the caught-up filter under a SQL sort, opt in."""
-        for sort_key in HOME_SORTS:
+        for sort_key in (*HOME_SORTS, *LIBRARY_SORTS):
             with self.subTest(sort=sort_key):
                 self.assertEqual(self.scan_modes(self.query(sort_key)), {True})
         self.assertEqual(
@@ -297,7 +300,7 @@ class FactsOptInTests(ShowFactsLibrary):
 
     def test_a_sort_that_reads_the_tracker_keeps_it(self):
         """Sorts that never declared facts still get hydrated trackers."""
-        for sort_key in ("runtime", "time_watched", "time_left", "progressed_at"):
+        for sort_key in ("runtime", "time_watched", "progressed_at"):
             for progress in ("all", "caught_up"):
                 with self.subTest(sort=sort_key, progress=progress):
                     query = self.query(sort_key, progress=progress)
