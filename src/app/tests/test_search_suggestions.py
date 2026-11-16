@@ -258,3 +258,16 @@ class SearchSuggestionsViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual([row["title"] for row in response.json()["suggestions"]], ["The Godfather"])
+
+    def test_suggestions_turn_off_postgres_jit(self):
+        """JIT compiling cost more than the query itself; suggestions run without it."""
+        from app.search_views import without_postgres_jit
+
+        ran = []
+        with without_postgres_jit():
+            ran.append(True)
+            if connection.vendor == "postgresql":
+                with connection.cursor() as cursor:
+                    cursor.execute("SHOW jit")
+                    self.assertEqual(cursor.fetchone()[0], "off")
+        self.assertEqual(ran, [True])

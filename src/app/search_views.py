@@ -1,12 +1,13 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import replace
 
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Exists, F, OuterRef, Q
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -840,6 +841,26 @@ def _safe_url(builder, target):
     return url or None
 
 
+@contextmanager
+def without_postgres_jit():
+    """Run the block with PostgreSQL's JIT compiler off, for this transaction only.
+
+    The library query's correlated subqueries give PostgreSQL a cost estimate
+    above its JIT threshold, so it spends about a second compiling a query that
+    runs in tens of milliseconds (measured at 20k items: 0.9 s and 1.3 s of JIT
+    for two 60 ms anime queries). ``SET LOCAL`` ends with the transaction, so
+    pooled connections and other queries keep the server's setting. SQLite has
+    no JIT; there this does nothing.
+    """
+    if connection.vendor != "postgresql":
+        yield
+        return
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL jit = off")
+        yield
+
+
 _SUGGESTION_BOX_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 _SUGGESTION_SEQUENCE_SECONDS = 120
 
@@ -1103,12 +1124,13 @@ def search_suggestions(request):
         return render(request, "app/components/search_suggestions.html")
 
     try:
-        suggestions = get_saved_suggestions(
-            request.user,
-            media_type,
-            query,
-            superseded=suggestion_superseded_check(request.user, request.GET.get("sid")),
-        )
+        with without_postgres_jit():
+            suggestions = get_saved_suggestions(
+                request.user,
+                media_type,
+                query,
+                superseded=suggestion_superseded_check(request.user, request.GET.get("sid")),
+            )
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("Suggestion search failed: %s", exception_summary(exc))
         suggestions = []
