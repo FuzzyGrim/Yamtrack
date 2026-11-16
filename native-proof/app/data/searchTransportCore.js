@@ -129,7 +129,15 @@ export function resultsQuery({ query, mediaType, source, page, layout } = {}) {
   return params;
 }
 
-export function createRemoteSearchActions(request, { suggestionsViaWeb = false, serverUrl = '' } = {}) {
+// A random id for one search box. Suggestion requests carry it so the server can
+// stop working on a request that the same box has already replaced.
+export function searchBoxId() {
+  const random = globalThis.crypto?.randomUUID?.();
+  if (random) return random;
+  return `box-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+export function createRemoteSearchActions(request, { suggestionsViaWeb = false, serverUrl = '', boxId = searchBoxId() } = {}) {
   return {
     mode: 'server',
     // One typeahead for both apps, so the same query gives the same results in the same order.
@@ -138,7 +146,7 @@ export function createRemoteSearchActions(request, { suggestionsViaWeb = false, 
     ...(suggestionsViaWeb ? {
       async searchSuggestions({ search, mediaType, signal } = {}) {
         const payload = await request('/search/suggestions', {
-          query: { q: search, media_type: mediaType || 'all', format: 'json' },
+          query: { q: search, media_type: mediaType || 'all', format: 'json', sid: boxId },
           ...(signal ? { signal } : {}),
         });
         return suggestionsFromPayload(payload, serverUrl);
@@ -163,7 +171,7 @@ export function createRemoteSearchActions(request, { suggestionsViaWeb = false, 
     },
     loadSuggestions({ query, mediaType = 'all', signal } = {}) {
       return request('/api/v1/search/suggestions/', {
-        query: { q: query, media_type: mediaType },
+        query: { q: query, media_type: mediaType, sid: boxId },
         ...(signal ? { signal } : {}),
       }).then(data => expectObject(data, 'Search'));
     },

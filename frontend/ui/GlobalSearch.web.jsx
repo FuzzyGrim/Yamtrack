@@ -89,10 +89,12 @@ export function GlobalSearch({ host, props }) {
 
   // The shared request helper: cancellable, so a newer keystroke stops the older request.
   const request = useMemo(() => createWebRequest(), []);
+  // Names this search box, so the server can stop work on a request it replaced.
+  const boxId = useMemo(() => window.crypto?.randomUUID?.() || `box-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`, []);
   const onLoadSuggestions = useCallback(async ({ query, mediaType, signal }) => {
     const path = new URL(props.suggestionsUrl, window.location.origin).pathname;
     const data = await request(path, {
-      query: { q: query, media_type: mediaType, format: 'json' },
+      query: { q: query, media_type: mediaType, format: 'json', sid: boxId },
       signal,
     });
     const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
@@ -105,7 +107,7 @@ export function GlobalSearch({ host, props }) {
         url: suggestion.url,
       })),
     };
-  }, [props.suggestionsUrl, request]);
+  }, [props.suggestionsUrl, request, boxId]);
 
   const onSubmit = useCallback(({ query, mediaType }) => {
     const url = new URL(props.action, window.location.origin);
