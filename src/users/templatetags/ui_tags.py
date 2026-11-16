@@ -1172,12 +1172,15 @@ class PeopleCastNode(template.Node):
             str(self.options["collapse_key"].resolve(context))
             if "collapse_key" in self.options else ""
         )
-        return _people_island(
-            context,
-            "cast",
-            _people_cast_props(context, row, source, collapse_key),
-            self.body.render(context),
-        )
+        props = _people_cast_props(context, row, source, collapse_key)
+        # The server cards shown before React mounts read the same props, so a
+        # person link is built in one place for both (#1953).
+        with context.push(people_cast_cards=[
+            {"person": person, "card": card}
+            for person, card in zip(row.get("items") or [], props["items"], strict=True)
+        ]):
+            body = self.body.render(context)
+        return _people_island(context, "cast", props, body)
 
 
 @register.tag

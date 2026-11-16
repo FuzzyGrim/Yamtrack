@@ -1202,8 +1202,11 @@ def _build_detail_person_rows(media_metadata, item=None):
             cast[:20],
             view_all_url=view_all_url,
             view_all_text=view_all_text,
+            card_width_class="w-44",
         ),
-        "crew_row": _build_static_row("detail-crew", "Crew", crew[:20]),
+        "crew_row": _build_static_row(
+            "detail-crew", "Crew", crew[:20], card_width_class="w-44"
+        ),
         "seasons_row": _build_static_row(
             "detail-seasons", "Seasons", (media_metadata.get("related") or {}).get("seasons") or [],
             card_width_class="w-44",

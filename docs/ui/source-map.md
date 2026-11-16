@@ -730,9 +730,9 @@ Status: `Legacy`
 PeopleView's native full-page grid uses canonical MediaCard models and a render-grid slot; web filmography stays server-owned until shared adoption. Pre-fix browser comparison captured person and credits; post-fix verification pending. iOS and Android not verified.
 
 - `src/templates/app/components/detail_carousel_fragment.html`
-- `src/templates/app/components/detail_cast_grid.html`
+- `src/templates/app/components/detail_cast_grid.html` (iterates `people_cast_cards` supplied by `{% people_cast %}`)
 - `src/templates/app/components/game_lengths_section.html`
-- `src/templates/app/components/person_card_inline.html`
+- `src/templates/app/components/person_card_inline.html` (pre-mount fallback for the cast/crew `PeopleView` rail on media detail and episode pages; links come from `_people_cast_props`, #1953)
 - `src/templates/app/components/person_filmography_card.html`
 - `src/templates/app/components/person_filmography_fragment.html`
 - `src/templates/app/components/person_media_strip_card.html`
