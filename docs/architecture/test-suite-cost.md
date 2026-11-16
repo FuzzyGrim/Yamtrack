@@ -77,7 +77,30 @@ summary (full logs in `.floppy/shards/`), and fails if any failed.
 **Rollback:** restore the three app-label matrix entries. The runner ignores
 sharding while `FLOPPY_TEST_SHARD` is unset.
 
-<!-- CI-33 measurements are appended below once the benchmark runs finish. -->
+**Measured** (pull request runs, wall time from the first job starting to
+`test (3.12)` finishing; queueing for runners excluded where it dominated):
+
+| | before (app-label shards) | after (browser + 5 unit shards) |
+| --- | --- | --- |
+| required check, median | 22.8 min (3 runs; 24.3 min over the 100 runs before Nov 11) | 10.0 min (5 green runs: 11.0, 10.8, 10.0, 9.6, 9.1) |
+| longest shard | `app`, 18 to 26 min | a unit shard, 7 to 9 min |
+| browser failure reported after | the end of `app` (median 28 min to red) | 3.9 min into `test (browser)` |
+| runner minutes per run | 54 to 75 | 60 to 64 |
+| discovery | none | 25 to 30 s, no database |
+
+Unit shards vary between 5 and 9 minutes on the same weights; that is runner
+speed, not the weights (the same module costs up to 30% more on a slow runner).
+Local, `scripts/test.sh --shards 4 integrations` took 77 to 102 s against 246
+to 396 s serially.
+
+**What the accounting has caught so far.** A test building its own runner
+inherited a shard's accounting (fixed in the runner, above), and regrouping
+exposed `test_statistics_undated_range` reading a day-statistics cache entry
+left by an earlier test: the fake Redis is process-wide and SQLite reuses user
+IDs after rollback. Statistics tests that call `get_statistics_data` now clear
+the cache in `setUp`. Regrouping also surfaced a real bug in
+`config.startup_server`, which ignored SIGTERM when the kernel delivered it to
+the serving thread.
 
 
 ## November 12, 2026: publish-gate evidence
