@@ -15,10 +15,16 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.translation import gettext
+from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from django.views.decorators.http import (
+    condition,
+    require_GET,
+    require_http_methods,
+    require_POST,
+)
 
-from app import backdrops
+from app import backdrops, feed_validation
 from app.icon_specs import file_icon
 from app.models import Item, MediaTypes, PodcastEpisode, Status
 from app.templatetags.app_tags import (
@@ -28,7 +34,7 @@ from app.templatetags.app_tags import (
     media_type_readable_plural,
     user_event_time,
 )
-from events import tasks
+from events import release_marker, tasks
 from events.history_feed import (
     DEFAULT_MEDIA_TYPES,
     HISTORY_MEDIA_TYPES,
@@ -42,7 +48,6 @@ from users.models import User, WeekStartDayChoices
 
 logger = logging.getLogger(__name__)
 
-CALENDAR_FEED_CACHE_SECONDS = 15 * 60
 ICS_DATETIME_FORMAT = "%Y%m%dT%H%M%SZ"
 ICS_LINE_OCTETS = 75
 
@@ -77,16 +82,62 @@ def _fold_ics_line(line):
     return "\r\n ".join(folded)
 
 
-def _user_for_token(token):
-    """Return the user a calendar link belongs to, or None for an unknown one."""
-    try:
-        return User.objects.get(token=token)
-    except ObjectDoesNotExist:
-        logger.warning(
-            "Could not process Calendar request: Invalid token: %s",
-            token,
-        )
-        return None
+def _user_for_token(request, token):
+    """Return the user a calendar link belongs to, or None for an unknown one.
+
+    Looked up once per request: the validator and the view both need it.
+    """
+    if not hasattr(request, "_calendar_feed_user"):
+        try:
+            request._calendar_feed_user = User.objects.get(token=token)
+        except ObjectDoesNotExist:
+            logger.warning(
+                "Could not process Calendar request: Invalid token: %s",
+                token,
+            )
+            request._calendar_feed_user = None
+    return request._calendar_feed_user
+
+
+def _upcoming_feed_etag(request, token):
+    """Return the upcoming-releases link validator, computed without the body.
+
+    The body depends on the user's tracked media and statuses (the user change
+    marker), the stored release dates (the release marker), the day (the
+    window moves daily), the link's filters and the user's enabled types and
+    region. Dates are written in UTC, so time zone is not an input.
+    """
+    if hasattr(request, "_calendar_feed_etag"):
+        return request._calendar_feed_etag
+    user = _user_for_token(request, token)
+    request._calendar_feed_etag = user and feed_validation.feed_etag(
+        "upcoming",
+        user.id,
+        token,
+        feed_validation.user_change_marker(user.id),
+        release_marker.current(),
+        timezone.now().date().isoformat(),
+        request.GET.urlencode(),
+        user.get_enabled_media_types(),
+        user.watch_provider_region,
+    )
+    return request._calendar_feed_etag
+
+
+def _history_feed_etag(request, token):
+    """Return the watch-history link validator: plays, the day and the types."""
+    if hasattr(request, "_calendar_feed_etag"):
+        return request._calendar_feed_etag
+    user = _user_for_token(request, token)
+    request._calendar_feed_etag = user and feed_validation.feed_etag(
+        "history",
+        user.id,
+        token,
+        feed_validation.user_change_marker(user.id),
+        timezone.now().date().isoformat(),
+        sorted(selected_history_media_types(request.GET.getlist("media_types"))),
+    )
+    return request._calendar_feed_etag
 
 
 @require_GET
@@ -350,7 +401,9 @@ def _calendar_menu_props(request, today):
         "urls": {
             "today": f"{reverse('calendar')}?month={today.month}&year={today.year}",
             "fetch": reverse("reload_calendar"),
-            "download": reverse("download_calendar", kwargs={"token": request.user.token}),
+            "download": reverse(
+                "download_calendar", kwargs={"token": request.user.token}
+            ),
             "preferences": reverse("update_statistics_preferences"),
         },
     }
@@ -390,12 +443,13 @@ def _calendar_links_props(request, context):
             for status in context["event_statuses"]
         ],
         "releaseTypes": [
-            {"value": value, "label": label}
-            for value, label in release_type_choices
+            {"value": value, "label": label} for value, label in release_type_choices
         ],
         "initialFeed": "releases",
         "initialReleaseMediaTypes": [
-            media_type for media_type in media_types if media_type in enabled_media_types
+            media_type
+            for media_type in media_types
+            if media_type in enabled_media_types
         ],
         "initialHistoryMediaTypes": list(DEFAULT_MEDIA_TYPES),
         "initialStatuses": list(context["event_statuses"]),
@@ -496,8 +550,7 @@ def _release_calendar_props(request, context):
             for media_type in context["filter_media_types"]
         ],
         "releaseTypes": [
-            {"value": value, "label": label}
-            for value, label in release_type_choices
+            {"value": value, "label": label} for value, label in release_type_choices
         ],
         "statusesByType": statuses_by_type,
         "initialFilters": {
@@ -506,9 +559,7 @@ def _release_calendar_props(request, context):
                 media_type: [status["value"] for status in statuses]
                 for media_type, statuses in statuses_by_type.items()
             },
-            "selectedReleaseTypes": [
-                value for value, _label in release_type_choices
-            ],
+            "selectedReleaseTypes": [value for value, _label in release_type_choices],
         },
         "navigation": {
             "previous": (
@@ -578,7 +629,9 @@ def _release_props(request, release):
     # content number ("E1 at 2 a.m."); the month agenda uses the longer forms.
     list_parts = []
     if release.readable_content_number:
-        list_parts.append(f"{release.readable_content_number} {event_time or ''}".strip())
+        list_parts.append(
+            f"{release.readable_content_number} {event_time or ''}".strip()
+        )
     if release_type_label:
         list_parts.append(f"{release_type_label} {gettext('release')}")
 
@@ -596,7 +649,9 @@ def _release_props(request, release):
         "listTitle": str(item),
         "listSubtitle": " ".join(list_parts) or subtitle,
         "unknownTime": release.is_sentinel_time,
-        "sortTime": 0 if release.is_sentinel_time else int(release.datetime.timestamp()),
+        "sortTime": 0
+        if release.is_sentinel_time
+        else int(release.datetime.timestamp()),
         "cardLines": [
             line["text"]
             for line in card_lines(request.user, item.media_type, item)
@@ -616,18 +671,24 @@ def reload_calendar(request):
 @login_not_required
 @csrf_exempt
 @require_http_methods(["GET", "HEAD", "PROPFIND"])
+@cache_control(private=True, max_age=feed_validation.FEED_MAX_AGE_SECONDS)
+@condition(etag_func=_upcoming_feed_etag)
 def download_calendar(request, token: str):
     """Download the calendar as a iCalendar file."""
-    user = _user_for_token(token)
+    user = _user_for_token(request, token)
     if user is None:
         return HttpResponse(status=401)
 
     now = timezone.now()
 
-    # Calendar apps poll this feed on their own schedule, and each build walks
-    # the whole event window, so a rendered feed is reused briefly per filter.
-    feed_cache_key = (
-        f"calendar_feed:{user.id}:{now.date().isoformat()}:{request.GET.urlencode()}"
+    # Calendar apps poll this feed on their own schedule. Clients that send
+    # the ETag back get a 304 above; for the rest the rendered feed is kept
+    # under its validator, so an unchanged poll is a cache read and any
+    # change misses (docs/architecture/view-caches.md, "Token feeds").
+    feed_cache_key = feed_validation.body_cache_key(
+        "calendar_feed:v2",
+        user.id,
+        _upcoming_feed_etag(request, token),
     )
     cached_feed = cache.get(feed_cache_key)
     if cached_feed is not None:
@@ -720,28 +781,31 @@ def download_calendar(request, token: str):
     lines.append("END:VCALENDAR")
 
     feed = ("\r\n".join(lines) + "\r\n").encode()
-    cache.set(feed_cache_key, feed, CALENDAR_FEED_CACHE_SECONDS)
+    feed_validation.remember_body(feed_cache_key, feed)
     return _calendar_feed_response(feed)
 
 
 @login_not_required
 @csrf_exempt
 @require_http_methods(["GET", "HEAD", "PROPFIND"])
+@cache_control(private=True, max_age=feed_validation.FEED_MAX_AGE_SECONDS)
+@condition(etag_func=_history_feed_etag)
 def download_history_calendar(request, token: str):
     """Download finished plays (what the user watched, read, played) as iCal."""
-    user = _user_for_token(token)
+    user = _user_for_token(request, token)
     if user is None:
         return HttpResponse(status=401)
 
     now = timezone.now()
     media_types = selected_history_media_types(request.GET.getlist("media_types"))
 
-    # Calendar apps poll this link on their own schedule, so a built feed is
-    # reused briefly. The key holds the resolved types, so a link with no
-    # selection shares an entry with one that lists the defaults.
-    feed_cache_key = (
-        f"calendar_history_feed:{user.id}:{now.date().isoformat()}:"
-        f"{','.join(sorted(media_types))}"
+    # Kept under its validator, like the upcoming feed. The validator holds
+    # the resolved types, so a link with no selection shares an entry with
+    # one that lists the defaults.
+    feed_cache_key = feed_validation.body_cache_key(
+        "calendar_history_feed:v2",
+        user.id,
+        _history_feed_etag(request, token),
     )
     cached_feed = cache.get(feed_cache_key)
     if cached_feed is not None:
@@ -757,9 +821,7 @@ def download_history_calendar(request, token: str):
     for play in get_history_plays(user, media_types, now):
         if play.is_date_only:
             dtstart = f"DTSTART;VALUE=DATE:{play.local_date:%Y%m%d}"
-            dtend = (
-                f"DTEND;VALUE=DATE:{play.local_date + timedelta(days=1):%Y%m%d}"
-            )
+            dtend = f"DTEND;VALUE=DATE:{play.local_date + timedelta(days=1):%Y%m%d}"
         else:
             played_at = play.played_at.astimezone(UTC).strftime(ICS_DATETIME_FORMAT)
             dtstart = f"DTSTART:{played_at}"
@@ -776,7 +838,7 @@ def download_history_calendar(request, token: str):
     lines.append("END:VCALENDAR")
 
     feed = ("\r\n".join(lines) + "\r\n").encode()
-    cache.set(feed_cache_key, feed, CALENDAR_FEED_CACHE_SECONDS)
+    feed_validation.remember_body(feed_cache_key, feed)
     return _calendar_feed_response(feed, "history.ics")
 
 
