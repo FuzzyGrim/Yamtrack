@@ -73,9 +73,12 @@ def _person_payload():
     }
 
 
-@override_settings(CELERY_TASK_ALWAYS_EAGER=False, TESTING=False)
 class PersonPageTalentWaitTests(TestCase):
-    """With a worker deployment, the page reads stored totals only."""
+    """With a worker deployment, the page reads stored totals only.
+
+    Fixtures are created in eager mode; worker mode is switched on afterwards,
+    with every other task publish stubbed so no test needs a real broker.
+    """
 
     def setUp(self):
         cache.clear()
@@ -112,6 +115,12 @@ class PersonPageTalentWaitTests(TestCase):
         delay = patch.object(build_person_talent_context_task, "delay")
         self.delay = delay.start()
         self.addCleanup(delay.stop)
+        publish = patch("celery.app.task.Task.apply_async")
+        publish.start()
+        self.addCleanup(publish.stop)
+        worker_mode = override_settings(CELERY_TASK_ALWAYS_EAGER=False, TESTING=False)
+        worker_mode.enable()
+        self.addCleanup(worker_mode.disable)
 
     def _url(self):
         return reverse(
