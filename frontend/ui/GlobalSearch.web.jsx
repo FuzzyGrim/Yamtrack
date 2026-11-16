@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { GlobalSearch as SharedGlobalSearch } from './GlobalSearch.jsx';
 import { useKeyboardOverlap } from './keyboardOverlap.web';
 import { requestBarcode } from './barcodeEntry.web';
+import { createWebRequest } from './webRequest.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -86,18 +87,17 @@ export function GlobalSearch({ host, props }) {
     };
   }, [host]);
 
-  const onLoadSuggestions = useCallback(async ({ query, mediaType }) => {
-    const url = new URL(props.suggestionsUrl, window.location.origin);
-    url.searchParams.set('q', query);
-    url.searchParams.set('media_type', mediaType);
-    url.searchParams.set('format', 'json');
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      credentials: 'same-origin',
+  // The shared request helper: cancellable, so a newer keystroke stops the older request.
+  const request = useMemo(() => createWebRequest(), []);
+  // Names this search box, so the server can stop work on a request it replaced.
+  const boxId = useMemo(() => window.crypto?.randomUUID?.() || `box-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`, []);
+  const onLoadSuggestions = useCallback(async ({ query, mediaType, signal }) => {
+    const path = new URL(props.suggestionsUrl, window.location.origin).pathname;
+    const data = await request(path, {
+      query: { q: query, media_type: mediaType, format: 'json', sid: boxId },
+      signal,
     });
-    if (!response.ok) throw new Error(`Suggestions request failed: ${response.status}`);
-    const data = await response.json();
-    const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+    const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
     return {
       suggestions: suggestions.map((suggestion, index) => ({
         id: String(suggestion.id ?? index),
@@ -107,7 +107,7 @@ export function GlobalSearch({ host, props }) {
         url: suggestion.url,
       })),
     };
-  }, [props.suggestionsUrl]);
+  }, [props.suggestionsUrl, request, boxId]);
 
   const onSubmit = useCallback(({ query, mediaType }) => {
     const url = new URL(props.action, window.location.origin);

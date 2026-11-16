@@ -208,6 +208,12 @@ class SearchSuggestionsView(drf_views.APIView):
                 type=str,
                 location=OpenApiParameter.QUERY,
             ),
+            OpenApiParameter(
+                name="sid",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description="Random id of the search box; a newer request from it stops an older one early.",
+            ),
         ],
         responses={200: dict},
     )
@@ -221,11 +227,16 @@ class SearchSuggestionsView(drf_views.APIView):
         ):
             return Response({"suggestions": []}, status=HTTP.OK)
         try:
-            suggestions = search_views.get_saved_suggestions(
-                request.user,
-                media_type,
-                query,
-            )
+            with search_views.without_postgres_jit():
+                suggestions = search_views.get_saved_suggestions(
+                    request.user,
+                    media_type,
+                    query,
+                    superseded=search_views.suggestion_superseded_check(
+                        request.user,
+                        request.GET.get("sid"),
+                    ),
+                )
         except Exception:  # - typeahead must never fail the page
             logger.debug("Suggestion search failed", exc_info=True)
             suggestions = []

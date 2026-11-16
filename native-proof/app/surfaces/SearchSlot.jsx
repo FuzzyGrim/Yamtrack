@@ -119,13 +119,14 @@ export default function SearchSlot({
     resolve?.(result);
   }, []);
 
-  const loadSuggestions = useCallback(async ({ query, mediaType }) => {
+  const loadSuggestions = useCallback(async ({ query, mediaType, signal }) => {
     if (transport.mode !== 'server') return { suggestions: [] };
     // A session sign-in uses the web typeahead; a token sign-in reads the same one from the API.
+    // `signal` cancels the request when a newer keystroke replaces it.
     if (transport.searchSuggestions) {
-      return { suggestions: await transport.searchSuggestions({ search: query, mediaType }) };
+      return { suggestions: await transport.searchSuggestions({ search: query, mediaType, signal }) };
     }
-    const payload = await transport.loadSuggestions({ query, mediaType });
+    const payload = await transport.loadSuggestions({ query, mediaType, signal });
     return { suggestions: suggestionsFromPayload(payload, session?.serverUrl || '') };
   }, [transport, session]);
 

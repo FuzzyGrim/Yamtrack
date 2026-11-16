@@ -396,7 +396,9 @@ export function createAuthTransport({ storage, fetchImpl, onSessionChange, brows
   async function perform(url, options) {
     try {
       return await fetcher(url, options);
-    } catch {
+    } catch (error) {
+      // A request the caller cancelled is not an unreachable server.
+      if (options?.signal?.aborted) throw error;
       throw fail(AUTH_ERROR_CODES.SERVER_UNREACHABLE, 'Could not reach the Floppy server. Check the address and connection.');
     }
   }
@@ -476,6 +478,7 @@ export function createAuthTransport({ storage, fetchImpl, onSessionChange, brows
       headers,
       body,
       credentials: credentialsMode(current),
+      ...(options.signal ? { signal: options.signal } : {}),
     });
     if (current.authType === 'session' && !current.browser) {
       const cookies = mergeCookies(current.cookies || {}, response);

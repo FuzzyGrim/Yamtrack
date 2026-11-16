@@ -1,6 +1,7 @@
 """Utilities for caching the Statistics page."""
 
 import calendar
+import hashlib
 import heapq
 import itertools
 import logging
@@ -17,8 +18,9 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Max, Min, Q
 from django.db.models.functions import ExtractDay, ExtractMonth, TruncDate
+from django.utils import timezone
 
-from app import config, helpers, history_cache
+from app import cache_utils, config, helpers, history_cache
 from app import credits as credit_helpers
 from app import statistics as stats
 from app.models import (
@@ -85,6 +87,19 @@ STATISTICS_CACHE_TIMEOUT = 60 * 60 * 6  # 6 hours
 # Retain page snapshots between visits; freshness is checked independently.
 STATISTICS_RANGE_CACHE_TIMEOUT = 60 * 60 * 24 * 7
 SCORE_COMPARISON_EPSILON = 1e-6  # tolerance for float score equality checks
+
+# A custom range is assembled from day payloads on request. Its result is
+# remembered under a token that changes whenever the predefined snapshots would
+# go stale (the user's change generation, the local day, the schema), so the
+# lifetime only bounds memory, never freshness. See statistics-sync.md.
+STATISTICS_CUSTOM_RANGE_CACHE_VERSION = 1
+STATISTICS_CUSTOM_RANGE_PREFIX = f"stats:custom:v{STATISTICS_CUSTOM_RANGE_CACHE_VERSION}"
+STATISTICS_CUSTOM_RANGE_CACHE_TIMEOUT = 60 * 15
+# A second tab or a reload of the same range waits for the first build rather
+# than computing it again. A full history takes several seconds on a large
+# library; past this wait the follower builds it itself.
+STATISTICS_CUSTOM_RANGE_BUILD_LOCK_TTL = 90
+STATISTICS_CUSTOM_RANGE_BUILD_WAIT = 30.0
 
 # Predefined ranges that can be cached
 PREDEFINED_RANGES = [
@@ -698,11 +713,112 @@ def get_person_talent_context(user, start_date=None, end_date=None):
     )
     cached_context = cache.get(cache_key)
     if cached_context is not None:
-        return cached_context
+        return cached_context or None
 
     context = _build_person_talent_context(user, start_date, end_date)
-    cache.set(cache_key, context, timeout=STATISTICS_CACHE_TIMEOUT)
+    # An empty library stores {} so the next read is a hit, not another scan.
+    cache.set(cache_key, context or {}, timeout=STATISTICS_CACHE_TIMEOUT)
+    cache.set(
+        _person_talent_latest_key(user.id, start_date, end_date),
+        history_version,
+        timeout=STATISTICS_CACHE_TIMEOUT,
+    )
     return context
+
+
+# Building the watched-item context scans every play in the library. On a
+# large library on spinning disks that took 30 to 200 s, so pages never build
+# it; they queue this build once per history version and read what is stored.
+PERSON_TALENT_BUILD_GUARD_TTL = 10 * 60
+
+
+def _person_talent_latest_key(user_id, start_date, end_date) -> str:
+    return (
+        f"{STATISTICS_CACHE_PREFIX}:person_talent_latest:{user_id}:"
+        f"{CREDITS_BACKFILL_VERSION}:"
+        f"{_range_cache_component(start_date)}:{_range_cache_component(end_date)}"
+    )
+
+
+def schedule_person_talent_context_build(user_id: int, history_version: str) -> bool:
+    """Queue one background build of the all-time person talent context."""
+    guard_key = (
+        f"{STATISTICS_CACHE_PREFIX}:person_talent_build:{user_id}:{history_version}"
+    )
+    if not cache.add(guard_key, True, PERSON_TALENT_BUILD_GUARD_TTL):
+        return False
+    from app.tasks_interactive import build_person_talent_context_task
+
+    try:
+        build_person_talent_context_task.delay(user_id)
+    except Exception as error:  # the page already shows what is stored
+        cache.delete(guard_key)
+        logger.warning(
+            "person_talent_build_enqueue_failed user_id=%s error=%s",
+            user_id,
+            type(error).__name__,
+        )
+        return False
+    return True
+
+
+def get_ready_person_talent_totals(user, person_source, person_id):
+    """Return ``(totals, pending)`` for a person page from stored data only.
+
+    Never scans the library on the request path. When the context for the
+    current history version is missing, the last built one is used (the page
+    shows slightly older numbers, as Statistics does) and a rebuild is queued.
+    With nothing built yet, ``pending`` is True and the page fills in later.
+    """
+    if not user or not person_source or person_id is None:
+        return None, False
+
+    history_version = _get_history_version(user.id)
+
+    def totals_key(version):
+        return _person_talent_totals_cache_key(
+            user.id, version, person_source, person_id, None, None
+        )
+
+    cached_totals = cache.get(totals_key(history_version))
+    if cached_totals is not None:
+        return _deserialize_person_talent_totals_from_cache(cached_totals), False
+
+    context_version = history_version
+    context = cache.get(
+        _person_talent_context_cache_key(user.id, history_version, None, None)
+    )
+    if context is None and _eager_statistics_mode():
+        # No worker in eager/test mode: build inline, as the Statistics read
+        # path does (docs/architecture/statistics-sync.md).
+        context = get_person_talent_context(user) or {}
+    if context is None:
+        schedule_person_talent_context_build(user.id, history_version)
+        latest_version = cache.get(_person_talent_latest_key(user.id, None, None))
+        if not latest_version or latest_version == history_version:
+            return None, True
+        context_version = latest_version
+        stale_totals = cache.get(totals_key(latest_version))
+        if stale_totals is not None:
+            return _deserialize_person_talent_totals_from_cache(stale_totals), False
+        context = cache.get(
+            _person_talent_context_cache_key(user.id, latest_version, None, None)
+        )
+        if context is None:
+            return None, True
+
+    if not context:  # built, and the library has no plays
+        return None, False
+    totals = _compute_person_talent_totals(
+        user, person_source, person_id, context=context
+    )
+    if totals is not None:
+        cache.set(
+            totals_key(context_version),
+            _serialize_person_talent_totals_for_cache(totals),
+            timeout=STATISTICS_CACHE_TIMEOUT,
+        )
+    return totals, False
 
 
 def get_person_talent_totals(
@@ -726,6 +842,8 @@ def get_person_talent_totals(
         return _deserialize_person_talent_totals_from_cache(cached_totals)
 
     context = get_person_talent_context(user, start_date, end_date)
+    if not context:  # no plays in range; never rebuild it a second time
+        return None
     totals = _compute_person_talent_totals(
         user,
         person_source,
@@ -749,27 +867,16 @@ def _eager_statistics_mode() -> bool:
     )
 
 
-def _has_missing_day_caches(user_id, day_list) -> bool:
-    chunk_size = 200
-    for offset in range(0, len(day_list), chunk_size):
-        keys = [
-            _day_cache_key(user_id, day)
-            for day in day_list[offset : offset + chunk_size]
-        ]
-        if len(cache.get_many(keys)) < len(keys):
-            return True
-    return False
-
-
-def _schedule_missing_day_builds(user, day_list, start_date, end_date) -> None:
+def _schedule_missing_day_builds(user, missing_days, start_date, end_date) -> None:
     """Queue a background build of missing per-day stat caches.
 
     Request paths must never build day caches inline (a cold multi-year
     range means thousands of queries and a multi-second block); instead
     the missing days are built in Celery and the page self-corrects on a
-    later visit.
+    later visit. ``missing_days`` comes from the read that walked the range,
+    so the range is not fetched and decoded a second time to find them.
     """
-    if not _has_missing_day_caches(user.id, day_list):
+    if not missing_days:
         return
 
     start_token = start_date.isoformat() if start_date else "all"
@@ -792,6 +899,119 @@ def _schedule_missing_day_builds(user, day_list, start_date, end_date) -> None:
             user.id,
             exc_info=True,
         )
+
+
+def _custom_range_token(user, start_date, end_date) -> str:
+    """Return what a remembered custom range must match to be served.
+
+    The same things make a predefined snapshot stale: the user's change
+    generation (every mark bumps it and records its time), the local day and
+    the snapshot schema.
+    The dates carry their UTC offset, and the timezone name and the user
+    preferences the aggregate reads are included so a change to either can
+    never be served from an entry built before it.
+    """
+    from app import statistics_sync
+    from app.models import StatisticsSyncState
+
+    state = (
+        StatisticsSyncState.objects.filter(user_id=user.id)
+        .values_list("generation", "last_marked_at")
+        .first()
+    ) or (0, None)
+    parts = (
+        statistics_sync.SNAPSHOT_SCHEMA_VERSION,
+        STATISTICS_DAY_CACHE_VERSION,
+        # The mark time and the account's creation time keep a generation
+        # number that comes round again (a restored database, a re-created
+        # user id) from matching an entry built before it.
+        *state,
+        getattr(user, "date_joined", None),
+        timezone.localdate().isoformat(),
+        timezone.get_current_timezone_name(),
+        start_date.isoformat() if start_date else "all",
+        end_date.isoformat() if end_date else "all",
+        tuple(getattr(user, "get_active_media_types", list)()),
+        getattr(user, "season_enabled", None),
+        getattr(user, "rating_scale_max", None),
+        getattr(user, "top_talent_sort_by", None),
+        getattr(user, "week_start_day", None),
+        getattr(user, "duration_format", None),
+    )
+    return hashlib.sha256(repr(parts).encode()).hexdigest()[:32]
+
+
+def _custom_range_key(kind, user_id, token) -> str:
+    return f"{STATISTICS_CUSTOM_RANGE_PREFIX}:{kind}:{user_id}:{token}"
+
+
+def _custom_range_slot_key(kind, user_id) -> str:
+    return f"{STATISTICS_CUSTOM_RANGE_PREFIX}:{kind}:{user_id}:current"
+
+
+def _remember_custom_range(kind, user, key, value, missing_days) -> None:
+    """Keep a custom range's result, unless it may already be incomplete.
+
+    Nothing marks a change when the background task fills in a missing day,
+    so a result read with a day missing is never kept; the next visit reads
+    the days again. A bulk import defers its marks until it ends, and a
+    pending full sweep rebuilds day payloads without a new mark, so nothing is
+    kept while either is outstanding. Each user keeps one entry per kind: a
+    new range replaces the last one.
+    """
+    if missing_days:
+        return
+    from app import statistics_sync
+    from app.models import StatisticsSyncState
+
+    if statistics_sync._bulk_import_active(user.id):
+        return
+    if StatisticsSyncState.objects.filter(
+        user_id=user.id, full_sweep_requested_at__isnull=False
+    ).exists():
+        return
+    slot_key = _custom_range_slot_key(kind, user.id)
+    previous = cache.get(slot_key)
+    cache.set(key, value, timeout=STATISTICS_CUSTOM_RANGE_CACHE_TIMEOUT)
+    cache.set(slot_key, key, timeout=STATISTICS_CUSTOM_RANGE_CACHE_TIMEOUT)
+    if previous and previous != key:
+        cache.delete(previous)
+
+
+def _custom_range_result(kind, user, start_date, end_date, build):
+    """Serve a remembered custom range, or build it once and remember it.
+
+    ``build(missing_days)`` computes the result and appends the days it found
+    without a payload. A concurrent request for the same range waits for the
+    first one instead of computing it twice.
+    """
+    key = _custom_range_key(
+        kind, user.id, _custom_range_token(user, start_date, end_date)
+    )
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    owns_lock = cache_utils.acquire_build_lock(
+        key, STATISTICS_CUSTOM_RANGE_BUILD_LOCK_TTL
+    )
+    if not owns_lock and cache_utils.wait_for_build(
+        key,
+        lambda: cache.has_key(key),
+        STATISTICS_CUSTOM_RANGE_BUILD_WAIT,
+    ):
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+    missing_days = []
+    try:
+        value = build(missing_days)
+        _remember_custom_range(kind, user, key, value, missing_days)
+    finally:
+        if owns_lock:
+            cache_utils.release_build_lock(key)
+    if not _eager_statistics_mode():
+        _schedule_missing_day_builds(user, missing_days, start_date, end_date)
+    return value
 
 
 def _eager_day_builder(user):
@@ -826,20 +1046,18 @@ def get_statistics_minutes_by_type(user, start_date, end_date, range_name=None):
     day_list = _resolve_day_list(user, start_date, end_date)
     if not day_list:
         return {}
-    if _eager_statistics_mode():
+    eager = _eager_statistics_mode()
+
+    def build(missing_days):
         return _aggregate_minutes_per_media_type_from_days(
             user,
             day_list,
-            build_missing=True,
-            build_days=_eager_day_builder(user),
+            build_missing=eager,
+            build_days=_eager_day_builder(user) if eager else None,
+            missing_days=missing_days,
         )
-    result = _aggregate_minutes_per_media_type_from_days(
-        user,
-        day_list,
-        build_missing=False,
-    )
-    _schedule_missing_day_builds(user, day_list, start_date, end_date)
-    return result
+
+    return _custom_range_result("minutes", user, start_date, end_date, build)
 
 
 def _finalize_for_read(data):
@@ -863,25 +1081,28 @@ def get_statistics_data(user, start_date, end_date, range_name=None):
     Returns:
         Dictionary with statistics data
     """
-    # Only cache predefined ranges
     if range_name is None or range_name not in PREDEFINED_RANGES:
-        # For custom ranges, aggregate per-day caches to avoid range scans.
-        # Missing days are built in the background rather than inline so a
-        # cold multi-year range can't block the request for minutes.
+        # A custom range is aggregated from the per-day caches and remembered
+        # until the next change (see _custom_range_result). Missing days are
+        # built in the background rather than inline so a cold multi-year
+        # range can't block the request for minutes.
         day_list = _resolve_day_list(user, start_date, end_date)
         if not day_list and not apps.get_model("app", "AlbumTracker").objects.filter(user=user).exists():
             return _get_empty_statistics_data()
-        build_missing = _eager_statistics_mode()
-        data = _aggregate_statistics_from_days(
-            user,
-            day_list,
-            start_date,
-            end_date,
-            build_missing=build_missing,
-            build_days=_eager_day_builder(user) if build_missing else None,
-        )
-        if not build_missing:
-            _schedule_missing_day_builds(user, day_list, start_date, end_date)
+        eager = _eager_statistics_mode()
+
+        def build(missing_days):
+            return _aggregate_statistics_from_days(
+                user,
+                day_list,
+                start_date,
+                end_date,
+                build_missing=eager,
+                build_days=_eager_day_builder(user) if eager else None,
+                missing_days=missing_days,
+            )
+
+        data = _custom_range_result("range", user, start_date, end_date, build)
         _finalize_for_read(data)
         return data
 
