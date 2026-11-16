@@ -1,3 +1,4 @@
-{% for person in media_list.items %}
-  {% include "app/components/person_card_inline.html" %}
+{# Fed by people_cast: each entry pairs the raw person with its shared card props. #}
+{% for entry in people_cast_cards %}
+  {% include "app/components/person_card_inline.html" with person=entry.person card=entry.card %}
 {% endfor %}

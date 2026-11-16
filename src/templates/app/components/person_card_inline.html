@@ -2,7 +2,8 @@
 {% load i18n %}
 {% load app_tags %}
 {% load user_tags %}
-<div class="w-32 shrink-0">
+{# Same wrapper as home_grid.html so the pre-mount card matches the mounted rail width (shelfCardWidth). #}
+<div class="home-row-card {{ media_list.card_width_class|default:'w-44' }} shrink-0">
   <div class="media-card bg-[var(--color-surface)] rounded-lg overflow-hidden shadow-lg relative search-result-card hover:ring-2 hover:ring-indigo-500 transition-all group{% card_subtitle_class 'person' %}{% card_title_classes 'person' %}{% if user.clickable_media_cards %} media-card-hide-overlay{% endif %}"
        x-data="{ revealed: false, tapToReveal(e) { if (this.revealed) { if (e.target.closest('button, a, input, select, textarea')) { return; } const link = this.$root.querySelector('.media-card-overlay a[href]') || this.$root.querySelector('a.media-card-title[href]'); if (link) { e.preventDefault(); e.stopPropagation(); link.click(); } return; } if (!window.matchMedia('(pointer: coarse)').matches || this.$root.classList.contains('media-card-hide-overlay')) { return; } if (this.$root.classList.contains('media-card-subtitle-always')) { return; } e.preventDefault(); e.stopPropagation(); this.revealed = true; window.dispatchEvent(new CustomEvent('media-card-revealed', { detail: this.$root })); } }"
        @click.capture="tapToReveal($event)"
@@ -10,13 +11,13 @@
        @click.window="if (revealed && !$root.contains($event.target)) revealed = false"
        :class="revealed ? 'media-card-revealed' : ''">
     <div class="relative">
-      {% if person.person_id and person.name %}
-        <a href="{% url 'person_detail' source=media.source person_id=person.person_id name=person.name|slug %}">
+      {% if card.href %}
+        <a href="{{ card.href }}">
       {% endif %}
       <img loading="lazy" decoding="sync" alt="{{ person.name|default:'Unknown Person' }}"
            class="media-card-poster w-full aspect-[2/3] bg-[var(--color-surface-alt)] {% if person.image and person.image != IMG_NONE %}object-cover{% endif %}"
            src="{{ person.image|default:IMG_NONE|image_url }}">
-      {% if person.person_id and person.name %}</a>{% endif %}
+      {% if card.href %}</a>{% endif %}
       {% if person.episode_count %}
         <span class="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity
                      bg-gray-900/90 text-white text-[11px] font-medium px-2 py-1 rounded-md shadow-md pointer-events-none">
@@ -26,8 +27,8 @@
     </div>
     <div class="media-card-body p-3 bg-card-body">
       <div class="media-card-title-row">
-        {% if person.person_id and person.name %}
-          <a href="{% url 'person_detail' source=media.source person_id=person.person_id name=person.name|slug %}"
+        {% if card.href %}
+          <a href="{{ card.href }}"
              class="media-card-title text-sm font-semibold text-[var(--color-text)] hover:text-[var(--color-link)] transition duration-300 line-clamp-1 block min-w-0"
              title="{{ person.name }}">{{ person.name }}</a>
         {% else %}
