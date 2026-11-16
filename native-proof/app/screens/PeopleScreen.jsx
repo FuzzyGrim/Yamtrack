@@ -107,6 +107,8 @@ export default function PeopleScreen({ navigate, onBack, params, transport: inje
 
   // The server builds play totals in the background on a first visit and says
   // so with talentPending. Ask again a few seconds apart, for about two minutes.
+  // talentPoll re-arms the next try as soon as one fires, so a failed quiet
+  // request (profile unchanged) still gets its next bounded attempt.
   const pollKey = identity ? `${identity.kind}:${identity.source}:${identity.personId || identity.studioId}` : '';
   useEffect(() => {
     if (!profile?.talentPending) return undefined;
@@ -119,7 +121,7 @@ export default function PeopleScreen({ navigate, onBack, params, transport: inje
       setTalentPoll(count => count + 1);
     }, TALENT_POLL_MS);
     return () => clearTimeout(timer);
-  }, [profile, pollKey]);
+  }, [profile, pollKey, talentPoll]);
 
   const openCredit = useCallback(entry => {
     navigate?.('Detail', {
