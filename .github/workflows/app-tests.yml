@@ -212,9 +212,6 @@ jobs:
       FLOPPY_TEST_DB_TEMPLATE: ${{ vars.TEST_DB_TEMPLATE != 'false' && '1' || '0' }}
       FLOPPY_TEST_SHARD: ${{ matrix.shard }}
       FLOPPY_TEST_ACCOUNTING_DIR: .floppy/accounting
-      CI_TEST_MODE: >-
-        ${{ github.event_name == 'pull_request' && 'pr' ||
-        inputs.release_quality_gates && 'release' || 'full' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -246,16 +243,10 @@ jobs:
             suite: unit-5
             role: unit
             shard: 5/5
+    # Only "Run Tests" may read the event (scripts/tests/test_reuse_pr_workflow.py):
+    # everything else in a shard is the same on a pull request and the
+    # publish gate, so a reused pull request result covers the gate.
     steps:
-      - name: Decide whether this shard has tests
-        id: plan
-        run: |
-          if [ "${{ matrix.role }}" = browser ] && [ "$CI_TEST_MODE" = release ]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -263,34 +254,30 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        if: steps.plan.outputs.run == 'true'
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up uv
-        if: steps.plan.outputs.run == 'true'
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.12.3"
 
       - name: Install dependencies
-        if: steps.plan.outputs.run == 'true'
         run: uv sync --locked --all-packages --all-extras
 
       - name: Install Chromium
-        if: steps.plan.outputs.run == 'true' && matrix.role == 'browser'
+        if: matrix.role == 'browser'
         run: uv run --no-sync playwright install --with-deps chromium
 
       - name: Fetch migration baseline
-        if: steps.plan.outputs.run == 'true'
         run: git fetch --no-tags https://github.com/FuzzyGrim/Yamtrack.git dev:refs/remotes/upstream/dev
 
       # Missing or unusable is not an error: the runner replays migrations and
       # says so in its "[test-db]" line.
       - name: Fetch the migrated test database
         id: test_db
-        if: steps.plan.outputs.run == 'true' && vars.TEST_DB_TEMPLATE != 'false'
+        if: vars.TEST_DB_TEMPLATE != 'false'
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -298,15 +285,17 @@ jobs:
           path: .floppy
 
       - name: Note a missing test database
-        if: >-
-          steps.plan.outputs.run == 'true' && vars.TEST_DB_TEMPLATE != 'false' &&
-          steps.test_db.outcome != 'success'
+        if: vars.TEST_DB_TEMPLATE != 'false' && steps.test_db.outcome != 'success'
         run: echo "::warning::No saved test database for this run; replaying migrations."
 
       # scripts/test.sh adds --buffer and --exclude-tag network, and wraps the
       # run in the FLOPPY_TEST_TIMEOUT kill and the FLOPPY_TEST_WATCHDOG stack
       # dump. scripts/ci_tests.sh says which tests each mode and role runs.
       - name: Run Tests
+        env:
+          CI_TEST_MODE: >-
+            ${{ github.event_name == 'pull_request' && 'pr' ||
+            inputs.release_quality_gates && 'release' || 'full' }}
         run: scripts/ci_tests.sh "${{ matrix.role }}"
 
       # Uploaded whether the tests passed or not: a shard that crashed leaves
