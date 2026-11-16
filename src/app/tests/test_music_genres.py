@@ -150,9 +150,13 @@ class GenreChipRenderingTests(TestCase):
             genres=["Comedy"],
         )
 
-        response = self.client.get(reverse("podcast_show_detail", args=[show.id]))
+        response = self.client.get(
+            reverse("podcast_show_detail", args=[show.id]),
+            follow=True,
+        )
 
-        self.assertContains(response, self._chip("Comedy"))
+        # The show page links each genre chip to the filtered podcast list.
+        self.assertContains(response, 'data-tone="genre">Comedy</a>')
 
 
 class ScrobbleGenreFillTests(TestCase):
