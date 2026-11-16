@@ -48,7 +48,10 @@ from app.history_cache_utils import (
     _day_cache_key,
     _day_key_from_value,
     _normalize_logging_style,
+    _refresh_dedupe_key,
     _refresh_lock_key,
+    _refresh_rerun_key,
+    _release_refresh_locks,
     _typed_history_index_key,
     apply_history_entry_cap,
     expand_history_media_types,
@@ -944,8 +947,15 @@ def refresh_history_cache(
         else:
             requested_day_keys = None
 
+        requested_warm_days = warm_days
         if warm_days is None:
             warm_days = HISTORY_WARM_DAYS
+        dedupe_key = _refresh_dedupe_key(user_id, logging_style, normalized_day_keys)
+        rerun_key = _refresh_rerun_key(dedupe_key)
+        # A request deduped while this refresh runs leaves a fresh marker.
+        # One already here was left before any row was read, so this pass
+        # covers it.
+        rerun_before = cache.get(rerun_key)
         logger.info(
             "history_cache_refresh_start user_id=%s logging_style=%s day_keys=%s mode=%s",
             user_id,
@@ -1007,38 +1017,34 @@ def refresh_history_cache(
             rebuilt,
             populated,
         )
-        lock_key = _refresh_lock_key(user_id, logging_style)
-        refresh_lock = cache.get(lock_key)
-        dedupe_key = None
-        if refresh_lock and isinstance(refresh_lock, dict):
-            dedupe_key = refresh_lock.get("dedupe_key")
-
-        cache.delete(lock_key)
-        if dedupe_key and dedupe_key != lock_key:
-            cache.delete(dedupe_key)
-            logger.debug(
-                "Deleted dedupe_key %s for user %s",
-                dedupe_key,
-                user_id,
-            )
-
-        verify_lock = cache.get(lock_key)
-        logger.debug(
-            "History cache refresh completed for user %s, lock released. Lock key: %s, still exists: %s",
-            user_id,
-            lock_key,
-            verify_lock is not None,
-        )
+        _release_refresh_locks(user_id, logging_style, dedupe_key)
+        rerun_after = cache.get(rerun_key)
+        if rerun_after is not None:
+            cache.delete(rerun_key)
+            if rerun_after != rerun_before:
+                # A change arrived after this pass read its rows.
+                rerun = schedule_history_refresh(
+                    user_id,
+                    logging_style,
+                    warm_days=requested_warm_days,
+                    day_keys=normalized_day_keys or None,
+                    allow_inline=False,
+                )
+                logger.info(
+                    "history_cache_refresh_rerun user_id=%s logging_style=%s "
+                    "day_keys=%s scheduled=%s",
+                    user_id,
+                    logging_style,
+                    len(normalized_day_keys),
+                    rerun,
+                )
     except Exception:
         logger.exception("Error refreshing history cache for user %s", user_id)
-        lock_key = _refresh_lock_key(user_id, logging_style)
-        refresh_lock = cache.get(lock_key)
-        dedupe_key = None
-        if refresh_lock and isinstance(refresh_lock, dict):
-            dedupe_key = refresh_lock.get("dedupe_key")
-        cache.delete(lock_key)
-        if dedupe_key and dedupe_key != lock_key:
-            cache.delete(dedupe_key)
+        _release_refresh_locks(
+            user_id,
+            logging_style,
+            _refresh_dedupe_key(user_id, logging_style, normalized_day_keys),
+        )
         raise
     else:
         return index_day_keys
