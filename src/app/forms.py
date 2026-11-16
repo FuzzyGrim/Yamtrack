@@ -875,6 +875,23 @@ class EpisodeForm(RatingScaleFormMixin, forms.ModelForm):
         """Keep legacy episode-save clients equivalent to adding a watch."""
         return self.cleaned_data.get("status") or Status.COMPLETED.value
 
+    def clean(self):
+        """Complete an open play when the edit gives it a watch date.
+
+        The track modal edits the latest play, so marking an episode watched
+        while a paused check-in left it open resubmits its In Progress status.
+        """
+        cleaned_data = super().clean()
+        if (
+            self.instance.pk
+            and self.instance.status == Status.IN_PROGRESS.value
+            and self.instance.end_date is None
+            and cleaned_data.get("status") == Status.IN_PROGRESS.value
+            and cleaned_data.get("end_date")
+        ):
+            cleaned_data["status"] = Status.COMPLETED.value
+        return cleaned_data
+
 
 class BulkEpisodeTrackForm(forms.Form):
     """Form for bulk tracking episode plays across a TV/anime range."""

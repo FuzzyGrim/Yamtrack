@@ -16,6 +16,9 @@ from app import models as app_models
 from app.models import TV, Anime, Item, MediaTypes, Movie, Season, Sources, Status
 from events.models import Event, SentinelDatetime
 
+PAST_MONTH = date(2025, 4, 1)
+PAST_MONTH_QUERY = {"month": PAST_MONTH.month, "year": PAST_MONTH.year}
+
 
 class CalendarViewTests(TestCase):
     """Tests for the calendar views."""
@@ -283,7 +286,9 @@ class CalendarViewTests(TestCase):
     ):
         """Day details show episode identity, times, and an untimed fallback."""
         mock_update_preference.return_value = "grid"
-        today = timezone.localdate()
+        # A past month: its selected day is the first one with releases,
+        # not today, whose agenda panel is the only one pre-painted.
+        today = PAST_MONTH
         timed = timezone.make_aware(timezone.datetime(today.year, today.month, 15, 12))
         untimed = timed.replace(
             hour=SentinelDatetime.HOUR,
@@ -303,7 +308,7 @@ class CalendarViewTests(TestCase):
             Event(item=movie, datetime=untimed),
         ]
 
-        response = self.client.get(reverse("calendar"))
+        response = self.client.get(reverse("calendar"), PAST_MONTH_QUERY)
         subtitles = re.findall(r"data-agenda-subtitle>\s*(.*?)\s*</div>", response.content.decode())
         self.assertEqual(len(subtitles), 3)
         self.assertRegex(subtitles[0], r"^S01E02\s+at ")
@@ -330,14 +335,16 @@ class CalendarViewTests(TestCase):
             id=90002, media_id="calendar-title-orphan", source=Sources.TMDB.value,
             media_type=MediaTypes.SEASON.value, title="Unmatched Season", season_number=3,
         )
-        today = timezone.localdate()
+        # A past month: its selected day is the first one with releases,
+        # not today, whose agenda panel is the only one pre-painted.
+        today = PAST_MONTH
         event_time = timezone.make_aware(timezone.datetime(today.year, today.month, 15, 12))
         mock_events.return_value = [
             Event(item=season, content_number=5, datetime=event_time),
             Event(item=orphan, content_number=1, datetime=event_time),
         ]
 
-        response = self.client.get(reverse("calendar"))
+        response = self.client.get(reverse("calendar"), PAST_MONTH_QUERY)
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-release-title="Tougen Anki"')
@@ -377,6 +384,39 @@ class CalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
+    def test_prepaint_renders_only_the_selected_days_agenda(
+        self, mock_preference, mock_events
+    ):
+        """The island replaces the agenda, so hidden days are not rendered (SURFACE-16)."""
+        mock_preference.return_value = "grid"
+        movies = [
+            Item(id=index, media_id=str(index), source=Sources.MANUAL.value,
+                 media_type=MediaTypes.MOVIE.value, title=f"Day {day} Movie")
+            for index, day in enumerate((3, 9, 21), start=1)
+        ]
+        mock_events.return_value = [
+            Event(item=movie, datetime=timezone.make_aware(
+                timezone.datetime(PAST_MONTH.year, PAST_MONTH.month, day, 12),
+            ))
+            for movie, day in zip(movies, (3, 9, 21), strict=True)
+        ]
+
+        response = self.client.get(reverse("calendar"), PAST_MONTH_QUERY)
+
+        html = response.content.decode()
+        self.assertEqual(re.findall(r'data-day-panel="(\d+)"', html), ["3"])
+        self.assertContains(response, 'data-release-title="Day 3 Movie"')
+        self.assertNotContains(response, 'data-release-title="Day 9 Movie"')
+        # Every day still reaches the island, and every cell keeps its artwork.
+        props = response.context["calendar_props"]
+        self.assertEqual(
+            {day for day, releases in props["releases"].items() if releases},
+            {"3", "9", "21"},
+        )
+        self.assertContains(response, 'title="Day 21 Movie"')
+
+    @patch("events.models.Event.objects.get_user_events")
+    @patch.object(get_user_model(), "update_preference")
     def test_calendar_list_shows_season_label_and_clean_show_title(
         self,
         mock_update_preference,
@@ -392,7 +432,9 @@ class CalendarViewTests(TestCase):
             image="",
             season_number=39,
         )
-        today = timezone.localdate()
+        # A past month: its selected day is the first one with releases,
+        # not today, whose agenda panel is the only one pre-painted.
+        today = PAST_MONTH
         mock_get_user_events.return_value = [
             Event(
                 item=item,
@@ -403,7 +445,7 @@ class CalendarViewTests(TestCase):
             ),
         ]
 
-        rendered = self.client.get(reverse("calendar") + "?view=list").content.decode()
+        rendered = self.client.get(reverse("calendar"), {"view": "list", **PAST_MONTH_QUERY}).content.decode()
 
         self.assertIn("S39E170", rendered)
         self.assertIn(">Home and Away</h4>", rendered)

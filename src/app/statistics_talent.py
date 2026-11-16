@@ -73,7 +73,7 @@ def _tv_episode_play_rows(user, start_date, end_date, *, is_all_time=None):
     """Return watched TV episode rows and the season/show items they touch."""
     if is_all_time is None:
         is_all_time = start_date is None and end_date is None
-    episodes_qs = Episode.objects.filter(related_season__user=user)
+    episodes_qs = Episode.objects.filter(Episode.watch_q(), related_season__user=user)
     if not is_all_time:
         if start_date or end_date:
             episodes_qs = episodes_qs.filter(end_date__isnull=False)

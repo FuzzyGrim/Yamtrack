@@ -15,6 +15,13 @@ and update both. The scenario table below was agreed with Daniel on 2026-10-28.
 | R5 | **Otherwise a played show is In Progress, and the label says Caught Up.** In Progress on a show means "I am following this". It stays on the Home shelf. When every aired episode is watched and more is still to come, the details page progress card reads Caught Up. This is display only; the stored status does not change. Library cards get no extra chip. | `ProgressBreakdown.caught_up`, `detail_progress_card_slot.html` |
 | R6 | **Announcements and plays reopen.** A new season announced for a Completed show reopens it to In Progress with a Planning season. A real play reopens Planning, Paused or Dropped entries. | `events/calendar/tv.py`, `integrations/webhooks/base.py` |
 
+**What counts as watching an episode.** A play is a watch only when it is finished:
+status Completed and not dropped. An open play (a check-in, a paused scrobble) is
+history but not yet a watch, and a dropped row never is. Every play count, watched
+flag, statistic and sync push reads this one rule through `Episode.watch_q()` (queries)
+or `Episode.is_watch()` (loaded rows), so the checkmark, the season status and what
+Jellyfin, MAL and WeTrakr receive cannot disagree.
+
 The label sits on the details progress card, which computes it from the provider's
 episode list (`ProgressBreakdown.caught_up`) so it can tell "nothing left to air"
 (Completed) from "more is coming". Library cards keep their existing status chip

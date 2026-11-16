@@ -645,10 +645,12 @@ def rating_scale_max(user):
 
 @register.filter
 def watched_count(history):
-    """Return the count of non-dropped watch entries from an episode history list."""
+    """Return how many plays in an episode history list are watches."""
     if not history:
         return 0
-    return sum(1 for entry in history if not getattr(entry, "dropped", False))
+    from app.models import Episode
+
+    return sum(1 for entry in history if Episode.is_watch(entry))
 
 
 @register.filter

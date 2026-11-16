@@ -316,6 +316,7 @@ def _today_release_candidates(
     Episode = apps.get_model("app", "Episode")
     episode_qs = (
         Episode.all_objects.filter(
+            Episode.watch_q(),
             related_season__user=user,
             item__release_datetime__isnull=False,
         )

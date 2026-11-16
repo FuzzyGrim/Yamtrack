@@ -8105,6 +8105,67 @@ class MediaDetailsViewTests(TestCase):
     @patch("app.views.tmdb.episode")
     @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.tmdb.process_episodes")
+    def test_episode_details_links_credits_to_the_person_page(
+        self,
+        mock_process_episodes,
+        mock_get_metadata,
+        mock_episode,
+    ):
+        """Episode credits render without a `media` context and link by source (#1953)."""
+        mock_get_metadata.return_value = {
+            "title": "Angel",
+            "media_id": "2426",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.TV.value,
+            "season/4": {"episodes": [{"episode_number": 9}]},
+        }
+        mock_process_episodes.return_value = [
+            {
+                "media_id": "2426",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.EPISODE.value,
+                "season_number": 4,
+                "episode_number": 9,
+                "title": "Long Day's Journey",
+                "watched": False,
+            },
+        ]
+        mock_episode.return_value = {
+            "cast": [
+                {"person_id": "159320", "name": "Andy Hallett", "role": "Lorne"},
+            ],
+            "crew": [],
+        }
+
+        response = self.client.get(
+            reverse(
+                "episode_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_id": "2426",
+                    "title": "angel",
+                    "season_number": 4,
+                    "episode_number": 9,
+                },
+            ),
+        )
+
+        person_url = reverse(
+            "person_detail",
+            kwargs={
+                "source": Sources.TMDB.value,
+                "person_id": "159320",
+                "name": "andy-hallett",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        # The server cards shown before React mounts link from the same props
+        # the island receives; the props JSON alone would not match href="...".
+        self.assertContains(response, f'href="{person_url}"')
+
+    @patch("app.views.tmdb.episode")
+    @patch("app.providers.services.get_media_metadata")
+    @patch("app.providers.tmdb.process_episodes")
     def test_episode_details_honors_metadata_language(
         self,
         mock_process_episodes,
