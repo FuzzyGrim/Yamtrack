@@ -1,10 +1,20 @@
 # FORK: tests for the native detail-page endpoints.
 from http import HTTPStatus as HTTP  # noqa: N814
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
-from app.models import TV, ComicIssue, Episode, Item, MediaTypes, Season, Sources
+from app.models import (
+    TV,
+    ComicIssue,
+    Episode,
+    Item,
+    MediaTypes,
+    Season,
+    Sources,
+    Status,
+)
 from integrations import seerr_api
 
 from .base import FloppyApiTestCase
@@ -110,6 +120,22 @@ class AnimeEpisodePreviewTests(FloppyApiTestCase):
         self.assertEqual(row["display_episode_number"], 14)
         self.assertTrue(row["watched"])
         preview.assert_called_once()
+
+    def test_open_play_is_not_watched_until_it_finishes(self):
+        """An open check-in play is history, not a watch, on the native preview too."""
+        self.client.force_login(self.user1)
+        base = {"media_id": "77", "source": "tmdb", "season_number": 1, "title": "Open"}
+        rows = [
+            {**base, "episode_number": 1,
+             "history": [SimpleNamespace(status=Status.IN_PROGRESS.value, dropped=False, score=None)]},
+            {**base, "episode_number": 2,
+             "history": [SimpleNamespace(status=Status.COMPLETED.value, dropped=False, score=None)]},
+        ]
+        with patch("app.providers.services.get_media_metadata", return_value={}), patch(
+            "app.metadata_sync_views._build_flat_anime_episode_preview", return_value=rows,
+        ):
+            results = self.client.get("/api/v1/media/anime/mal/5114/episode-preview/").json()["results"]
+        self.assertEqual([row["watched"] for row in results], [False, True])
 
     def test_empty_preview_and_wrong_type(self):
         """Unavailable optional metadata is an honest empty list."""

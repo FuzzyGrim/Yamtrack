@@ -193,6 +193,77 @@ class JellyfinPushSyncServiceTests(TestCase):
         mock_mark_played.assert_called_once_with("jf-ep-1")
         self.assertEqual(counts.get("marked_played"), 1)
 
+    @patch("integrations.jellyfin_sync.JellyfinClient.mark_unplayed")
+    @patch("integrations.jellyfin_sync.JellyfinClient.mark_played")
+    @patch("integrations.jellyfin_sync.JellyfinClient.iter_library_items")
+    def test_open_play_does_not_count_as_or_undo_a_watch(
+        self,
+        mock_items,
+        mock_mark_played,
+        mock_mark_unplayed,
+    ):
+        """An open check-in play is not a watch, and never unmarks a finished one."""
+        self.account.push_unwatched_enabled = True
+        self.account.save(update_fields=["push_unwatched_enabled"])
+        tv = TV.objects.create(
+            user=self.user,
+            item=Item.objects.create(
+                media_id="1668",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.TV.value,
+                title="Friends",
+            ),
+            status=Status.IN_PROGRESS.value,
+        )
+        season = Season.objects.create(
+            user=self.user,
+            item=Item.objects.create(
+                media_id="1668",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
+                season_number=1,
+                title="Friends Season 1",
+            ),
+            related_tv=tv,
+            status=Status.IN_PROGRESS.value,
+        )
+        watched_item, open_item = (
+            Item.objects.create(
+                media_id="1668",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.EPISODE.value,
+                season_number=1,
+                episode_number=number,
+                title=f"Episode {number}",
+            )
+            for number in (1, 2)
+        )
+        Episode.objects.create(
+            item=watched_item,
+            related_season=season,
+            end_date=timezone.now(),
+        )
+        # A rewatch of episode 1 and a first watch of episode 2, both open.
+        for item in (watched_item, open_item):
+            Episode.objects.create(
+                item=item,
+                related_season=season,
+                status=Status.IN_PROGRESS.value,
+                start_date=timezone.now(),
+            )
+        mock_items.return_value = iter(
+            [
+                _jellyfin_series("jf-series-1", tmdb_id="1668"),
+                _jellyfin_episode("jf-ep-1", "jf-series-1", 1, 1, played=True),
+                _jellyfin_episode("jf-ep-2", "jf-series-1", 1, 2, played=False),
+            ],
+        )
+
+        JellyfinPushSyncService(self.user, self.account).sync()
+
+        mock_mark_unplayed.assert_not_called()
+        self.assertNotIn("jf-ep-2", [c.args[0] for c in mock_mark_played.call_args_list])
+
     @patch("integrations.jellyfin_sync.JellyfinClient.mark_played")
     @patch("integrations.jellyfin_sync.JellyfinClient.iter_library_items")
     def test_pushes_watched_episode_tracked_via_tvdb(

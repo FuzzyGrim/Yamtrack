@@ -37,7 +37,7 @@ from app.detail_builders import (
     build_book_formats,
 )
 from app.detail_related import enrich_detail_related_cards, enrich_detail_seasons
-from app.models import CollectionEntry, Item, MediaTypes
+from app.models import CollectionEntry, Episode, Item, MediaTypes
 from app.providers import manual, services, tmdb
 from app.services import metadata_resolution, youtube_game_watch
 from app.services.metadata_fallback import stored_metadata_fallback
@@ -417,7 +417,12 @@ def _child_row(raw, *, media_type, parent_media_type, source, media_id, public_v
         percent = None
     editable_episode = can_write and not public_view and media_type == "episode" and parent_media_type == "tv"
     plays = raw.get("history") or []
-    watched = bool(raw.get("watched") or plays)
+    # An episode counts only finished plays; other children keep any row.
+    counted = (
+        [play for play in plays if Episode.is_watch(play)]
+        if media_type == "episode" else plays
+    )
+    watched = bool(raw.get("watched") or counted)
     score = raw.get("score")
     if score is None and plays:
         score = getattr(plays[0], "score", None)
@@ -1721,7 +1726,10 @@ class MediaAnimeEpisodesView(drf_views.APIView):
                 "overview": row.get("overview") or "",
                 "air_date": row.get("air_date"),
                 "runtime": row.get("runtime"),
-                "watched": bool(row.get("history") or row.get("watched_by_progress")),
+                "watched": bool(
+                    any(Episode.is_watch(play) for play in row.get("history") or [])
+                    or row.get("watched_by_progress"),
+                ),
                 "collected": bool(row.get("collection_entry")),
                 "can_list": bool(row.get("item")),
                 "can_rate": bool(can_write and request.user.ratings_enabled and (tracked or row.get("rating_season_id"))),

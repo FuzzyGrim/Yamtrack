@@ -1138,7 +1138,7 @@ class MediaManager(models.Manager.from_queryset(ImportScopedQuerySet)):
             partition = [F("related_season_id"), F("item_id")]
             aggregates = {
                 "_card_total_count": Count("pk"),
-                "_card_completed_count": Count("pk", filter=Q(status=Status.COMPLETED.value)),
+                "_card_completed_count": Count("pk", filter=Episode.watch_q()),
                 "_card_dropped_count": Count("pk", filter=Q(status=Status.DROPPED.value)),
                 "_card_first_end": Min("end_date"),
                 "_card_last_end": Max("end_date"),
@@ -1169,6 +1169,7 @@ class MediaManager(models.Manager.from_queryset(ImportScopedQuerySet)):
                     "id",
                     "end_date",
                     "status",
+                    "dropped",
                     "created_at",
                     "related_season_id",
                     "item_id",
@@ -1201,6 +1202,7 @@ class MediaManager(models.Manager.from_queryset(ImportScopedQuerySet)):
                         "id",
                         "end_date",
                         "status",
+                        "dropped",
                         "created_at",
                         "related_season_id",
                         "item__id",
