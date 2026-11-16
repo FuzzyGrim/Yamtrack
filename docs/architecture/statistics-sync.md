@@ -289,6 +289,23 @@ listening minutes, so a prefetched day issues no query of its own. Tests that ex
 `app.tasks_interactive.statistics_sync_task.apply_async`
 (`app/tests/test_statistics_sync.py`).
 
+### Person pages
+
+A person page shows "N tracked plays" and the time watched per title. Those
+come from one watched-item context per user: every play in the library, built
+by `statistics_talent._build_person_talent_context`. The page renders what is
+stored and never waits for background work.
+`statistics_cache.get_ready_person_talent_totals` reads the totals, or the
+context for the current history version, from the cache. When that context is
+missing it queues `Build person talent context` once per history version and
+uses the last built context instead, so the numbers trail a new play by one
+build. With nothing built yet the page shows "Counting plays"; the web page asks
+again every 3 s (`?talent=1`, cache reads only, at most 40 times) and swaps in
+the hero and credits once ready, and the Expo screen re-requests on
+`talentPending`. Before this, the page built the context inline: 30 to 220 s on
+a large library on spinning disks, almost all of it SQLite reading rows, which
+the request timer now reports as `db_fetch_ms`.
+
 ## Manual refresh
 
 `request_manual_refresh(user, range_name)` marks every day in that range dirty,

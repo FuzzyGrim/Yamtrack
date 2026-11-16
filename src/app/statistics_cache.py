@@ -698,11 +698,112 @@ def get_person_talent_context(user, start_date=None, end_date=None):
     )
     cached_context = cache.get(cache_key)
     if cached_context is not None:
-        return cached_context
+        return cached_context or None
 
     context = _build_person_talent_context(user, start_date, end_date)
-    cache.set(cache_key, context, timeout=STATISTICS_CACHE_TIMEOUT)
+    # An empty library stores {} so the next read is a hit, not another scan.
+    cache.set(cache_key, context or {}, timeout=STATISTICS_CACHE_TIMEOUT)
+    cache.set(
+        _person_talent_latest_key(user.id, start_date, end_date),
+        history_version,
+        timeout=STATISTICS_CACHE_TIMEOUT,
+    )
     return context
+
+
+# Building the watched-item context scans every play in the library. On a
+# large library on spinning disks that took 30 to 200 s, so pages never build
+# it; they queue this build once per history version and read what is stored.
+PERSON_TALENT_BUILD_GUARD_TTL = 10 * 60
+
+
+def _person_talent_latest_key(user_id, start_date, end_date) -> str:
+    return (
+        f"{STATISTICS_CACHE_PREFIX}:person_talent_latest:{user_id}:"
+        f"{CREDITS_BACKFILL_VERSION}:"
+        f"{_range_cache_component(start_date)}:{_range_cache_component(end_date)}"
+    )
+
+
+def schedule_person_talent_context_build(user_id: int, history_version: str) -> bool:
+    """Queue one background build of the all-time person talent context."""
+    guard_key = (
+        f"{STATISTICS_CACHE_PREFIX}:person_talent_build:{user_id}:{history_version}"
+    )
+    if not cache.add(guard_key, True, PERSON_TALENT_BUILD_GUARD_TTL):
+        return False
+    from app.tasks_interactive import build_person_talent_context_task
+
+    try:
+        build_person_talent_context_task.delay(user_id)
+    except Exception as error:  # the page already shows what is stored
+        cache.delete(guard_key)
+        logger.warning(
+            "person_talent_build_enqueue_failed user_id=%s error=%s",
+            user_id,
+            type(error).__name__,
+        )
+        return False
+    return True
+
+
+def get_ready_person_talent_totals(user, person_source, person_id):
+    """Return ``(totals, pending)`` for a person page from stored data only.
+
+    Never scans the library on the request path. When the context for the
+    current history version is missing, the last built one is used (the page
+    shows slightly older numbers, as Statistics does) and a rebuild is queued.
+    With nothing built yet, ``pending`` is True and the page fills in later.
+    """
+    if not user or not person_source or person_id is None:
+        return None, False
+
+    history_version = _get_history_version(user.id)
+
+    def totals_key(version):
+        return _person_talent_totals_cache_key(
+            user.id, version, person_source, person_id, None, None
+        )
+
+    cached_totals = cache.get(totals_key(history_version))
+    if cached_totals is not None:
+        return _deserialize_person_talent_totals_from_cache(cached_totals), False
+
+    context_version = history_version
+    context = cache.get(
+        _person_talent_context_cache_key(user.id, history_version, None, None)
+    )
+    if context is None and _eager_statistics_mode():
+        # No worker in eager/test mode: build inline, as the Statistics read
+        # path does (docs/architecture/statistics-sync.md).
+        context = get_person_talent_context(user) or {}
+    if context is None:
+        schedule_person_talent_context_build(user.id, history_version)
+        latest_version = cache.get(_person_talent_latest_key(user.id, None, None))
+        if not latest_version or latest_version == history_version:
+            return None, True
+        context_version = latest_version
+        stale_totals = cache.get(totals_key(latest_version))
+        if stale_totals is not None:
+            return _deserialize_person_talent_totals_from_cache(stale_totals), False
+        context = cache.get(
+            _person_talent_context_cache_key(user.id, latest_version, None, None)
+        )
+        if context is None:
+            return None, True
+
+    if not context:  # built, and the library has no plays
+        return None, False
+    totals = _compute_person_talent_totals(
+        user, person_source, person_id, context=context
+    )
+    if totals is not None:
+        cache.set(
+            totals_key(context_version),
+            _serialize_person_talent_totals_for_cache(totals),
+            timeout=STATISTICS_CACHE_TIMEOUT,
+        )
+    return totals, False
 
 
 def get_person_talent_totals(
@@ -726,6 +827,8 @@ def get_person_talent_totals(
         return _deserialize_person_talent_totals_from_cache(cached_totals)
 
     context = get_person_talent_context(user, start_date, end_date)
+    if not context:  # no plays in range; never rebuild it a second time
+        return None
     totals = _compute_person_talent_totals(
         user,
         person_source,

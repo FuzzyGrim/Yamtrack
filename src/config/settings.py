@@ -1904,6 +1904,12 @@ CELERY_TASK_ROUTES = {
         "queue": "celery",
         "priority": CELERY_TASK_PRIORITY_STATISTICS_SYNC,
     },
+    # The all-time scan behind person page totals. Pages show stored numbers
+    # while it runs, so it waits with the other bulk derived work.
+    "Build person talent context": {
+        "queue": "celery",
+        "priority": CELERY_TASK_PRIORITY_STATISTICS_SYNC,
+    },
     # Periodic recovery is not awaited by a page. Keep its sweeps off the
     # interactive worker; viewer-requested syncs select that lane separately.
     "Reconcile statistics sync": {
