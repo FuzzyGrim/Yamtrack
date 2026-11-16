@@ -1,11 +1,13 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import replace
 
 from django.conf import settings
 from django.contrib import messages
-from django.db import connection
+from django.core.cache import cache
+from django.db import connection, transaction
 from django.db.models import Exists, F, OuterRef, Q
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -839,12 +841,67 @@ def _safe_url(builder, target):
     return url or None
 
 
-def _all_saved_suggestions(user, query, limit):
+@contextmanager
+def without_postgres_jit():
+    """Run the block with PostgreSQL's JIT compiler off, for this transaction only.
+
+    The library query's correlated subqueries give PostgreSQL a cost estimate
+    above its JIT threshold, so it spends about a second compiling a query that
+    runs in tens of milliseconds (measured at 20k items: 0.9 s and 1.3 s of JIT
+    for two 60 ms anime queries). ``SET LOCAL`` ends with the transaction, so
+    pooled connections and other queries keep the server's setting. SQLite has
+    no JIT; there this does nothing.
+    """
+    if connection.vendor != "postgresql":
+        yield
+        return
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL jit = off")
+        yield
+
+
+_SUGGESTION_BOX_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+_SUGGESTION_SEQUENCE_SECONDS = 120
+
+
+def suggestion_superseded_check(user, box_id):
+    """Return a check that turns true once the same search box asks again.
+
+    The browser cancels a superseded request, but the server keeps working on
+    it. Each search box sends a random id; every request bumps that box's
+    counter, and an older request stops before its next query once the
+    counter has moved on. Costs one cache increment, then one read per check.
+    Returns None (never superseded) without an id or a working cache.
+    """
+    if not box_id or not _SUGGESTION_BOX_ID.match(box_id):
+        return None
+    key = f"search-suggestions:{user.pk}:{box_id}"
+    try:
+        cache.add(key, 0, _SUGGESTION_SEQUENCE_SECONDS)
+        sequence = cache.incr(key)
+    except Exception:
+        return None
+
+    def superseded():
+        try:
+            return cache.get(key) != sequence
+        except Exception:
+            return False
+
+    return superseded
+
+
+def _all_saved_suggestions(user, query, limit, superseded=None):
     """Return suggestions across every enabled type, each labelled with its type."""
     suggestions = []
     for media_type in user.get_enabled_media_types():
         if media_type == MediaTypes.SEASON.value:
             continue
+        # A newer request from the same search box has replaced this one,
+        # and its caller has stopped listening: skip the remaining types.
+        if superseded is not None and superseded():
+            return []
         label = _suggestion_type_label(media_type)
         for suggestion in get_saved_suggestions(
             user,
@@ -910,7 +967,7 @@ def _suggestion_subtitle(item, query, user, status=None):
     return " · ".join(part for part in parts if part)
 
 
-def get_saved_suggestions(user, media_type, query, limit=8):
+def get_saved_suggestions(user, media_type, query, limit=8, superseded=None):
     """Return compact autocomplete suggestions from the user's saved library.
 
     Saved items only, scoped to ``media_type``. Each suggestion is a dict of
@@ -918,7 +975,7 @@ def get_saved_suggestions(user, media_type, query, limit=8):
     :func:`media_search` but capped small and side-effect free for typeahead.
     """
     if media_type == ALL_SEARCH_TYPE:
-        return _all_saved_suggestions(user, query, limit)
+        return _all_saved_suggestions(user, query, limit, superseded)
 
     suggestions = []
 
@@ -1067,7 +1124,13 @@ def search_suggestions(request):
         return render(request, "app/components/search_suggestions.html")
 
     try:
-        suggestions = get_saved_suggestions(request.user, media_type, query)
+        with without_postgres_jit():
+            suggestions = get_saved_suggestions(
+                request.user,
+                media_type,
+                query,
+                superseded=suggestion_superseded_check(request.user, request.GET.get("sid")),
+            )
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("Suggestion search failed: %s", exception_summary(exc))
         suggestions = []

@@ -11,6 +11,7 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
+from app.log_safety import stable_hmac
 from app.models import MediaTypes, Music
 from app.public_errors import PublicMessageError
 from app.stats_utils import _coerce_genre_list
@@ -353,6 +354,43 @@ def _typed_history_index_registry_key(user_id: int, logging_style: str) -> str:
 
 def _refresh_lock_key(user_id: int, logging_style: str) -> str:
     return f"{HISTORY_REFRESH_LOCK_PREFIX}_{user_id}_{logging_style or 'repeats'}"
+
+
+def _refresh_dedupe_key(user_id: int, logging_style: str, day_keys=None) -> str:
+    """Return the key that dedupes refreshes of one set of days.
+
+    ``day_keys`` must already be normalized; the scheduler and the task derive
+    the same key from the same list. No days means an index-only refresh.
+    """
+    lock_key = _refresh_lock_key(user_id, logging_style)
+    if not day_keys:
+        return lock_key
+    dedupe_hash = stable_hmac(
+        ",".join(day_keys),
+        namespace="history_refresh_days",
+        length=10,
+    )
+    return f"{lock_key}_days_{dedupe_hash}"
+
+
+def _refresh_rerun_key(dedupe_key: str) -> str:
+    """Return the marker a deduped request leaves for the running refresh."""
+    return f"{dedupe_key}_rerun"
+
+
+def _release_refresh_locks(user_id: int, logging_style: str, dedupe_key: str) -> None:
+    """Release a refresh's own dedupe key, and the style lock if it is still its own.
+
+    A later request for other days overwrites the style lock with its own
+    payload while it waits; deleting it here would release that request's lock.
+    """
+    lock_key = _refresh_lock_key(user_id, logging_style)
+    if dedupe_key != lock_key:
+        cache.delete(dedupe_key)
+    refresh_lock = cache.get(lock_key)
+    owner = refresh_lock.get("dedupe_key") if isinstance(refresh_lock, dict) else None
+    if owner in (None, dedupe_key):
+        cache.delete(lock_key)
 
 
 def _coverage_repair_key(user_id: int, logging_style: str) -> str:
