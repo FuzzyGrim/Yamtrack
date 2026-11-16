@@ -206,8 +206,8 @@ jobs:
     env:
       SECRET: ci-tests-only-not-a-production-secret
       FLOPPY_TEST_FAST_DB: "0"
-      FLOPPY_TEST_TIMEOUT: "6600"
-      FLOPPY_TEST_WATCHDOG: "6300"
+      FLOPPY_TEST_TIMEOUT: ${{ matrix.suite == 'unit-5' && '300' || '6600' }}
+      FLOPPY_TEST_WATCHDOG: ${{ matrix.suite == 'unit-5' && '120' || '6300' }}
       FLOPPY_TEST_PARALLEL: "1"
       FLOPPY_TEST_DB_TEMPLATE: ${{ vars.TEST_DB_TEMPLATE != 'false' && '1' || '0' }}
       FLOPPY_TEST_SHARD: ${{ matrix.shard }}
