@@ -1047,3 +1047,87 @@ class CalendarOtherUserStatusIsolationTests(TestCase):
         Event.objects.create(item=movie, content_number=1, datetime=self.when)
 
         self.assertEqual(self._events_for(self.user), [])
+
+
+class CalendarDroppedSeasonTests(TestCase):
+    """Dropped or paused seasons hide themselves and later seasons (SURFACE-16).
+
+    The check used to be a correlated EXISTS that SQLite ran once per event,
+    walking every season the user tracks each time. These pin the visible
+    rows and that the month query no longer reads seasons per event.
+    """
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="drop", password="pw")
+        self.other = get_user_model().objects.create_user(username="drop-other", password="pw")
+        self.when = timezone.now() + datetime.timedelta(days=1)
+
+    def _show(self, media_id, numbers):
+        show = Item.objects.create(
+            media_id=media_id,
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title=f"Show {media_id}",
+        )
+        TV.objects.create(item=show, user=self.user, status=Status.IN_PROGRESS.value)
+        seasons = {}
+        for number in numbers:
+            seasons[number] = Item.objects.create(
+                media_id=media_id,
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
+                title=f"Show {media_id}",
+                season_number=number,
+            )
+            Event.objects.create(item=seasons[number], content_number=1, datetime=self.when)
+        return seasons
+
+    def _visible_items(self):
+        day = self.when.date()
+        return {
+            (event.item.media_id, event.item.season_number)
+            for event in Event.objects.get_user_events(self.user, day, day)
+        }
+
+    def test_paused_season_hides_itself_and_later_seasons_only(self):
+        seasons = self._show("701", [1, 2, 3, 4])
+        Season.objects.create(user=self.user, item=seasons[3], status=Status.PAUSED.value)
+
+        self.assertEqual(self._visible_items(), {("701", 1), ("701", 2)})
+
+    def test_earliest_inactive_season_decides(self):
+        seasons = self._show("702", [1, 2, 3])
+        Season.objects.create(user=self.user, item=seasons[3], status=Status.DROPPED.value)
+        Season.objects.create(user=self.user, item=seasons[2], status=Status.PAUSED.value)
+        Season.objects.create(user=self.user, item=seasons[1], status=Status.IN_PROGRESS.value)
+
+        self.assertEqual(self._visible_items(), {("702", 1)})
+
+    def test_another_users_dropped_season_hides_nothing(self):
+        seasons = self._show("703", [1, 2])
+        other_show = Item.objects.get(media_id="703", media_type=MediaTypes.TV.value)
+        TV.objects.create(item=other_show, user=self.other, status=Status.IN_PROGRESS.value)
+        Season.objects.create(user=self.other, item=seasons[1], status=Status.DROPPED.value)
+
+        self.assertEqual(self._visible_items(), {("703", 1), ("703", 2)})
+
+    def test_dropped_season_of_one_show_leaves_other_shows(self):
+        dropped = self._show("704", [1, 2])
+        self._show("705", [1, 2])
+        Season.objects.create(user=self.user, item=dropped[1], status=Status.DROPPED.value)
+
+        self.assertEqual(self._visible_items(), {("705", 1), ("705", 2)})
+
+    def test_month_query_does_not_read_seasons_per_event(self):
+        seasons = self._show("706", [1, 2])
+        Season.objects.create(user=self.user, item=seasons[2], status=Status.DROPPED.value)
+        day = self.when.date()
+
+        with CaptureQueriesContext(connection) as captured:
+            list(Event.objects.get_user_events(self.user, day, day))
+
+        month_query = next(
+            query["sql"] for query in captured.captured_queries
+            if query["sql"].startswith('SELECT "events_event"."id"')
+        )
+        self.assertNotIn('"app_season"', month_query)
