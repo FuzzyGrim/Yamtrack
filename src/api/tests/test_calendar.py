@@ -1,6 +1,12 @@
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+
+from app.models import Item, MediaTypes, Movie, Sources, Status
+from events.models import Event
 
 from .base import FloppyApiTestCase
 from .helpers import check_calendar_event_structure, check_pagination_structure
@@ -56,6 +62,43 @@ class CalendarTests(FloppyApiTestCase):
 
         for item in payload["results"]:
             check_calendar_event_structure(self, item)
+
+    def test_calendar_query_count_does_not_grow_per_event(self):
+        """Each event's alert_failed_users comes from one prefetch (SURFACE-16)."""
+        when = timezone.now()
+        other = get_user_model().objects.create_user(username="alert-miss", password="pw")
+
+        def tracked_movie_event(number):
+            item = Item.objects.create(
+                media_id=f"surface16-{number}",
+                source=Sources.MANUAL.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Surface Movie {number}",
+            )
+            Movie.objects.create(item=item, user=self.user1, status=Status.PLANNING.value)
+            return Event.objects.create(item=item, datetime=when)
+
+        def run():
+            with CaptureQueriesContext(connection) as captured:
+                response = self.call_api(
+                    "get",
+                    "api_calendar",
+                    headers=self.auth_headers,
+                    params={"limit": 200},
+                )
+            self.assertEqual(response.status_code, 200)
+            return response.json()["results"], len(captured.captured_queries)
+
+        first = tracked_movie_event(0)
+        first.alert_failed_users.add(other)
+        _results, small = run()
+        for number in range(1, 11):
+            tracked_movie_event(number)
+        results, large = run()
+
+        self.assertEqual(large, small)
+        by_id = {result["id"]: result for result in results}
+        self.assertEqual(by_id[first.id]["alert_failed_users"], [other.id])
 
     def test_calendar_get_date_filtering(self):
         """Calendar GET should filter by date query params."""
