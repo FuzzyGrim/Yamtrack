@@ -136,9 +136,10 @@ export function createRemoteSearchActions(request, { suggestionsViaWeb = false, 
     // It is the Django view, which reads the session; a token sign-in reads the same
     // typeahead from the API (loadSuggestions) and keeps the media list as a fallback.
     ...(suggestionsViaWeb ? {
-      async searchSuggestions({ search, mediaType } = {}) {
+      async searchSuggestions({ search, mediaType, signal } = {}) {
         const payload = await request('/search/suggestions', {
           query: { q: search, media_type: mediaType || 'all', format: 'json' },
+          ...(signal ? { signal } : {}),
         });
         return suggestionsFromPayload(payload, serverUrl);
       },
@@ -160,8 +161,11 @@ export function createRemoteSearchActions(request, { suggestionsViaWeb = false, 
     loadSources({ mediaType = 'all' } = {}) {
       return request('/api/v1/search/sources/', { query: { media_type: mediaType } }).then(data => expectObject(data, 'Search'));
     },
-    loadSuggestions({ query, mediaType = 'all' } = {}) {
-      return request('/api/v1/search/suggestions/', { query: { q: query, media_type: mediaType } }).then(data => expectObject(data, 'Search'));
+    loadSuggestions({ query, mediaType = 'all', signal } = {}) {
+      return request('/api/v1/search/suggestions/', {
+        query: { q: query, media_type: mediaType },
+        ...(signal ? { signal } : {}),
+      }).then(data => expectObject(data, 'Search'));
     },
     loadResults(params = {}) {
       return request('/api/v1/search/results/', { query: resultsQuery(params) }).then(data => expectObject(data, 'Search'));

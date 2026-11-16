@@ -180,10 +180,13 @@ export function GlobalSearch({
       return undefined;
     }
     let cancelled = false;
+    // One request per query: a newer keystroke, type change or submit cancels the older
+    // request on the wire, so a slow server never works on several superseded requests.
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
     setPanel({ status: 'loading', suggestions: [] });
     const timer = setTimeout(() => {
       Promise.resolve()
-        .then(() => loader.current({ query: trimmed, mediaType: type.value }))
+        .then(() => loader.current({ query: trimmed, mediaType: type.value, signal: controller?.signal }))
         .then(result => {
           if (cancelled) return;
           const suggestions = Array.isArray(result?.suggestions) ? result.suggestions : [];
@@ -196,6 +199,7 @@ export function GlobalSearch({
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      controller?.abort();
     };
   }, [trimmed, type.value, userTyped]);
 
