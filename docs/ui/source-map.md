@@ -165,7 +165,7 @@ Shared `Badge` lives in `frontend/ui/controls` and `controls.css` (FORM-CONTROLS
 - `frontend/ui/mountBadge.jsx`
 - `src/templates/users/components/badge.html`
 - `src/users/templatetags/ui_tags.py` (`{% badge %}`)
-- Consumers: `app/podcast_show_detail.html`, `app/episode_details.html`, `app/music_album_detail.html`, `app/components/detail_music_artist.html`, `detail_music_album.html`, `detail_music_track.html`, `detail_secondary_content.html`, `cells/media_genres_cell.html`, `media_metadata_panel.html`, `lists/components/add_item_preview_modal.html`, `recommend_preview_modal.html`, `integrations/library_panel.html`, `integrations/seerr_status.html`, `users/components/whats_new.html`, `users/onboarding/metadata.html`
+- Consumers: `app/episode_details.html`, `app/music_album_detail.html`, `app/components/detail_music_artist.html`, `detail_music_album.html`, `detail_music_track.html`, `detail_secondary_content.html`, `cells/media_genres_cell.html`, `media_metadata_panel.html`, `lists/components/add_item_preview_modal.html`, `recommend_preview_modal.html`, `integrations/library_panel.html`, `integrations/seerr_status.html`, `users/components/whats_new.html`, `users/onboarding/metadata.html`
 
 ## BUTTON
 
@@ -707,7 +707,6 @@ The artist relation and album grids are React islands over server-rendered fallb
 - `src/templates/app/components/detail_music_track_history_line.html`
 - `src/templates/app/components/podcast_episode_list.html` (optional episode description and empty state)
 - `src/templates/app/music_album_detail.html`
-- `src/templates/app/podcast_show_detail.html`
 - `frontend/pages/MusicView.jsx`
 - `frontend/ui/MusicAlbumCard.jsx`
 - `frontend/ui/MusicParts.jsx`
@@ -735,6 +734,9 @@ PeopleView's native full-page grid uses canonical MediaCard models and a render-
 - `src/templates/app/components/person_card_inline.html` (pre-mount fallback for the cast/crew `PeopleView` rail on media detail and episode pages; links come from `_people_cast_props`, #1953)
 - `src/templates/app/components/person_filmography_card.html`
 - `src/templates/app/components/person_filmography_fragment.html`
+- `src/templates/app/components/person_hero.html` (person hero island and its fallback, shared by the page and the talent fill-in)
+- `src/templates/app/components/person_talent_poller.html` (asks every 3 s while play totals build)
+- `src/templates/app/components/person_talent_ready.html` (out-of-band hero and credits once totals are built)
 - `src/templates/app/components/person_media_strip_card.html`
 - `src/templates/app/components/person_media_strip_row.html`
 - `src/templates/app/components/youtube_player.html`

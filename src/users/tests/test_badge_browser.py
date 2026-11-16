@@ -102,14 +102,17 @@ class BadgeBrowserTests(SerialStaticLiveServerTestCase):
         page.close()
 
     def test_real_podcast_genre_badge_mounts(self):
+        from app.podcast_views import podcast_show_url
+
         user = get_user_model().objects.create_user(username="badge-proof")
         show = PodcastShow.objects.create(podcast_uuid="badge-proof", title="Badge proof", genres=["Comedy"])
         self.client.force_login(user)
         context = self.browser.new_context(viewport={"width": 390, "height": 844})
         context.add_cookies([{"name": "sessionid", "value": self.client.cookies["sessionid"].value, "url": self.live_server_url}])
         page = context.new_page()
-        page.goto(self.live_server_url + reverse("podcast_show_detail", args=[show.id]), wait_until="domcontentloaded")
-        badge = page.locator("[data-badge-root][data-react-mounted]").filter(has_text="Comedy")
+        page.goto(self.live_server_url + podcast_show_url(show), wait_until="domcontentloaded")
+        # The show page can render the genre row in more than one layout slot.
+        badge = page.locator("[data-badge-root][data-react-mounted]").filter(has_text="Comedy").first
         badge.wait_for(state="attached")
         self.assertEqual(badge.locator("> *").inner_text(), "Comedy")
         self.assertEqual(badge.locator("> *").evaluate("e => getComputedStyle(e).height"), "24px")

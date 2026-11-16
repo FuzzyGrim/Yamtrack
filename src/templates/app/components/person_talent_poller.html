@@ -1,0 +1,11 @@
+{% comment %}Asks again, a few seconds apart, whether the play totals for this
+   person are built. While they are not, the server answers with this poller
+   (attempt + 1). Once they are, it answers with person_talent_ready.html.
+   Includes the filter form so the refreshed credits keep the chosen filters.{% endcomment %}
+<div id="person-talent-poller"
+     hidden
+     hx-get="{{ person_detail_url }}"
+     hx-vals='{"talent": "1", "attempt": "{{ attempt }}"}'
+     hx-include="#filter-form"
+     hx-trigger="load delay:3s"
+     hx-swap="outerHTML"></div>

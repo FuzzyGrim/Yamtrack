@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../../frontend/ui/Button';
 import { PeopleView } from '../../../frontend/pages/PeopleView';
@@ -18,6 +18,11 @@ export const surface = {
   where: 'Person and studio pages, watched and filmography credit rails, filter and sort toolbar',
   note: 'Person and studio pages load /api/v1/people/{source}/{id}/ and /api/v1/studios/{source}/{id}/ (the web profile views as JSON, token or session) and render the shared hero, watched, filmography and studio title rails. The filmography toolbar (sort, direction, rated, collected, department, year, genre) re-requests the profile with those filters. Loading, empty, error with retry and signed-out states are real; there is no sample content. Route params: { identity: { kind: "person" | "studio", source, personId | studioId } } (flat params are accepted too). Cast, crew, gallery and extras rails render only when a caller passes them in route params. Browser, iOS and Android runtime passes were not run.',
 };
+
+// While the server builds play totals (talentPending), ask again this often,
+// for about two minutes, keeping the page on screen.
+const TALENT_POLL_MS = 3000;
+const TALENT_POLL_LIMIT = 40;
 
 function openExternal(url) {
   if (!url) return;
@@ -62,6 +67,8 @@ export default function PeopleScreen({ navigate, onBack, params, transport: inje
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({});
   const [attempt, setAttempt] = useState(0);
+  const [talentPoll, setTalentPoll] = useState(0);
+  const pollState = useRef({ key: '', count: 0, quiet: false });
   const [lightbox, setLightbox] = useState({ visible: false, index: 0 });
 
   useEffect(() => {
@@ -76,6 +83,8 @@ export default function PeopleScreen({ navigate, onBack, params, transport: inje
       return undefined;
     }
     let active = true;
+    const quiet = pollState.current.quiet;
+    pollState.current.quiet = false;
     // A filter change keeps the page on screen while the new credits load.
     setMode(current => (current === 'ready' ? 'ready' : 'loading'));
     setError('');
@@ -87,13 +96,32 @@ export default function PeopleScreen({ navigate, onBack, params, transport: inje
       setProfile(data);
       setMode('ready');
     }).catch(requestError => {
-      if (!active) return;
+      // A background refresh for play totals never replaces a page on screen.
+      if (!active || quiet) return;
       setProfile(null);
       setMode('error');
       setError(requestError?.message || 'The server rejected the profile request.');
     });
     return () => { active = false; };
-  }, [transport, identity, filters, attempt, params?.profile]);
+  }, [transport, identity, filters, attempt, talentPoll, params?.profile]);
+
+  // The server builds play totals in the background on a first visit and says
+  // so with talentPending. Ask again a few seconds apart, for about two minutes.
+  // talentPoll re-arms the next try as soon as one fires, so a failed quiet
+  // request (profile unchanged) still gets its next bounded attempt.
+  const pollKey = identity ? `${identity.kind}:${identity.source}:${identity.personId || identity.studioId}` : '';
+  useEffect(() => {
+    if (!profile?.talentPending) return undefined;
+    const state = pollState.current;
+    if (state.key !== pollKey) Object.assign(state, { key: pollKey, count: 0 });
+    if (state.count >= TALENT_POLL_LIMIT) return undefined;
+    const timer = setTimeout(() => {
+      state.count += 1;
+      state.quiet = true;
+      setTalentPoll(count => count + 1);
+    }, TALENT_POLL_MS);
+    return () => clearTimeout(timer);
+  }, [profile, pollKey, talentPoll]);
 
   const openCredit = useCallback(entry => {
     navigate?.('Detail', {
