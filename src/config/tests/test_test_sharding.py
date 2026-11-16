@@ -80,6 +80,22 @@ class AssignTests(SimpleTestCase):
         self.assertIn("app.tests.views.test_statistics", weights)
         self.assertTrue(all(seconds >= 0 for seconds in weights.values()))
 
+    def test_each_shard_gets_its_own_database_name(self):
+        self.assertEqual(
+            test_sharding.shard_database_name("test_floppy", None), "test_floppy"
+        )
+        self.assertEqual(
+            test_sharding.shard_database_name("test_floppy", ""), "test_floppy"
+        )
+        names = {
+            test_sharding.shard_database_name("test_floppy", f"{i}/4")
+            for i in range(1, 5)
+        }
+        self.assertEqual(len(names), 4)
+        self.assertIn("test_floppy_shard2of4", names)
+        with self.assertRaises(test_sharding.ShardSpecError):
+            test_sharding.shard_database_name("test_floppy", "9/4")
+
     def test_missing_weights_file_is_empty(self):
         self.assertEqual(test_sharding.load_weights(Path("/nonexistent/w.json")), {})
 

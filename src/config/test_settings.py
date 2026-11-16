@@ -17,6 +17,17 @@ from .settings import *  # noqa: F403
 if USING_SQLITE_DATABASE:  # noqa: F405
     connection_created.disconnect(configure_sqlite_connection)  # noqa: F405
 
+# Shards run by scripts/test.sh --shards are separate processes started at
+# once. On PostgreSQL they would all create and drop the same test database.
+if not USING_SQLITE_DATABASE:  # noqa: F405
+    from config.test_sharding import shard_database_name
+
+    _test_database = DATABASES["default"].setdefault("TEST", {})  # noqa: F405
+    _test_database["NAME"] = shard_database_name(
+        _test_database.get("NAME") or f"test_{DATABASES['default']['NAME']}",  # noqa: F405
+        os.environ.get("FLOPPY_TEST_SHARD"),
+    )
+
 # Ordinary tests must be deterministic and offline. An explicit network-tag run
 # opts out through FLOPPY_TEST_ALLOW_NETWORK before this settings module loads.
 install_test_network_guard()

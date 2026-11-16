@@ -97,6 +97,20 @@ def assign(modules, weights: dict[str, float], count: int) -> dict[str, int]:
     return assignment
 
 
+def shard_database_name(base: str, raw_shard: str | None) -> str:
+    """Return a test database name of this shard's own, or ``base`` unsharded.
+
+    Shards started together by ``scripts/test.sh --shards`` share one server
+    when the checkout uses PostgreSQL; each must create, migrate and drop its
+    own database. SQLite test databases are per process already.
+    """
+    shard = parse_shard(raw_shard)
+    if shard is None:
+        return base
+    index, count = shard
+    return f"{base}_shard{index}of{count}"
+
+
 def module_of(test) -> str:
     """Return the unit of assignment for one test case: its module."""
     return type(test).__module__
