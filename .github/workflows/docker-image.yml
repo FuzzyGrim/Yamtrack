@@ -51,10 +51,14 @@ jobs:
     # release lint always run on the pushed commit.
     with:
       release_quality_gates: true
+    # A called workflow gets no more than this. app-tests.yml's baseline_note
+    # job reads the latest-health issue; without issues: read every Docker
+    # Image run fails to start.
     permissions:
       contents: read
       pull-requests: read
       actions: read
+      issues: read
 
   test:
     name: Smoke built image
