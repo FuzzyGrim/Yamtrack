@@ -2,7 +2,6 @@ import json
 import logging
 import math
 import time
-from datetime import UTC
 
 from django.apps import apps
 from django.conf import settings
@@ -72,7 +71,6 @@ from app.models import (
     Item,
     MediaTypes,
     Sources,
-    Status,
 )
 from app.models.episode_runtimes import build_season_runtime_index
 from app.providers import services, tmdb
@@ -547,7 +545,7 @@ def media_details(
         Sources.AUDIOBOOKSHELF.value,
         Sources.MANUAL.value,
     }:
-        from app.models import PodcastEpisode, PodcastShow, PodcastShowTracker
+        from app.models import PodcastShow, PodcastShowTracker
         from app.providers.services import _podcast_external_links
 
         # Check if this is a show (podcast_uuid) or an episode (episode_uuid)
@@ -617,43 +615,17 @@ def media_details(
                     operation_name="podcast_show_rss_refresh",
                 )
 
-            # Get all episodes for this show, ordered by published date (newest first)
-            # Use Coalesce to handle None published dates (put them at the end)
-            from datetime import datetime
+            # Newest first, undated last: the order every episode page uses.
+            episodes = podcast_views.ordered_episodes(show)
 
-            from django.db.models import DateTimeField, Value
-            from django.db.models.functions import Coalesce
-
-            episodes = (
-                PodcastEpisode.objects.filter(show=show)
-                .annotate(
-                    published_or_old=Coalesce(
-                        "published",
-                        Value(
-                            datetime(1970, 1, 1, tzinfo=UTC),
-                            output_field=DateTimeField(),
-                        ),
-                    ),
-                )
-                .order_by("-published_or_old", "-episode_number")
-            )
-
-            # Get user's podcast entries for this show
+            # The viewer's totals are summed in SQL. A show can hold thousands
+            # of listens, and the page only needs their counts and dates.
             if not public_view:
-                from app.models import Podcast
-
-                user_podcasts = list(
-                    Podcast.objects.filter(
-                        user=request.user,
-                        show=show,
-                    ).select_related("episode", "item")
-                )
-                total_listened = len(user_podcasts)
-                total_minutes = sum(podcast.progress or 0 for podcast in user_podcasts)
+                listen_totals = podcast_views.podcast_show_totals(request.user, show)
             else:
-                user_podcasts = []
-                total_listened = 0
-                total_minutes = 0
+                listen_totals = {"listened": 0, "minutes": 0}
+            total_listened = listen_totals["listened"]
+            total_minutes = listen_totals["minutes"]
 
             # Build episode items - create Item objects for enrichment
             # Initially load first 20 episodes, rest will be loaded via infinite scroll
@@ -746,45 +718,6 @@ def media_details(
                         episode_media.id,
                         [],
                     )[:10]
-
-                # Create adapter objects for music-style modal (like track_modal does)
-                class PodcastEpisodeAdapter:
-                    """Adapter to make PodcastEpisode work like Track in template."""
-
-                    def __init__(self, episode):
-                        self.title = episode.title
-                        self.description = episode.description or ""
-                        self.track_number = episode.episode_number
-                        self.duration_formatted = (
-                            self._format_duration(episode.duration)
-                            if episode.duration
-                            else None
-                        )
-                        self.musicbrainz_recording_id = None  # Not used for podcasts
-                        self.id = episode.id
-                        self.published = (
-                            episode.published
-                        )  # For "Published date" button
-                        self.episode_uuid = (
-                            episode.episode_uuid
-                        )  # For form submission when music is None
-
-                    def _format_duration(self, seconds):
-                        """Format duration in seconds to MM:SS or H:MM:SS."""
-                        hours = seconds // 3600
-                        minutes = (seconds % 3600) // 60
-                        secs = seconds % 60
-                        if hours > 0:
-                            return f"{hours}:{minutes:02d}:{secs:02d}"
-                        return f"{minutes}:{secs:02d}"
-
-                class PodcastShowAdapter:
-                    """Adapter to make PodcastShow work like Album in template."""
-
-                    def __init__(self, show):
-                        self.image = show.image or settings.IMG_NONE
-                        self.release_date = None  # Podcasts don't have release dates
-                        self.id = show.id
 
                 # Get all Podcast entries for this episode to aggregate history
                 all_podcasts = podcasts_by_episode.get(episode_obj.id, [])
@@ -919,8 +852,10 @@ def media_details(
                         "source": episode_item.source,
                         "media_type": episode_item.media_type,
                         # Add adapter objects for music-style modal
-                        "track_adapter": PodcastEpisodeAdapter(episode_obj),
-                        "album_adapter": PodcastShowAdapter(show),
+                        "track_adapter": podcast_views.PodcastEpisodeAdapter(
+                            episode_obj,
+                        ),
+                        "album_adapter": podcast_views.PodcastShowAdapter(show),
                         "music_wrapper": podcast_wrapper,
                     }
                 )
@@ -954,35 +889,14 @@ def media_details(
 
             podcast_play_stats = None
             activity_subtitle = None
-            if not public_view and user_podcasts:
-                range_start_candidates = []
-                range_end_candidates = []
-                completed_entries = 0
-                total_progress_minutes = 0
-
-                for entry in user_podcasts:
-                    range_start = entry.start_date or entry.end_date or entry.created_at
-                    range_end = entry.end_date or entry.start_date or entry.created_at
-                    if range_start:
-                        range_start_candidates.append(range_start)
-                    if range_end:
-                        range_end_candidates.append(range_end)
-                    if entry.end_date or entry.status == Status.COMPLETED.value:
-                        completed_entries += 1
-                    total_progress_minutes += int(entry.progress or 0)
-
-                total_listened_minutes = total_progress_minutes
+            if not public_view and total_listened:
                 podcast_play_stats = {
-                    "first_played": min(range_start_candidates)
-                    if range_start_candidates
-                    else None,
-                    "last_played": max(range_end_candidates)
-                    if range_end_candidates
-                    else None,
-                    "total_minutes": total_listened_minutes,
-                    "total_hours": total_listened_minutes // 60,
-                    "total_minutes_remainder": total_listened_minutes % 60,
-                    "total_plays": completed_entries or total_listened,
+                    "first_played": listen_totals["first_played"],
+                    "last_played": listen_totals["last_played"],
+                    "total_minutes": total_minutes,
+                    "total_hours": total_minutes // 60,
+                    "total_minutes_remainder": total_minutes % 60,
+                    "total_plays": listen_totals["completed"] or total_listened,
                 }
                 activity_subtitle = _build_detail_activity_subtitle(
                     MediaTypes.PODCAST.value,
@@ -996,7 +910,8 @@ def media_details(
                 "media": media_metadata,
                 "media_type": media_type,
                 "current_instance": tracker,  # Use tracker as current_instance for compatibility
-                "user_medias": user_podcasts,  # Episodes user has listened to
+                # Podcast templates only ask whether the viewer has listened.
+                "user_medias": total_listened > 0,
                 "podcast_show": show,
                 "podcast_tracker": tracker,
                 "episode_manager_props": (
