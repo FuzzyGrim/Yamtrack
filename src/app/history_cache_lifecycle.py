@@ -1,6 +1,7 @@
 """Cache lifecycle management: invalidation and background-task scheduling."""
 
 import logging
+import uuid
 from collections.abc import Iterable
 
 from django.conf import settings
@@ -19,11 +20,12 @@ from app.history_cache_utils import (
     _day_cache_key,
     _day_key_from_value,
     _normalize_logging_style,
+    _refresh_dedupe_key,
     _refresh_lock_key,
+    _refresh_rerun_key,
     _typed_history_index_registry_key,
     history_coverage_styles,
 )
-from app.log_safety import stable_hmac
 
 logger = logging.getLogger(__name__)
 
@@ -325,16 +327,7 @@ def schedule_history_refresh(
         day_key = _day_key_from_value(value)
         if day_key:
             normalized_day_keys.append(day_key)
-    if normalized_day_keys:
-        dedupe_seed = ",".join(normalized_day_keys)
-        dedupe_hash = stable_hmac(
-            dedupe_seed,
-            namespace="history_refresh_days",
-            length=10,
-        )
-        dedupe_key = f"{lock_key}_days_{dedupe_hash}"
-    else:
-        dedupe_key = lock_key
+    dedupe_key = _refresh_dedupe_key(user_id, logging_style, normalized_day_keys)
     # Keep TTL close to the frontend polling timeout so locks don't appear "stuck"
     # while still covering normal task execution time.
     lock_ttl = 120  # Matches CacheUpdater timeout window
@@ -344,6 +337,10 @@ def schedule_history_refresh(
         # Store dedupe_key in payload so we can delete it when task completes
         lock_payload["dedupe_key"] = dedupe_key
     if debounce_seconds and not cache.add(dedupe_key, lock_payload, debounce_seconds):
+        # A refresh of these days is queued or running. If it has already
+        # read its rows, this change is not in them: leave a marker the
+        # refresh checks when it finishes, so it queues one more pass.
+        cache.set(_refresh_rerun_key(dedupe_key), uuid.uuid4().hex, lock_ttl)
         return False
 
     # Extend the lock TTL to cover the full task duration
