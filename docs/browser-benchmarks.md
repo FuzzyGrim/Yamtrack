@@ -46,9 +46,69 @@ Statistics All Time is precomputed from that data, outside journey timers.
 Provider HTTP returns a mocked offline failure; queued tasks are counted without
 execution. External browser assets return a deterministic SVG. Background
 artwork/import completion is intentionally not simulated. Calendar has no seeded
-events. The fixtures are disposable and must never be loaded into production.
+events unless the v2 extras are on. The fixtures are disposable and must never be loaded into production.
 
-## Metric definitions
+## Loading baseline (protocol v2)
+
+Protocol `bench03-browser-v2` measures the React-era pages on the 20k fixture.
+One command, from a clean checkout, with an installed Chrome instead of
+Playwright's own Chromium:
+
+```bash
+uv run --no-sync python scripts/benchmark_browser.py --browser-channel chrome --size 20000 --runs 3 --max-load 4 --output /tmp/loading-plain
+uv run --no-sync python scripts/benchmark_browser.py --browser-channel chrome --size 20000 --runs 3 --max-load 4 --viewports mobile --throttle mobile4x --dpr 3 --output /tmp/loading-phone
+uv run --no-sync python scripts/benchmark_browser.py --browser-channel chrome --size 20000 --max-load 4 --routes podcast_detail album_detail_huge --viewports desktop --states fresh --output /tmp/loading-stress
+```
+
+Timings are only worth keeping on a quiet machine. `--max-load 4` refuses to
+start above a 1-minute load average of 4, records the load at the start and
+end of every worker in `report.json` (`load_average`), and marks the run
+`discarded` if any worker ends above it. Comparisons involving a discarded run
+withhold their ratios.
+
+What v2 adds:
+
+- **More pages.** Games, Books, Search results, a History date range, Tags,
+  Settings, Discover (legacy, for the shell), and detail pages for a movie, a
+  16-season show, a season, a 40-track album and a 60-episode podcast show
+  (`podcast_show`). Detail paths are resolved after seeding from rows found by
+  their created names.
+- **Stress routes** (`STRESS_ROUTES`, outside the default set, named explicitly
+  with `--routes`): `podcast_detail` and `album_detail_huge`, the base fixture's
+  one podcast show and one album, which hold size / 10 children each (2,000 at
+  20k). A journey that fails to load is recorded under `journey_errors` instead
+  of stopping the run.
+- **Fixture extras** (`app.benchmark_data.add_loading_extras`, skip with
+  `--no-extras`): provider-shaped artwork URLs on every item, the 16-season
+  show `bench-long-show`, a 40-track album, a 60-episode podcast show, dense
+  calendar events around the fixture date, and 40 tags. Other benchmarks keep their fixture checksums.
+- **Realistic artwork** (`--images realistic`, the default): `benchmark_artwork.py`
+  generates JPEGs at the size each URL names and serves them over loopback
+  HTTPS; Chromium's resolver sends the provider hosts there. Throttling and the
+  HTTP cache apply, which they do not for faked responses. Other external hosts
+  are refused. `--images placeholder` restores the v1 SVG routing.
+- **Production-like static files:** nginx.conf's immutable cache header and
+  gzip are applied in the runner, so cold and warm bytes differ as they do in a
+  real install.
+- **Four moments per load:** TTFB and DOMContentLoaded (Navigation Timing),
+  island mount and useful content (the first frame after a per-page selector in
+  `READY` matches; a MutationObserver watches for it), and settled (last
+  response once nothing has been in flight for 750 ms). Requests and wire bytes
+  are split into phases: to DOMContentLoaded, to content, to settled.
+  Layout shift and long tasks are recorded too.
+- **Cold and warm:** cold is a new browser context plus a cleared server
+  cache; warm is a second visit in that context. The first journey of each
+  worker is marked `first_in_process` (cold process). `--runs N` repeats the
+  cold and warm pair N times inside each worker.
+- **Throttling:** `--throttle mobile4x` is Lighthouse's phone profile (4x CPU,
+  150 ms RTT, 1.6 Mbps down). `--dpr` sets the device pixel ratio.
+- **Service workers:** `--service-workers allow` lets the app's worker run.
+- **Simulators:** `--serve-port 8455` seeds the same fixture and serves it on
+  loopback for the iOS simulator and Android emulator (as 10.0.2.2) instead of
+  driving Chromium. A throwaway password goes to `serve/credentials.json`.
+- `--dump-dom` saves cold DOM snapshots, for picking readiness selectors.
+
+## Metric definitions (v1)
 
 - **Shell time:** Python wall time through `DOMContentLoaded`, including the
   Playwright command round trip.

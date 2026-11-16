@@ -117,6 +117,132 @@ class BrowserJourneyContractTests(SimpleTestCase):
         self.assertFalse(result["comparable"])
         self.assertNotIn("ratio", result)
         self.assertIn("observe_ms differs", result["notes"])
+        after["observe_ms"] = 1000
+        after["discarded"] = True
+        result = harness.compare_reports(after, before)[0]
+        self.assertFalse(result["comparable"])
+        self.assertIn("current run was discarded (machine load)", result["notes"])
+
+    def test_stress_routes_stay_out_of_the_default_set(self):
+        self.assertNotIn("podcast_detail", harness.DEFAULT_ROUTES)
+        self.assertNotIn("album_detail_huge", harness.DEFAULT_ROUTES)
+        self.assertIn("podcast_show", harness.DEFAULT_ROUTES)
+        self.assertTrue(set(harness.ROUTES) >= set(harness.STRESS_ROUTES))
+
+
+artwork_spec = importlib.util.spec_from_file_location(
+    "benchmark_artwork",
+    Path(__file__).resolve().parents[3] / "scripts/benchmark_artwork.py",
+)
+artwork = importlib.util.module_from_spec(artwork_spec)
+artwork_spec.loader.exec_module(artwork)
+
+
+class LoadingBaselineHelperTests(SimpleTestCase):
+    def test_artwork_size_follows_the_provider_size_in_the_url(self):
+        self.assertEqual(artwork.image_size("/t/p/w500/bench-1.jpg"), (500, 750))
+        self.assertEqual(artwork.image_size("/t/p/w780/bench-still-1.jpg"), (780, 439))
+        self.assertEqual(artwork.image_size("/t/p/w1280/backdrop.jpg"), (1280, 720))
+        self.assertEqual(
+            artwork.image_size("/igdb/image/upload/t_cover_big_2x/x.jpg"), (528, 704)
+        )
+        self.assertEqual(artwork.image_size("/image/x/600x600bb.jpg"), (600, 600))
+        self.assertEqual(artwork.image_size("/unknown.png"), (300, 450))
+
+    def test_phase_accounting_splits_requests_by_finish_time(self):
+        base = "http://127.0.0.1:9"
+        rows = {
+            "doc": {
+                "url": base + "/",
+                "type": "Document",
+                "start": 1.0,
+                "end": 1.1,
+                "bytes": 100,
+                "failed": False,
+                "cached": False,
+            },
+            "js": {
+                "url": base + "/static/a.js",
+                "type": "Script",
+                "start": 1.1,
+                "end": 1.2,
+                "bytes": 50,
+                "failed": False,
+                "cached": False,
+            },
+            "api": {
+                "url": base + "/api/rows?x=1",
+                "type": "Fetch",
+                "start": 1.3,
+                "end": 1.5,
+                "bytes": 30,
+                "failed": False,
+                "cached": False,
+            },
+            "img": {
+                "url": "https://image.tmdb.org/t/p/w500/1.jpg",
+                "type": "Image",
+                "start": 1.4,
+                "end": 2.0,
+                "bytes": 900,
+                "failed": False,
+                "cached": False,
+            },
+            "open": {
+                "url": base + "/api/slow",
+                "type": "Fetch",
+                "start": 1.6,
+                "end": None,
+                "bytes": 0,
+                "failed": False,
+                "cached": False,
+            },
+        }
+        phases, exported = harness.phase_accounting(
+            rows, base, [("to_dcl", 250), ("to_content", 600), ("to_settled", 1001)]
+        )
+        self.assertEqual(phases["to_dcl"]["requests"], 2)
+        self.assertEqual(phases["to_content"]["api_requests"], 1)
+        self.assertEqual(phases["to_settled"]["image_bytes"], 900)
+        self.assertEqual(phases["unfinished"]["requests"], 1)
+        self.assertEqual({row["origin"] for row in exported}, {"app", "artwork"})
+        self.assertNotIn("x=1", json.dumps(exported))
+
+    def test_nginx_like_wrapper_caches_static_and_gzips_text(self):
+        body = b"x" * 1000
+
+        def app(environ, start_response):
+            start_response(
+                "200 OK",
+                [
+                    ("Content-Type", "application/javascript"),
+                    ("Cache-Control", "no-cache"),
+                    ("Content-Length", "1000"),
+                ],
+            )
+            return [body]
+
+        captured = {}
+
+        def start_response(status, headers, exc_info=None):
+            captured["headers"] = dict(headers)
+
+        environ = {"PATH_INFO": "/static/ui/a.js", "HTTP_ACCEPT_ENCODING": "gzip"}
+        result = b"".join(harness.nginx_like(app)(environ, start_response))
+        self.assertEqual(
+            captured["headers"]["Cache-Control"], "public, max-age=2592000, immutable"
+        )
+        self.assertEqual(captured["headers"]["Content-Encoding"], "gzip")
+        self.assertEqual(int(captured["headers"]["Content-Length"]), len(result))
+        self.assertLess(len(result), 100)
+
+    def test_spread_ignores_missing_values(self):
+        self.assertIsNone(harness.spread([None]))
+        summary = harness.spread([3, None, 1, 2])
+        self.assertEqual(
+            (summary["n"], summary["median"], summary["min"], summary["max"]),
+            (3, 2, 1, 3),
+        )
 
 
 @tag("slow", "benchmark", "playwright")
