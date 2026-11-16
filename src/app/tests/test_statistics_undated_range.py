@@ -1,6 +1,7 @@
 import datetime
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 
@@ -21,6 +22,9 @@ class UndatedEntriesRangeTests(TestCase):
     """Entries with no dates belong to All Time only, never to a date range (#1521)."""
 
     def setUp(self):
+        # Day and range statistics live in the shared cache, keyed by user id;
+        # SQLite reuses ids after rollback, so start every test empty.
+        cache.clear()
         self.user = get_user_model().objects.create_user(
             username="viewer", password="password123"
         )

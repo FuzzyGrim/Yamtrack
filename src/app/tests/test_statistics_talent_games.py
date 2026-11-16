@@ -2,6 +2,7 @@ import datetime
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -30,6 +31,9 @@ from app.statistics_talent import _aggregate_top_talent, get_person_talent_total
 
 class GamesInTopTalentAggregationTests(TestCase):
     def setUp(self):
+        # Day and range statistics live in the shared cache, keyed by user id;
+        # SQLite reuses ids after rollback, so start every test empty.
+        cache.clear()
         self.user = get_user_model().objects.create_user(
             username="talent-tester",
             password="password123",
@@ -432,6 +436,9 @@ class NoDateEntriesInAllTimeTopTalentTests(TestCase):
     RANGE_END = datetime.datetime(2000, 1, 31, tzinfo=datetime.UTC)
 
     def setUp(self):
+        # Day and range statistics live in the shared cache, keyed by user id;
+        # SQLite reuses ids after rollback, so start every test empty.
+        cache.clear()
         self.user = get_user_model().objects.create_user(
             username="no-date-talent-tester",
             password="password123",
