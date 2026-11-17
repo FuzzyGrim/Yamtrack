@@ -335,16 +335,20 @@
       {% else %}
         <div class="bg-[var(--color-surface)] p-6 rounded-lg text-center">
           <p class="text-[var(--color-text-muted)]">
-            {% if has_mb_identity %}
+            {% if tracks_pending %}
+              {% translate "Loading tracks from MusicBrainz." %}
+            {% elif has_mb_identity %}
               {% translate "No tracks found for this album on MusicBrainz yet. Try syncing metadata or searching for tracks manually." %}
             {% else %}
               {% translate "This album doesn't have a MusicBrainz ID, so tracks can't be populated automatically." %}
             {% endif %}
           </p>
+          {% if not tracks_pending %}
           <a href="{% url 'search' %}?q={{ album.title|urlencode }}&media_type=music"
              class="inline-block mt-4 px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors">
             {% translate "Search for tracks" %}
           </a>
+          {% endif %}
         </div>
       {% endif %}
     </section>

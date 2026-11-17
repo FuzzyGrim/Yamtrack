@@ -1909,6 +1909,7 @@ class MediaDetailsViewTests(TestCase):
         _mock_is_incomplete_album,
         mock_get_release,
     ):
+        cache.clear()  # no repair cool-down left by an earlier test
         artist = Artist.objects.create(
             name="Brian Eno",
             musicbrainz_id="ff95eb47-41c4-4f7f-a104-cdc30f02e872",
@@ -1948,6 +1949,11 @@ class MediaDetailsViewTests(TestCase):
                 },
             ),
         )
+        # The page queued the repair (run inline by the test settings) and
+        # drew the credits it had; the next view shows the repaired ones.
+        self.assertEqual(response.status_code, 200)
+        mock_get_release.assert_called_once()
+        response = self.client.get(response.request["PATH_INFO"])
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Brian Eno</a> \u2014 ", html=False)

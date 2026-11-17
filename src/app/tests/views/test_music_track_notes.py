@@ -89,7 +89,10 @@ class MusicTrackNotesTests(TestCase):
             Item.objects.filter(media_type=MediaTypes.MUSIC.value).exists()
         )
 
-    @patch("app.music_views._lookup_unlistened_recording", return_value=None)
+    @patch(
+        "app.music_page_repair.track_recording_lookup",
+        return_value=(None, False),
+    )
     def test_notes_are_scoped_to_the_current_user(self, _lookup):
         """Shared catalog and Item rows must not expose another user's notes."""
         other_music = self._music(self.other_user)

@@ -175,6 +175,18 @@ export async function loadArtistWithRelations(transport, artistId) {
   return { artist, relations };
 }
 
+// A new artist or album is filled in by a background repair on the server
+// (app/music_page_repair.py). While it runs the API says so, and the screen
+// loads again quietly, as the web page's poller does: every 2 seconds for
+// about two minutes.
+export const REPAIR_POLL_MS = 2000;
+export const REPAIR_POLL_MAX_ATTEMPTS = 60;
+
+export function repairPending(payload, attempts = 0) {
+  if (attempts >= REPAIR_POLL_MAX_ATTEMPTS) return false;
+  return Boolean(payload?.repair_pending || payload?.pending);
+}
+
 export function mapTracksPayload(payload) {
   const results = Array.isArray(payload?.results)
     ? payload.results

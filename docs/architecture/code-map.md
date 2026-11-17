@@ -99,7 +99,7 @@ Each rule has tests that fail when it breaks.
 2. **A page renders what is stored** and does not wait for background or
    provider work, or for the database writer.
    `app.tests.test_read_pages_do_not_write`, `app.tests.test_statistics_cache`
-   (serving makes no provider call).
+   (serving makes no provider call), `app.tests.test_music_page_repair`.
 3. **One function clears view caches:** `clear_library_view_caches` in
    `src/app/cache_utils.py`. `app.tests.test_view_cache_invalidation`.
 4. **A recurring task with nothing to do costs milliseconds** and writes
