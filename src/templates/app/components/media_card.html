@@ -107,6 +107,13 @@
     {% if item.release_year %}
       <div class="text-xs text-gray-400 mt-1">{{ item.release_year }}</div>
     {% endif %}
+    {% if item.media_type == MediaTypes.SEASON.value %}
+      {% if item.max_progress %}
+        <div class="text-xs text-gray-400 mt-1 line-clamp-1">
+          {% blocktrans count count=item.max_progress %}{{ count }} Episode{% plural %}{{ count }} Episodes{% endblocktrans %}
+        </div>
+      {% endif %}
+    {% endif %}
   </div>
 
   {% if item.media_type == MediaTypes.EPISODE.value %}
