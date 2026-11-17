@@ -335,7 +335,7 @@ class HistoryLazyMonthTests(HistoryWindowFixture):
     """Days below the fold of a month view are placeholders, not cards."""
 
     def test_month_view_defers_days_past_the_first_few(self):
-        from app.history_views import HISTORY_EAGER_MONTH_DAYS
+        from app.history_views import _first_view_day_count
 
         self.client.login(**self.credentials)
         # Eight consecutive days may straddle a month boundary; ask for the month
@@ -348,6 +348,7 @@ class HistoryLazyMonthTests(HistoryWindowFixture):
         content = response.content.decode()
         days = content.count('class="history-day')
         lazy = content.count('hx-trigger="intersect once"')
-        self.assertEqual(lazy, max(days - HISTORY_EAGER_MONTH_DAYS, 0))
+        eager = _first_view_day_count(response.context["history_days"])
+        self.assertEqual(lazy, max(days - eager, 0))
         if lazy:
             self.assertIn("/history/day/", content)

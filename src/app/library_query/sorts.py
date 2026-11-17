@@ -88,6 +88,14 @@ class SortDef:
     # ``app.tv_show_facts.TrackedShow`` carries, so a scan need not hydrate
     # seasons and plays to compute it. Other media types are unaffected.
     tv_facts: bool = False
+    # The Python value reads the candidate's item and nothing of its tracker
+    # rows, so a scan ordering by it loads no tracker. Only for a sort without
+    # a SQL form; a filter that reads the tracker still loads it.
+    item_only: bool = False
+    # For a movie the Python value reads the item and the tracker's own
+    # columns (status, progress, end date, creation), so a scan attaches an
+    # ``app.movie_rows.MovieRow`` instead of a model. Other types unaffected.
+    movie_rows: bool = False
 
 
 def _field(name: str):
@@ -399,24 +407,32 @@ SORTS: tuple[SortDef, ...] = (
     SortDef(("source",), sql=_field("source")),
     SortDef(("type",), sql=_field("media_type")),
     SortDef(("date_added", "added", "created_at"), sql=_first_created, tracker=True),
-    SortDef(("start_date", "started"), sql=_tracker_aggregate("start_date"), tracker=True),
-    SortDef(("end_date", "ended"), sql=_tracker_aggregate("end_date"), tracker=True),
-    SortDef(("last_watched",), sql=_tracker_aggregate("last_watched"), tracker=True),
+    # A show has no SQL form for these (its dates and progress come from its
+    # seasons' plays) and one tracker row, so its value is the ``TV``
+    # property, which ``TrackedShow`` reads from grouped facts.
+    SortDef(("start_date", "started"), sql=_tracker_aggregate("start_date"), tracker=True, tv_facts=True),
+    SortDef(("end_date", "ended"), sql=_tracker_aggregate("end_date"), tracker=True, tv_facts=True),
+    SortDef(("last_watched",), sql=_tracker_aggregate("last_watched"), tracker=True, tv_facts=True),
     SortDef(("score",), sql=_latest_score, tracker=True),
-    SortDef(("progress", "plays"), sql=_tracker_aggregate("progress"), tracker=True),
+    SortDef(("progress", "plays"), sql=_tracker_aggregate("progress"), tracker=True, tv_facts=True),
     SortDef(("random",), sql=_random_sql),
     SortDef(("list_added",), sql=_list_added),
     SortDef(("list_tier",), sql=_list_tier),
     SortDef(("status",), sql=_status_rank, tracker=True),
     SortDef(("platform",), sql=_platform),
     # The rest are computed in Python from the hydrated candidate.
-    SortDef(("runtime",), needs=_MEDIA_RUNTIME),
-    SortDef(("time_watched",), needs=_MEDIA_RUNTIME),
-    SortDef(("time_to_beat",), needs=_MEDIA),
-    SortDef(("author",), needs=_MEDIA),
+    # Shows rank from facts (plus the episode runtime index), movies from
+    # their columns; other types hydrate their tracker rows.
+    SortDef(("runtime",), needs=_MEDIA_RUNTIME, tv_facts=True, movie_rows=True),
+    SortDef(("time_watched",), needs=_MEDIA_RUNTIME, tv_facts=True, movie_rows=True),
+    SortDef(("time_to_beat",), item_only=True),
+    SortDef(("author",), item_only=True),
     # SQL for types that store the column; TV and seasons scan.
     SortDef(("updated", "progressed_at"), sql=_progressed_at, needs=_MEDIA, tracker=True),
-    SortDef(("time_left",), needs=frozenset({NEEDS_MEDIA, NEEDS_MAX_PROGRESS})),
+    # Episodes left (``max_progress - progress``), both of which a
+    # ``TrackedShow`` carries. The web list's grouped time-left order is its
+    # own pipeline (``app.tv_sort``); this one serves the API and Expo.
+    SortDef(("time_left",), needs=frozenset({NEEDS_MEDIA, NEEDS_MAX_PROGRESS}), tv_facts=True),
     SortDef(
         ("next_episode_air_date",),
         needs=_MEDIA,

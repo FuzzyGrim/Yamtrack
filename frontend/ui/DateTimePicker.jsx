@@ -67,6 +67,11 @@ const DEFAULT_LABELS = {
   earlierSecond: 'Earlier second',
   laterSecond: 'Later second',
   activity: 'View activity for',
+  activityIntensity: '{activity} {date}, {level} {dots}, {value} {measure}',
+  dot: 'dot',
+  dots: 'dots',
+  minutes: 'minutes',
+  entries: 'entries',
 };
 
 const DEFAULT_PALETTE = {
@@ -186,9 +191,13 @@ export function DateTimePicker({
   copyLabel = '',
   copyEmptyMessage = '',
   markerDays = [],
+  activityIntensity = {},
+  inline = false,
+  initialViewDate = '',
   selectableDays = null,
   onQuickAction,
   onOpenChange,
+  onViewMonthChange,
   open: controlledOpen,
   defaultOpen = false,
   palette: suppliedPalette,
@@ -204,10 +213,15 @@ export function DateTimePicker({
   const open = controlledOpen === undefined ? internalOpen : controlledOpen;
   const [view, setView] = useState('days');
   const valueParts = useMemo(() => parseDateValue(value), [value]);
-  const [viewYear, setViewYear] = useState(() => (valueParts || nowParts(today)).year);
-  const [viewMonth, setViewMonth] = useState(() => (valueParts || nowParts(today)).month);
-  const [focus, setFocus] = useState(() => valueParts || nowParts(today));
-  const [yearInput, setYearInput] = useState(String((valueParts || nowParts(today)).year));
+  const initialParts = parseDateValue(initialViewDate) || valueParts || nowParts(today);
+  const [viewYear, setViewYear] = useState(() => initialParts.year);
+  const [viewMonth, setViewMonth] = useState(() => initialParts.month);
+  const [focus, setFocus] = useState(() => initialParts);
+  const [yearInput, setYearInput] = useState(String(initialParts.year));
+
+  useEffect(() => {
+    onViewMonthChange?.({ year: viewYear, month: viewMonth });
+  }, [viewYear, viewMonth, onViewMonthChange]);
 
   useEffect(() => {
     if (!valueParts) return;
@@ -330,7 +344,7 @@ export function DateTimePicker({
 
   return (
     <View style={styles.wrapper} testID={testID}>
-      <View
+      {!inline ? <View
         style={[
           styles.field,
           {
@@ -404,37 +418,31 @@ export function DateTimePicker({
             <CloseIcon color={palette.textMuted} />
           </Pressable>
         ) : null}
-      </View>
+      </View> : null}
 
-      <Modal
-        transparent
-        visible={open}
-        animationType="fade"
-        onRequestClose={close}
-        statusBarTranslucent
-      >
-        <View style={styles.overlay}>
-          <Pressable
+      <PickerShell inline={inline} open={open} close={close}>
+        <View style={inline ? undefined : styles.overlay}>
+          {!inline ? <Pressable
             accessibilityRole="button"
             accessibilityLabel={labels.close}
             onPress={close}
             style={StyleSheet.absoluteFill}
-          />
+          /> : null}
           <View
-            accessibilityViewIsModal
+            accessibilityViewIsModal={!inline}
             style={[
-              styles.panel,
-              sheet ? styles.panelSheet : styles.panelFloating,
+              !inline && styles.panel,
+              !inline && (sheet ? styles.panelSheet : styles.panelFloating),
               {
-                backgroundColor: palette.surface,
+                backgroundColor: inline ? 'transparent' : palette.surface,
                 borderColor: palette.border,
                 borderRadius: sheet ? 16 : palette.radius,
-                maxHeight: sheet ? height * 0.85 : height - 48,
+                maxHeight: inline ? undefined : sheet ? height * 0.85 : height - 48,
               },
             ]}
             testID={panelTestID}
           >
-            {sheet ? (
+            {sheet && !inline ? (
               <View style={styles.panelHeader}>
                 <Text style={[styles.panelTitle, { color: palette.textSecondary }]}>
                   {labels.field || labels.picker}
@@ -454,7 +462,7 @@ export function DateTimePicker({
             ) : null}
             <ScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.panelContent}
+              contentContainerStyle={inline ? undefined : styles.panelContent}
             >
               {view === 'days' ? (
                 <View>
@@ -511,6 +519,7 @@ export function DateTimePicker({
                         const selected = isSameDay(valueParts, cell);
                         const disabled = !isSelectableDay(selectableDays, cell);
                         const marked = isMarkedDay(markerDays, cell);
+                        const intensity = activityIntensity[key];
                         const current = isToday(cell, today);
                         const color = selected
                           ? palette.accentContrast
@@ -524,17 +533,19 @@ export function DateTimePicker({
                             key={key}
                             accessibilityRole="button"
                             accessibilityLabel={
-                              marked ? `${labels.activity} ${key}` : key
+                              intensity ? labels.activityIntensity.replace('{activity}', labels.activity).replace('{date}', key)
+                                .replace('{level}', String(intensity.level)).replace('{dots}', intensity.level === 1 ? labels.dot : labels.dots)
+                                .replace('{value}', String(intensity.value)).replace('{measure}', labels[intensity.measure] || intensity.measure)
+                                : marked ? `${labels.activity} ${key}` : key
                             }
                             accessibilityState={{ selected, disabled }}
+                            aria-selected={selected}
                             disabled={disabled}
                             onPress={() => selectDay(cell)}
                             style={({ pressed }) => [
                               styles.dayCell,
                               {
-                                backgroundColor: selected
-                                  ? palette.accent
-                                  : pressed && !disabled
+                                backgroundColor: !selected && pressed && !disabled
                                     ? palette.surfaceMuted
                                     : 'transparent',
                                 opacity: disabled ? 0.35 : !cell.inMonth ? 0.5 : 1,
@@ -542,6 +553,8 @@ export function DateTimePicker({
                             ]}
                             testID={`date-time-day-${key}`}
                           >
+                            {selected ? <View pointerEvents="none" accessible={false}
+                              style={[styles.selectedDayBackground, { backgroundColor: palette.accent }]} /> : null}
                             <Text
                               style={[
                                 styles.dayText,
@@ -553,17 +566,13 @@ export function DateTimePicker({
                             >
                               {cell.day}
                             </Text>
-                            {marked ? (
-                              <View
-                                style={[
-                                  styles.marker,
-                                  {
-                                    backgroundColor: selected
-                                      ? palette.accentContrast
-                                      : palette.accent,
-                                  },
-                                ]}
-                              />
+                            {marked || intensity ? (
+                              <View style={styles.markerRow} accessible={false}>
+                                {Array.from({ length: intensity?.level || 1 }, (_, index) => <View
+                                  key={index}
+                                  style={[styles.marker, { backgroundColor: selected ? palette.accentContrast : palette.accent }]}
+                                />)}
+                              </View>
                             ) : null}
                           </Pressable>
                         );
@@ -802,7 +811,7 @@ export function DateTimePicker({
                 </View>
               ) : null}
 
-              <View style={[styles.section, { borderTopColor: palette.border }]}>
+              {!inline ? <View style={[styles.section, { borderTopColor: palette.border }]}>
                 <View style={styles.commonRow}>
                   <Pressable
                     accessibilityRole="button"
@@ -895,13 +904,18 @@ export function DateTimePicker({
                     {copyEmptyMessage}
                   </Text>
                 ) : null}
-              </View>
+              </View> : null}
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </PickerShell>
     </View>
   );
+}
+
+function PickerShell({ inline, open, close, children }) {
+  if (inline) return children;
+  return <Modal transparent visible={open} animationType="fade" onRequestClose={close} statusBarTranslucent>{children}</Modal>;
 }
 
 const styles = StyleSheet.create({
@@ -994,9 +1008,9 @@ const styles = StyleSheet.create({
     margin: 1,
   },
   dayText: { fontSize: 14 },
+  selectedDayBackground: { position: 'absolute', top: 0, right: 0, bottom: -1, left: 0, borderRadius: 6 },
+  markerRow: { position: 'absolute', bottom: 4, flexDirection: 'row', gap: 2 },
   marker: {
-    position: 'absolute',
-    bottom: 3,
     width: 4,
     height: 4,
     borderRadius: 2,

@@ -19,6 +19,8 @@ import {
   parseHistoryFilterUrl,
   shiftMonth,
 } from '../data/historyTransport';
+import { firstViewDayCount } from '../../../frontend/ui/historyFirstView';
+import { createMeasuredRowWatcher, measureInWindow } from '../data/homeRowWatcherCore';
 import { useAccountDisplay } from '../data/accountDisplay';
 import { getActiveAuthSession } from '../data/authSession';
 import { createListTransport } from '../data/listTransport';
@@ -127,8 +129,14 @@ export default function HistoryScreen({ navigate, onBack, params, transport: inj
   const mediaTypeKey = (filters.mediaTypes || []).join(',');
   const genreKey = (filters.genres || []).join(',');
   const impliedGenreKey = (filters.impliedGenres || []).join(',');
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const display = useAccountDisplay();
+  // The month arrives whole, but only about two screens of cards mount at
+  // first; later days wait as placeholders and mount as they scroll near
+  // (frontend/ui/historyFirstView.js, the rule the web page uses).
+  const [dayWatcher] = useState(() => createMeasuredRowWatcher({ measure: measureInWindow, viewportHeight: height }));
+  useEffect(() => { dayWatcher.setViewportHeight(height); }, [height, dayWatcher]);
+  const [shownDays, setShownDays] = useState(() => new Set());
   // The server-side card hides the caption line on a compact phone grid.
   const captions = !(width <= 768 && display.compact);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -207,11 +215,26 @@ export default function HistoryScreen({ navigate, onBack, params, transport: inj
       });
   }
 
-  const days = useMemo(() => decorate(
-    rawDays.map(day => ({ ...day, loadingMore: Boolean(loadingDays[day.key]) })),
-    mode,
-    captions,
-  ), [rawDays, loadingDays, mode, captions, display.loaded]);
+  // A new query starts from the first view again.
+  useEffect(() => { setShownDays(new Set()); }, [queryKey]);
+
+  const days = useMemo(() => {
+    const eager = firstViewDayCount(rawDays.map(day => day.entries.length));
+    return decorate(
+      rawDays.map((day, index) => ({
+        ...day,
+        lazy: index >= eager && !shownDays.has(day.key),
+        loadingMore: Boolean(loadingDays[day.key]),
+      })),
+      mode,
+      captions,
+    );
+  }, [rawDays, loadingDays, shownDays, mode, captions, display.loaded]);
+
+  // A waiting day already has its entries; showing it is all "load" means here.
+  function showDay(day) {
+    setShownDays(current => (current.has(day.key) ? current : new Set(current).add(day.key)));
+  }
 
   const pagination = useMemo(() => {
     if (!server || !serverTotal || serverTotal <= SERVER_PAGE_DAYS) return null;
@@ -305,7 +328,7 @@ export default function HistoryScreen({ navigate, onBack, params, transport: inj
       .then(payload => {
         if (!Array.isArray(payload?.sessions) || !payload.sessions.length) return;
         setActivityEntry(current => (current?.key === entry.key
-          ? { ...entry, sessions: payload.sessions }
+          ? { ...entry, sessions: payload.sessions, activityIntensity: payload.activityIntensity || {} }
           : current));
       })
       .catch(() => {
@@ -449,6 +472,7 @@ export default function HistoryScreen({ navigate, onBack, params, transport: inj
   }
 
   return <Screen chrome={false} contentStyle={pageTop}
+    onScroll={dayWatcher.check} onContentSizeChange={dayWatcher.check}
     floating={server ? <HistoryFilterFab count={filters.activeCount} label={labels.filters}
       palette={historyPalette} onPress={() => toggleFilters(true)} /> : null}>
     <HistoryView
@@ -469,6 +493,9 @@ export default function HistoryScreen({ navigate, onBack, params, transport: inj
       onEditEntry={requestEdit}
       onDeleteEntry={requestDelete}
       onLoadMore={loadMore}
+      onLoadDay={showDay}
+      onRetryDay={showDay}
+      watchDay={dayWatcher.watchRow}
       onApplyFilters={applyFilters}
       onClearFilters={clearFilters}
       onSaveView={server ? saveView : undefined}

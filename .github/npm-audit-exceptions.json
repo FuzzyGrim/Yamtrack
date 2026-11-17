@@ -1,0 +1,11 @@
+{
+  "exceptions": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "expires": "2026-12-17",
+      "approved": "Daniel, 2026-11-17, in the PR #2047 session",
+      "reason": "ReDoS in glob matching. Every published picomatch (<=4.0.7) is affected and no fix exists yet. It reaches us only through build tools (Expo CLI, Metro file map, React Native CLI globbing, Tailwind CLI's @parcel/watcher), which match the project's own file patterns at build time. Nothing ships it to users. Remove this entry once a patched picomatch is released and the lockfiles pick it up."
+    }
+  ]
+}

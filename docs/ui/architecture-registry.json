@@ -893,15 +893,15 @@
       "verification": {
         "web": {
           "status": "unverified",
-          "evidence": "Mounted through the web adapter into the static tracking date/time fields; build and targeted tests only, no browser pass."
+          "evidence": "Seeded detail activity dialog inspected in Chromium at desktop and phone widths; day selection, accessibility labels and month navigation exercised. Marker spacing compared in a shared picker fixture. The History dialog remains unverified."
         },
         "ios": {
           "status": "unverified",
-          "evidence": "Expo export --platform all compiles the picker in the Calendar screen; no simulator run was performed."
+          "evidence": "Activity intensity and updated marker spacing inspected in Expo Go fixtures on iPhone 16 Pro; full dialog integration remains unverified."
         },
         "android": {
-          "status": "verified",
-          "evidence": "Android 15 Pixel 7 AVD: rendered the shared date-time field on Calendar; no picker, time or timezone interaction and no TalkBack pass."
+          "status": "unverified",
+          "evidence": "Activity intensity and updated marker spacing inspected in Expo Go fixtures on an API 35 emulator; full dialog integration remains unverified."
         }
       }
     },
@@ -1040,6 +1040,7 @@
         "HistoryActivitySummary",
         "HistoryFilterPanel",
         "HistoryState",
+        "HistoryActivityCalendar",
         "HistoryActivityDialog",
         "HistoryEditDialog",
         "HistoryDeleteDialog"
@@ -4188,6 +4189,27 @@
         }
       }
     },
+    "frontend/ui/historyFirstView.js": {
+      "components": [
+        "HISTORY_FIRST_VIEW_ENTRIES",
+        "firstViewDayCount"
+      ],
+      "register": "HISTORY",
+      "verification": {
+        "web": {
+          "status": "verified",
+          "evidence": "node --test scripts/historyFirstView.test.mjs (budget rule, waiting days mount no cards and load once when near, Back anchor). Chromium on the 20k benchmark fixture: default month first response 144 cards / 2.43 MB HTML before, 28 / 0.63 MB after; every day loads while scrolling at 1280x900 and 390x844; first screens pixel-identical before and after (month, on this day, date range; desktop and phone); Back restores the left day at 2,800, 9,100 and 22,400 px and after card and boosted month links."
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "iPhone 16 Pro simulator (iOS 18.6), Expo Go, 20k fixture, November 2024 (841 entries): before, all 841 cards mount on opening the month and Expo Go uses 1,111 MB; after, 30 cards mount and 422 MB, later days mount 30 at a time while scrolling. Frame times not measured (machine load 20 to 400)."
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "Not run on an emulator: pure JavaScript shared with iOS through HistoryScreen and the Home row watcher (homeRowWatcherCore, measureInWindow), which Android already runs for Home lazy rows."
+        }
+      }
+    },
     "frontend/ui/homeTransportCore.js": {
       "components": [
         "createRemoteHomeActions",
@@ -5560,7 +5582,7 @@
     },
     "frontend/ui/mountDateTimePicker.jsx": {
       "register": "DATE-TIME",
-      "purpose": "Mount the shared picker on the browser field and keep the hidden input, htmx events, status autofill, paired dates, copy and clear behavior."
+      "purpose": "Mount the shared picker for browser fields and activity history; bridge hidden input and form events, or synchronize the activity calendar with the server-owned session list."
     },
     "frontend/ui/mountRatingChip.jsx": {
       "register": "RATING",
@@ -5830,6 +5852,10 @@
     "frontend/settings/pose.web.js": {
       "register": "DETAIL",
       "purpose": "Browser adapter that writes the PWA device pose (data-pose on <html>) from the window size and keeps it current on resize and rotation."
+    },
+    "frontend/ui/historyScrollAnchor.web.js": {
+      "register": "HISTORY",
+      "purpose": "Browser adapter for History's Back position: remembers the top visible day per URL while reading and, on Back or reload, loads the waiting days down to it before scrolling there, because placeholder days make the browser's pixel restore land on the wrong day. No native counterpart: Expo's History screen remounts at the top on Back, before and after this change."
     },
     "frontend/ui/homeRowWatcher.web.js": {
       "register": "HOME",

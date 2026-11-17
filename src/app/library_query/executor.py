@@ -600,19 +600,27 @@ class LibraryQueryExecutor:
         batch_values = self.sort.batch_values if with_sort and not sql_sort else None
         if with_sort and not sql_sort and batch_values is None:
             python_key = sort_registry.python_key(self.query.sort.key)
-            # A tracker value computed in Python reads the aggregated row.
-            needs.add(filter_registry.NEEDS_MEDIA)
+            if not self.sort.item_only:
+                # A tracker value computed in Python reads the aggregated row.
+                needs.add(filter_registry.NEEDS_MEDIA)
         requested_direction = self.query.sort.direction
         # Shows are attached as facts, not as hydrated trackers, when every
         # reader of the tracker row in this scan says facts are all it reads.
-        show_facts = (
-            filter_registry.NEEDS_RUNTIME not in needs
-            and (sql_sort or not with_sort or self.sort.tv_facts)
-            and all(
-                definition.tv_facts
+        show_facts = (sql_sort or not with_sort or self.sort.tv_facts) and all(
+            definition.tv_facts
+            for ctx in self.contexts
+            for definition in self._predicates(ctx)
+            if filter_registry.NEEDS_MEDIA in definition.needs
+        )
+        # Movies are attached as light rows when only the sort reads them.
+        light_movies = (
+            with_sort
+            and not sql_sort
+            and self.sort.movie_rows
+            and not any(
+                filter_registry.NEEDS_MEDIA in definition.needs
                 for ctx in self.contexts
                 for definition in self._predicates(ctx)
-                if filter_registry.NEEDS_MEDIA in definition.needs
             )
         )
 
@@ -629,7 +637,15 @@ class LibraryQueryExecutor:
             if not batch:
                 break
             if filter_registry.NEEDS_MEDIA in needs:
-                _attach_media(self.user, batch, needs, show_facts=show_facts, shared=shared, include_albums=self.query.sort_list_id is not None)
+                _attach_media(
+                    self.user,
+                    batch,
+                    needs,
+                    show_facts=show_facts,
+                    light_movies=light_movies,
+                    shared=shared,
+                    include_albums=self.query.sort_list_id is not None,
+                )
             for ctx in self.contexts:
                 for definition in self._predicates(ctx):
                     if definition.prepare is not None:
@@ -721,6 +737,7 @@ def _attach_media(
     needs: set[str],
     *,
     show_facts: bool = False,
+    light_movies: bool = False,
     include_albums: bool = False,
     shared=None,
 ) -> None:
@@ -729,7 +746,9 @@ def _attach_media(
     With ``show_facts``, a show gets an ``app.tv_show_facts.TrackedShow``
     instead: its numbers come from grouped rows, so no season, play or event
     is loaded for it. Only a scan whose sort and filters all declare
-    ``tv_facts`` may ask for that.
+    ``tv_facts`` may ask for that. With ``light_movies``, a movie gets an
+    ``app.movie_rows.MovieRow`` (its columns, no model); only a scan whose
+    sort declares ``movie_rows`` and whose filters read no tracker may.
     """
     from django.apps import apps
 
@@ -757,8 +776,21 @@ def _attach_media(
                 shows = tracked_shows(user, items)
                 if released:
                     annotate_released_progress(list(shows.values()))
+            if filter_registry.NEEDS_RUNTIME in needs:
+                from app.models import prefill_episode_runtime_index
+
+                prefill_episode_runtime_index(list(shows.values()))
             for candidate in candidates:
                 candidate.media = shows.get(candidate.item.pk)
+            continue
+        if light_movies and media_type == MediaTypes.MOVIE.value:
+            from app.movie_rows import movie_rows
+
+            movies = movie_rows(user, [candidate.item for candidate in candidates])
+            if filter_registry.NEEDS_MAX_PROGRESS in needs:
+                BasicMedia.objects.annotate_max_progress(list(movies.values()), media_type)
+            for candidate in candidates:
+                candidate.media = movies.get(candidate.item.pk)
             continue
         rows = model.objects.filter(
             user=user,

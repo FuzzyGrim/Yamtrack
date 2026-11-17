@@ -4,6 +4,7 @@
 import { getActiveAuthSession } from './authSession';
 import { formatUserDate, loadDatePreferences } from './userDate.js';
 import {
+  activitySessionQuery,
   episodeActionPath,
   episodesFromPayload,
   issuesFromPayload,
@@ -18,6 +19,12 @@ function call(path, options) {
     return Promise.reject(new Error('Sign in to your Floppy server to load this page.'));
   }
   return session.request(path, options);
+}
+
+export function loadActivitySessions(identity) {
+  const query = activitySessionQuery(identity);
+  if (!query) return Promise.resolve(null);
+  return call('/api/v1/history/sessions/', { query });
 }
 
 function resultList(payload) {
