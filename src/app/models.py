@@ -272,6 +272,11 @@ class MediaManager(models.Manager):
                     "seasons__episodes",
                     queryset=Episode.objects.select_related("item"),
                 ),
+                Prefetch(
+                    "item__event_set",
+                    queryset=events.models.Event.objects.all(),
+                    to_attr="prefetched_events",
+                ),
             )
 
         base_queryset = queryset.prefetch_related(
@@ -439,6 +444,24 @@ class MediaManager(models.Manager):
             if not media_list:
                 continue
 
+            if media_type == MediaTypes.TV.value:
+                # TV shows are normally represented on the home page by
+                # their seasons; only include a TV show directly when no
+                # season of it carries the requested status, otherwise
+                # planned shows without any tracked season never appear.
+                represented_tv_ids = set(
+                    Season.objects.filter(
+                        user=user,
+                        status=status,
+                        related_tv__in=[media.id for media in media_list],
+                    ).values_list("related_tv_id", flat=True),
+                )
+                media_list = [
+                    media for media in media_list if media.id not in represented_tv_ids
+                ]
+                if not media_list:
+                    continue
+
             # Annotate with max_progress and next_event
             self.annotate_max_progress(media_list, media_type)
             self._annotate_next_event(media_list)
@@ -467,12 +490,7 @@ class MediaManager(models.Manager):
         if specific_media_type:
             return [specific_media_type]
 
-        # Get active types excluding TV
-        return [
-            media_type
-            for media_type in user.get_active_media_types()
-            if media_type != MediaTypes.TV.value
-        ]
+        return user.get_active_media_types()
 
     def _annotate_next_event(self, media_list):
         """Annotate next_event for media items."""
