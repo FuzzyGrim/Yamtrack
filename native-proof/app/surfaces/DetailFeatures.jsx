@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Button } from '../../../frontend/ui/Button';
+import { HistoryActivityCalendar } from '../../../frontend/ui/HistoryFeed';
 import { MediaCard } from '../../../frontend/ui/MediaCard';
 import WindowedRail from './WindowedRail';
 import { Icon } from '../../../frontend/ui/Icon';
@@ -48,6 +49,7 @@ import {
 import {
   deleteHistoryEntry,
   loadActivityTimeline,
+  loadActivitySessions,
   loadAnimeEpisodes,
   loadCheckIn,
   loadCollectionEntries,
@@ -234,10 +236,15 @@ function NotesDialog({ open, note, busy, error, onSave, onClose }) {
 
 function PlaysDialog({ open, identity, entries, onRemove, onClose }) {
   const [timeline, setTimeline] = useState({ status: 'idle', days: [], multiple: false });
+  const [activity, setActivity] = useState(null);
+  const [selectedDay, setSelectedDay] = useState('');
   useEffect(() => {
     if (!open || !identity) return undefined;
     let cancelled = false;
     setTimeline({ status: 'loading', days: [], multiple: false });
+    setActivity(null);
+    setSelectedDay('');
+    loadActivitySessions(identity).then(next => { if (!cancelled) setActivity(next); }).catch(() => {});
     loadActivityTimeline(identity)
       .then(next => { if (!cancelled) setTimeline({ status: 'ready', days: next.days, multiple: next.multipleInstances }); })
       .catch(() => { if (!cancelled) setTimeline({ status: 'error', days: [], multiple: false }); });
@@ -245,6 +252,9 @@ function PlaysDialog({ open, identity, entries, onRemove, onClose }) {
   }, [open, identity, entries.length]);
   return <MediaCardActionHost open={open} action={{ title: 'Activity History' }} palette={palette} onClose={onClose}>
     <ScrollView style={styles.dialogScroll}>
+      {activity?.sessions?.length ? <HistoryActivityCalendar sessions={activity.sessions}
+        activityIntensity={activity.activityIntensity} selectedDay={selectedDay}
+        onSelectDay={setSelectedDay} palette={palette} /> : null}
       {timeline.status === 'loading' ? <ActivityIndicator color={palette.accent} /> : null}
       {timeline.days.map(day => <View key={day.day} style={styles.dayGroup}>
         <Text accessibilityRole="header" style={[styles.dialogText, styles.dayHeading, { color: palette.text }]}>{day.label}</Text>

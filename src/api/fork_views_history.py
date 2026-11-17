@@ -98,7 +98,7 @@ class HistorySessionsView(drf_views.APIView):
 
     @extend_schema(operation_id="listHistorySessions", parameters=_FEED_PARAMS, responses={200: OpenApiTypes.OBJECT})
     def get(self, request):
-        """Return {sessions, stats} for the filtered history."""
+        """Return sessions, stats and per-day activity intensity for the filtered history."""
         response = web_history.activity_sessions_modal(
             django_request(request, format="json"),
         )
