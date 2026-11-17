@@ -66,6 +66,9 @@ class SeasonFacts:
     source: str = ""
     # ``Season.start_date``: the earliest play date, in any pass.
     start_date: datetime | None = None
+    # ``Season.completed_episode_count``: distinct episodes watched in the
+    # current pass.
+    completed_episode_count: int = 0
 
     @property
     def item(self):
@@ -97,6 +100,15 @@ class ShowFacts:
         """Return ``TV.end_date``: the latest play date, specials included."""
         dates = [season.end_date for season in self.seasons if season.end_date]
         return max(dates) if dates else None
+
+    @property
+    def completed_episode_count(self):
+        """Return ``TV.completed_episode_count``: outside specials and dropped seasons."""
+        return sum(
+            season.completed_episode_count
+            for season in self.seasons
+            if season.season_number != 0 and season.status != Status.DROPPED.value
+        )
 
     @property
     def first_play_date(self):
@@ -178,6 +190,7 @@ def tv_show_facts(user, tv_ids=None):
             max_number=Max("item__episode_number"),
             reached=Max("item__episode_number", filter=Q(status__in=_REACHED_STATUSES)),
             completed=Count("pk", filter=Q(status=Status.COMPLETED.value)),
+            watched_numbers=Count("item__episode_number", filter=Episode.watch_q(), distinct=True),
         )
     ):
         season = seasons.get(row["related_season_id"])
@@ -186,6 +199,7 @@ def tv_show_facts(user, tv_ids=None):
         season.end_date = row["last_end"]
         season.start_date = row["first_end"]
         season.max_episode_number = row["max_number"] or 0
+        season.completed_episode_count = row["watched_numbers"]
         if row["completed"]:
             season.progress = row["reached"] or 0
 
@@ -195,7 +209,7 @@ def tv_show_facts(user, tv_ids=None):
 
 
 def _apply_rewatch_progress(seasons, rewatch_started, play_scope):
-    """Recount progress for seasons in a rewatch from the plays of that pass."""
+    """Recount progress and watched episodes for seasons in a rewatch, from that pass."""
     passes = {}
     for season_id, started_at in rewatch_started.items():
         # ``Season.play_counts_for_pass`` reads these two attributes only.
@@ -206,7 +220,8 @@ def _apply_rewatch_progress(seasons, rewatch_started, play_scope):
 
     reached = {}
     completed = set()
-    for season_id, episode_number, status, end_date, created_at in (
+    watched = {season_id: set() for season_id in passes}
+    for season_id, episode_number, status, dropped, end_date, created_at in (
         Episode.objects.filter(
             **play_scope,
             related_season__rewatch_started_at__isnull=False,
@@ -216,6 +231,7 @@ def _apply_rewatch_progress(seasons, rewatch_started, play_scope):
             "related_season_id",
             "item__episode_number",
             "status",
+            "dropped",
             "end_date",
             "created_at",
         )
@@ -228,11 +244,15 @@ def _apply_rewatch_progress(seasons, rewatch_started, play_scope):
             continue
         if status == Status.COMPLETED.value:
             completed.add(season_id)
+            if not dropped:
+                watched[season_id].add(episode_number)
         if status in _REACHED_STATUSES and episode_number:
             reached[season_id] = max(reached.get(season_id, 0), episode_number)
 
     for season_id in completed:
         seasons[season_id].progress = reached.get(season_id, 0)
+    for season_id, numbers in watched.items():
+        seasons[season_id].completed_episode_count = len(numbers)
 
 
 class _Related(list):
@@ -250,13 +270,17 @@ class TrackedShow:
     is defined by the ``TV`` or ``Media`` member of the same name, and the
     methods are the models' own. ``max_progress`` and
     ``released_episode_breakdown`` are unset until
-    ``annotate_released_progress`` runs, as on a tracker.
+    ``annotate_released_progress`` runs, as on a tracker. Runtime and time
+    watched also need the episode runtime index
+    (``prefill_episode_runtime_index``), as a tracker's do.
 
     It is not a tracker: a reader of anything else (score, the plays
     themselves) needs the hydrated row.
     """
 
     __slots__ = (
+        "_episode_runtime_index",
+        "_total_runtime_minutes_cache",
         "active_episode_order_id",
         "created_at",
         "facts",
@@ -298,6 +322,11 @@ class TrackedShow:
     end_date = progressed_at
 
     @property
+    def completed_episode_count(self):
+        """Return ``TV.completed_episode_count``."""
+        return self.facts.completed_episode_count
+
+    @property
     def start_date(self):
         """Return ``TV.start_date``: the first play, else creation while in progress."""
         first = self.facts.first_play_date
@@ -306,6 +335,15 @@ class TrackedShow:
         return first
 
     episodes_left = Media.episodes_left
+    # Runtime and time watched, as a tracker answers them.
+    total_runtime_minutes = Media.total_runtime_minutes
+    average_runtime_minutes = Media.average_runtime_minutes
+    time_watched_minutes = Media.time_watched_minutes
+    _get_known_item_runtime_minutes = Media._get_known_item_runtime_minutes
+    _get_fallback_runtime_minutes = Media._get_fallback_runtime_minutes
+    _calc_total_runtime_from_items = Media._calc_total_runtime_from_items
+    _episode_runtime_entries = Media._episode_runtime_entries
+    _plays_sort_value = TV._plays_sort_value
     next_episode_target = TV.next_episode_target
 
 
@@ -366,6 +404,7 @@ _SEASON_FIELDS = (
     "media_id",
     "source",
     "start_date",
+    "completed_episode_count",
 )
 
 

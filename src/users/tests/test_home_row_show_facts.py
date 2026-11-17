@@ -37,8 +37,21 @@ HOME_SORTS = (
     "home_episodes_left",
 )
 # The library's own sorts that read a show only through ``TrackedShow``.
-LIBRARY_SORTS = ("progress", "plays", "start_date", "end_date", "last_watched", "time_left")
-NEEDS = {filter_registry.NEEDS_MEDIA, filter_registry.NEEDS_MAX_PROGRESS}
+LIBRARY_SORTS = (
+    "progress",
+    "plays",
+    "start_date",
+    "end_date",
+    "last_watched",
+    "time_left",
+    "runtime",
+    "time_watched",
+)
+NEEDS = {
+    filter_registry.NEEDS_MEDIA,
+    filter_registry.NEEDS_MAX_PROGRESS,
+    filter_registry.NEEDS_RUNTIME,
+}
 WATCHED_ON = BASE + timedelta(days=600)
 
 
@@ -171,6 +184,8 @@ class TrackedShowTests(ShowFactsLibrary):
                 "progressed_at": media.progressed_at,
                 "end_date": media.end_date,
                 "start_date": media.start_date,
+                "runtime": media.total_runtime_minutes,
+                "time_watched": media.time_watched_minutes,
                 "max_progress": media.max_progress,
                 "breakdown": dict(media.released_episode_breakdown),
                 "episodes_left": media.episodes_left,
@@ -190,6 +205,8 @@ class TrackedShowTests(ShowFactsLibrary):
         self.assertGreater(len({r["max_progress"] for r in readings}), 3)
         self.assertEqual({r["caught_up"] for r in readings}, {True, False})
         self.assertIn(None, {r["progressed_at"] for r in readings})
+        self.assertGreater(len({r["runtime"] for r in readings}), 5)
+        self.assertGreater(len({r["time_watched"] for r in readings}), 5)
 
     def test_next_episode_matches_the_hydrated_tracker(self):
         """Up Next's projection is the same episode, release state and dates."""
@@ -300,7 +317,7 @@ class FactsOptInTests(ShowFactsLibrary):
 
     def test_a_sort_that_reads_the_tracker_keeps_it(self):
         """Sorts that never declared facts still get hydrated trackers."""
-        for sort_key in ("runtime", "time_watched", "progressed_at"):
+        for sort_key in ("progressed_at", "next_episode_air_date"):
             for progress in ("all", "caught_up"):
                 with self.subTest(sort=sort_key, progress=progress):
                     query = self.query(sort_key, progress=progress)

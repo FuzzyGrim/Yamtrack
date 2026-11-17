@@ -681,6 +681,76 @@ class ItemOnlySortPageTests(TestCase):
         self.assertLessEqual(built["Game"], len(page.object_list))
 
 
+class MovieRowOrderTests(LibraryQueryTestCase):
+    """Runtime and time watched rank movies from their columns, as from models."""
+
+    def setUp(self):
+        """Movies with every kind of runtime and repeat viewing."""
+        super().setUp()
+        runtimes = [(95, ""), (None, "1h 30m"), (999998, "2h"), (999999, ""), (None, ""), (0, "45min"), (120, "")]
+        for index in range(42):
+            item, _movie = self.make_movie(index)
+            minutes, text = runtimes[index % len(runtimes)]
+            Item.objects.filter(pk=item.pk).update(runtime_minutes=minutes, runtime=text)
+            Movie.objects.filter(item=item).update(progress=index % 3)
+            for repeat in range(index % 4):
+                self.track(
+                    item,
+                    status=Status.COMPLETED.value if repeat % 2 else Status.IN_PROGRESS.value,
+                    progress=repeat,
+                    end_date=self.now - timedelta(days=repeat) if repeat % 3 else None,
+                )
+
+    def test_light_rows_order_like_hydrated_movies(self):
+        """Both directions agree, and the light path builds no Movie model."""
+        attach = executor_module._attach_media
+
+        def hydrated(user, batch, needs, **kwargs):
+            kwargs.pop("light_movies", None)
+            return attach(user, batch, needs, **kwargs)
+
+        orders = set()
+        for key in ("runtime", "time_watched"):
+            query = _query(sort=SortSpec(key, "asc"))
+            built = Counter()
+            original = models.Model.from_db.__func__
+
+            def from_db(cls, db, field_names, values, built=built, original=original):
+                built[cls.__name__] += 1
+                return original(cls, db, field_names, values)
+
+            with self.subTest(sort=key):
+                with mock.patch.object(models.Model, "from_db", classmethod(from_db)):
+                    light = LibraryQueryExecutor(self.user, query).ranked_ids_both_directions()
+                with mock.patch.object(executor_module, "_attach_media", hydrated):
+                    reference = LibraryQueryExecutor(self.user, query).ranked_ids_both_directions()
+                self.assertEqual(light, reference)
+                self.assertEqual(set(built), {"Item"})
+                orders.add(tuple(light["asc"]))
+        # The two sorts differ, so the fixture exercises the play count.
+        self.assertEqual(len(orders), 2)
+
+    def test_list_page_builds_movies_for_its_cards_only(self):
+        """The media list ordered by runtime hydrates one page of trackers."""
+        self.library(200, start=42)
+        self.client.force_login(self.user)
+        for key in ("runtime", "time_watched"):
+            built = Counter()
+            original = models.Model.from_db.__func__
+
+            def from_db(cls, db, field_names, values, built=built, original=original):
+                built[cls.__name__] += 1
+                return original(cls, db, field_names, values)
+
+            with mock.patch.object(models.Model, "from_db", classmethod(from_db)):
+                response = self.client.get(f"/medialist/movie?sort={key}&direction=asc&status=All")
+            page = response.context["media_list"]
+            with self.subTest(sort=key):
+                self.assertEqual(page.paginator.count, 242)
+                # The cards' rows and repeat viewings, not the library's.
+                self.assertLess(built["Movie"], Movie.objects.count() // 2)
+
+
 class LargeTvBatchTests(LibraryQueryTestCase):
     """A batch with over 1000 episodes loads on SQLite (#1450)."""
 

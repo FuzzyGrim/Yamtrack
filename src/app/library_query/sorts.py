@@ -92,6 +92,10 @@ class SortDef:
     # rows, so a scan ordering by it loads no tracker. Only for a sort without
     # a SQL form; a filter that reads the tracker still loads it.
     item_only: bool = False
+    # For a movie the Python value reads the item and the tracker's own
+    # columns (status, progress, end date, creation), so a scan attaches an
+    # ``app.movie_rows.MovieRow`` instead of a model. Other types unaffected.
+    movie_rows: bool = False
 
 
 def _field(name: str):
@@ -417,8 +421,10 @@ SORTS: tuple[SortDef, ...] = (
     SortDef(("status",), sql=_status_rank, tracker=True),
     SortDef(("platform",), sql=_platform),
     # The rest are computed in Python from the hydrated candidate.
-    SortDef(("runtime",), needs=_MEDIA_RUNTIME),
-    SortDef(("time_watched",), needs=_MEDIA_RUNTIME),
+    # Shows rank from facts (plus the episode runtime index), movies from
+    # their columns; other types hydrate their tracker rows.
+    SortDef(("runtime",), needs=_MEDIA_RUNTIME, tv_facts=True, movie_rows=True),
+    SortDef(("time_watched",), needs=_MEDIA_RUNTIME, tv_facts=True, movie_rows=True),
     SortDef(("time_to_beat",), item_only=True),
     SortDef(("author",), item_only=True),
     # SQL for types that store the column; TV and seasons scan.

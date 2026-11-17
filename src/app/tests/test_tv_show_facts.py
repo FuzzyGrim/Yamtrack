@@ -265,6 +265,7 @@ class TVShowFactsTests(TestCase):
             label = tv.item.media_id
             self.assertEqual(show.progress, tv.progress, label)
             self.assertEqual(show.end_date, tv.end_date, label)
+            self.assertEqual(show.completed_episode_count, tv.completed_episode_count, label)
             self.assertEqual(
                 TrackedShow(tv.pk, tv.item, tv.status, tv.created_at, None, show).start_date,
                 tv.start_date,
@@ -517,7 +518,7 @@ class ShowOrderPageCostTests(TestCase):
 
     def test_each_order_hydrates_one_page_of_shows(self):
         """Shows, seasons and plays are built for the page, not the library."""
-        for sort in ("progress", "plays", "start_date", "end_date"):
+        for sort in ("progress", "plays", "start_date", "end_date", "runtime", "time_watched"):
             for direction in ("asc", "desc"):
                 cache.clear()
                 built = Counter()
