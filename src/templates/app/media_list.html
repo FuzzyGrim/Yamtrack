@@ -14,7 +14,7 @@
     {{ media_type|media_type_readable_plural }}
   </h1>
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: { {% for value, label in status_choices %} '{{ value }}': '{{ label }}' {% if not forloop.last %},{% endif %}  {% endfor %} }, sortLabels: { {% for value, label in sort_choices %} '{{ value }}': '{{ label }}' {% if not forloop.last %},{% endif %}  {% endfor %} } }">
+  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', hideUnreleased: {{ hide_unreleased|yesno:'true,false' }}, search: '{{ request.GET.search|default:'' }}', statusLabels: { {% for value, label in status_choices %} '{{ value }}': '{{ label }}' {% if not forloop.last %},{% endif %}  {% endfor %} }, sortLabels: { {% for value, label in sort_choices %} '{{ value }}': '{{ label }}' {% if not forloop.last %},{% endif %}  {% endfor %} } }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -101,6 +101,13 @@
             {% endfor %}
           </div>
         </div>
+
+        <a :href="`{% url 'medialist' target_user.username media_type %}?hide_unreleased=${hideUnreleased ? 'false' : 'true'}&layout=${layout}${search ? '&search=' + encodeURIComponent(search) : ''}${status !== 'all' ? '&status=' + status : ''}${sort ? '&sort=' + sort : ''}`"
+           class="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
+           :class="hideUnreleased ? 'border-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700' : 'border-gray-700 bg-[#39404b] text-gray-300 hover:bg-[#454d5a] hover:text-white'">
+          {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
+          <span>{% trans "Hide unreleased" %}</span>
+        </a>
 
         <!-- Layout Toggle -->
         <div class="flex rounded-md overflow-hidden border border-gray-700">

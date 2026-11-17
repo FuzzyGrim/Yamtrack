@@ -1,5 +1,4 @@
 import json
-from datetime import date, datetime
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 
 from django.apps import apps
@@ -10,14 +9,11 @@ from django.db.models import Q
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.models import BasicMedia, Item, MediaTypes, Status
-
-YEAR_ONLY_PARTS = 1
-YEAR_MONTH_PARTS = 2
+from app.release import is_released
 
 
 def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
@@ -143,31 +139,7 @@ def format_search_response(page, per_page, total_results, results):
 
 def is_released_date(air_date, current_date=None):
     """Return whether the supplied air date has already passed."""
-    current_date = current_date or timezone.localdate()
-    normalized_air_date = None
-
-    if isinstance(air_date, datetime):
-        if timezone.is_naive(air_date):
-            normalized_air_date = air_date.date()
-        else:
-            normalized_air_date = timezone.localtime(air_date).date()
-    elif isinstance(air_date, date):
-        normalized_air_date = air_date
-    elif isinstance(air_date, str):
-        parts = air_date.split("-")
-        if len(parts) == YEAR_ONLY_PARTS:
-            air_date = f"{air_date}-01-01"
-        elif len(parts) == YEAR_MONTH_PARTS:
-            air_date = f"{air_date}-01"
-
-        try:
-            normalized_air_date = date.fromisoformat(air_date)
-        except ValueError:
-            return False
-    else:
-        return False
-
-    return normalized_air_date <= current_date
+    return is_released(air_date, current_date)
 
 
 def _needs_image_refresh(item, new_image):

@@ -1,6 +1,7 @@
 from django.utils.text import slugify
 
 from app.models import BasicMedia, Status
+from app.release import is_visible_media
 
 
 def build_home_section(key, media_types):
@@ -15,10 +16,7 @@ def build_home_section(key, media_types):
 
 def is_active_in_progress_media(media):
     """Return True when media still has released backlog."""
-    if not _is_incoming_media(media):
-        return True
-
-    return media.max_progress is not None and media.progress < media.max_progress
+    return is_visible_media(media, Status.IN_PROGRESS.value)
 
 
 def get_home_media_types(
@@ -45,7 +43,7 @@ def get_home_media_types(
     return _paginate_home_media_types(
         _filter_home_media_types(
             media_types,
-            lambda media: _is_released_home_media(media, section_key),
+            lambda media: is_visible_media(media, section_key),
         ),
         items_limit,
         page_start=items_limit if specific_media_type else 0,
@@ -78,16 +76,3 @@ def _paginate_home_media_types(media_types, items_limit, page_start=0):
                 "total": media_list["total"],
             }
     return paginated_media_types
-
-
-def _is_incoming_media(media):
-    """Return True when media has a real upcoming release."""
-    return bool(media.next_event and not media.next_event.is_max_datetime)
-
-
-def _is_released_home_media(media, section_key):
-    """Return True when media should remain after hiding unreleased entries."""
-    if section_key == Status.IN_PROGRESS.value:
-        return is_active_in_progress_media(media)
-
-    return not _is_incoming_media(media)

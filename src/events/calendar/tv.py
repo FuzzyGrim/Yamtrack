@@ -73,10 +73,20 @@ def get_seasons_to_process(tv_item):
     ).select_related("item")
 
     seasons_with_events = {event.item.season_number for event in existing_season_events}
+    event_counts = {}
+    for event in existing_season_events:
+        season_number = event.item.season_number
+        event_counts[season_number] = event_counts.get(season_number, 0) + 1
+    episode_counts = {
+        season["season_number"]: season.get("max_progress")
+        for season in tv_metadata["related"]["seasons"]
+        if season.get("max_progress") is not None
+    }
     seasons_to_process = [
         season_num
         for season_num in season_numbers
         if season_num not in seasons_with_events
+        or episode_counts.get(season_num, 0) > event_counts.get(season_num, 0)
         or (next_episode_season and season_num >= next_episode_season)
     ]
 

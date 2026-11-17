@@ -292,6 +292,25 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
         self.assertEqual(get_tvmaze_response("999"), {})
 
     @patch("events.calendar.tv.tmdb.tv")
+    def test_get_seasons_to_process_refreshes_when_episode_count_grows(self, mock_tv):
+        """Refresh a season that gained episodes while the next one has no date."""
+        Event.objects.create(
+            item=self.season_item,
+            content_number=1,
+            datetime=date_parser("2026-10-14"),
+        )
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "max_progress": 15},
+                ],
+            },
+            "next_episode_season": None,
+        }
+
+        self.assertEqual(get_seasons_to_process(self.tv_item), [1])
+
+    @patch("events.calendar.tv.tmdb.tv")
     def test_get_seasons_to_process_returns_empty_when_no_seasons(self, mock_tv):
         """TV metadata without seasons should short-circuit processing."""
         mock_tv.return_value = {"related": {"seasons": []}}
