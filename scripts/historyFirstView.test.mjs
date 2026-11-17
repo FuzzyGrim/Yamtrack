@@ -38,6 +38,7 @@ async function load() {
     export { createRoot } from 'react-dom/client';
     export { HistoryFeed } from ${JSON.stringify(join(root, 'frontend/ui/HistoryFeed.jsx'))};
     export { firstViewDayCount, HISTORY_FIRST_VIEW_ENTRIES } from ${JSON.stringify(join(root, 'frontend/ui/historyFirstView.js'))};
+    export * as anchors from ${JSON.stringify(join(root, 'frontend/ui/historyScrollAnchor.web.js'))};
   `);
   const outfile = join(dir, 'out.mjs');
   await build({
@@ -59,7 +60,7 @@ async function load() {
 }
 
 const doc = installFakeDom();
-const { React, act, createRoot, HistoryFeed, firstViewDayCount, HISTORY_FIRST_VIEW_ENTRIES } = await load();
+const { React, act, createRoot, HistoryFeed, firstViewDayCount, HISTORY_FIRST_VIEW_ENTRIES, anchors } = await load();
 const tick = () => new Promise(done => setTimeout(done, 10));
 
 const entry = (day, index) => ({
@@ -150,4 +151,58 @@ test('without a watcher a waiting day keeps its button and loads nothing', async
   }));
   assert.deepEqual(loads, []);
   await act(async () => view.unmount());
+});
+
+// Back to History: the browser adapter remembers the top visible day per URL.
+function browserPage({ url, navigation = 'navigate', scrollY = 0, days = [] }) {
+  const store = new Map();
+  globalThis.sessionStorage = {
+    getItem: key => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, String(value)),
+    removeItem: key => store.delete(key),
+  };
+  globalThis.location = { href: url };
+  globalThis.scrollY = scrollY;
+  globalThis.performance = { ...globalThis.performance, getEntriesByType: () => [{ type: navigation, name: url }] };
+  const nodes = days.map(([key, top, bottom]) => ({ id: `history-day-${key}`, getBoundingClientRect: () => ({ top, bottom }) }));
+  const host = { isConnected: true, querySelectorAll: () => nodes };
+  return { host, store };
+}
+
+test('Back returns to the saved day; a fresh visit starts at the top', () => {
+  const url = 'http://floppy.test/history?year=2024&m=12';
+  const { host } = browserPage({ url, scrollY: 9100, days: [['20241229', -3000, -400], ['20241228', -400, 2600]] });
+  anchors.saveHistoryAnchor(host, url);
+  globalThis.performance.getEntriesByType = () => [{ type: 'back_forward', name: url }];
+  const saved = anchors.takeHistoryAnchor();
+  assert.equal(saved.key, '20241228');
+  assert.equal(saved.top, -400);
+  assert.equal(anchors.takeHistoryAnchor(), null, 'an anchor is read once');
+
+  anchors.saveHistoryAnchor(host, url);
+  globalThis.performance.getEntriesByType = () => [{ type: 'navigate', name: url }];
+  assert.equal(anchors.takeHistoryAnchor(), null, 'a fresh visit ignores and clears the anchor');
+  globalThis.performance.getEntriesByType = () => [{ type: 'back_forward', name: url }];
+  assert.equal(anchors.takeHistoryAnchor(), null);
+});
+
+test('one month saving its place does not clear another month', () => {
+  const december = 'http://floppy.test/history?year=2024&m=12';
+  const november = 'http://floppy.test/history?year=2024&m=11';
+  const { host } = browserPage({ url: december, scrollY: 15400, days: [['20241225', -1363, 900]] });
+  anchors.saveHistoryAnchor(host, december);
+  // On Back the address bar already shows December while November, at its
+  // top, saves under its own address.
+  globalThis.scrollY = 0;
+  anchors.saveHistoryAnchor(host, november);
+  globalThis.performance.getEntriesByType = () => [{ type: 'reload', name: december }];
+  assert.equal(anchors.takeHistoryAnchor()?.key, '20241225');
+});
+
+test('a page swapped out by a boosted link saves nothing', () => {
+  const url = 'http://floppy.test/history';
+  const { host, store } = browserPage({ url, scrollY: 500, days: [['20241231', -10, 800]] });
+  host.isConnected = false;
+  anchors.saveHistoryAnchor(host, url);
+  assert.equal(store.size, 0);
 });
