@@ -136,11 +136,41 @@ class LookupDueTests(TestCase):
         self._tag("found", timedelta(days=400))
         self.assertFalse(youtube_game.lookup_due(self.item))
 
+    def _play(self, ago):
+        from django.contrib.auth import get_user_model
+
+        from app.models import Video, VideoPlay
+
+        user = get_user_model().objects.create_user("viewer", password="x")
+        video = Video.objects.create(item=self.item, user=user)
+        VideoPlay.objects.create(
+            video=video, external_id="p1", end_date=timezone.now() - ago
+        )
+
     def test_not_found_waits_a_week(self):
+        self._play(timedelta(days=2))
         self._tag("not_found", timedelta(days=1))
         self.assertFalse(youtube_game.lookup_due(self.item))
         VideoGameTag.objects.update(checked_at=timezone.now() - timedelta(days=8))
         self.assertTrue(youtube_game.lookup_due(self.item))
+
+    def test_not_found_is_not_rechecked_once_nobody_watches_it(self):
+        """A tag added long after anyone watched is not worth a weekly fetch, forever."""
+        self._play(timedelta(days=45))
+        self._tag("not_found", timedelta(days=8))
+        self.assertFalse(youtube_game.lookup_due(self.item))
+        with patch("app.services.youtube_game.fetch_initial_data") as fetch:
+            self.assertEqual(youtube_game.backfill_due_items(), 0)
+        fetch.assert_not_called()
+
+    def test_recently_watched_not_found_is_rechecked_by_the_backfill(self):
+        self._play(timedelta(days=3))
+        self._tag("not_found", timedelta(days=8))
+        with patch(
+            "app.services.youtube_game.fetch_initial_data", return_value={}
+        ) as fetch:
+            self.assertEqual(youtube_game.backfill_due_items(), 1)
+        fetch.assert_called_once_with(self.item.media_id)
 
     def test_unavailable_backs_off_then_gives_up(self):
         self._tag("unavailable", timedelta(minutes=5), failures=1)

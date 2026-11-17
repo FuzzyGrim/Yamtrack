@@ -3,6 +3,7 @@ import logging
 from django.utils import timezone
 
 from app.models import Item, MediaTypes, Sources
+from events import release_marker
 from events.models import Event
 
 from .anime import process_anime_bulk
@@ -103,6 +104,7 @@ def save_events(events_bulk):
 
     to_create = []
     to_update = []
+    moved = False
 
     for event in events_bulk:
         items_updated.add(event.item)
@@ -111,6 +113,7 @@ def save_events(events_bulk):
             key = (event.item_id, event.content_number)
             if key in existing_with_content:
                 existing_event = existing_with_content[key]
+                moved = moved or existing_event.datetime != event.datetime
                 existing_event.datetime = event.datetime
                 to_update.append(existing_event)
             else:
@@ -119,6 +122,7 @@ def save_events(events_bulk):
             existing_without_content
         ):
             existing_event = existing_without_content[key]
+            moved = moved or existing_event.datetime != event.datetime
             existing_event.datetime = event.datetime
             to_update.append(existing_event)
         else:
@@ -129,6 +133,9 @@ def save_events(events_bulk):
 
     if to_update:
         Event.objects.bulk_update(to_update, ["datetime"])
+
+    if to_create or moved:
+        release_marker.bump()
 
     logger.info(
         "Successfully processed %d events (%d created, %d updated)",
@@ -193,6 +200,7 @@ def cleanup_invalid_events(events_bulk):
 
     if events_to_delete:
         deleted_count = Event.objects.filter(id__in=events_to_delete).delete()[0]
+        release_marker.bump()
         logger.info("Deleted %s invalid events for updated items", deleted_count)
 
 

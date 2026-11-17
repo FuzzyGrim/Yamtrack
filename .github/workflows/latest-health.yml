@@ -10,6 +10,11 @@ name: Latest Health
 # - When the publish gate in docker-image.yml finishes for a push to latest, it
 #   reads the gate's own test results. They already went red within minutes of
 #   a bad push, but nobody was told.
+# - Once a day, with no push needed, it runs both again on latest's newest
+#   commit. Some breaks come from the calendar, not a commit: on 15 November
+#   2026 Discover's holiday window opened and three tests failed on every
+#   branch. A push-only check sees that only at the next push, and the publish
+#   gate may then reuse a pull request result from before the date changed.
 #
 # Both feed one issue, "Tests are failing on latest" (scripts/latest_health.py):
 # opened on the first failure, updated while anything fails, commented on and
@@ -30,6 +35,10 @@ on:
     types: [completed]
     branches:
       - latest
+  # 00:20 UTC, just after the date changes for the tests (CI runs in UTC).
+  schedule:
+    - cron: "20 0 * * *"
+  # Runs the daily check now, for example to confirm a fix.
   workflow_dispatch:
 
 # Only the newest push is worth testing: a newer push cancels the older browser
@@ -37,8 +46,13 @@ on:
 # never cancelled mid-write. The two report jobs may still run at the same
 # moment; a concurrency group shared by both would drop a queued report, so
 # the script checks each write afterwards and redoes it (scripts/latest_health.py).
+# The daily check has its own group, so a push never cancels it (and it never
+# cancels a push's browser run); a newer daily or manual run replaces it.
 concurrency:
-  group: latest-health-${{ github.event_name == 'workflow_run' && 'gate' || github.ref }}
+  group: >-
+    latest-health-${{ github.event_name == 'workflow_run' && 'gate' ||
+    (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'daily' ||
+    github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_run' }}
 
 permissions:
@@ -59,6 +73,8 @@ jobs:
       FLOPPY_TEST_WATCHDOG: "4500"
       FLOPPY_TEST_PARALLEL: "1"
       FLOPPY_TEST_DB_TEMPLATE: "0"
+      CI_TEST_MODE: pr
+      FLOPPY_TEST_ACCOUNTING_DIR: .floppy/accounting
     steps:
       - name: Checkout latest
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -79,13 +95,10 @@ jobs:
           uv run --no-sync playwright install --with-deps chromium
       - name: Fetch migration baseline
         run: git fetch --no-tags https://github.com/FuzzyGrim/Yamtrack.git dev:refs/remotes/upstream/dev
-      # The browser tests pull requests must pass: every Playwright test in the
-      # app and integrations shards except the one flaky alphabet case, which
-      # stays in the diagnostic job. Keep this in step with app-tests.yml.
+      # Exactly the browser shard pull requests must pass (CI_TEST_MODE=pr),
+      # from the same script app-tests.yml calls, so the two cannot drift.
       - name: Run browser tests
-        run: >-
-          scripts/test.sh app integrations --tag playwright
-          --exclude-tag flaky_alphabet_rail --timing --durations 30
+        run: scripts/ci_tests.sh browser
 
   report_browser:
     name: Report browser tests
@@ -113,6 +126,49 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           SHA: ${{ github.sha }}
         run: python3 scripts/latest_health.py report --source browser --run-id "$RUN_ID" --sha "$SHA"
+
+  # The daily check of every other test: the publish gate's tests, called the
+  # same way docker-image.yml calls them, but on a schedule and never reused
+  # from a pull request (reuse applies only to a push). Builds and publishes
+  # nothing.
+  other_tests:
+    name: Other tests
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/app-tests.yml
+    with:
+      release_quality_gates: true
+    # What app-tests.yml's jobs need; the same as docker-image.yml grants it.
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      issues: read
+
+  report_daily:
+    name: Report other tests
+    needs: other_tests
+    if: >-
+      ${{ !cancelled() && github.ref == 'refs/heads/latest' &&
+      needs.other_tests.result != 'skipped' && needs.other_tests.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Checkout latest
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: latest
+          persist-credentials: false
+      - name: Update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: python3 scripts/latest_health.py report --source gate --run-id "$RUN_ID" --sha "$SHA"
 
   report_gate:
     name: Report publish gate tests

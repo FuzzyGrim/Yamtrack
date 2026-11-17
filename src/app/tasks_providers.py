@@ -10,7 +10,6 @@ import logging
 from celery import shared_task
 from django.conf import settings
 from django.db.models import Q
-from django.utils import timezone
 
 from app import backfill_queue, reconcile_state
 from app.interactive_requests import interactive_request_active
@@ -27,6 +26,7 @@ from app.tasks_backfill_state import (
     _record_backfill_failure,
     _record_backfill_pending,
     _record_backfill_success,
+    due_backfill_retry_item_ids,
 )
 
 logger = logging.getLogger(__name__)
@@ -249,21 +249,10 @@ def enqueue_due_provider_backfill_retries(
     empty TMDB payloads and earlier failures are this bounded queue, so they
     keep running after the whole-library sweep has been marked complete.
     """
-    from app.models import MetadataBackfillState
-
-    batch_size = max(int(batch_size), 1)
-    now = timezone.now()
-    due_ids = list(
-        MetadataBackfillState.objects.filter(
-            field=MetadataBackfillField.WATCH_PROVIDERS,
-            give_up=False,
-            last_success_at__isnull=True,
-            item__watch_providers={},
-        )
-        .filter(_provider_item_scope("item__"))
-        .filter(Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=now))
-        .order_by("next_retry_at", "item_id")
-        .values_list("item_id", flat=True)[:batch_size]
+    due_ids = due_backfill_retry_item_ids(
+        MetadataBackfillField.WATCH_PROVIDERS,
+        Item.objects.filter(_provider_item_scope(), watch_providers={}),
+        max(int(batch_size), 1),
     )
     if not due_ids:
         return 0
