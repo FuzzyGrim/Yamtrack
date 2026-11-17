@@ -1,0 +1,75 @@
+{% load i18n %}
+{% load ui_tags %}
+{% load app_tags %}
+{% load user_tags %}
+{# One page of album track rows. The album page renders the first page; the #}
+{# trigger at the end fetches the next page as it scrolls into view.        #}
+{% for track_data in tracks %}
+  <div class="bg-[var(--color-surface)] rounded-lg overflow-hidden shadow-lg">
+    <div class="flex flex-col md:flex-row">
+      <div class="md:w-32 md:h-32 shrink-0">
+        {% if album_display_image and album_display_image != IMG_NONE %}
+          <img src="{{ album_display_image|image_url }}"
+               alt="{{ track_data.track.title }}"
+               class="w-full h-full object-cover"
+               referrerpolicy="origin">
+        {% else %}
+          <div class="w-full h-full bg-[var(--color-sidebar)] flex items-center justify-center">
+            {% icon 'music' is_active=False extra_classes="w-8 h-8 text-gray-600" %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="py-3 flex-1 flex flex-col">
+        <div class="flex-1">
+          <div class="flex justify-between items-start mb-2 space-x-2 px-4">
+            <div class="flex-1 min-w-0">
+              <h3 class="text-lg font-semibold mb-1 line-clamp-1">
+                <a href="{{ track_data.track|music_track_url }}"
+                   class="hover:text-indigo-500 transition-colors duration-200">{{ track_data.track.title }}</a>
+              </h3>
+              <p class="text-sm text-[var(--color-text-muted)]">
+                {% if track_data.track.track_number %}
+                  {% blocktranslate trimmed with value_1=track_data.track.track_number %}Track {{ value_1 }}{% endblocktranslate %}
+                  {% if track_data.track.disc_number > 1 %} {% blocktranslate trimmed with value_1=track_data.track.disc_number %}(Disc {{ value_1 }}){% endblocktranslate %}{% endif %}
+                {% endif %}
+                {% if track_data.track.duration_formatted %}
+                  {% if track_data.track.track_number %} • {% endif %}{{ track_data.track.duration_formatted }}
+                {% endif %}
+              </p>
+              {% if track_data.origin_label %}
+                <a href="{{ track_data.origin_url }}"
+                   target="_blank"
+                   rel="noreferrer"
+                   class="mt-1 inline-block text-sm text-[var(--color-text-muted)] hover:text-indigo-500">{{ track_data.origin_label }}</a>
+              {% endif %}
+            </div>
+
+            <div class="flex space-x-2 shrink-0">
+              <div x-data="{ trackOpen: false }">
+                {% include "app/components/detail_music_track_button.html" with track_data=track_data only %}
+
+                {% include "app/components/fill_track_song.html" with request=request album=album track=track_data.track music=track_data.music play_count=track_data.play_count return_url=return_url csrf_token=csrf_token TRACK_TIME=TRACK_TIME user=user only %}
+              </div>
+
+              {% include "app/components/detail_music_track_actions.html" with track_data=track_data %}
+            </div>
+          </div>
+        </div>
+
+        {% include "app/components/detail_music_track_history_line.html" with track_data=track_data user=user only %}
+      </div>
+    </div>
+  </div>
+{% endfor %}
+{% if tracks_next_offset %}
+  <div hx-get="{% url 'music_album_track_rows' album.id %}?offset={{ tracks_next_offset }}"
+       hx-trigger="revealed threshold:200px"
+       hx-swap="outerHTML"
+       hx-disinherit="*"
+       class="py-4 album-tracks-load-more-trigger">
+    <div class="htmx-indicator text-center text-[var(--color-text-muted)]">
+      <p>{% translate "Loading more tracks..." %}</p>
+    </div>
+  </div>
+{% endif %}
