@@ -87,6 +87,9 @@
               }
               this.selectedDate = topDay;
               this.setMonthFromDate(topDay);
+              this.$el.querySelector('[data-date-time-picker-root]')?.dispatchEvent(
+                new CustomEvent('activity-calendar-sync', { detail: topDay }),
+              );
             },
             { root: list, rootMargin: "0px 0px -85% 0px" },
           );

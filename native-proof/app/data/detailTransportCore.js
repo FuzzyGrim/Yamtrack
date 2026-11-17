@@ -125,6 +125,22 @@ export function mediaPath(identity) {
   return path;
 }
 
+export function activitySessionQuery(identity) {
+  if (identity.musicKind === 'album') return { album: identity.musicId };
+  if (identity.podcastId) return { media_type: 'podcast', podcast_show: identity.podcastId };
+  if (!identity.mediaType || !identity.mediaId || !identity.source) return null;
+  const query = {
+    media_type: ['season', 'episode'].includes(identity.mediaType) || ['season', 'episode'].includes(identity.detailType)
+      ? 'tv' : identity.mediaType,
+    media_id: identity.mediaId,
+    source: identity.source,
+  };
+  if (identity.seasonNumber != null) query.season_number = identity.seasonNumber;
+  if (identity.episodeNumber != null) query.episode_number = identity.episodeNumber;
+  if (identity.mediaType === 'game' || identity.mediaType === 'boardgame') query.logging_style = 'sessions';
+  return query;
+}
+
 export function seasonEpisodesPath(identity, seasonNumber) {
   return `/api/v1/media/tv/${encodeURIComponent(identity.source)}`
     + `/${encodeURIComponent(identity.mediaId)}`

@@ -75,9 +75,13 @@ jobs:
           CI: "1"
         run: npm run export -- --platform all
 
+      # Both npm audits allow only the dated exceptions in
+      # .github/npm-audit-exceptions.json; an expired one fails again.
       - name: Audit Expo proof dependencies
         working-directory: native-proof
-        run: npm audit --ignore-scripts --audit-level=high
+        run: node ../scripts/npm_audit_gate.mjs --audit-level=high
 
       - name: Audit frontend build dependencies
-        run: npm audit --ignore-scripts
+        run: |
+          node --test scripts/npm_audit_gate.test.mjs
+          node scripts/npm_audit_gate.mjs
