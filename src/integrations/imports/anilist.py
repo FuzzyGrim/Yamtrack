@@ -5,6 +5,7 @@ from datetime import UTC
 import requests
 from django.apps import apps
 from django.conf import settings
+from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -103,7 +104,7 @@ class AniListImporter:
             username (str): AniList username to import from
             token (str): Encrypted access token for private imports (optional)
             user: Django user object to import data for
-            mode (str): Import mode ("new" or "overwrite")
+            mode (str): Import mode ("new", "update" or "overwrite")
         """
         self.username = username
         self.token = token
@@ -114,19 +115,19 @@ class AniListImporter:
         if self.token is not None:
             self.token = helpers.decrypt(self.token)
 
-        # Track existing media for "new" mode
+        # Track existing media for "new" and "update" mode
         self.existing_media = helpers.get_existing_media(user)
 
         # Track every entry of each media to sync the current one and add the
-        # missing repeats in "new" mode
+        # missing repeats in "new" and "update" mode
         self.existing_entries = {}
-        if mode == "new":
+        if mode != "overwrite":
             self.existing_entries = helpers.get_existing_entries(
                 user,
                 [MediaTypes.ANIME.value, MediaTypes.MANGA.value],
             )
 
-        # Track existing media changed in "new" mode, by primary key
+        # Track existing media changed in "new" and "update" mode, by primary key
         self.to_update = defaultdict(dict)
 
         # Track media IDs to delete in overwrite mode
@@ -250,13 +251,16 @@ class AniListImporter:
         self._process_media_data(response["data"]["anime"], MediaTypes.ANIME.value)
         self._process_media_data(response["data"]["manga"], MediaTypes.MANGA.value)
 
-        helpers.cleanup_existing_media(self.to_delete, self.user)
-        helpers.bulk_create_media(self.bulk_media, self.user)
-        helpers.bulk_update_media(
-            self.to_update,
-            helpers.EXISTING_MEDIA_UPDATE_FIELDS,
-            self.user,
-        )
+        # A finished entry and the repeats added after it are saved together,
+        # or a retry would find the repeats and leave the entry unfinished
+        with transaction.atomic():
+            helpers.cleanup_existing_media(self.to_delete, self.user)
+            helpers.bulk_create_media(self.bulk_media, self.user)
+            helpers.bulk_update_media(
+                self.to_update,
+                helpers.EXISTING_MEDIA_UPDATE_FIELDS,
+                self.user,
+            )
 
         imported_counts = {
             media_type: len(media_list)
@@ -319,6 +323,12 @@ class AniListImporter:
             "chapters",
         )
 
+        updated_at = (
+            timezone.now()
+            if content["updatedAt"] == 0
+            else timezone.datetime.fromtimestamp(content["updatedAt"], tz=UTC)
+        )
+
         repeats_count = content["repeat"]
         if content["status"] == "REPEATING" and repeats_count == 0:
             repeats_count = 1
@@ -331,6 +341,7 @@ class AniListImporter:
                 current,
                 max_progress,
                 repeats_count + 1,
+                updated_at,
             )
             if not missing:
                 return
@@ -346,11 +357,6 @@ class AniListImporter:
             },
         )
         model = apps.get_model(app_label="app", model_name=media_type)
-        updated_at = (
-            timezone.now()
-            if content["updatedAt"] == 0
-            else timezone.datetime.fromtimestamp(content["updatedAt"], tz=UTC)
-        )
 
         # Add completed repeats
         for _count in range(repeats_count):
@@ -373,28 +379,43 @@ class AniListImporter:
         self.bulk_media[media_type].append(instance)
 
     def _get_existing(self, media_type, source, media_id):
-        """Get the current entry of media already in Yamtrack, only in "new" mode."""
-        if self.mode != "new":
+        """Get the current entry of media already in Yamtrack, except in overwrite."""
+        if self.mode == "overwrite":
             return None
 
         entries = self.existing_entries.get((media_type, source, media_id))
         return helpers.get_current_entry(entries) if entries else None
 
-    def _sync_existing(self, media_type, media, current, max_progress, entries):
+    def _sync_existing(
+        self,
+        media_type,
+        media,
+        current,
+        max_progress,
+        entries,
+        updated_at,
+    ):
         """Sync existing media and return how many of its entries are missing."""
-        changed, missing = helpers.sync_existing_entries(
-            media,
-            current,
-            max_progress,
-            entries,
-            len(
-                self.existing_entries[
-                    media_type,
-                    media.item.source,
-                    media.item.media_id,
-                ],
-            ),
+        existing_count = len(
+            self.existing_entries[media_type, media.item.source, media.item.media_id],
         )
+        if self.mode == "update":
+            changed, missing = helpers.update_existing_entries(
+                media,
+                current,
+                max_progress,
+                entries,
+                existing_count,
+                updated_at,
+            )
+        else:
+            changed, missing = helpers.sync_existing_entries(
+                media,
+                current,
+                max_progress,
+                entries,
+                existing_count,
+            )
         if changed:
             self.to_update[media_type][media.pk] = media
 

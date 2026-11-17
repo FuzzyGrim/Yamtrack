@@ -54,7 +54,10 @@ def get_next_run_info(periodic_task):
     except json.JSONDecodeError:
         mode = "new"
 
-    mode = _("Only New Items") if mode == "new" else _("Overwrite Existing")
+    mode = {
+        "new": _("Only New Items"),
+        "update": _("Update Existing"),
+    }.get(mode, _("Overwrite Existing"))
 
     cron = periodic_task.crontab
     tz = zoneinfo.ZoneInfo(str(cron.timezone))

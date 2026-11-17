@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import translation
 
+from integrations.imports.helpers import MediaImportError
 from integrations.tasks import import_media
 
 
@@ -46,3 +47,32 @@ class ImportMediaLanguageTests(TestCase):
 
         self.assertEqual(active_languages, ["it-it"])
         self.assertEqual(translation.get_language(), language_before)
+
+
+class ImportMediaModeTests(TestCase):
+    """Test import tasks only run "update" mode for importers that support it."""
+
+    def setUp(self):
+        """Create a user."""
+        self.user = get_user_model().objects.create_user(
+            username="test",
+            password="12345",  # noqa: S106
+        )
+
+    @patch("integrations.tasks.events.tasks.reload_calendar.delay")
+    def test_update_mode_unsupported(self, _mock_reload_calendar):
+        """Test an importer without "update" mode runs only in other modes."""
+        modes = []
+
+        def importer(_identifier, _user, mode):
+            modes.append(mode)
+            return {}, None
+
+        with self.assertRaisesMessage(
+            MediaImportError,
+            "Update mode is only available for AniList imports.",
+        ):
+            import_media(importer, "identifier", self.user.id, "update")
+        import_media(importer, "identifier", self.user.id, "new")
+
+        self.assertEqual(modes, ["new"])
