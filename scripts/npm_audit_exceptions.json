@@ -1,0 +1,9 @@
+[
+  {
+    "advisory": "GHSA-fc5q-39xc-vjpf",
+    "package": "picomatch",
+    "reason": "ReDoS on crafted glob patterns. No fixed picomatch release exists yet (every version up to 4.0.7 is affected). Only build tooling uses it (Metro, Expo CLI, Parcel watcher), on globs from the repository, never on user input; it does not ship in the app. Approved by the maintainer on 2026-11-17.",
+    "added": "2026-11-17",
+    "expires": "2026-12-17"
+  }
+]

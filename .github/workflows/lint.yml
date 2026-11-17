@@ -77,7 +77,8 @@ jobs:
 
       - name: Audit Expo proof dependencies
         working-directory: native-proof
-        run: npm audit --ignore-scripts --audit-level=high
+        # Exceptions, each with a reason and an expiry: scripts/npm_audit_exceptions.json
+        run: node ../scripts/npm_audit_gate.mjs --audit-level=high
 
       - name: Audit frontend build dependencies
-        run: npm audit --ignore-scripts
+        run: node scripts/npm_audit_gate.mjs
