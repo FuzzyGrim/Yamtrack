@@ -5,6 +5,7 @@ from datetime import datetime
 from django.utils import timezone
 
 from app.models import TV, EpisodeOrder, Item, MediaTypes, Season, Status
+from events import release_marker
 from events.models import Event
 
 
@@ -65,4 +66,6 @@ def refresh_order_events(order: EpisodeOrder):
                 content_number=episode_item.episode_number,
                 defaults={"datetime": episode_item.release_datetime},
             )
+    if rows:
+        release_marker.bump()
     return len(rows)

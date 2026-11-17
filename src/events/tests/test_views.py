@@ -1100,7 +1100,8 @@ class CalendarFeedCacheTests(TestCase):
         url = reverse("download_calendar", kwargs={"token": self.user.token})
         self.assertEqual(self.client.get(url).status_code, 200)
 
-        with self.assertNumQueries(1):  # the token lookup only
+        # The token lookup and the user's change marker (the validator).
+        with self.assertNumQueries(2):
             response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)

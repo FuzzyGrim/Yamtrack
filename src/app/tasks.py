@@ -7,6 +7,7 @@ from celery import shared_task, states
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django_celery_results.models import TaskResult
 
@@ -15,6 +16,7 @@ from app.interactive_requests import interactive_request_active
 from app.log_safety import exception_summary
 from app.models import (
     DISCOVER_MOVIE_METADATA_BACKFILL_VERSION,
+    TV,
     Item,
     MediaTypes,
     MetadataBackfillField,
@@ -399,9 +401,12 @@ def _release_items_queryset():
             media_type=MediaTypes.TV.value,
             metadata_fetched_at__isnull=False,
             metadata_fetched_at__lte=stale_tv_cutoff,
-            tv__isnull=False,
+            # A subquery on the tracked shows, not a join: the join needed
+            # DISTINCT, and together with the ORDER BY it led SQLite to walk
+            # every item in fetch order whenever nothing was due.
+            id__in=TV.objects.values("item_id"),
         ),
-    ).distinct()
+    )
     # An item whose provider id does not resolve can never grow a release date,
     # so without this it stayed at the front of the queue - ordered by oldest
     # metadata_fetched_at - and was re-fetched on every single cycle.
@@ -483,6 +488,18 @@ def _game_length_items_queryset():
 
 def count_game_length_backfill_items() -> int:
     return _game_length_items_queryset().count()
+
+
+def _oldest_fetched_first():
+    """Order by fetch time without letting SQLite walk the fetch-time index.
+
+    Given that index for the ORDER BY, SQLite reads items in fetch order until it
+    has its few matches. When none match, the usual state of a long-lived
+    library, that is every fetched item on every tick. Ordering by an expression
+    leaves it the selective media-type index and a sort of the matches. Same
+    order: the column is never NULL in the querysets that use this.
+    """
+    return (Coalesce("metadata_fetched_at", "metadata_fetched_at"), "id")
 
 
 def _initial_metadata_items_queryset():
@@ -996,16 +1013,13 @@ def backfill_item_metadata_task(
     language_repair = repair_metadata_language_batch(batch_size=min(batch_size, 25))
     if interactive_request_active():
         logger.info("metadata_backfill_skipped reason=interactive_request_active")
+        # No "remaining" counts here: each is a pass over the library, five of
+        # them to report on a run that is standing back to save that work.
         return {
             "skipped": True,
             "reason": "interactive_request_active",
             "success_count": 0,
             "error_count": 0,
-            "remaining_metadata": _initial_metadata_items_queryset().count(),
-            "remaining_release": count_release_backfill_items(),
-            "remaining_discover_movie_metadata": count_discover_movie_metadata_backfill_items(),
-            "remaining_game_lengths": count_game_length_backfill_items(),
-            "remaining_status": count_status_backfill_items(),
             "message": "Skipped metadata backfill while an interactive request was active",
         }
 
@@ -1051,7 +1065,7 @@ def backfill_item_metadata_task(
         discover_backfill_items = list(
             _discover_movie_metadata_items_queryset()
             .exclude(id__in=selected_ids)
-            .order_by("metadata_fetched_at", "id")[:remaining_slots],
+            .order_by(*_oldest_fetched_first())[:remaining_slots],
         )
         remaining_slots = max(remaining_slots - len(discover_backfill_items), 0)
 
@@ -1063,11 +1077,19 @@ def backfill_item_metadata_task(
             + release_item_ids
             + discover_item_ids_selected
         )
-        status_backfill_items = list(
-            _status_items_queryset()
-            .exclude(id__in=selected_ids)
-            .order_by("metadata_fetched_at", "id")[:remaining_slots],
-        )
+        # One pick per media type: as a single IN (...) over four types the
+        # planner reads the whole item table instead of seeking by type.
+        status_backfill_items = sorted(
+            (
+                item
+                for media_type in STATUS_BACKFILL_MEDIA_TYPES
+                for item in _status_items_queryset()
+                .filter(media_type=media_type)
+                .exclude(id__in=selected_ids)
+                .order_by(*_oldest_fetched_first())[:remaining_slots]
+            ),
+            key=lambda item: (item.metadata_fetched_at, item.id),
+        )[:remaining_slots]
 
     items = (
         initial_items

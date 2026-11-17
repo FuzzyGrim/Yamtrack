@@ -1,0 +1,14 @@
+{% load i18n %}
+{% if listen_count > 0 %}
+  <p id="modal-listen-count-{{ music.id }}" class="text-sm text-[var(--color-text-muted)] mt-1">
+    {% if listen_count == 1 %}
+      {% translate "Listened once" %}
+    {% else %}
+      {% blocktranslate trimmed with value_1=listen_count %}Listened {{ value_1 }} times{% endblocktranslate %}
+    {% endif %}
+  </p>
+{% else %}
+  <p id="modal-listen-count-{{ music.id }}" class="text-sm text-[var(--color-text-muted)] mt-1">
+    {% translate "Not listened yet" %}
+  </p>
+{% endif %}

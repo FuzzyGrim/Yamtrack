@@ -329,65 +329,8 @@
     <section class="mb-8" {% detail_section_attrs user "music_album" "content" "tracks" %}>
       <h2 class="text-xl font-bold mb-4">{% translate "Tracks" %}</h2>
       {% if tracks %}
-        <div class="space-y-4">
-          {% for track_data in tracks %}
-            <div class="bg-[var(--color-surface)] rounded-lg overflow-hidden shadow-lg">
-              <div class="flex flex-col md:flex-row">
-                <div class="md:w-32 md:h-32 shrink-0">
-                  {% if album_display_image and album_display_image != IMG_NONE %}
-                    <img src="{{ album_display_image|image_url }}"
-                         alt="{{ track_data.track.title }}"
-                         class="w-full h-full object-cover"
-                         referrerpolicy="origin">
-                  {% else %}
-                    <div class="w-full h-full bg-[var(--color-sidebar)] flex items-center justify-center">
-                      {% icon 'music' is_active=False extra_classes="w-8 h-8 text-gray-600" %}
-                    </div>
-                  {% endif %}
-                </div>
-
-                <div class="py-3 flex-1 flex flex-col">
-                  <div class="flex-1">
-                    <div class="flex justify-between items-start mb-2 space-x-2 px-4">
-                      <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-semibold mb-1 line-clamp-1">
-                          <a href="{{ track_data.track|music_track_url }}"
-                             class="hover:text-indigo-500 transition-colors duration-200">{{ track_data.track.title }}</a>
-                        </h3>
-                        <p class="text-sm text-[var(--color-text-muted)]">
-                          {% if track_data.track.track_number %}
-                            {% blocktranslate trimmed with value_1=track_data.track.track_number %}Track {{ value_1 }}{% endblocktranslate %}
-                            {% if track_data.track.disc_number > 1 %} {% blocktranslate trimmed with value_1=track_data.track.disc_number %}(Disc {{ value_1 }}){% endblocktranslate %}{% endif %}
-                          {% endif %}
-                          {% if track_data.track.duration_formatted %}
-                            {% if track_data.track.track_number %} • {% endif %}{{ track_data.track.duration_formatted }}
-                          {% endif %}
-                        </p>
-                        {% if track_data.origin_label %}
-                          <a href="{{ track_data.origin_url }}"
-                             target="_blank"
-                             rel="noreferrer"
-                             class="mt-1 inline-block text-sm text-[var(--color-text-muted)] hover:text-indigo-500">{{ track_data.origin_label }}</a>
-                        {% endif %}
-                      </div>
-
-                      <div class="flex space-x-2 shrink-0">
-                        <div x-data="{ trackOpen: false }">
-                          {% include "app/components/detail_music_track_button.html" with track_data=track_data only %}
-
-                          {% include "app/components/fill_track_song.html" with request=request album=album track=track_data.track music=track_data.music csrf_token=csrf_token TRACK_TIME=TRACK_TIME user=user only %}
-                        </div>
-
-                        {% include "app/components/detail_music_track_actions.html" with track_data=track_data %}
-                      </div>
-                    </div>
-                  </div>
-
-                  {% include "app/components/detail_music_track_history_line.html" with track_data=track_data user=user only %}
-                </div>
-              </div>
-            </div>
-          {% endfor %}
+        <div id="album-tracks-list" class="space-y-4">
+          {% include "app/components/detail_music_album_track_rows.html" %}
         </div>
       {% else %}
         <div class="bg-[var(--color-surface)] p-6 rounded-lg text-center">

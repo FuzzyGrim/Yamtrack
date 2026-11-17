@@ -45,7 +45,7 @@ class _FakeRedisClient:
     def __init__(self, data):
         self.data = {key: set(values) for key, values in data.items()}
 
-    def scan_iter(self, match=None):
+    def scan_iter(self, match=None, count=None):
         for key in self.data:
             if match is None or fnmatch.fnmatch(key, match):
                 yield key
@@ -444,3 +444,31 @@ class RepairCeleryBrokerBindingsTaskTests(SimpleTestCase):
         result = repair_celery_broker_bindings()
 
         self.assertIsNone(result)
+
+
+class CeleryBrokerRepairScanTests(SimpleTestCase):
+    @override_settings(
+        CELERY_BROKER_URL="redis://example:6379/0",
+        CELERY_BROKER_TRANSPORT_OPTIONS={"sep": ":"},
+    )
+    @patch("app.celery_broker.redis.Redis.from_url")
+    def test_repair_scans_a_large_keyspace_in_few_round_trips(self, mock_from_url):
+        """Every cache key is in the same keyspace; ten per call took ~3 s a run."""
+        client = fakeredis.FakeStrictRedis(server=fakeredis.FakeServer())
+        for n in range(5000):
+            client.set(f"cache:{n}", 1)
+        client.sadd("_kombu.binding.celery", "celery::celery")
+        scans = []
+        original_scan = client.scan
+
+        def counting_scan(*args, **kwargs):
+            scans.append(kwargs.get("count"))
+            return original_scan(*args, **kwargs)
+
+        client.scan = counting_scan
+        mock_from_url.return_value = client
+
+        summary = celery_broker.repair_celery_redis_bindings()
+
+        self.assertEqual(summary["keys"], 1)
+        self.assertLessEqual(len(scans), 10)
