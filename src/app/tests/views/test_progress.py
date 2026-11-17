@@ -346,6 +346,7 @@ class ProgressEditPersistentMessages(TestCase):
                     {"episode_number": 1},
                     {"episode_number": 2},
                 ],
+                "max_progress": 2,
             },
             "related": {
                 "seasons": [{"season_number": 1}],

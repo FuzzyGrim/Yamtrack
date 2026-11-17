@@ -75,6 +75,7 @@ class MediaManagerTests(TestCase):
                             for i in range(1, 11)
                         ],
                         "image": "http://example.com/image.jpg",
+                        "max_progress": 10,
                     }
                     for season_number in season_numbers
                 }
@@ -869,6 +870,25 @@ class MediaManagerTests(TestCase):
 
         manager._annotate_tv_released_episodes(tv_list, timezone.now())
         self.assertEqual(tv_list[0].max_progress, 10)
+
+    def test_annotate_season_max_progress_uses_metadata_episode_total(self):
+        """Season progress totals should include episodes without calendar events."""
+        self.mock_get_media_metadata.side_effect = None
+        self.mock_get_media_metadata.return_value = {
+            "season/1": {"max_progress": 6},
+        }
+        self.mock_get_media_metadata.reset_mock()
+        manager = MediaManager()
+
+        manager.annotate_max_progress([self.season1], MediaTypes.SEASON.value)
+
+        self.assertEqual(self.season1.max_progress, 6)
+        self.mock_get_media_metadata.assert_called_once_with(
+            "tv_with_seasons",
+            self.season1_item.media_id,
+            self.season1_item.source,
+            [self.season1_item.season_number],
+        )
 
     def test_get_media(self):
         """Test the get_media method."""

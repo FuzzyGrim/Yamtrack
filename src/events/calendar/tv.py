@@ -56,9 +56,8 @@ def get_seasons_to_process(tv_item):
         logger.warning("No seasons found for TV show: %s", tv_item)
         return []
 
-    season_numbers = [
-        season["season_number"] for season in tv_metadata["related"]["seasons"]
-    ]
+    seasons = tv_metadata["related"]["seasons"]
+    season_numbers = [season["season_number"] for season in seasons]
 
     if not season_numbers:
         logger.warning("No valid seasons found for TV show: %s", tv_item)
@@ -72,13 +71,30 @@ def get_seasons_to_process(tv_item):
         item__media_type=MediaTypes.SEASON.value,
     ).select_related("item")
 
-    seasons_with_events = {event.item.season_number for event in existing_season_events}
-    seasons_to_process = [
-        season_num
-        for season_num in season_numbers
-        if season_num not in seasons_with_events
-        or (next_episode_season and season_num >= next_episode_season)
-    ]
+    seasons_with_events = set()
+    episode_counts_by_season = {}
+    for event in existing_season_events:
+        season_number = event.item.season_number
+        seasons_with_events.add(season_number)
+        if event.content_number is not None:
+            episode_counts_by_season.setdefault(season_number, set()).add(
+                event.content_number,
+            )
+
+    seasons_to_process = []
+    for season in seasons:
+        season_number = season["season_number"]
+        expected_episode_count = season.get("max_progress")
+        existing_episode_count = len(episode_counts_by_season.get(season_number, ()))
+        if (
+            season_number not in seasons_with_events
+            or (
+                expected_episode_count is not None
+                and existing_episode_count < expected_episode_count
+            )
+            or (next_episode_season and season_number >= next_episode_season)
+        ):
+            seasons_to_process.append(season_number)
 
     if not seasons_to_process:
         return []

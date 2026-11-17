@@ -61,6 +61,7 @@ class HomeViewTests(TestCase):
                     "details": {"seasons": 1},
                     f"season/{season_number}": {
                         "episodes": [{"id": i} for i in range(1, 11)],
+                        "max_progress": 10,
                     },
                     "related": {
                         "seasons": [
@@ -351,6 +352,7 @@ class HomeViewTests(TestCase):
             "image": "http://example.com/image.jpg",
             "season/1": {
                 "episodes": [{"id": 1}, {"id": 2}, {"id": 3}],  # 3 episodes
+                "max_progress": 3,
             },
             "related": {
                 "seasons": [

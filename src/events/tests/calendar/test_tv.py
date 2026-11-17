@@ -298,6 +298,63 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         self.assertEqual(get_seasons_to_process(self.tv_item), [])
 
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_get_seasons_to_process_backfills_incomplete_season_events(self, mock_tv):
+        """Seasons with fewer events than TMDB lists should be reprocessed."""
+        for episode_number in range(1, 4):
+            Event.objects.create(
+                item=self.season_item,
+                content_number=episode_number,
+                datetime=date_parser(f"2024-01-0{episode_number}"),
+            )
+
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [{"season_number": 1, "max_progress": 6}],
+            },
+            "next_episode_season": None,
+        }
+
+        self.assertEqual(get_seasons_to_process(self.tv_item), [1])
+
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_get_seasons_to_process_skips_complete_season_events(self, mock_tv):
+        """Seasons with an event for every listed episode need no refresh."""
+        for episode_number in range(1, 7):
+            Event.objects.create(
+                item=self.season_item,
+                content_number=episode_number,
+                datetime=date_parser(f"2024-01-{episode_number:02d}"),
+            )
+
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [{"season_number": 1, "max_progress": 6}],
+            },
+            "next_episode_season": None,
+        }
+
+        self.assertEqual(get_seasons_to_process(self.tv_item), [])
+
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_get_seasons_to_process_still_refreshes_upcoming_season(self, mock_tv):
+        """The currently airing season refresh behavior remains unchanged."""
+        for episode_number in range(1, 7):
+            Event.objects.create(
+                item=self.season_item,
+                content_number=episode_number,
+                datetime=date_parser(f"2024-01-{episode_number:02d}"),
+            )
+
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [{"season_number": 1, "max_progress": 6}],
+            },
+            "next_episode_season": 1,
+        }
+
+        self.assertEqual(get_seasons_to_process(self.tv_item), [1])
+
     @patch("events.calendar.tv.get_seasons_to_process")
     def test_process_tv_returns_when_no_seasons_need_processing(
         self,

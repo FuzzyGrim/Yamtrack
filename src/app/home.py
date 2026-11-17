@@ -18,7 +18,8 @@ def is_active_in_progress_media(media):
     if not _is_incoming_media(media):
         return True
 
-    return media.max_progress is not None and media.progress < media.max_progress
+    released_progress = getattr(media, "released_progress", media.max_progress)
+    return released_progress is not None and media.progress < released_progress
 
 
 def get_home_media_types(
