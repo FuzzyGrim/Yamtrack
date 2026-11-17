@@ -682,6 +682,125 @@ class SeasonStatusTests(TestCase):
             ).exists(),
         )
 
+    def _completed_season_metadata(self, next_air_date):
+        """Return metadata for completing S1 when S2 aired on next_air_date."""
+        return [
+            {
+                "episodes": [
+                    {
+                        "episode_number": 1,
+                        "image": "img1.jpg",
+                        "air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                ],
+                "image": "season_img.jpg",
+            },
+            {
+                "related": {
+                    "seasons": [
+                        {
+                            "season_number": 1,
+                            "image": "season_img.jpg",
+                            "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                        },
+                        {
+                            "season_number": 2,
+                            "image": "season_img2.jpg",
+                            "first_air_date": next_air_date,
+                        },
+                    ],
+                },
+            },
+        ]
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_without_auto_start_leaves_next_season(
+        self,
+        mock_get_metadata,
+    ):
+        """With auto start off, completing a season does not start the next one."""
+        self.user.auto_start_next_season = False
+        self.user.save()
+        mock_get_metadata.side_effect = self._completed_season_metadata(
+            datetime(2020, 6, 1, tzinfo=UTC),
+        )
+
+        self.season.status = Status.COMPLETED.value
+        self.season.save()
+
+        self.assertFalse(
+            Season.objects.filter(
+                related_tv=self.tv,
+                item__season_number=2,
+            ).exists(),
+        )
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+        self.assertFalse(
+            UserMessage.objects.filter(
+                user=self.user,
+                message__contains="was marked as in progress automatically",
+            ).exists(),
+        )
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message=f"{self.tv} Season 2 is available to watch.",
+            ).exists(),
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_without_auto_start_keeps_planning_season(
+        self,
+        mock_get_metadata,
+    ):
+        """With auto start off, a tracked Planning season stays Planning."""
+        self.user.auto_start_next_season = False
+        self.user.save()
+        next_season = Season.objects.create(
+            item=Item.objects.create(
+                media_id="123",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
+                title="Test Show",
+                image="http://example.com/image2.jpg",
+                season_number=2,
+            ),
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+        mock_get_metadata.side_effect = self._completed_season_metadata(
+            datetime(2020, 6, 1, tzinfo=UTC),
+        )
+
+        self.season.status = Status.COMPLETED.value
+        self.season.save()
+
+        next_season.refresh_from_db()
+        self.assertEqual(next_season.status, Status.PLANNING.value)
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_last_season_without_auto_start_completes_tv_show(
+        self,
+        mock_get_metadata,
+    ):
+        """With auto start off, an unaired next season still completes the show."""
+        self.user.auto_start_next_season = False
+        self.user.save()
+        mock_get_metadata.side_effect = self._completed_season_metadata(
+            datetime(2999, 1, 1, tzinfo=UTC),
+        )
+
+        self.season.status = Status.COMPLETED.value
+        self.season.save()
+
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
+
     def test_dropped_status_updates_tv_status(self):
         """Test setting status to DROPPED updates TV status."""
         self.season.status = Status.DROPPED.value

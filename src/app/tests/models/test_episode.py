@@ -376,6 +376,57 @@ class EpisodeStatusTests(TestCase):
         self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
 
     @patch("app.models.providers.services.get_media_metadata")
+    def test_non_last_season_without_auto_start_keeps_next_season(
+        self,
+        mock_get_metadata,
+    ):
+        """With auto start off, watching the last episode does not start S2."""
+        self.user.auto_start_next_season = False
+        self.user.save(update_fields=["auto_start_next_season"])
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
+            "related": {
+                "seasons": [
+                    {
+                        "season_number": 1,
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                    {
+                        "season_number": 2,
+                        "image": "season_img2.jpg",
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                ],
+            },
+        }
+
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        self.season.refresh_from_db()
+        self.tv.refresh_from_db()
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
+        self.assertFalse(
+            Season.objects.filter(
+                related_tv=self.tv,
+                item__season_number=2,
+            ).exists(),
+        )
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message=f"{self.tv} Season 2 is available to watch.",
+            ).exists(),
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
     def test_rewatch_last_episode_does_not_duplicate_completion_messages(
         self,
         mock_get_metadata,

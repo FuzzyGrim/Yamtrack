@@ -170,6 +170,30 @@ def is_released_date(air_date, current_date=None):
     return normalized_air_date <= current_date
 
 
+def next_released_season(
+    seasons,
+    completed_season_numbers,
+    after_season_number,
+    current_date=None,
+):
+    """Return the first season to watch after after_season_number.
+
+    ``seasons`` is a show's season metadata in airing order. A season is skipped
+    when the user completed it or when it has not aired yet. Returns that
+    season's metadata, or None when there is nothing left to watch.
+    """
+    for season_data in seasons:
+        season_number = season_data["season_number"]
+        if season_number <= after_season_number:
+            continue
+        if season_number in completed_season_numbers:
+            continue
+        if not is_released_date(season_data.get("first_air_date"), current_date):
+            continue
+        return season_data
+    return None
+
+
 def _needs_image_refresh(item, new_image):
     """Return True when ``item.image`` should be replaced with ``new_image``."""
     if item is None or not new_image or new_image == settings.IMG_NONE:

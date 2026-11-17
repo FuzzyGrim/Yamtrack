@@ -363,6 +363,12 @@ class User(AbstractUser):
         help_text=_("Hide completed media in recommendations"),
     )
 
+    # Start the next season when one is completed
+    auto_start_next_season = models.BooleanField(
+        default=True,
+        help_text=_("Start the next season automatically when one is completed"),
+    )
+
     # Hide zero ratings
     hide_zero_rating = models.BooleanField(
         default=False,

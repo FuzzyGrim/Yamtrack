@@ -1,10 +1,11 @@
 import json
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 from django import forms
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from app.helpers import (
@@ -13,6 +14,7 @@ from app.helpers import (
     form_error_messages,
     get_configured_app_url,
     minutes_to_hhmm,
+    next_released_season,
     redirect_back,
 )
 from app.models import Item, MediaTypes, Movie, Sources, Status
@@ -330,3 +332,42 @@ class EnrichItemsWithUserDataTest(TestCase):
             self.request, raw_items, "recommendations"
         )
         self.assertEqual(len(enriched_items), 2)
+
+
+class NextReleasedSeasonTests(SimpleTestCase):
+    """Pick the next season to watch from a show's season metadata."""
+
+    TODAY = date(2026, 6, 1)
+    SEASONS = [
+        {"season_number": 0, "first_air_date": "2019-01-01"},
+        {"season_number": 1, "first_air_date": "2020-01-01"},
+        {"season_number": 2, "first_air_date": "2021-01-01"},
+        {"season_number": 3, "first_air_date": "2022-01-01"},
+        {"season_number": 4, "first_air_date": "2027-01-01"},
+    ]
+
+    def next_number(self, completed, after):
+        """Return the number of the next season, or None."""
+        season = next_released_season(self.SEASONS, completed, after, self.TODAY)
+        return None if season is None else season["season_number"]
+
+    def test_returns_the_season_after_the_completed_one(self):
+        """The season right after the completed one comes next."""
+        self.assertEqual(self.next_number({1}, after=1), 2)
+
+    def test_skips_completed_later_seasons(self):
+        """A later season the user already completed is skipped."""
+        self.assertEqual(self.next_number({1, 2}, after=1), 3)
+
+    def test_ignores_earlier_and_special_seasons(self):
+        """Specials and seasons before after_season_number are never picked."""
+        self.assertEqual(self.next_number(set(), after=1), 2)
+
+    def test_skips_unaired_seasons(self):
+        """A season that has not aired yet is not available."""
+        self.assertIsNone(self.next_number({3}, after=3))
+
+    def test_missing_air_date_is_not_released(self):
+        """A season without an air date counts as not aired."""
+        seasons = [{"season_number": 2}]
+        self.assertIsNone(next_released_season(seasons, set(), 1, self.TODAY))
