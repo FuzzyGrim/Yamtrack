@@ -37,6 +37,16 @@ BROWSER_LOG_FAIL = f"""\
 2026-11-14T22:31:00.0000000Z FAILED (errors=1)
 """
 
+# The evidence table the "Reuse PR test result?" job prints.
+REUSE_LOG = """\
+2026-11-16T18:20:37.2747876Z **Decision: reuse.** The test shards are skipped.
+2026-11-16T18:20:37.2753720Z | run | `43925435829 (attempt 1)` |
+2026-11-16T18:20:37.2756554Z | run started | `{started}` |
+2026-11-16T18:20:37.2757252Z decision=reuse
+"""
+BEFORE = "2000-01-01T00:00:00Z"
+AFTER = "2999-01-01T00:00:00Z"
+
 
 def job(name, conclusion="success", step=None, step_conclusion=None, job_id=1):
     steps = [{"name": "Set up job", "conclusion": "success"}]
@@ -162,6 +172,24 @@ class ClassifyTests(unittest.TestCase):
             job("Release quality gates / Upgrade (postgres)", "failure", job_id=4),
         ]
         self.assertEqual(self.classify(jobs, source="gate").status, "pass")
+
+    def test_gate_reuse_reads_when_the_reused_run_started(self):
+        # Shape of run 43927493021 (e05b97d45, 2026-11-16).
+        jobs = [
+            job("Release quality gates / Reuse PR test result?", job_id=9),
+            job(
+                "Release quality gates / test (${{ matrix.suite }}, ${{ matrix.python-version }})",
+                "skipped",
+            ),
+            job("Release quality gates / test (3.12)", "success", job_id=3),
+        ]
+        log = REUSE_LOG.format(started="2026-11-16T18:07:03Z")
+        result = self.classify(jobs, log, source="gate")
+        self.assertEqual(result.status, "pass")
+        self.assertEqual(result.reused_started, "2026-11-16T18:07:03Z")
+        # A real run is not a reuse.
+        real = [job("Release quality gates / test (app, 3.12)", "success", "Run Tests")]
+        self.assertIsNone(self.classify(real, source="gate").reused_started)
 
     def test_gate_without_shards_or_rollup_is_unknown(self):
         jobs = [job("Release quality gates / test (3.12)", "cancelled", job_id=3)]
@@ -299,7 +327,21 @@ class InjectionScenarios(unittest.TestCase):
         )
         return lh.run_report(self.gh, "browser", run_id, sha)
 
-    def gate(self, run_id, sha, broken=False, unknown=False):
+    def gate(self, run_id, sha, broken=False, unknown=False, reused=None):
+        if reused is not None:
+            # The shards were skipped because the pull request run that
+            # started at `reused` tested this tree ("" = no time in the log).
+            jobs = [
+                job("Release quality gates / Reuse PR test result?", job_id=9),
+                job(
+                    "Release quality gates / test (${{ matrix.suite }}, 3.12)",
+                    "skipped",
+                ),
+                job("Release quality gates / test (3.12)", "success", job_id=3),
+            ]
+            log = REUSE_LOG.format(started=reused) if reused else "no table"
+            self.gh.add_run(run_id, jobs, log)
+            return lh.run_report(self.gh, "gate", run_id, sha)
         if unknown:
             jobs = [job("Release quality gates / test (3.12)", "cancelled", job_id=3)]
         else:
@@ -420,14 +462,14 @@ class InjectionScenarios(unittest.TestCase):
         self.browser("b1", "bad1", broken=True)
         self.assertEqual(len(self.gh.issues_by_number), 1)
         body = self.gh.open_issue()["body"]
-        self.assertIn("Other tests (publish gate)", body)
+        self.assertIn("Other tests (publish gate or daily run)", body)
         self.assertIn(BROWSER_TEST, body)
 
         self.push("fix")
         self.browser("b2", "fix", broken=False)
         self.assertEqual(len(self.gh.open_list()), 1)
         self.assertIn(
-            "Not closing yet: Other tests (publish gate) still failing",
+            "Not closing yet: Other tests (publish gate or daily run) still failing",
             self.gh.comments[-1][1],
         )
 
@@ -632,3 +674,69 @@ class StateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CalendarBreaks(unittest.TestCase):
+    """Breaks that come from the date, not a commit.
+
+    The real case: Discover's holiday window opened on 15 November 2026 and
+    three DiscoverServiceTests failed on every branch with no commit to blame.
+    """
+
+    setUp = InjectionScenarios.setUp
+    push = InjectionScenarios.push
+    browser = InjectionScenarios.browser
+    gate = InjectionScenarios.gate
+
+    def test_daily_run_catches_a_date_break_on_an_unchanged_commit(self):
+        # An earlier issue closed with both sources passing at "head"; its
+        # state is how the next report knows "head" passed.
+        self.push("bad0")
+        self.browser("b0", "bad0", broken=True)
+        self.push("head")
+        self.browser("b1", "head", broken=False)
+        self.gate("g1", "head")
+        self.assertEqual(self.gh.open_list(), [])
+        # The date rolls; no push. The daily run fails on the same commit.
+        plan = self.gate("daily1", "head", broken=True)
+        self.assertEqual(plan.action, "open")
+        body = self.gh.open_issue()["body"]
+        self.assertIn("config.tests.test_ui_docs.UiDocsTests", body)
+        self.assertIn("No commit caused this", body)
+        self.assertNotIn("compare/head...head", body)
+
+    def test_first_ever_daily_failure_uses_the_last_gate_success(self):
+        # No issue has ever existed, so no state: the last good commit comes
+        # from the newest successful gate run, which is this same commit.
+        self.gh.successes[lh.GATE_WORKFLOW] = "head"
+        self.push("head")
+        self.gate("daily1", "head", broken=True)
+        self.assertIn("No commit caused this", self.gh.open_issue()["body"])
+
+    def test_reused_run_from_before_the_break_does_not_close(self):
+        self.push("head")
+        self.gate("daily1", "head", broken=True)
+        self.push("merge")
+        self.browser("b2", "merge", broken=False)
+        self.gate("g2", "merge", reused=BEFORE)
+        self.assertEqual(len(self.gh.open_list()), 1)
+        body = self.gh.open_issue()["body"]
+        self.assertIn("before these tests started failing", body)
+        # An unreadable reuse time proves nothing either.
+        self.push("merge2")
+        self.browser("b3", "merge2", broken=False)
+        self.gate("g3", "merge2", reused="")
+        self.assertEqual(len(self.gh.open_list()), 1)
+        # A fix whose pull request ran after the break was seen closes it.
+        self.push("fix")
+        self.browser("b4", "fix", broken=False)
+        self.gate("g4", "fix", reused=AFTER)
+        self.assertEqual(self.gh.open_list(), [])
+
+    def test_reused_pass_with_nothing_failing_is_a_pass(self):
+        self.push("head")
+        self.browser("b1", "head", broken=False)
+        plan = self.gate("g1", "head", reused=BEFORE)
+        self.assertEqual(plan.action, "none")
+        self.assertEqual(self.gh.issues_by_number, {})
+        self.assertIn("passing", plan.note)
