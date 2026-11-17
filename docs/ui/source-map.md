@@ -612,7 +612,8 @@ Status: `Partial / coexisting`
 - `src/templates/app/components/fill_track.html`
 - `src/templates/app/components/fill_track_episode.html`
 - `src/templates/app/components/fill_track_episode_bulk.html`
-- `src/templates/app/components/fill_track_song.html`
+- `src/templates/app/components/fill_track_song.html` (album rows pass `play_count`, so the hidden fallback reads no per-track history)
+- `src/templates/app/components/fill_track_song_listen_count.html`
 - `src/templates/app/components/media_metadata_panel.html`
 - `src/templates/app/components/podcast_show_track_modal.html`
 - `src/templates/app/create_entry.html`
@@ -700,7 +701,8 @@ The artist relation and album grids are React islands over server-rendered fallb
 - `src/templates/app/components/artist_grid_items.html`
 - `src/templates/app/components/artist_relation_grid.html`
 - `src/templates/app/components/artist_relations_container.html`
-- `src/templates/app/components/detail_music_album.html`
+- `src/templates/app/components/detail_music_album.html` (renders the first 50 track rows; totals cover every track)
+- `src/templates/app/components/detail_music_album_track_rows.html` (one page of album track rows plus the scroll trigger that loads the next page from `music_album_track_rows`; links in later pages return to the album page)
 - `src/templates/app/components/detail_music_album_activity_subtitle.html`
 - `src/templates/app/components/detail_music_artist.html`
 - `src/templates/app/components/detail_music_track.html`

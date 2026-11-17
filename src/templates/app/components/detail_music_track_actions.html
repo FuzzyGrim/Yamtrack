@@ -5,13 +5,13 @@
 <div id="music-track-actions-{{ track_data.track.id }}"
      {% if track_actions_oob %}hx-swap-oob="true"{% endif %}
      class="flex space-x-2">
-  {% include "app/components/music_track_notes_button.html" with track=track_data.track request=request only %}
+  {% include "app/components/music_track_notes_button.html" with track=track_data.track request=request return_url=return_url only %}
   {% if track_data.music %}
     {# Lists button #}
     <div>
       <button class="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition duration-300 cursor-pointer"
               title="{% translate "Add to custom lists" %}"
-              {% lists_modal_click track_data.music.item request.get_full_path %}>
+              {% lists_modal_click track_data.music.item return_url|default:request.get_full_path %}>
         {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
       </button>
 
@@ -22,7 +22,7 @@
       <button class="p-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full transition duration-300 cursor-pointer"
               title="{% translate "View your activity history" %}"
               hx-get="{% media_view_url 'history_modal' track_data.music.item %}"
-              hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+              hx-vals='{"return_url": "{{ return_url|default:request.get_full_path|urlencode }}"}'
               hx-target="#history-modal-{{ track_data.track.id }}"
               hx-trigger="click once"
               @click="historyOpen = true">

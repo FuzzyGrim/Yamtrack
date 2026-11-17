@@ -6,7 +6,7 @@
           title="{% translate 'Track notes' %}"
           aria-label="{% translate 'Track notes' %}"
           hx-get="{% url 'music_track_notes' track.id %}"
-          hx-vals='{"return_url": "{{ request.get_full_path|escapejs }}"}'
+          hx-vals='{"return_url": "{{ return_url|default:request.get_full_path|escapejs }}"}'
           hx-target="#music-track-notes-editor-{{ track.id }}"
           @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
   <template x-teleport="body">

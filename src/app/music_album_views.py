@@ -29,6 +29,8 @@ from app.music_views import (
     _music_activity_date_range,
     _music_album_detail_url,
     _render_music_tracker_modal,
+    music_play_summaries,
+    music_track_play_fields,
 )
 from app.providers import musicbrainz
 from app.services import bulk_music_tracking
@@ -358,7 +360,7 @@ def song_save(request):
         track_data = {
             "track": track,
             "music": music,
-            "history": list(music.history.all().order_by("-end_date")),
+            **music_track_play_fields(music_play_summaries([music.id]).get(music.id)),
             "collection_entry": CollectionEntry.objects.filter(
                 user=request.user,
                 item=music.item,
