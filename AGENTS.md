@@ -184,6 +184,7 @@ Before adding helpers, maps, files, abstractions, or validation layers, ask:
 
 Do not create new abstractions, helper layers, provider interfaces, background tasks, docs, or config files unless the current task clearly needs them.
 Before adding a new function, class, setting, management command, or integration hook, check whether an existing pattern already solves the same problem.
+A change that adds a module or moves a responsibility updates `docs/architecture/code-map.md` in the same PR (`python3 scripts/check_code_map.py` checks its paths).
 
 For bugs, patch the narrow failing path first.
 For small behavior changes, make the direct edit first.
@@ -378,6 +379,7 @@ For each new outcome in `last-reviewed..upstream/dev`:
 Models/migrations and divergent UI normally require manual adaptation. Provider modules and isolated importers may permit small ports. CI, Docker, and dependencies move as coherent platform packages. Branding, version bumps, merge commits, generated churn, and individual dependency-bot commits are normally discarded with the ledger's reason codes.
 
 ## Repository Map
+- Start at `docs/architecture/code-map.md`: which module owns a subject, where new code goes, and what to search before adding a helper.
 - `src/` Django project code (apps: `app`, `users`, `lists`, `integrations`, `events`; config in `config/`).
 - `src/templates/` and `src/static/` for UI templates and CSS assets.
 - `src/static/css/main.css` is the committed Tailwind output loaded by templates.
