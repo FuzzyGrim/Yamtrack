@@ -670,57 +670,46 @@ def get_artist_collection_stats(user, artist):
     """
     from app.models import Album, Music
 
-    # Get all albums for this artist
     albums = Album.objects.filter(artist=artist)
     total_albums = albums.count()
-
-    # Get all music entries (tracks) for these albums
-    music_entries = Music.objects.filter(
-        user=user,
-        album__in=albums,
-    ).select_related("item", "album")
-
-    # Count total tracks (all tracks from all albums for this artist)
+    # Every query below is the same size however many albums and plays the
+    # artist has: counts and ids in SQL, never a model per play.
+    music_entries = Music.objects.filter(user=user, album__in=albums)
     total_tracks = music_entries.count()
+    no_collection = {
+        "collected_albums": 0,
+        "total_albums": total_albums,
+        "collected_tracks": 0,
+        "total_tracks": total_tracks,
+    }
+    if not total_tracks:
+        return no_collection
 
-    # Get collection entries for all items from this artist
-    item_ids = [m.item_id for m in music_entries if m.item_id]
-    if not item_ids:
-        return {
-            "collected_albums": 0,
-            "total_albums": total_albums,
-            "collected_tracks": 0,
-            "total_tracks": total_tracks,
-        }
+    # One id per collection entry: a track collected twice counts twice.
+    collected_item_ids = list(
+        CollectionEntry.objects.filter(
+            user=user,
+            item_id__in=music_entries.filter(item__isnull=False).values("item_id"),
+        ).values_list("item_id", flat=True),
+    )
+    if not collected_item_ids:
+        return no_collection
 
-    collection_entries = CollectionEntry.objects.filter(
-        user=user,
-        item_id__in=item_ids,
-    ).select_related("item")
-
-    if not collection_entries.exists():
-        return {
-            "collected_albums": 0,
-            "total_albums": total_albums,
-            "collected_tracks": 0,
-            "total_tracks": total_tracks,
-        }
-
-    # Count distinct albums that have at least one collected track
-    collected_album_ids = set()
-    collected_track_count = 0
-
-    for entry in collection_entries:
-        # Find which album this track belongs to
-        music_entry = music_entries.filter(item_id=entry.item_id).first()
-        if music_entry and music_entry.album_id:
-            collected_album_ids.add(music_entry.album_id)
-        collected_track_count += 1
+    # A collected track belongs to the album of its first entry, in the
+    # model's default order (what ``.first()`` per track used to return).
+    album_by_item_id = {}
+    for item_id, album_id in music_entries.filter(
+        item_id__in=set(collected_item_ids),
+    ).values_list("item_id", "album_id"):
+        album_by_item_id.setdefault(item_id, album_id)
+    collected_album_ids = {
+        album_by_item_id.get(item_id) for item_id in collected_item_ids
+    } - {None}
 
     return {
         "collected_albums": len(collected_album_ids),
         "total_albums": total_albums,
-        "collected_tracks": collected_track_count,
+        "collected_tracks": len(collected_item_ids),
         "total_tracks": total_tracks,
     }
 
