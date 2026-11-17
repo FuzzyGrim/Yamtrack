@@ -56,6 +56,14 @@
       </td>
     {% endif %}
 
+    <td class="p-2 text-center">
+      {% if media|has_public_rating %}
+        <span class="text-white">{{ media|public_rating_text }}</span>
+      {% else %}
+        <span class="text-gray-500">–</span>
+      {% endif %}
+    </td>
+
     {# Progress field #}
     {% if media_type != MediaTypes.MOVIE.value %}
       <td class="p-2 text-center">

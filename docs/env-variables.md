@@ -9,6 +9,10 @@ This page outlines the environment variables used in the YamTrack project.
 | `TMDB_API`      | The Movie Database API key for movies and TV shows. A default key is provided.                                                                                                                                                                        |
 | `TMDB_NSFW`     | Default to `False`. Set to `True` to include adult content in TV and movie searches.                                                                                                                                                                  |
 | `TMDB_LANG`     | TMDB metadata language. Uses a language code in ISO 639-1 (e.g., `en`). Also supports a country code in ISO 3166-1 (e.g., `en-US`). Metadata is cached for a few hours in Redis. You may need to clear the cache to see the new language immediately. |
+| `OMDB_API_KEY`  | Optional [OMDb](https://www.omdbapi.com/) key. Fetches IMDb, Rotten Tomatoes (critics), and Metacritic ratings for movies and TV shows. When unset, those ratings stay empty and the rest of the app keeps working. |
+| `OMDB_DAILY_LIMIT` | Maximum OMDb requests per day. Default `900` (the free tier allows about 1,000). The daily refresh task and `manage.py backfill_public_ratings` both stop at this limit. |
+| `PUBLIC_SCORE_MIN_IMDB_VOTES` | IMDb scores with fewer votes than this are left out of the public score. Default `1000`. The rating is still shown on the detail page. |
+| `PUBLIC_SCORE_MIN_TMDB_VOTES` | TMDB scores with fewer votes than this are left out of the public score. Default `50`. The rating is still shown on the detail page. |
 | `MAL_API`       | MyAnimeList API key for anime and manga. A default key is provided.                                                                                                                                                                                   |
 | `MAL_NSFW`      | Default to `False`. Set to `True` to include adult content in anime and manga searches from MyAnimeList.                                                                                                                                              |
 | `MU_NSFW`       | Default to `False`. Set to `True` to include adult content in manga searches from MangaUpdates.                                                                                                                                                       |
@@ -128,6 +132,7 @@ YamTrack supports reading sensitive configuration values from Docker secrets fil
 | `DB_USER`                 | `DB_USER_FILE`                 |
 | `DB_PASSWORD`             | `DB_PASSWORD_FILE`             |
 | `TMDB_API`                | `TMDB_API_FILE`                |
+| `OMDB_API_KEY`            | `OMDB_API_KEY_FILE`            |
 | `MAL_API`                 | `MAL_API_FILE`                 |
 | `IGDB_ID`                 | `IGDB_ID_FILE`                 |
 | `IGDB_SECRET`             | `IGDB_SECRET_FILE`             |
