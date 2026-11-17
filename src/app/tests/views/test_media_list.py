@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -232,3 +235,65 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("media_list", response.context)
+
+
+class OwnMediaListRedirectTests(TestCase):
+    """Test the /medialist/<media_type> redirect used by PWA shortcuts."""
+
+    def setUp(self):
+        """Create a user and log in."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+    def test_redirects_to_own_media_list(self):
+        """Every media type redirects to the user's own list."""
+        for media_type in MediaTypes.values:
+            with self.subTest(media_type=media_type):
+                response = self.client.get(f"/medialist/{media_type}")
+                self.assertRedirects(
+                    response,
+                    reverse("medialist", args=[self.user.username, media_type]),
+                    fetch_redirect_response=False,
+                )
+
+    def test_keeps_query_string(self):
+        """Filters in an old bookmark survive the redirect."""
+        response = self.client.get("/medialist/movie", {"status": "Completed"})
+        self.assertRedirects(
+            response,
+            reverse("medialist", args=[self.user.username, "movie"])
+            + "?status=Completed",
+            fetch_redirect_response=False,
+        )
+
+    def test_anonymous_user_is_sent_to_login(self):
+        """Without a session, the shortcut leads to login and back."""
+        self.client.logout()
+        response = self.client.get("/medialist/tv")
+        self.assertRedirects(
+            response,
+            f"{reverse(settings.LOGIN_URL)}?next=/medialist/tv",
+            fetch_redirect_response=False,
+        )
+
+    def test_user_named_medialist_keeps_their_list(self):
+        """A user named "medialist" still owns /medialist/<media_type>."""
+        get_user_model().objects.create_user(
+            username="medialist",
+            password="x",  # noqa: S106
+            profile_private=False,
+        )
+        response = self.client.get("/medialist/tv")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["target_user"].username, "medialist")
+
+    def test_manifest_shortcuts_resolve(self):
+        """Every PWA shortcut in site.webmanifest opens a page, not a 404."""
+        manifest_path = Path(settings.BASE_DIR) / "static/favicon/site.webmanifest"
+        shortcuts = json.loads(manifest_path.read_text())["shortcuts"]
+        self.assertTrue(shortcuts)
+        for shortcut in shortcuts:
+            with self.subTest(url=shortcut["url"]):
+                response = self.client.get(shortcut["url"], follow=True)
+                self.assertEqual(response.status_code, 200)
