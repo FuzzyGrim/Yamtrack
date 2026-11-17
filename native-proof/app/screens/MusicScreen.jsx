@@ -42,6 +42,8 @@ import {
   mapTracksPayload,
   mapTracker,
   nowDateTimeStr,
+  REPAIR_POLL_MS,
+  repairPending,
 } from '../data/musicTransportCore';
 import { mediaCardPalette, palette, radius, spacing } from '../theme';
 
@@ -189,6 +191,10 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
   const [confirm, setConfirm] = useState(null);
   const [dateValue, setDateValue] = useState(nowDateTimeStr);
   const [history, setHistory] = useState({ rows: [], loading: false });
+  // Set while the server is still filling in this artist or album.
+  const [artistRepairing, setArtistRepairing] = useState(false);
+  const [albumRepairing, setAlbumRepairing] = useState(false);
+  const repairAttempts = useRef({ artist: 0, album: 0 });
 
   const run = useCallback(async (action, payload, errorLabel) => {
     if (!serverMode) return null;
@@ -206,8 +212,10 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
     if (!serverMode || !artistId) return undefined;
     let active = true;
     setLoadingArtist(true);
+    repairAttempts.current.artist = 0;
     loadArtistWithRelations(transport, artistId).then(({ artist: payload, relations }) => {
       if (!active) return;
+      setArtistRepairing(repairPending(payload));
       const next = mapArtistPayload(payload);
       if (next && relations) next.relations = {
         members: (relations.members || []).map(relationModel),
@@ -229,11 +237,13 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
     if (!serverMode || !albumId) return undefined;
     let active = true;
     setLoadingAlbum(true);
+    repairAttempts.current.album = 0;
     Promise.all([
       transport.loadAlbum({ albumId }),
       transport.loadAlbumTracks({ albumId }),
     ]).then(([albumPayload, trackPayload]) => {
       if (!active) return;
+      setAlbumRepairing(repairPending(trackPayload));
       const mappedTracks = mapTracksPayload(trackPayload);
       setAlbum(mapAlbumPayload(albumPayload));
       setTracks(mappedTracks);
@@ -255,6 +265,54 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
     });
     return () => { active = false; };
   }, [albumId, reloadToken, serverMode, transport]);
+
+  // Quiet reloads while the server fills in a new artist or album.
+  useEffect(() => {
+    if (!serverMode || !artistId || !artistRepairing) return undefined;
+    let active = true;
+    const timer = setTimeout(() => {
+      repairAttempts.current.artist += 1;
+      loadArtistWithRelations(transport, artistId).then(({ artist: payload, relations }) => {
+        if (!active) return;
+        const next = mapArtistPayload(payload);
+        if (next && relations) next.relations = {
+          members: (relations.members || []).map(relationModel),
+          alsoIn: (relations.also_in || []).map(relationModel),
+        };
+        setArtist(next);
+        setArtistRepairing(repairPending(payload, repairAttempts.current.artist));
+      }).catch(() => {
+        if (active) setArtistRepairing(false);
+      });
+    }, REPAIR_POLL_MS);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [artistId, artistRepairing, artist, serverMode, transport]);
+
+  useEffect(() => {
+    if (!serverMode || !albumId || !albumRepairing) return undefined;
+    let active = true;
+    const timer = setTimeout(() => {
+      repairAttempts.current.album += 1;
+      Promise.all([
+        transport.loadAlbum({ albumId }),
+        transport.loadAlbumTracks({ albumId }),
+      ]).then(([albumPayload, trackPayload]) => {
+        if (!active) return;
+        setAlbum(mapAlbumPayload(albumPayload));
+        setTracks(mapTracksPayload(trackPayload));
+        setAlbumRepairing(repairPending(trackPayload, repairAttempts.current.album));
+      }).catch(() => {
+        if (active) setAlbumRepairing(false);
+      });
+    }, REPAIR_POLL_MS);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [albumId, albumRepairing, album, tracks, serverMode, transport]);
 
   useEffect(() => {
     if (!serverMode || !showId) return undefined;
@@ -932,7 +990,10 @@ export default function MusicScreen({ params, transport: injectedTransport }) {
             onChooseRelease={albumRemoteId && album.hasReleaseGroup ? openReleases : null} />
           {tracks.length
             ? null
-            : <EmptyPanel title="No tracks yet"
+            : albumRepairing
+              ? <EmptyPanel title="Loading tracks"
+                copy="Fetching them from MusicBrainz." />
+              : <EmptyPanel title="No tracks yet"
               copy="Sync the album metadata to rebuild the tracklist from MusicBrainz."
               actionLabel={albumRemoteId ? 'Sync metadata' : null}
               onAction={syncAlbumMetadata} />}

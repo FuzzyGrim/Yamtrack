@@ -1205,3 +1205,39 @@ def prefetch_artist_images_batch(artist_ids: list[int]):
                 exception_summary(exc),
             )
     return {"artists": len(artist_ids), "images_updated": updated}
+
+
+# Repairs that artist, album and track pages used to run while rendering. Each
+# page queues its own (app.music_page_repair) on the default queue: the page
+# has already been drawn from stored rows and does not wait for this.
+@shared_task(name="app.tasks.repair_music_artist_page")
+def repair_music_artist_page(artist_id: int):
+    """Resolve, dedupe, sync and refresh one artist the way its page used to."""
+    from app.music_page_repair import finish_repair, run_artist_repair
+
+    try:
+        return run_artist_repair(artist_id)
+    finally:
+        finish_repair("artist", artist_id)
+
+
+@shared_task(name="app.tasks.repair_music_album_page")
+def repair_music_album_page(album_id: int, user_id: int | None = None):
+    """Dedupe, heal and fill one album (tracks, credits, genres)."""
+    from app.music_page_repair import finish_repair, run_album_repair
+
+    try:
+        return run_album_repair(album_id, user_id)
+    finally:
+        finish_repair("album", album_id)
+
+
+@shared_task(name="app.tasks.repair_music_track_page")
+def repair_music_track_page(track_id: int):
+    """Fetch the MusicBrainz recording an unlistened track page shows."""
+    from app.music_page_repair import finish_repair, run_track_lookup
+
+    try:
+        return run_track_lookup(track_id)
+    finally:
+        finish_repair("track", track_id)

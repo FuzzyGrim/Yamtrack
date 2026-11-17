@@ -1,0 +1,11 @@
+{% comment %}
+  An artist, album or track page whose background repair is running
+  (app.music_page_repair). Asks every 2 seconds; when the repair finishes the
+  server reloads the page, so the filled-in data appears without a manual reload.
+{% endcomment %}
+<div id="music-repair-poll"
+     hx-get="{{ poll.url }}?attempt={{ poll.next_attempt }}"
+     hx-trigger="load delay:2s"
+     hx-swap="outerHTML"
+     aria-hidden="true"
+     hidden></div>

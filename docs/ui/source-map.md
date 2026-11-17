@@ -706,6 +706,7 @@ The artist relation and album grids are React islands over server-rendered fallb
 - `src/templates/app/components/artist_relations_container.html`
 - `src/templates/app/components/detail_music_album.html` (renders the first 50 track rows; totals cover every track)
 - `src/templates/app/components/detail_music_album_track_rows.html` (one page of album track rows plus the scroll trigger that loads the next page from `music_album_track_rows`; links in later pages return to the album page)
+- `src/templates/app/components/music_repair_poll.html` (hidden poller on an artist, album or track page while its background repair runs; reloads the page when `music_repair_status` reports it finished, or follows a merge to the surviving album or artist)
 - `src/templates/app/components/detail_music_album_activity_subtitle.html`
 - `src/templates/app/components/detail_music_artist.html`
 - `src/templates/app/components/detail_music_track.html`

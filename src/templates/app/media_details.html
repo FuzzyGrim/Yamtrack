@@ -26,7 +26,11 @@
     {% include "app/components/detail_music_album.html" %}
   {% elif music_detail_kind == "track" %}
     {% include "app/components/detail_music_track.html" %}
-  {% else %}
+  {% endif %}
+  {% if music_repair_poll %}
+    {% include "app/components/music_repair_poll.html" with poll=music_repair_poll %}
+  {% endif %}
+  {% if not music_detail_kind %}
     {% if not render_secondary_only %}
       {# Top section #}
       {% if carousel_supported %}

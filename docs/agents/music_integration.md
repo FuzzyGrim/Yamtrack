@@ -322,7 +322,7 @@ def sync_artist_discography(artist: Artist, force: bool = False) -> int:
 ```python
 def populate_album_tracks(album: Album) -> int:
     """Populate Track rows for an album."""
-    # Called when viewing album detail
+    # Called by the album repair task (app.music_page_repair) that an album page queues
     # Fetches tracks from MusicBrainz
     # Creates Track rows with title, number, duration
 ```
@@ -360,7 +360,7 @@ def populate_album_tracks(album: Album) -> int:
   - Dedupes albums/tracks by normalized title and re-homes trackers and Music rows to the canonical records.
   - Prefetches cover art for **all** missing album images for the artist (no limit) so posters arrive without page visits.
   - Ensures `ArtistTracker` and `AlbumTracker` exist for the user.
-- Dedupe also runs when viewing artist/album pages or forcing discography sync.
+- Dedupe also runs in the repair task an artist or album page queues when it sees duplicate titles (`app.music_page_repair`), and when forcing a discography sync.
 
 ### Cover Art Prefetch
 

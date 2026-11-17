@@ -1146,6 +1146,21 @@ def _sync_single_artist_member(band: Artist, member_data: dict) -> bool:
     return True
 
 
+def artist_members_need_sync(artist: Artist) -> bool:
+    """Return True when an artist's band members are due a MusicBrainz sync.
+
+    Members synced within 30 days (7 when none were found) are fresh.
+    """
+    if not artist.musicbrainz_id:
+        return False
+    if not artist.members_synced_at:
+        return True
+    days_since_sync = (timezone.now() - artist.members_synced_at).days
+    existing_members = ArtistMember.objects.filter(band=artist).exists()
+    max_age = 30 if existing_members else 7
+    return days_since_sync >= max_age
+
+
 def sync_artist_members(artist: Artist, force: bool = False) -> int:
     """Sync band members for an artist from MusicBrainz.
 
@@ -1170,20 +1185,9 @@ def sync_artist_members(artist: Artist, force: bool = False) -> int:
         )
         return 0
 
-    if not force and artist.members_synced_at:
-        days_since_sync = (timezone.now() - artist.members_synced_at).days
-        existing_members = ArtistMember.objects.filter(band=artist).exists()
-        max_age = 30 if existing_members else 7
-
-        if days_since_sync < max_age:
-            logger.debug(
-                "Artist %s members synced %d days ago (max_age=%d, has_members=%s), skipping",
-                artist.name,
-                days_since_sync,
-                max_age,
-                existing_members,
-            )
-            return 0
+    if not force and not artist_members_need_sync(artist):
+        logger.debug("Artist %s members synced recently, skipping", artist.name)
+        return 0
 
     try:
         artist_data = musicbrainz.get_artist(artist.musicbrainz_id)

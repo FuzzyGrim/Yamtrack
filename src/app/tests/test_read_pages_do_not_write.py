@@ -18,6 +18,7 @@ issues. It does not show waiting: see ``test_page_loads_with_writer_busy``.
 from __future__ import annotations
 
 import os
+import uuid
 from datetime import timedelta
 from unittest import skipUnless
 from unittest.mock import patch
@@ -29,11 +30,20 @@ from django.test import TestCase
 
 from app.benchmark_data import EPOCH, build_dataset
 from app.models import (
+    Album,
+    AlbumArtist,
     ApplicationSettings,
+    Artist,
     DiscoverRowCache,
     DiscoverTasteProfile,
     Item,
     MediaTypes,
+    Track,
+)
+from app.templatetags.app_tags import (
+    music_album_url,
+    music_artist_url,
+    music_track_url,
 )
 from app.tests.sqlite_writes import record_writes
 from integrations.models import IntegrationToken
@@ -99,17 +109,25 @@ class ReadPagesDoNotWriteTests(TestCase):
     @classmethod
     def setUpClass(cls):
         """Freeze time at the fixture's epoch and keep providers and tasks out."""
+        cls.provider_request = patch(
+            "requests.sessions.Session.request",
+            side_effect=requests.ConnectionError("offline in this test"),
+        )
         for patcher in (
             patch("django.utils.timezone.now", return_value=EPOCH),
             # No provider is reachable, as on an offline host.
+            cls.provider_request,
+            # MusicBrainz's module-level requests.get (cover art, biographies).
             patch(
-                "requests.sessions.Session.request",
+                "app.providers.musicbrainz.requests.get",
                 side_effect=requests.ConnectionError("offline in this test"),
             ),
             # Tests run tasks inline; a queued task is not part of the page.
             patch("celery.app.task.Task.apply_async", return_value=None),
         ):
-            patcher.start()
+            mock = patcher.start()
+            if patcher is cls.provider_request:
+                cls.provider_request = mock
             cls.addClassCleanup(patcher.stop)
         super().setUpClass()
 
@@ -136,12 +154,27 @@ class ReadPagesDoNotWriteTests(TestCase):
             response = self.client.get(path, headers=headers or None)
         return response, writes
 
-    def _check(self, page, path, *, states=("cold", "warm"), **headers):
+    def _check(
+        self,
+        page,
+        path,
+        *,
+        states=("cold", "warm"),
+        no_provider_calls=False,
+        **headers,
+    ):
         allowed = ALLOWED_WRITES.get(page, {})
         for state in states:
             if state == "cold":
                 cache.clear()
+            self.provider_request.reset_mock()
             response, writes = self._writes(path, **headers)
+            if no_provider_calls:
+                self.assertEqual(
+                    self.provider_request.call_count,
+                    0,
+                    f"{page} ({state}) {path} called a provider while rendering.",
+                )
             self.assertLess(
                 response.status_code, 400, f"{page} ({state}) {path} did not load"
             )
@@ -204,6 +237,38 @@ class ReadPagesDoNotWriteTests(TestCase):
     def test_detail(self):
         item = self.movie
         self._check("detail", f"/details/{item.source}/movie/{item.media_id}/x")
+
+    def _music_pages(self, artist, album, track):
+        """Check the web and API pages for one artist, album and track."""
+        for page, path in (
+            ("music", music_artist_url(artist)),
+            ("music", music_album_url(album)),
+            ("music", music_track_url(track)),
+            ("music", f"/api/v1/music/artists/{artist.id}/"),
+            ("music", f"/api/v1/music/albums/{album.id}/"),
+            ("music", f"/api/v1/music/albums/{album.id}/tracks/"),
+            ("music", f"/api/v1/music/tracks/{track.id}/"),
+        ):
+            with self.subTest(path=path):
+                self._check(page, path, no_provider_calls=True)
+
+    def test_music_pages_healthy(self):
+        """A synced artist, album and track page: stored rows only."""
+        artist, album, track = _music_library("healthy")
+        self._music_pages(artist, album, track)
+
+    def test_music_album_without_tracks(self):
+        """A new album with no tracks yet draws an empty list and queues them."""
+        artist, album, track = _music_library("no-tracks")
+        Album.objects.filter(pk=album.pk).update(tracks_populated=False)
+        self._music_pages(artist, album, track)
+
+    def test_music_artist_with_duplicate_albums(self):
+        """Duplicate albums are merged by the repair task, not the page."""
+        artist, album, track = _music_library("duplicates")
+        Album.objects.create(title=album.title.upper(), artist=artist)
+        self._music_pages(artist, album, track)
+        self.assertEqual(Album.objects.filter(artist=artist).count(), 2)
 
     def test_health(self):
         self._check("health", "/health/")
@@ -323,6 +388,38 @@ API_READ_PATHS = (
     "/api/v1/user/onboarding/",
     "/api/v1/user/about/",
 )
+
+
+def _music_library(label):
+    """Return a synced artist, one album and one track (no provider needed)."""
+    artist = Artist.objects.create(
+        name=f"Guard Artist {label}",
+        musicbrainz_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"artist-{label}")),
+        discography_synced_at=EPOCH,
+        members_synced_at=EPOCH,
+        genres=["Rock"],
+    )
+    album = Album.objects.create(
+        title=f"Guard Album {label}",
+        artist=artist,
+        musicbrainz_release_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"rel-{label}")),
+        musicbrainz_release_group_id=str(
+            uuid.uuid5(uuid.NAMESPACE_URL, f"rg-{label}"),
+        ),
+        tracks_populated=True,
+        image="https://example.com/cover.jpg",
+        genres=["Rock"],
+    )
+    AlbumArtist.objects.create(album=album, artist=artist)
+    track = Track.objects.create(
+        album=album,
+        title=f"Guard Track {label}",
+        track_number=1,
+        musicbrainz_recording_id=str(
+            uuid.uuid5(uuid.NAMESPACE_URL, f"rec-{label}"),
+        ),
+    )
+    return artist, album, track
 
 
 def _report(page, state, path, status, writes):
