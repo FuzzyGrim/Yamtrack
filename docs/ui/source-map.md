@@ -126,6 +126,7 @@ Status: `Existing (no UI work needed)`
 
 Custom native surface/panel opacity and runtime radius getters are live; static module-level radii and true backdrop blur remain incomplete. Browser effect comparison pending; iOS and Android not verified.
 
+- `frontend/ui/rootStyle.web.js` (web palette reads; one style snapshot per task)
 - `src/static/css/input.css`
 - `src/static/css/main.css`
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { RatingChip } from './RatingChip';
 import { RatingStarIcon } from './RatingStarIcon.web';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -20,7 +21,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette(host) {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => resolveColor(css.getPropertyValue(name).trim(), fallback);
   const rem = Number.parseFloat(css.fontSize) || 16;
   const mobile = window.matchMedia('(max-width: 639.98px)').matches;

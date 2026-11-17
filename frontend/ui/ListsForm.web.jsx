@@ -6,6 +6,7 @@ import {
   listsMembership,
   normalizeListsModel,
 } from './mediaCardForms';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -24,7 +25,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => resolveColor(css.getPropertyValue(name).trim(), fallback);
   const accent = token('--color-accent', '#6366f1');
   return {

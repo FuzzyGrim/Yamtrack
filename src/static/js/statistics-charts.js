@@ -21,7 +21,33 @@ function placeChartTooltip(tooltipEl, context) {
   tooltipEl.style.pointerEvents = "none";
 }
 
-function initStatisticsCharts() {
+// React islands ([data-props-id] hosts) replace the legacy chart markup inside
+// them as soon as they mount, and island-reveal.css keeps that markup hidden
+// until then. Drawing those charts on every visit was wasted work (14 Chart.js
+// charts, the heatmap and the rhythm grid, thrown away a moment later). They
+// are drawn only if an island has still not mounted when its fallback is
+// revealed (the four-second fail-safe), so a page whose bundle fails to load
+// still shows its charts.
+var STATISTICS_ISLANDS = "[data-statistics-charts-root], [data-statistics-sections-root], [data-statistics-summary-root]";
+
+function statisticsChartLookup(scope) {
+  return function (id) {
+    const element = document.getElementById(id);
+    // Data blocks (<script type="application/json">) are always readable.
+    if (!element || element.tagName === "SCRIPT") return element;
+    const host = element.closest(STATISTICS_ISLANDS);
+    if (scope === "fallback") {
+      return host && !host.hasAttribute("data-react-mounted") ? element : null;
+    }
+    return host ? null : element;
+  };
+}
+
+function initStatisticsCharts(scope) {
+  // "page" draws everything outside the React islands; "fallback" draws only
+  // inside islands that never mounted (see startStatisticsCharts below).
+  const page = scope !== "fallback";
+  const byId = statisticsChartLookup(scope);
   if (typeof Chart === "undefined") {
     return;
   }
@@ -92,14 +118,14 @@ function initStatisticsCharts() {
 
   // Destroy charts from a previous visit (their canvases were detached by a
   // boosted body swap) before creating new instances.
-  (window.__floppyStatsCharts || []).forEach(function (chart) {
+  if (page) (window.__floppyStatsCharts || []).forEach(function (chart) {
     try {
       chart.destroy();
     } catch (error) {
       console.debug("[stats] failed to destroy stale chart", error);
     }
   });
-  window.__floppyStatsCharts = [];
+  if (page) window.__floppyStatsCharts = [];
 
   // Custom external tooltip for bar charts
   function customBarTooltip(context) {
@@ -240,7 +266,7 @@ function initStatisticsCharts() {
 
   // Helper function to safely initialize charts
   function initializeChartIfExists(elementId, chartType, data, options) {
-    const element = document.getElementById(elementId);
+    const element = byId(elementId);
     if (element) {
       const chart = new Chart(element.getContext("2d"), {
         type: chartType,
@@ -254,7 +280,7 @@ function initStatisticsCharts() {
   }
 
   function initializeSingleSeriesBarChart(canvasId, dataElementId) {
-    const dataElement = document.getElementById(dataElementId);
+    const dataElement = byId(dataElementId);
     if (!dataElement) {
       return null;
     }
@@ -281,10 +307,11 @@ function initStatisticsCharts() {
 
   // Ensure the copied score chart wrapper matches Activity History height
   function matchScoreCopyHeight() {
+    // Size reference only: the hidden heatmap fallback keeps its layout box.
     const activityEl = document.getElementById("activityHistory");
-    const scoreCopyWrapper = document.getElementById("scoreCopyWrapper");
-    const scoreCanvasWrapper = document.getElementById("scoreCopyCanvasWrapper");
-    const scoreCanvas = document.getElementById("scoreStackedChartCopy");
+    const scoreCopyWrapper = byId("scoreCopyWrapper");
+    const scoreCanvasWrapper = byId("scoreCopyCanvasWrapper");
+    const scoreCanvas = byId("scoreStackedChartCopy");
 
     if (!scoreCopyWrapper || !scoreCanvasWrapper) return 0;
 
@@ -315,7 +342,7 @@ function initStatisticsCharts() {
 
   // Create Score Stacked Bar Chart
   const scoreDistributionElement =
-    document.getElementById("score_distribution");
+    byId("score_distribution");
   if (scoreDistributionElement) {
     const scoreData = JSON.parse(scoreDistributionElement.textContent);
     const scoreChartOptions = JSON.parse(JSON.stringify(barChartConfig)); // Deep clone
@@ -358,10 +385,10 @@ function initStatisticsCharts() {
 
     // Debug: log element presence and sizes to help diagnose blank chart issues
     try {
-      const activityEl = document.getElementById("activityHistory");
-      const copyWrapper = document.getElementById("scoreCopyWrapper");
-      const copyCanvasWrapper = document.getElementById("scoreCopyCanvasWrapper");
-      const copyCanvas = document.getElementById("scoreStackedChartCopy");
+      const activityEl = byId("activityHistory");
+      const copyWrapper = byId("scoreCopyWrapper");
+      const copyCanvasWrapper = byId("scoreCopyCanvasWrapper");
+      const copyCanvas = byId("scoreStackedChartCopy");
       console.debug("[stats] activityEl:", !!activityEl, "height:", activityEl ? activityEl.clientHeight : null);
       console.debug("[stats] copyWrapper:", !!copyWrapper, "minHeight:", copyWrapper ? copyWrapper.style.minHeight : null);
       console.debug("[stats] copyCanvasWrapper:", !!copyCanvasWrapper, "height:", copyCanvasWrapper ? copyCanvasWrapper.clientHeight : null);
@@ -372,7 +399,7 @@ function initStatisticsCharts() {
     }
 
     // Prefer a daily-hours dataset for the copy (if provided by backend)
-    const dailyHoursEl = document.getElementById("daily_hours_by_media_type");
+    const dailyHoursEl = byId("daily_hours_by_media_type");
     if (dailyHoursEl) {
       const dailyData = JSON.parse(dailyHoursEl.textContent || "null");
       if (dailyData && dailyData.labels && dailyData.labels.length > 0 && dailyData.datasets && dailyData.datasets.length > 0) {
@@ -380,8 +407,8 @@ function initStatisticsCharts() {
         let startIso = null;
         let endIso = null;
         try {
-          const startEl = document.getElementById("stats_start_date");
-          const endEl = document.getElementById("stats_end_date");
+          const startEl = byId("stats_start_date");
+          const endEl = byId("stats_end_date");
           startIso = startEl ? JSON.parse(startEl.textContent || '""') : null;
           endIso = endEl ? JSON.parse(endEl.textContent || '""') : null;
         } catch (e) {
@@ -680,7 +707,7 @@ function initStatisticsCharts() {
   );
   // Custom initialization for gameDailyAverageChart with band-level game tooltip
   (function initGameDailyAverageChart() {
-    const dataEl = document.getElementById("game_daily_average");
+    const dataEl = byId("game_daily_average");
     if (!dataEl) return;
     const rawData = JSON.parse(dataEl.textContent || "null");
     if (!rawData || !rawData.labels || rawData.labels.length === 0) return;
@@ -801,7 +828,7 @@ function initStatisticsCharts() {
   }
 
   function updateActivityHeatmap() {
-    const heatmap = document.getElementById("activityHistory");
+    const heatmap = byId("activityHistory");
     const cells = heatmap ? heatmap.querySelectorAll("[data-heatmap-counts]") : [];
     if (!cells.length) return;
     const types = getCurrentMediaTypes();
@@ -821,7 +848,8 @@ function initStatisticsCharts() {
   // The server rendered the translated tooltip for 0, 1 and 2 (the locale's
   // plural rule decides which wording each uses); swap in the real count first
   // (the template has no other digits), then the date.
-  const heatmapGrid = document.querySelector("#activityHistory [data-heatmap-grid]");
+  const heatmapRoot = byId("activityHistory");
+  const heatmapGrid = heatmapRoot ? heatmapRoot.querySelector("[data-heatmap-grid]") : null;
   if (heatmapGrid) {
     const start = new Date(heatmapGrid.dataset.heatmapStart + "T00:00:00Z");
     heatmapGrid.addEventListener("mouseover", function (event) {
@@ -841,7 +869,7 @@ function initStatisticsCharts() {
         if (type && (types.length === 0 || types.includes(type))) count += Number(n) || 0;
       });
       const marker = count > 2 ? "2" : String(count);
-      const heatmap = document.getElementById("activityHistory");
+      const heatmap = byId("activityHistory");
       cell.title = heatmap.getAttribute("data-title-" + marker).replace(marker, String(count)).replace("__DATE__", date);
     });
   }
@@ -850,8 +878,8 @@ function initStatisticsCharts() {
   window.addEventListener("stats-media-type-changed", updateActivityHeatmap);
 
   // ─── Activity Rhythm SVG dot matrix ────────────────────────────────────────
-  const weekdayHourEl = document.getElementById("weekday_hour_chart_data");
-  const rhythmContainer = document.getElementById("activityRhythmContainer");
+  const weekdayHourEl = byId("weekday_hour_chart_data");
+  const rhythmContainer = byId("activityRhythmContainer");
   if (weekdayHourEl && rhythmContainer) {
     const rhythmData = JSON.parse(weekdayHourEl.textContent || "{}");
 
@@ -943,7 +971,7 @@ function initStatisticsCharts() {
       }
 
       // "Low → High" legend rendered into the header container (top-right).
-      const legendEl = document.getElementById("activityRhythmLegend");
+      const legendEl = byId("activityRhythmLegend");
       if (legendEl) {
         legendEl.innerHTML =
           '<span style="font-size:9px;color:#6b7280">' + chartEscapeHtml(gettext("Low")) + '</span>';
@@ -975,7 +1003,7 @@ function initStatisticsCharts() {
   }
 
   // ─── Combined Plays charts (by_month / by_weekday / by_time_of_day) ────────
-  const combinedPlaysEl = document.getElementById("combined_plays_charts");
+  const combinedPlaysEl = byId("combined_plays_charts");
   if (combinedPlaysEl) {
     let combinedPlaysData = null;
     try {
@@ -1082,7 +1110,7 @@ function initStatisticsCharts() {
     }
 
     function drawCombinedChart(spec, mediaTypes) {
-      const container = document.getElementById(spec.containerId);
+      const container = byId(spec.containerId);
       if (!container) return;
       const byKey = (combinedPlaysData && combinedPlaysData[spec.key]) || {};
       const chartData = StatsMediaMerge.mergeSeriesChart(byKey, mediaTypes);
@@ -1124,7 +1152,7 @@ function initStatisticsCharts() {
         combinedChartInstances[spec.key].update();
       } else {
         const chart = new Chart(
-          document.getElementById(spec.canvasId).getContext("2d"),
+          byId(spec.canvasId).getContext("2d"),
           { type: "bar", data: processed, options: chartOptions }
         );
         window.__floppyStatsCharts.push(chart);
@@ -1147,11 +1175,11 @@ function initStatisticsCharts() {
   }
 
   // ─── Time Across Your Worlds doughnut ───────────────────────────────────────
-  const timeWorldsCanvas = document.getElementById("timeWorldsChart");
-  const timeWorldsLegendEl = document.getElementById("timeWorldsLegend");
-  const timeWorldsCenterEl = document.getElementById("timeWorldsCenter");
-  const timeWorldsInfoEl = document.getElementById("timeWorldsInfo");
-  const distEl = document.getElementById("media_type_distribution");
+  const timeWorldsCanvas = byId("timeWorldsChart");
+  const timeWorldsLegendEl = byId("timeWorldsLegend");
+  const timeWorldsCenterEl = byId("timeWorldsCenter");
+  const timeWorldsInfoEl = byId("timeWorldsInfo");
+  const distEl = byId("media_type_distribution");
 
   if (timeWorldsCanvas && distEl) {
     const fullDistData = JSON.parse(distEl.textContent || "{}");
@@ -1159,7 +1187,7 @@ function initStatisticsCharts() {
     // User's Duration Format preference (mirrors stats_utils._format_hours_minutes).
     let durationFormat = "hours_minutes";
     try {
-      const dfEl = document.getElementById("stats_duration_format");
+      const dfEl = byId("stats_duration_format");
       if (dfEl) durationFormat = JSON.parse(dfEl.textContent) || "hours_minutes";
     } catch (_) { /* keep default */ }
 
@@ -1203,7 +1231,7 @@ function initStatisticsCharts() {
     // Genre data keyed by media type slug (minutes-based types only).
     function loadGenreData(slug) {
       try {
-        const el = document.getElementById(slug + "_top_genres");
+        const el = byId(slug + "_top_genres");
         // An empty list is emitted as the string "[]" (template default), so check the type.
         const genres = el ? JSON.parse(el.textContent || "[]") : [];
         return Array.isArray(genres) ? genres : [];
@@ -1216,7 +1244,7 @@ function initStatisticsCharts() {
     // be summed for a "total" — this reads the real total instead.
     function loadTypeTotalHours(slug) {
       try {
-        const el = document.getElementById("summary_stats_by_type");
+        const el = byId("summary_stats_by_type");
         const all = el ? JSON.parse(el.textContent || "{}") : {};
         const s = all[slug] || all.all || {};
         return (s.total_minutes || 0) / 60;
@@ -1225,8 +1253,8 @@ function initStatisticsCharts() {
     const GENRE_TYPES = { tv: 1, movie: 1, anime: 1, music: 1, game: 1 };
 
     // Elements for updating the card header.
-    const timeWorldsTitleEl = document.getElementById("timeWorldsTitle");
-    const timeWorldsSubtitleEl = document.getElementById("timeWorldsSubtitle");
+    const timeWorldsTitleEl = byId("timeWorldsTitle");
+    const timeWorldsSubtitleEl = byId("timeWorldsSubtitle");
 
     let donutChartInstance = null;
 
@@ -1339,7 +1367,7 @@ function initStatisticsCharts() {
     }
 
     function drawTimeWorldsChart(mediaTypes) {
-      const container = document.getElementById("timeWorldsContainer");
+      const container = byId("timeWorldsContainer");
       const isFiltered = mediaTypes.length > 0;
       // Genres are per type and overlap between types, so they only show for one type.
       const mediaType = mediaTypes.length === 1 ? mediaTypes[0] : null;
@@ -1423,7 +1451,7 @@ function initStatisticsCharts() {
         drawTimeWorldsChart(getCurrentMediaTypes());
       });
     } else {
-      const container = document.getElementById("timeWorldsContainer");
+      const container = byId("timeWorldsContainer");
       if (container) {
         container.innerHTML =
           '<p class="text-sm text-[var(--color-text-muted)] text-center py-8 w-full">' + chartEscapeHtml(gettext("No time data available for this range.")) + '</p>';
@@ -1432,7 +1460,7 @@ function initStatisticsCharts() {
   }
 
   // ─── Status Composition donut (status_distribution, aggregated or single-type) ──
-  const statusCompositionDataEl = document.getElementById("status_distribution");
+  const statusCompositionDataEl = byId("status_distribution");
   if (statusCompositionDataEl) {
     const statusCompositionData = JSON.parse(statusCompositionDataEl.textContent || "{}");
     let statusCompositionChartInstance = null;
@@ -1547,8 +1575,8 @@ function initStatisticsCharts() {
     }
 
     function drawStatusComposition(mediaTypes) {
-      const container = document.getElementById("statusCompositionContainer");
-      const subtitleEl = document.getElementById("statusCompositionSubtitle");
+      const container = byId("statusCompositionContainer");
+      const subtitleEl = byId("statusCompositionSubtitle");
       const isFiltered = mediaTypes.length > 0;
       const statusLabels = (statusCompositionData.datasets || []).map(function (ds) { return ds.label; });
       const statusColors = (statusCompositionData.datasets || []).map(function (ds) { return ds.background_color; });
@@ -1608,9 +1636,9 @@ function initStatisticsCharts() {
         statusCompositionChartInstance = null;
       }
 
-      const canvas = document.getElementById("statusCompositionChart");
-      const legendEl = document.getElementById("statusCompositionLegend");
-      const centerEl = document.getElementById("statusCompositionCenter");
+      const canvas = byId("statusCompositionChart");
+      const legendEl = byId("statusCompositionLegend");
+      const centerEl = byId("statusCompositionCenter");
       if (canvas) {
         renderStatusComposition(canvas, legendEl, centerEl, labels, data, colors);
       }
@@ -1622,7 +1650,7 @@ function initStatisticsCharts() {
         drawStatusComposition(getCurrentMediaTypes());
       });
     } else {
-      const container = document.getElementById("statusCompositionContainer");
+      const container = byId("statusCompositionContainer");
       if (container) {
         container.innerHTML =
           '<p class="text-sm text-[var(--color-text-muted)] text-center py-8 w-full">' + chartEscapeHtml(gettext("No status data available for this range.")) + '</p>';
@@ -1631,7 +1659,7 @@ function initStatisticsCharts() {
   }
 
   // ─── Rating Distribution (score_distribution, aggregated or single-type) ──
-  const ratingDistributionDataEl = document.getElementById("score_distribution");
+  const ratingDistributionDataEl = byId("score_distribution");
   if (ratingDistributionDataEl) {
     const ratingDistributionData = JSON.parse(ratingDistributionDataEl.textContent || "{}");
     let ratingDistributionChartInstance = null;
@@ -1664,8 +1692,8 @@ function initStatisticsCharts() {
     }
 
     function drawRatingDistribution(mediaTypes) {
-      const container = document.getElementById("ratingDistributionContainer");
-      const subtitleEl = document.getElementById("ratingDistributionSubtitle");
+      const container = byId("ratingDistributionContainer");
+      const subtitleEl = byId("ratingDistributionSubtitle");
       const built = buildRatingDistribution(mediaTypes);
 
       if (subtitleEl) {
@@ -1692,7 +1720,7 @@ function initStatisticsCharts() {
         ratingDistributionChartInstance = null;
       }
 
-      const canvas = document.getElementById("ratingDistributionChart");
+      const canvas = byId("ratingDistributionChart");
       if (!canvas) return;
 
       const chartOptions = JSON.parse(JSON.stringify(barChartConfig));
@@ -1785,7 +1813,7 @@ function initStatisticsCharts() {
         drawRatingDistribution(getCurrentMediaTypes());
       });
     } else {
-      const container = document.getElementById("ratingDistributionContainer");
+      const container = byId("ratingDistributionContainer");
       if (container) {
         container.innerHTML =
           '<p class="text-sm text-[var(--color-text-muted)] text-center py-8 w-full">' + chartEscapeHtml(gettext("No ratings yet.")) + '</p>';
@@ -1794,7 +1822,7 @@ function initStatisticsCharts() {
   }
 
   // ─── Status Breakdown (status_distribution, table by media type) ──────────
-  const statusBreakdownDataEl = document.getElementById("status_distribution");
+  const statusBreakdownDataEl = byId("status_distribution");
   if (statusBreakdownDataEl) {
     const statusBreakdownData = JSON.parse(statusBreakdownDataEl.textContent || "{}");
 
@@ -1812,7 +1840,7 @@ function initStatisticsCharts() {
     }
 
     function drawStatusBreakdown(mediaTypes) {
-      const container = document.getElementById("statusBreakdownContainer");
+      const container = byId("statusBreakdownContainer");
       const isFiltered = mediaTypes.length > 0;
       const targetLabel = mediaTypes.length === 1 ? MEDIA_SLUG_TO_LABEL[mediaTypes[0]] : null;
       const selectedLabels = mediaTypes.map(function (type) { return MEDIA_SLUG_TO_LABEL[type]; });
@@ -1915,7 +1943,7 @@ function initStatisticsCharts() {
         drawStatusBreakdown(getCurrentMediaTypes());
       });
     } else {
-      const container = document.getElementById("statusBreakdownContainer");
+      const container = byId("statusBreakdownContainer");
       if (container) {
         container.innerHTML =
           '<p class="text-sm text-[var(--color-text-muted)] text-center py-8 w-full">' + chartEscapeHtml(gettext("No status data available for this range.")) + '</p>';
@@ -1924,7 +1952,8 @@ function initStatisticsCharts() {
   }
 
   // ─── Featured Repeat Player "X% of titles" ring ──────────────────────────
-  (function initFeaturedPersonRing() {
+  // The ring sits outside the islands; the fallback pass leaves it alone.
+  if (page) (function initFeaturedPersonRing() {
     let featuredPersonRingChart = null;
     let featuredPersonRingCanvas = null;
 
@@ -2018,10 +2047,24 @@ function initStatisticsCharts() {
   }
 }
 
+function startStatisticsCharts() {
+  initStatisticsCharts("page");
+  const hosts = Array.from(document.querySelectorAll(STATISTICS_ISLANDS));
+  if (!hosts.length) return;
+  // Same delay as island-reveal.css. A host that was swapped away (boosted
+  // navigation) is not connected any more and is ignored.
+  setTimeout(function () {
+    const unmounted = hosts.some(function (host) {
+      return host.isConnected && !host.hasAttribute("data-react-mounted");
+    });
+    if (unmounted) initStatisticsCharts("fallback");
+  }, 4000);
+}
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initStatisticsCharts, { once: true });
+  document.addEventListener("DOMContentLoaded", startStatisticsCharts, { once: true });
 } else {
   // Script was injected after DOM load (e.g. boosted navigation swap).
-  initStatisticsCharts();
+  startStatisticsCharts();
 }
 })();

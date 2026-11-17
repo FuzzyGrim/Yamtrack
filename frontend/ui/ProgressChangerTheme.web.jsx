@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ProgressChanger as SharedProgressChanger } from './ProgressChanger';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -19,7 +20,7 @@ function resolveColor(value, fallback) {
 
 // Resolve the existing document theme and responsive card rules to native values.
 function readAppearance(host, unit) {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   const rem = Number.parseFloat(css.fontSize) || 16;

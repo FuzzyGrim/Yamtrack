@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { CalendarView } from '../pages/CalendarView';
 import { ReleaseCalendar } from './ReleaseCalendar';
+import { rootStyle } from './rootStyle.web';
 
 function post(url, csrf, fields) {
   return fetch(url, {
@@ -20,7 +21,7 @@ function withAlpha(value, alpha) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const surfaceMuted = token('--color-surface-muted', '#52525b');
   return {

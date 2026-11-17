@@ -2,6 +2,8 @@
 // never touch the DOM, so this adapter owns POSTs, redirects, clipboard access
 // and confirmations. Native screens supply their own transport instead.
 
+import { rootStyle } from '../ui/rootStyle.web';
+
 function appendValues(form, values) {
   Object.entries(values || {}).forEach(([name, value]) => {
     if (value === undefined || value === null) return;
@@ -129,7 +131,7 @@ export function pickBrowserFiles({ accept = '', multiple = false } = {}) {
 
 /** Read the page's theme tokens so universal components follow the browser theme. */
 export function readThemePalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => (css.getPropertyValue(name) || '').trim() || fallback;
   return {
     background: token('--color-surface', '#27272a'),
