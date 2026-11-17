@@ -29,7 +29,7 @@ from app.models import (
     Season,
     Status,
 )
-from app.tv_show_facts import ShowFacts, tv_show_facts
+from app.tv_show_facts import ShowFacts, TrackedShow, tv_show_facts
 from app.tv_sort import (
     _sort_tv_media_by_time_left,
     build_time_left_records,
@@ -255,7 +255,7 @@ class TVShowFactsTests(TestCase):
         )
 
     def test_facts_match_model_properties(self):
-        """Progress and last-watched date agree with TV and Season for every show."""
+        """Progress, first and last play dates agree with TV and Season for every show."""
         facts = tv_show_facts(self.user)
         hydrated = self._hydrated()
         self.assertEqual(len(hydrated), SHOWS)
@@ -265,6 +265,12 @@ class TVShowFactsTests(TestCase):
             label = tv.item.media_id
             self.assertEqual(show.progress, tv.progress, label)
             self.assertEqual(show.end_date, tv.end_date, label)
+            self.assertEqual(show.completed_episode_count, tv.completed_episode_count, label)
+            self.assertEqual(
+                TrackedShow(tv.pk, tv.item, tv.status, tv.created_at, None, show).start_date,
+                tv.start_date,
+                label,
+            )
             self.assertEqual(
                 sorted(
                     (season.season_number, season.status, season.progress)
@@ -495,3 +501,40 @@ class TimeLeftColdBuildTests(TestCase):
             self.assertEqual(page.paginator.count, len(expected), value)
             self.assertLessEqual({entry.item_id for entry in page}, expected, value)
             self.assertLess(built["Season"], 5 * 40, value)
+
+
+class ShowOrderPageCostTests(TestCase):
+    """The library's progress and date orders rank shows without their graph."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Build the library once."""
+        cls.user = get_user_model().objects.create_user(username="orders", password="x")
+        build_library(cls.user)
+
+    def setUp(self):
+        """Sign in."""
+        self.client.force_login(self.user)
+
+    def test_each_order_hydrates_one_page_of_shows(self):
+        """Shows, seasons and plays are built for the page, not the library."""
+        for sort in ("progress", "plays", "start_date", "end_date", "runtime", "time_watched"):
+            for direction in ("asc", "desc"):
+                cache.clear()
+                built = Counter()
+                original = models.Model.from_db.__func__
+
+                def from_db(cls, db, field_names, values, built=built, original=original):
+                    built[cls.__name__] += 1
+                    return original(cls, db, field_names, values)
+
+                with mock.patch.object(models.Model, "from_db", classmethod(from_db)):
+                    response = self.client.get(
+                        f"/medialist/tv?sort={sort}&direction={direction}&status=All",
+                    )
+                page = response.context["media_list"]
+                cards = len(page.object_list)
+                with self.subTest(sort=sort, direction=direction):
+                    self.assertGreater(page.paginator.count, 2 * cards)
+                    self.assertLessEqual(built["TV"], cards)
+                    self.assertLess(built["Season"], 6 * cards)

@@ -99,8 +99,17 @@ needs Python. A sort's SQL form is either `sql` (one value) or `sql_order`
     (`app.tv_show_facts.TrackedShow`: four value queries a batch, no season,
     play or event model) when every Python sort and filter of the query
     declares `tv_facts`. Home's Up Next, upcoming, recent, completion and
-    episodes-left orders and the caught-up filter do. Any other reader of the
-    tracker row keeps the hydrated graph for the whole scan.
+    episodes-left orders, the caught-up filter, and the library's progress,
+    plays, start date, end date, last watched, runtime, time watched and
+    (API) time-left orders do: a show has one tracker row, and those values
+    are its `TV` properties. Runtime and time watched also prefill the
+    episode runtime index for the batch. Any other reader of the tracker row
+    keeps the hydrated graph for the whole scan.
+  - A movie's tracker rows are attached as `app.movie_rows.MovieRow` (one
+    value query a batch, no model) when the sort declares `movie_rows`
+    (runtime, time watched) and no filter reads the tracker.
+  - A sort whose Python value reads only the item (`item_only`: time to
+    beat, author) loads no tracker row at all.
   - Memory is bounded by the batch and the page. Computing values in Python is
     still one pass over the narrowed candidates.
 
@@ -182,11 +191,17 @@ ranges are part of their cache keys.
   - `tracker=True` marks values derived from tracker rows.
   - Set `tv_facts=True` (on a `SortDef` or a `FilterDef`) only if, for a
     show, the Python code reads nothing beyond what `TrackedShow` defines:
-    status, creation date, progress, last play, the released counts and the
-    seasons' number, status and progress. It reads through `getattr` with a
-    default in places, so a missing attribute would not fail; it would
-    reorder. Add the sort to `users.tests.test_home_row_show_facts`, which
-    compares it with the hydrated order in both directions.
+    status, creation date, progress, first and last play, completed episodes,
+    the released counts, the runtime members and the seasons' number, status
+    and progress. It reads through `getattr` with a default in places, so a
+    missing attribute would not fail; it would reorder. Add the sort to
+    `users.tests.test_home_row_show_facts`, which compares it with the
+    hydrated order in both directions.
+  - Set `movie_rows=True` only if, for a movie, the value reads the item and
+    the row's status, progress, end date and creation date (`MovieRow`);
+    `app.tests.test_library_query.MovieRowOrderTests` compares the orders.
+  - Set `item_only=True` on a Python sort whose value reads nothing but the
+    candidate item; the scan then loads no tracker row for it.
 
 `app.tests.test_library_query` checks that every SQL sort orders the same way
 on the scan path. A new sort is covered automatically.
@@ -237,9 +252,15 @@ switched over. They are intentional:
 
 - Python predicates: provider availability, author, progress, and a season's
   effective status where it has to be derived.
-- Python sorts: time to beat, next episode air date, time left, and Home's
-  Up Next, upcoming, completion and episodes-left orders. These scan the
-  SQL-narrowed candidates.
+- Python sorts: time to beat, author, runtime, time watched, next episode air
+  date, time left, a show's dates, progress and plays, and Home's Up Next,
+  upcoming, completion and episodes-left orders. These scan the SQL-narrowed
+  candidates.
+  - Time to beat and author read only the candidate items; movies' runtime
+    and time watched read light rows; shows' runtime and time watched read
+    facts.
+  - Other types' runtime and time watched (anime, books) and TV's next
+    episode air date still hydrate each candidate's tracker graph.
   - For shows, Home's orders and the caught-up filter are O(n) in value rows,
     not in models: one item per candidate is all a scan builds.
   - Home's shelves share their shows' facts and released-episode counts
