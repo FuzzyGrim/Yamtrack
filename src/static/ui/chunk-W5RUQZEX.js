@@ -1,0 +1,1 @@
+var i={visible:0,near:1,far:2};function c(t){return i[t]??i.far}function b(t,s,u){let r={visible:[],near:[]};return(t||[]).forEach(o=>{let n=String(o);if(u?.has(n))return;let e=s?.get(n);(e==="visible"||e==="near")&&r[e].push(o)}),[...r.visible,...r.near]}export{c as a,b};

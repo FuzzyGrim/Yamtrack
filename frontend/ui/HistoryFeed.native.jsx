@@ -16,6 +16,7 @@ export function HistoryFeed(props) {
 }
 
 export {
+  HistoryActivityCalendar,
   HistoryActivityDialog,
   HistoryEditDialog,
   HistoryDeleteDialog,

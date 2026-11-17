@@ -620,7 +620,10 @@ Status: `Partial / coexisting`
 
 ## DATE-TIME
 
-Status: `Legacy`
+Status: `Partial / coexisting`
+
+- Activity history calendar is `Partial / coexisting`: `frontend/ui/DateTimePicker.jsx` and `mountDateTimePicker.jsx` own the web detail calendar, with `sessionHistory.js` bridging the server-owned list; `HistoryFeed.jsx` supplies `HistoryActivityCalendar` to native `DetailFeatures.jsx`, and native `HistoryScreen.jsx` uses the same picker. Remaining legacy field-picker consumers retire with their own migration. Browser: seeded detail dialog inspected and selection and month navigation exercised. iOS and Android: Expo Go intensity fixtures inspected; complete native dialog integration remains unverified.
+- Shared `DateTimePicker` activity markers and selected-day background use the same spacing on web, iOS and Android. Browser, iOS and Android fixture comparisons cover the spacing adjustment; the consumers and remaining legacy ownership are unchanged.
 
 - `src/static/js/calendar.js`
 - `src/static/js/dateTimePicker.js`
@@ -789,6 +792,8 @@ Status: `Legacy`
 - `src/templates/app/components/session_history_row.html` (also the audiobook "stopped at" and book "at page" fragments)
 - `src/templates/app/history.html`
 - `native-proof/app/screens/HistoryScreen.jsx`, `native-proof/app/data/historyTransportCore.js` (+ `historyTransportCore.test.mjs`) (native History screen and transport; release-date mode pages by day through `limit`/`offset` on `/api/v1/history/release/`, like the activity feed)
+- `frontend/ui/historyScrollAnchor.web.js` (browser adapter: Back or reload returns History to the day the reader left; loads the waiting days down to it first).
+- `frontend/ui/historyFirstView.js` (shared first-view rule: about two screens of entries, whole days; `scripts/historyFirstView.test.mjs`). The server mirrors it in `src/app/history_views.py` (`HISTORY_FIRST_VIEW_ENTRIES`, `_first_view_day_count`). Waiting days load as they come near the screen through `HistoryFeed.web.jsx`'s own observer (1.5-screen look-ahead from `homeRowLoading.js`) on web and the Home watcher `native-proof/app/data/homeRowWatcherCore.js` in `HistoryScreen.jsx` on Expo. `frontend/ui/historyScrollAnchor.web.js` (browser only) returns Back to the day the reader left.
 
 ## STATISTICS
 

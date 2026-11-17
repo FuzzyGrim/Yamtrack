@@ -1,5 +1,5 @@
 import { Modal, ModalCloseButton } from './Modal';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { actionIcons } from './actionIcons';
 import { Badge } from './Badge';
@@ -335,6 +335,41 @@ function DayGrid({ entries, layout, ...cardProps }) {
   </View>;
 }
 
+// A waiting day loads itself once the platform reports it on or near the
+// screen. `watchDay(key, node, onChange)` is the same contract Home uses for
+// its rows (frontend/ui/homeRowWatcher.web.js, native-proof homeRowWatcherCore):
+// it calls `onChange('visible' | 'near' | 'far')` and returns a stop function.
+// One automatic request per day; a failed day keeps its Retry button.
+function useWaitingDayRef(day, watchDay, onLoadDay) {
+  const latest = useRef({ day, onLoadDay });
+  latest.current = { day, onLoadDay };
+  const stop = useRef(null);
+  const requested = useRef(false);
+  // A day that has loaded and later waits again (a new filter on the same
+  // month) may load itself again.
+  if (!day.lazy) requested.current = false;
+  const key = day.key;
+  const ref = useCallback(node => {
+    if (stop.current) {
+      stop.current();
+      stop.current = null;
+    }
+    if (!node || typeof watchDay !== 'function') return;
+    stop.current = watchDay(key, node, level => {
+      if (level === 'far' || requested.current) return;
+      const current = latest.current.day;
+      if (!current?.lazy || current.loading || current.error) return;
+      requested.current = true;
+      latest.current.onLoadDay?.(current);
+    }) || null;
+  }, [watchDay, key]);
+  useEffect(() => () => {
+    if (stop.current) stop.current();
+    stop.current = null;
+  }, []);
+  return ref;
+}
+
 export function HistoryDayGroup({
   day,
   mode = 'activity',
@@ -349,10 +384,12 @@ export function HistoryDayGroup({
   onLoadMore,
   onLoadDay,
   onRetryDay,
+  watchDay,
 }) {
   const copy = mergeLabels(labels);
   const colors = mergePalette(palette);
   const entries = day.entries || [];
+  const waitingRef = useWaitingDayRef(day, watchDay, onLoadDay);
   const { width: viewportWidth } = useWindowDimensions();
   const layout = libraryGridLayout(viewportWidth);
   const gridProps = {
@@ -367,7 +404,7 @@ export function HistoryDayGroup({
       </View>
       <HistoryDaySummary day={day} mode={mode} labels={copy} palette={colors} />
     </View>
-    {day.lazy ? <View style={[styles.lazyDay, { borderColor: colors.border }]}>
+    {day.lazy ? <View ref={waitingRef} style={[styles.lazyDay, { borderColor: colors.border }]}>
       {day.error ? <>
         <Text style={[styles.lazyText, { color: colors.danger }]}>{copy.loadDayError}</Text>
         <Button label={copy.retryDay} size="sm" tone="surface" palette={buttonPalette(colors)}
@@ -617,6 +654,20 @@ function ScoreStars({ entry, copy, colors, onSelect }) {
   </View>;
 }
 
+export function HistoryActivityCalendar({ sessions, activityIntensity, selectedDay, onSelectDay, palette }) {
+  const dates = sessions.map(session => session.date).filter(Boolean);
+  return <View>
+    <Text style={{ color: palette.text }}>Select a day to view its activity.</Text>
+    <DateTimePicker inline value={selectedDay} initialViewDate={sessions[0]?.date}
+      markerDays={dates} selectableDays={dates} activityIntensity={activityIntensity}
+      palette={palette} onChange={onSelectDay} />
+    {selectedDay ? sessions.filter(session => session.date === selectedDay).map((session, index) =>
+      <Text key={session.key || index} style={{ color: palette.text }}>
+        {[session.when, session.label, session.runtime].filter(Boolean).join(' · ')}
+      </Text>) : null}
+  </View>;
+}
+
 export function HistoryActivityDialog({
   entry,
   labels,
@@ -659,6 +710,8 @@ export function HistoryActivityDialog({
         <View style={styles.dayPickerRow}>
           <View style={styles.dayPickerField}>
             <DateTimePicker value={selectedDay} trackTime={false} markerDays={markerDays}
+              activityIntensity={entry.activityIntensity}
+              selectableDays={markerDays}
               labels={{ field: copy.jumpToDay }} palette={dateTimePalette(colors)}
               onChange={next => setSelectedDay(next || '')} />
           </View>
@@ -811,6 +864,7 @@ export function HistoryFeed({
   filterVariant = 'chips',
   webActions = false,
   onAddToList,
+  watchDay,
 }) {
   const copy = mergeLabels(labels);
   const colors = mergePalette(palette);
@@ -883,7 +937,7 @@ export function HistoryFeed({
       palette={colors} onOpenEntry={onOpenEntry} onOpenActivity={onOpenActivity}
       webActions={webActions} onAddToList={onAddToList}
       onEditEntry={onEditEntry} onDeleteEntry={onDeleteEntry} onLoadMore={onLoadMore}
-      onLoadDay={onLoadDay} onRetryDay={onRetryDay} />)}
+      onLoadDay={onLoadDay} onRetryDay={onRetryDay} watchDay={watchDay} />)}
 
     {chrome && model.pagination && model.pagination.pageCount > 1 ? <View style={styles.pagination}>
       <Button label={copy.previousPage} size="sm" tone="surface" palette={buttonPalette(colors)}

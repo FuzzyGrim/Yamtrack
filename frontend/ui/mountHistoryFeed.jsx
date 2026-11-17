@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { HistoryActivityDialog } from './HistoryFeed';
 import { HistoryView } from '../pages/HistoryView';
 import { openModal } from './ModalHost';
+import { saveHistoryAnchor, scrollToHistoryAnchor, takeHistoryAnchor } from './historyScrollAnchor.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -146,6 +147,8 @@ function Adapter({ host, props }) {
   const [model, setModel] = useState(() => props.model || { days: [] });
   const [activityEntry, setActivityEntry] = useState(null);
   const [optionsLoaded, setOptionsLoaded] = useState(false);
+  const modelRef = useRef(model);
+  modelRef.current = model;
 
   useEffect(() => {
     const update = () => setPalette(readPalette());
@@ -208,6 +211,50 @@ function Adapter({ host, props }) {
     }
   }
 
+  // Back to History: remember the top visible day while reading, and on
+  // return load the days down to it before scrolling there (see
+  // historyScrollAnchor.web.js). The browser's pixel restore is turned off for
+  // this page and back on for whatever a boosted link pushes next.
+  useEffect(() => {
+    let restoring = false;
+    let timer = null;
+    const pageUrl = window.location.href;
+    const anchor = takeHistoryAnchor();
+    const setRestoration = mode => {
+      if ('scrollRestoration' in window.history) window.history.scrollRestoration = mode;
+    };
+    setRestoration('manual');
+    const save = () => { if (!restoring) saveHistoryAnchor(host, pageUrl); };
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(save, 150);
+    };
+    const onPushed = () => setRestoration('auto');
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('pagehide', save);
+    document.body.addEventListener('htmx:beforeHistorySave', save);
+    document.body.addEventListener('htmx:pushedIntoHistory', onPushed);
+    const days = modelRef.current.days || [];
+    const index = anchor ? days.findIndex(day => day.key === anchor.key) : -1;
+    if (index >= 0) {
+      restoring = true;
+      const waiting = days.slice(0, index + 1).filter(day => day.lazy && day.loadUrl);
+      Promise.all(waiting.map(day => fetchDay(day, day.loadUrl, false)))
+        .then(() => new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve))))
+        .then(() => {
+          scrollToHistoryAnchor(anchor);
+          restoring = false;
+        });
+    }
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('pagehide', save);
+      document.body.removeEventListener('htmx:beforeHistorySave', save);
+      document.body.removeEventListener('htmx:pushedIntoHistory', onPushed);
+    };
+  }, []);
+
   function navigate(intent) {
     if (intent?.url) assign(intent.url);
   }
@@ -241,6 +288,7 @@ function Adapter({ host, props }) {
       setActivityEntry({
         ...entry,
         sessions: payload.sessions || [],
+        activityIntensity: payload.activityIntensity || {},
         sessionStats: payload.stats || [],
       });
     } catch (error) {
