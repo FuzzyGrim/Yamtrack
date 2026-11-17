@@ -253,9 +253,12 @@ def list_detail(request, list_reference):
     completion_percent = None
     completed_count = 0
     if total_items_count > 0 and not is_public_view:
-        all_item_ids = set(custom_list.items.values_list("id", flat=True))
-        completed_ids = _get_completed_item_ids(request.user, all_item_ids)
-        completed_count = len(completed_ids)
+        # A subquery, not the ids: a 10,000-item list would otherwise send
+        # 10,000 parameters with each per-type query.
+        member_ids = CustomListItem.objects.filter(custom_list=custom_list).values(
+            "item_id"
+        )
+        completed_count = len(_get_completed_item_ids(request.user, member_ids))
         completion_percent = round(completed_count / total_items_count * 100)
 
     if params["media_types"]:
