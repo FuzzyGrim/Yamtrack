@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 KOMBU_REDIS_DEFAULT_SEPARATOR = KombuRedisChannel.sep
 KOMBU_REDIS_BINDING_KEY_PATTERN = KombuRedisChannel.keyprefix_queue
+SCAN_PAGE_SIZE = 1000
 KOMBU_REDIS_BINDING_FIELD_COUNT = 3
 LEGACY_PRIORITY_SEPARATOR = ":"
 
@@ -56,7 +57,10 @@ def repair_celery_redis_bindings() -> dict[str, int]:
     )
     summary = {"keys": 0, "members": 0, "repaired": 0, "removed": 0}
 
-    for raw_key in client.scan_iter(match=binding_match):
+    # SCAN walks the whole keyspace (every cache key too) to find the few
+    # binding keys; Redis's default of 10 keys per call made that thousands of
+    # round trips, about 3 s, on every run.
+    for raw_key in client.scan_iter(match=binding_match, count=SCAN_PAGE_SIZE):
         summary["keys"] += 1
         key = _decode_redis_value(raw_key)
         members = client.smembers(key)

@@ -13,6 +13,7 @@ from django.utils import timezone
 from app import backfill_queue
 from app import credits as credit_helpers
 from app.db_retry import run_retryable_db_operation
+from app.interactive_requests import interactive_request_active
 from app.log_safety import exception_summary
 from app.models import (
     CREDITS_BACKFILL_VERSION,
@@ -23,7 +24,7 @@ from app.models import (
     Sources,
 )
 from app.providers import services
-from app.task_cooperation import CooperativeRun
+from app.task_cooperation import DEFERRED_RETRY_SECONDS, CooperativeRun
 from app.tasks_backfill_state import (
     _filter_backfill_item_ids,
     _normalize_item_ids,
@@ -321,12 +322,20 @@ def populate_credits_data_for_items(item_ids: list[int], delay_seconds: float = 
 
 @shared_task(name="app.tasks.populate_credits_backfill_queue")
 def populate_credits_backfill_queue(batch_size: int = 50, delay_seconds: float = 0.0):
-    """Drain the credits backfill queue and process items in small batches."""
+    """Drain the credits backfill queue and process items in small batches.
+
+    While someone is using the app a run only does its one guaranteed item (the
+    cooperative minimum that keeps the queue moving) and the next run waits out
+    the interactive flag. Taking the full batch then would load and clear the
+    metadata cache of 50 items, process one, and put 49 back, on every tick.
+    """
+    busy = interactive_request_active()
     with backfill_queue.drain(
         CREDITS_BACKFILL_ITEMS_QUEUE_KEY,
         CREDITS_BACKFILL_ITEMS_SCHEDULED_KEY,
-        batch_size,
+        1 if busy else batch_size,
         drain_task=populate_credits_backfill_queue,
+        countdown=DEFERRED_RETRY_SECONDS if busy else 10,
     ) as batch:
         if not batch:
             return {"processed": 0, "message": "No queued credits items"}
