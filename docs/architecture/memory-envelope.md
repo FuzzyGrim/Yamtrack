@@ -517,11 +517,44 @@ is the next step if it still shows on the minimal tier.
 
 ## Still unverified, and still unfixed
 
-**What memory limit the snapshot requires.** That the excursion is page cache
-is now confirmed. What is still unmeasured is the only number an operator can
-act on: the smallest cgroup the backup completes inside.
-`scripts/snapshot_memory_ladder.sh` exists to answer it and has not yet been
-run against production-scale data at every rung.
+**What memory limit the snapshot requires: 768 MiB, measured.** The ladder
+ran on the pinned copy (CONC-43) against a
+synthetic 2.43 GB database (622,592 pages; 184,800 items, 201,600 episodes,
+403,200 history rows; wide `watch_providers` make `app_item` 2.2 GB of it),
+with the whole stack (gunicorn, Celery with beat, nginx) idle in the same
+container. Every copy was pinned with `restarts=0`.
+
+| Limit | Quiet | With 4 commits/s |
+| --- | --- | --- |
+| No limit | ok, 126 s, peak 2.3 GB | |
+| 2 GiB | ok, 116 s | |
+| 1.5 GiB | ok, 130 s | |
+| 1 GiB | ok, 134 s | ok, 117 s |
+| 768 MiB | ok, 261 s | ok, 90 s |
+| 512 MiB | 11 OOM kills | snapshot killed, no copy |
+
+- At 768 MiB nothing is killed and the snapshot takes at most about twice its
+  unconstrained time: the kernel reclaims the copy's page cache as it goes.
+  With the writer, commits never failed (p99 139 ms, slowest 0.85 s) and the
+  WAL peaked at 6.6 MB.
+- 512 MiB fails on **anonymous** memory, not cache. The idle stack plus its
+  boot-time tasks already reach about 490 MB `anon`; cache was squeezed to
+  near zero and the kernel killed Celery children, gunicorn and, with the
+  writer, the snapshot itself. A smaller copy would not fix that rung.
+- The startup recovery snapshot (`sqlite_startup --prepare-migrations
+  --fast`, services stopped) took 44 s at 768 MiB and 39 s unconstrained,
+  with no kills.
+- Without `posix_fadvise` the snapshot still publishes; page cache right
+  after it was 780 MB against 412 MB with the hint, and both settled within
+  five minutes.
+
+So the stepped, pinned copy is adequate and the incremental-backup question
+stays closed. Limits of the evidence: it was measured under Docker Desktop,
+whose virtual disk is slower than a NAS, so durations are only comparable to
+each other; the ladder triggers the task through `manage.py shell`, which adds
+about 90 MB of `anon` that a Celery worker would not; and the fixture is
+lighter on episodes and history than production, which affects `quick_check`
+time more than cache.
 
 **Whether the Trakt reconcile fix holds in a container.** The allocation
 profile is structurally bounded and benchmarked, but `tracemalloc` is Python
