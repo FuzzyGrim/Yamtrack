@@ -11,10 +11,10 @@ import re
 from datetime import timedelta
 
 import requests
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
-from app.models import Item, MediaTypes, Sources, VideoGameTag
+from app.models import Item, MediaTypes, Sources, VideoGameTag, VideoPlay
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +30,11 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 MARKER = "var ytInitialData = "
-# Checked again later: a creator can tag a stream after it ends.
+# Checked again later: a creator can tag a stream after it ends. Only while
+# someone has watched the video recently; rechecking every video ever watched,
+# every week, forever, was a full batch of page fetches on every run.
 NOT_FOUND_RECHECK = timedelta(days=7)
+RECHECK_WATCHED_WITHIN = timedelta(days=30)
 UNAVAILABLE_BACKOFF = timedelta(hours=6)
 MAX_FAILURES = 5
 
@@ -165,8 +168,19 @@ def lookup_due(item):
     if tag.status == VideoGameTag.Status.FOUND:
         return False
     if tag.status == VideoGameTag.Status.NOT_FOUND:
-        return age >= NOT_FOUND_RECHECK
+        return age >= NOT_FOUND_RECHECK and _watched_recently(item.pk)
     return tag.failures < MAX_FAILURES and age >= UNAVAILABLE_BACKOFF
+
+
+def _recent_play(item_ref):
+    return VideoPlay.objects.filter(
+        video__item_id=item_ref,
+        end_date__gte=timezone.now() - RECHECK_WATCHED_WITHIN,
+    )
+
+
+def _watched_recently(item_id):
+    return _recent_play(item_id).exists()
 
 
 def backfill_due_items(limit=20):
@@ -185,6 +199,7 @@ def backfill_due_items(limit=20):
     )
     if len(ids) < limit:
         due = Q(
+            Exists(_recent_play(OuterRef("pk"))),
             video_game_tag__status=VideoGameTag.Status.NOT_FOUND,
             video_game_tag__checked_at__lte=now - NOT_FOUND_RECHECK,
         ) | Q(
