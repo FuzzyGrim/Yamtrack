@@ -122,7 +122,9 @@ class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
                 expect(
                     page.locator('.alphabet-rail a[aria-current="true"]')
                 ).to_have_text("A")
-                before = page.locator(".media-grid").bounding_box()
+                # Wait for the grid to stop moving: the rail can still be
+                # laying out when the first frame is drawn (293 vs 213 flake).
+                before = settled_box(page, ".media-grid")
                 if screenshots:
                     Path(screenshots).mkdir(parents=True, exist_ok=True)
                     page.screenshot(
@@ -133,7 +135,7 @@ class AlphabetBrowserTests(SerialStaticLiveServerTestCase):
                 expect(
                     page.locator('.alphabet-rail[data-react-mounted="true"]')
                 ).to_have_count(1)
-                after = page.locator(".media-grid").bounding_box()
+                after = settled_box(page, ".media-grid")
                 for dimension in before:
                     self.assertAlmostEqual(before[dimension], after[dimension], delta=1)
                 # The mounted rail follows the first poster, which can sit a
