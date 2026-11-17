@@ -410,3 +410,12 @@ test('new music and podcast actions address the documented endpoints', async () 
   assert.deepEqual(calls[5].options.json, { release_id: 'r1' });
   assert.deepEqual(calls[10].options.json, { score: 8 });
 });
+
+test('repairPending follows the server flag and stops at the attempt cap', async () => {
+  const { repairPending, REPAIR_POLL_MAX_ATTEMPTS } = await import('./musicTransportCore.js');
+  assert.equal(repairPending({ repair_pending: true }), true);
+  assert.equal(repairPending({ results: [], pending: true }), true);
+  assert.equal(repairPending({ results: [], pending: false }), false);
+  assert.equal(repairPending(null), false);
+  assert.equal(repairPending({ pending: true }, REPAIR_POLL_MAX_ATTEMPTS), false);
+});

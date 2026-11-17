@@ -497,6 +497,18 @@ def get_release_group_releases(release_group_id):
     return releases
 
 
+def _search_cache_key(query, page, skip_cover_art):
+    cache_key = f"musicbrainz_search_{query.lower()}_p{page}"
+    if skip_cover_art:
+        cache_key += "_no_art"
+    return cache_key
+
+
+def cached_search(query, page=1, skip_cover_art=False):
+    """Return a stored ``search`` result without calling MusicBrainz, else None."""
+    return cache.get(_search_cache_key(query, page, skip_cover_art)) or None
+
+
 def search(query, page=1, skip_cover_art=False):
     """Search for music recordings on MusicBrainz.
 
@@ -505,9 +517,7 @@ def search(query, page=1, skip_cover_art=False):
         page: Page number for pagination
         skip_cover_art: If True, skip fetching cover art (faster)
     """
-    cache_key = f"musicbrainz_search_{query.lower()}_p{page}"
-    if skip_cover_art:
-        cache_key += "_no_art"
+    cache_key = _search_cache_key(query, page, skip_cover_art)
     cached = cache.get(cache_key)
     if cached:
         return cached
@@ -610,6 +620,11 @@ def search(query, page=1, skip_cover_art=False):
 
     cache.set(cache_key, data, 60 * 60 * 24)  # Cache for 24 hours
     return data
+
+
+def cached_recording(media_id):
+    """Return a stored ``recording`` result without calling MusicBrainz, else None."""
+    return cache.get(f"musicbrainz_recording_{media_id}") or None
 
 
 def recording(media_id):
@@ -1046,6 +1061,14 @@ def search_releases(query, page=1, skip_cover_art=False):
     return data
 
 
+def cached_artist(artist_id):
+    """Return a stored ``get_artist`` result without calling MusicBrainz, else None.
+
+    Pages read this; the repair task calls ``get_artist`` (docs/agents/music_integration.md).
+    """
+    return cache.get(f"musicbrainz_artist_{artist_id}") or None
+
+
 def get_artist(artist_id):
     """Get detailed metadata for an artist."""
     cache_key = f"musicbrainz_artist_{artist_id}"
@@ -1409,6 +1432,13 @@ def get_release_for_group(release_group_id):
         logger.warning("Failed to get release for group %s: %s", release_group_id, e)
 
     return None
+
+
+def cached_release(release_id):
+    """Return a stored ``get_release`` result without calling MusicBrainz, else None."""
+    return (
+        cache.get(f"musicbrainz_release_v{RELEASE_CACHE_VERSION}_{release_id}") or None
+    )
 
 
 def get_release(release_id, skip_cover_art: bool = False):

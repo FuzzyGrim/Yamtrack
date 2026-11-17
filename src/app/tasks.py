@@ -259,6 +259,9 @@ from app.tasks_music import (  # noqa: E402
     populate_album_tracks_batch,
     prefetch_album_covers_batch,
     prefetch_artist_images_batch,
+    repair_music_album_page,
+    repair_music_artist_page,
+    repair_music_track_page,
 )
 from app.tasks_opencritic import (  # noqa: E402
     backfill_opencritic_scores,  # noqa: F401
@@ -1517,6 +1520,9 @@ __all__ = [
     "reconcile_trakt_popularity",
     "refresh_discover_rows",
     "repair_duplicated_anime_libraries_task",
+    "repair_music_album_page",
+    "repair_music_artist_page",
+    "repair_music_track_page",
     "sync_mal_ratings_from_api",
     "warm_database_page_cache",
     "warm_discover_api_cache",
