@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { StatisticsCharts } from './StatisticsCharts';
+import { rootStyle } from './rootStyle.web';
 
 const LEVEL_THRESHOLDS = [0, 3, 6, 9];
 
@@ -22,7 +23,7 @@ function surfaceColor(css, token) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   return {
     background: token('--color-page-bg', '#18181b'),

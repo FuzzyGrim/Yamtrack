@@ -5,9 +5,10 @@ import {
   MetadataMatchResults,
   TvProviderSwitch,
 } from './MetadataReview';
+import { rootStyle } from './rootStyle.web';
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   return {
     background: token('--color-page-bg', '#18181b'),

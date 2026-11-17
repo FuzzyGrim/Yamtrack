@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { StatisticsView } from '../pages/StatisticsView';
 import { StatisticsActivityOverview } from './StatisticsSummary';
+import { rootStyle } from './rootStyle.web';
 
 const WEEKDAY_NAMES = [
   'Monday',
@@ -32,7 +33,7 @@ function surfaceColor(css, token) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   return {
     background: token('--color-page-bg', '#18181b'),

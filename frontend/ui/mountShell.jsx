@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { mountRoot } from '../settings/root';
 import { MobileNav, TopBar } from './Shell';
+import { rootStyle } from './rootStyle.web';
 
 const THEME_CLASSES = [
   'light', 'dark', 'catppuccin_mocha', 'dracula', 'nord', 'gruvbox',
@@ -25,7 +26,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   const accent = color('--color-accent', '#4a9eff');

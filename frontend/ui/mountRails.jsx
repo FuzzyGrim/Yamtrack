@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { View } from 'react-native';
 import { mountRoot } from '../settings/root';
 import { Rail } from './Rail';
+import { rootStyle } from './rootStyle.web';
 
 const pendingScroll = new Map();
 const canvas = document.createElement('canvas');
@@ -21,7 +22,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   return {

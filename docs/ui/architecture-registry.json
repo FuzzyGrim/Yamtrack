@@ -5861,6 +5861,10 @@
       "register": "HOME",
       "purpose": "Browser adapter that reports where each waiting Home row sits (on screen, within one and a half screens, or further) with IntersectionObserver, so shared HomeShelves requests only rows near the viewport. Native counterpart: native-proof/app/data/homeRowWatcherCore.js."
     },
+    "frontend/ui/rootStyle.web.js": {
+      "register": "TOKENS",
+      "purpose": "Browser adapter that reads the theme's CSS variables on <html> for the web palette readers (every mount adapter and *Theme.web file). One getComputedStyle snapshot per task, dropped when <html> attributes, <head> stylesheets or the colour scheme change, so islands mounting together do not each force a full-page style recalculation. Web-only: native palettes are JavaScript tokens and never read computed styles."
+    },
     "frontend/ui/webRequest.web.js": {
       "register": "HOME",
       "purpose": "Web-only request for adapters that drive a shared transport core: same-origin JSON over Django's cookie session with the CSRF token on unsafe methods, query encoding identical to the native transport, errors carrying the HTTP status, optional AbortSignal pass-through, in-flight sharing of identical GETs (no cache, no retry) and an optional onTiming hook. Web-only because the browser signs in with the session cookie; native supplies its own request from authTransportCore.js."

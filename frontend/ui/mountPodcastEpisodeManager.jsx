@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { PodcastEpisodeManager } from './PodcastEpisodeManager';
+import { rootStyle } from './rootStyle.web';
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   return {
     surface: token('--color-surface', '#27272a'),

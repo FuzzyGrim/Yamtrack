@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArtworkPicker as SharedArtworkPicker, EditionPicker as SharedEditionPicker } from './ArtworkPicker.jsx';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -18,7 +19,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   const accent = color('--color-accent', '#6366f1');

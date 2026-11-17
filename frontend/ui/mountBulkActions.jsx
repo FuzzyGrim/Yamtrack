@@ -7,6 +7,7 @@ import { TextField } from './TextField';
 import { BulkActionDialog, BulkActionRow, BulkFieldRow, BulkJobCard, BulkJobMessage, BulkJobProblems, BulkJobProgress, BulkJobSummary, BulkNote } from './BulkActions';
 import { BulkJobDock } from './BulkJobDock';
 import { TagBulkDialog } from './TagManagement';
+import { rootStyle } from './rootStyle.web';
 
 // Mounted once in the base layout. The toolbar (mountBulkToolbar.jsx) opens a
 // short dialog with `bulk-actions-open`. Anything slow then runs as a "job" in a
@@ -39,7 +40,7 @@ const DATE_HELP = {
 const STORE = 'floppy-bulk-jobs';
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => (css.getPropertyValue(name) || '').trim() || fallback;
   const accent = token('--color-accent', '#6366f1');
   return {

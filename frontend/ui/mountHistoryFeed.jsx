@@ -3,6 +3,7 @@ import { mountRoot } from '../settings/root';
 import { HistoryActivityDialog } from './HistoryFeed';
 import { HistoryView } from '../pages/HistoryView';
 import { openModal } from './ModalHost';
+import { rootStyle } from './rootStyle.web';
 import { saveHistoryAnchor, scrollToHistoryAnchor, takeHistoryAnchor } from './historyScrollAnchor.web';
 
 const canvas = document.createElement('canvas');
@@ -22,7 +23,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   return {

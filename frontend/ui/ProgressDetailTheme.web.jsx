@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ProgressCard } from './ProgressCard.web';
 import { ProgressDialog } from './ProgressDialog';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -19,7 +20,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   return {

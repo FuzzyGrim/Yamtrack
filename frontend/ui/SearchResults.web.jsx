@@ -5,6 +5,7 @@ import { RatingStarIcon } from './RatingStarIcon.web';
 import { RatingStars } from './RatingStars';
 import { useShelfCardWidth } from './shelfWidth.web';
 import { mergeSearchRowPage, onlineRowParams, searchRowUrl } from './searchRows';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -23,7 +24,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   return {

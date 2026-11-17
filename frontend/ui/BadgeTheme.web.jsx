@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Badge as SharedBadge } from './Badge';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -7,7 +8,7 @@ const ctx = canvas.getContext('2d');
 
 // Resolve the existing theme contract to concrete native color and size values.
 function readAppearance(size, tone, nowrap, hovered) {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (value, fallback) => {
     if (/^(?:#|rgba?\()/i.test(value.trim())) return value.trim();

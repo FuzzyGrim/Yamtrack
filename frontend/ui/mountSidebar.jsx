@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { mountRoot } from '../settings/root';
 import { Icon } from './Icon';
 import { Sidebar } from './Sidebar';
+import { rootStyle } from './rootStyle.web';
 
 // Browser integration for the shared sidebar: theme tokens, HTMX boost, the
 // localStorage pin/view keys, Sortable drag, navigation forms and the mobile
@@ -25,7 +26,7 @@ function resolveColor(value, fallback) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   const accent = color('--color-accent', '#6366f1');

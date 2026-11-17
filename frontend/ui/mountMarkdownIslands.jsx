@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { MarkdownNotes } from './MarkdownNotes';
 import { MarkdownPreview } from './MarkdownPreview.web';
+import { rootStyle } from './rootStyle.web';
 
 const canvas = document.createElement('canvas');
 canvas.width = canvas.height = 1;
@@ -24,7 +25,7 @@ function translate(value) {
 }
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const color = (name, fallback) => resolveColor(token(name, fallback), fallback);
   return {

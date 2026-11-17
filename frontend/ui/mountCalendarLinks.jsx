@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { mountRoot } from '../settings/root';
 import { CalendarView } from '../pages/CalendarView';
 import { CalendarLinks } from './CalendarLinks';
+import { rootStyle } from './rootStyle.web';
 
 function readPalette() {
-  const css = getComputedStyle(document.documentElement);
+  const css = rootStyle();
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   return {
     surface: token('--color-surface', '#27272a'),
