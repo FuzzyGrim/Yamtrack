@@ -596,6 +596,8 @@ class MusicAlbumTracksView(drf_views.APIView):
 
     def get(self, request, album_id):
         """Return catalog tracks plus the user's Music entry per track."""
+        from app.music_views import _play_counts_by_music_id
+
         album = Album.objects.filter(id=album_id).first()
         if album is None:
             return Response({"detail": "Album not found."}, status=HTTP.NOT_FOUND)
@@ -608,6 +610,8 @@ class MusicAlbumTracksView(drf_views.APIView):
                 track__isnull=False,
             )
         }
+        # One grouped history query for every played track, not one each.
+        play_counts = _play_counts_by_music_id(music_by_track.values())
         results = []
         for track in Track.objects.filter(album=album):
             music = music_by_track.get(track.id)
@@ -621,7 +625,7 @@ class MusicAlbumTracksView(drf_views.APIView):
                     "musicbrainz_recording_id": track.musicbrainz_recording_id,
                     "music_id": music.id if music else None,
                     "last_played": music.end_date if music else None,
-                    "play_count": music.history.count() if music else 0,
+                    "play_count": play_counts.get(music.id, 0) if music else 0,
                     "score": str(music.score)
                     if music and music.score is not None
                     else None,

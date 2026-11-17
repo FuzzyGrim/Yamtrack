@@ -65,6 +65,35 @@ def _play_counts_by_music_id(music_entries):
     )
 
 
+def music_play_summaries(music_ids):
+    """Return ``{music_id: (play_count, last_end_date)}`` in one grouped query.
+
+    A track row shows how many times it was played and when last; reading
+    each entry's full history for that cost one query per played track.
+    """
+    if not music_ids:
+        return {}
+    return {
+        music_id: (play_count, last_end_date)
+        for music_id, play_count, last_end_date in Music.history.model.objects.filter(
+            id__in=list(music_ids),
+        )
+        .order_by()
+        .values("id")
+        .annotate(
+            play_count=models.Count("history_id"),
+            last_end_date=models.Max("end_date"),
+        )
+        .values_list("id", "play_count", "last_end_date")
+    }
+
+
+def music_track_play_fields(summary):
+    """Return the track row's play fields from a ``music_play_summaries`` value."""
+    play_count, last_end_date = summary or (0, None)
+    return {"play_count": play_count, "last_played": last_end_date}
+
+
 def _poll_attempt(request):
     """Return the poll attempt number an HTMX poller sent back."""
     try:
@@ -959,6 +988,102 @@ def _render_music_artist_details(request, artist):
     return render(request, "app/media_details.html", context)
 
 
+ALBUM_TRACK_PAGE_SIZE = 50
+
+
+def _album_display_image(album, selected_release):
+    """Return the chosen release's artwork, else the album's, else IMG_NONE."""
+    image = (selected_release or {}).get("image")
+    if image and image != settings.IMG_NONE:
+        return image
+    return album.image or settings.IMG_NONE
+
+
+def album_track_rows(user, album, *, offset=0, limit=None):
+    """Return ``(rows, user_music_entries)`` for ``album``'s tracks.
+
+    Each row carries the track, the viewer's Music entry (matched by track id
+    or recording id), its play count and latest play, collection entry and
+    origin link. The cost is a fixed handful of queries whatever the album's
+    length or how often its tracks were played. With ``limit``, only that
+    slice of tracks (and the entries that can match them) is loaded, so a
+    scrolled-in page costs the same on a 20-track album as on a box set.
+    """
+    # The album (and its artist) is already in hand; joining it per track row
+    # re-read the same columns once per track.
+    all_tracks = Track.objects.filter(album=album).order_by(
+        "disc_number",
+        "track_number",
+        "title",
+    )
+    entries = Music.objects.filter(user=user, album=album).select_related("item")
+    if limit is not None:
+        all_tracks = list(all_tracks[offset : offset + limit])
+        recording_ids = [
+            track.musicbrainz_recording_id
+            for track in all_tracks
+            if track.musicbrainz_recording_id
+        ]
+        entries = entries.filter(
+            models.Q(track_id__in=[track.id for track in all_tracks])
+            | models.Q(item__media_id__in=recording_ids),
+        )
+    user_music_entries = list(entries)
+
+    user_music_by_track = {}
+    for music in user_music_entries:
+        if music.track_id:
+            user_music_by_track[music.track_id] = music
+        if music.item and music.item.media_id:
+            user_music_by_track[f"recording_{music.item.media_id}"] = music
+
+    collection_entries_by_item_id = {}
+    music_item_ids = [music.item_id for music in user_music_entries if music.item_id]
+    if music_item_ids:
+        collection_entries = CollectionEntry.objects.filter(
+            user=user,
+            item_id__in=music_item_ids,
+        ).order_by("-collected_at", "-id")
+        for collection_entry in collection_entries:
+            collection_entries_by_item_id.setdefault(
+                collection_entry.item_id,
+                collection_entry,
+            )
+
+    play_summaries = music_play_summaries(music.id for music in user_music_entries)
+
+    tracks_with_data = []
+    for track in all_tracks:
+        track.album = album
+        music_entry = user_music_by_track.get(track.id)
+        if not music_entry and track.musicbrainz_recording_id:
+            music_entry = user_music_by_track.get(
+                f"recording_{track.musicbrainz_recording_id}",
+            )
+
+        collection_entry = None
+        if music_entry and music_entry.item_id:
+            collection_entry = collection_entries_by_item_id.get(music_entry.item_id)
+
+        origin_url = _safe_origin_url(
+            getattr(music_entry, "origin_url", "") if music_entry else "",
+        )
+        tracks_with_data.append(
+            {
+                "track": track,
+                "music": music_entry,
+                "origin_url": origin_url,
+                "origin_label": _play_link_label(origin_url),
+                **music_track_play_fields(
+                    play_summaries.get(music_entry.id) if music_entry else None,
+                ),
+                "collection_entry": collection_entry,
+            },
+        )
+
+    return tracks_with_data, user_music_entries
+
+
 def _render_music_album_details(request, artist, album):
     """Render a music album through the shared media details template."""
     from app import views as view_barrel
@@ -1076,74 +1201,10 @@ def _render_music_album_details(request, artist, album):
     elif album_metadata_updated:
         album.refresh_from_db(fields=["genres", "implied_genres"])
 
-    all_tracks = (
-        Track.objects.filter(album=album)
-        .select_related("album", "album__artist")
-        .order_by(
-            "disc_number",
-            "track_number",
-            "title",
-        )
+    tracks_with_data, user_music_entries = album_track_rows(request.user, album)
+    total_duration_ms = sum(
+        track_data["track"].duration_ms or 0 for track_data in tracks_with_data
     )
-    user_music_entries = list(
-        Music.objects.filter(
-            user=request.user,
-            album=album,
-        ).select_related("item", "track"),
-    )
-
-    user_music_by_track = {}
-    for music in user_music_entries:
-        if music.track_id:
-            user_music_by_track[music.track_id] = music
-        if music.item and music.item.media_id:
-            user_music_by_track[f"recording_{music.item.media_id}"] = music
-
-    collection_entries_by_item_id = {}
-    music_item_ids = [music.item_id for music in user_music_entries if music.item_id]
-    if music_item_ids:
-        collection_entries = CollectionEntry.objects.filter(
-            user=request.user,
-            item_id__in=music_item_ids,
-        ).order_by("-collected_at", "-id")
-        for collection_entry in collection_entries:
-            collection_entries_by_item_id.setdefault(
-                collection_entry.item_id,
-                collection_entry,
-            )
-
-    tracks_with_data = []
-    total_duration_ms = 0
-    for track in all_tracks:
-        music_entry = user_music_by_track.get(track.id)
-        if not music_entry and track.musicbrainz_recording_id:
-            music_entry = user_music_by_track.get(
-                f"recording_{track.musicbrainz_recording_id}",
-            )
-
-        collection_entry = None
-        if music_entry and music_entry.item_id:
-            collection_entry = collection_entries_by_item_id.get(music_entry.item_id)
-
-        origin_url = _safe_origin_url(
-            getattr(music_entry, "origin_url", "") if music_entry else "",
-        )
-        tracks_with_data.append(
-            {
-                "track": track,
-                "music": music_entry,
-                "origin_url": origin_url,
-                "origin_label": _play_link_label(origin_url),
-                "history": (
-                    list(music_entry.history.all().order_by("-end_date"))
-                    if music_entry
-                    else []
-                ),
-                "collection_entry": collection_entry,
-            },
-        )
-        if track.duration_ms:
-            total_duration_ms += track.duration_ms
 
     library_track_count = sum(
         1 for track_data in tracks_with_data if track_data["music"]
@@ -1162,13 +1223,7 @@ def _render_music_album_details(request, artist, album):
         album,
     )
 
-    album_display_image = album.image or settings.IMG_NONE
-    if (
-        selected_music_release
-        and selected_music_release.get("image")
-        and selected_music_release["image"] != settings.IMG_NONE
-    ):
-        album_display_image = selected_music_release["image"]
+    album_display_image = _album_display_image(album, selected_music_release)
 
     total_runtime = None
     if total_duration_ms:
@@ -1268,7 +1323,14 @@ def _render_music_album_details(request, artist, album):
             "details": {},
             "related": {},
         },
-        "tracks": tracks_with_data,
+        # A long album renders its first page of rows; the rest load as the
+        # list scrolls (music_album_track_rows). Totals above cover every track.
+        "tracks": tracks_with_data[:ALBUM_TRACK_PAGE_SIZE],
+        "tracks_next_offset": (
+            ALBUM_TRACK_PAGE_SIZE
+            if len(tracks_with_data) > ALBUM_TRACK_PAGE_SIZE
+            else None
+        ),
         "has_mb_identity": has_mb_identity,
         "album_tracker": album_tracker,
         "total_tracks": len(tracks_with_data),
@@ -1341,6 +1403,38 @@ def music_album_details(request, artist_id, artist_slug, album_id, album_slug):
         return redirect(_music_album_detail_url(album))
     artist = album.artist
     return _render_music_album_details(request, artist, album)
+
+
+@require_GET
+def music_album_track_rows(request, album_id):
+    """Return the next page of an album's track rows for the infinite scroll."""
+    album = get_object_or_404(Album.objects.select_related("artist"), id=album_id)
+    try:
+        offset = max(int(request.GET.get("offset", 0)), 0)
+    except (TypeError, ValueError):
+        offset = 0
+    tracks_with_data, _entries = album_track_rows(
+        request.user,
+        album,
+        offset=offset,
+        limit=ALBUM_TRACK_PAGE_SIZE,
+    )
+    end = offset + ALBUM_TRACK_PAGE_SIZE
+    has_more = Track.objects.filter(album=album).count() > end
+    _preference, selected_release = _selected_music_release(request.user, album)
+    return render(
+        request,
+        "app/components/detail_music_album_track_rows.html",
+        {
+            "user": request.user,
+            "album": album,
+            "album_display_image": _album_display_image(album, selected_release),
+            "tracks": tracks_with_data,
+            "tracks_next_offset": end if has_more else None,
+            # Links in these rows return to the album page, not this fragment.
+            "return_url": _music_album_detail_url(album),
+        },
+    )
 
 
 def _render_music_track_details(request, track):
