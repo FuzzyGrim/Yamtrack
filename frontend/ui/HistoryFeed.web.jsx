@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { SearchResultCard } from './SearchResultCard';
 import { Button } from './Button';
+import { ROW_LOOKAHEAD_SCREENS } from './homeRowLoading.js';
 import {
   HistoryActivityDialog,
   HistoryEditDialog,
@@ -99,7 +100,10 @@ function LazyDay({ day, labels, onLoadDay, onRetryDay }) {
         observer.disconnect();
         onLoadDay?.(day);
       }
-    }, { rootMargin: '200px' });
+    // Start a day one and a half screens before it scrolls in, like Home's
+    // waiting rows, so the reader meets cards rather than a placeholder. The
+    // margin is in pixels: a percentage resolves against the width.
+    }, { rootMargin: `${Math.round((window.innerHeight || 0) * ROW_LOOKAHEAD_SCREENS) || 200}px 0px` });
     observer.observe(node);
     return () => observer.disconnect();
   }, [day.lazy, day.loading, day.error, onLoadDay, day]);

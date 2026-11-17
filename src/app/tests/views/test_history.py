@@ -701,10 +701,8 @@ class SessionHistoryModalTests(TestCase):
         self.assertEqual(stats["Longest streak"], "2 days")
         self.assertEqual(stats["Most active weekday"], formats.date_format(monday, "l"))
         self.assertContains(response, "At a glance", html=False)
-        self.assertContains(response, "data-calendar-component", html=False)
-        self.assertContains(response, "showMonthsView", html=False)
-        self.assertContains(response, "showYearsView", html=False)
-        self.assertContains(response, "calendarDayIsInteractive", html=False)
+        self.assertContains(response, "data-date-time-picker-root", html=False)
+        self.assertContains(response, '"activityIntensity"', html=False)
 
     def test_session_history_stats_ignore_undated_entries_for_calendar_metrics(self):
         """Undated rows count as activity but do not create calendar dates."""
@@ -798,6 +796,7 @@ class SessionHistoryModalTests(TestCase):
         )
         self.assertEqual(len(response.context["history_days"]), 1)
         self.assertEqual(len(response.context["marker_days"]), 2)
+        self.assertEqual(len(response.context["activity_intensity"]), 2)
         self.assertEqual(len(response.context["visible_marker_days"]), 1)
         self.assertContains(response, "View History", html=False)
 
@@ -1489,6 +1488,7 @@ class HistoryMonthViewTests(TestCase):
         self.assertEqual(session["date"], timezone.localdate().isoformat())
         self.assertTrue(session["when"])
         self.assertIn("stats", payload)
+        self.assertEqual(payload["activityIntensity"][session["date"]]["level"], 3)
 
     def test_history_day_fragment_json_returns_the_next_bounded_slice(self):
         """The browser feed loads one JSON day slice without whole-history payloads."""

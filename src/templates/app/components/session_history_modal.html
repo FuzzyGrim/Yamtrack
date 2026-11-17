@@ -72,7 +72,10 @@
       <div id="session-history-calendar-panel"
            x-show="calendarOpen"
            x-cloak
-           class="md:!block">{% include "app/components/calendar.html" with calendar_mode="activity" only %}</div>
+           class="md:!block">
+        {{ activity_calendar_props|json_script:"activity-calendar-props" }}
+        <div data-date-time-picker-root data-props-id="activity-calendar-props"></div>
+      </div>
 
       <div class="mt-auto hidden border-t border-[var(--color-border)] pt-4 md:block">
         <h3 class="text-sm font-semibold text-[var(--color-text)]">{% translate "At a glance" %}</h3>

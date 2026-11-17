@@ -71,3 +71,13 @@ Bump the uv version, `UV_INSTALLER_SHA256` and `pyproject.toml` together.
 - OS package repositories and Docker's apt repository/GPG key
   (`scripts/install/docker.sh`), Homebrew's installer on macOS, and the Tailwind
   CLI are not pinned or digest-checked.
+
+## npm audit exceptions
+
+CI's two npm audits (the Expo proof at level high, the frontend build at any
+level) run through `scripts/npm_audit_gate.mjs`. They fail on every advisory
+except the ones listed in `.github/npm-audit-exceptions.json`. Each entry names
+one advisory, the reason it does not reach users, who approved it and an expiry
+date; after that date the audit fails again until the entry is removed or
+renewed. Add an entry only when no fixed release exists and the owner has
+approved it, and remove it as soon as the lockfiles pick up a fix.
