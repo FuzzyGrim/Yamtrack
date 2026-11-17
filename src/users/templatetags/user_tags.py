@@ -36,6 +36,10 @@ SOURCES_CONFIG = {
         "name": "YamTrack",
         "logo": static("favicon/apple-touch-icon.png"),
     },
+    "yamtrack_lists": {
+        "name": "YamTrack Lists",
+        "logo": static("favicon/apple-touch-icon.png"),
+    },
     "hltb": {
         "name": "HowLongToBeat",
         "logo": static("img/hltb-logo.png"),

@@ -105,3 +105,26 @@ The order of rows matters for TV data: import `tv` rows first, then `season` row
 | start_date     | No        | 2023-01-16 03:56:13+00:00                      | Full ISO-8601 **timestamp with timezone** `YYYY-MM-DD HH:MM:SS±HH:MM`.                                                                                                          |
 | end_date       | No        | 2023-02-10 22:15:00+00:00                      | Same format as `start_date`.                                                                                                                                                    |
 | progress       | No        | 10                                             | Numeric progress (e.g., chapters, pages, minutes). Ignored for tv and season because progress is tracked with episode rows.                                                     |
+
+## Yamtrack lists CSV format
+
+Use this format to import custom lists into YamTrack. It is a separate file from the media CSV, and importing it adds items to lists without tracking them.
+
+The order of rows matters: each list needs one list row, placed anywhere above the rows of its items. For example, one `list` row followed by five `movie` rows adds five movies to that list. Items whose list has no row above them are skipped with an error.
+
+There are two types of rows:
+
+- **List rows** have `media_type = list` and describe a list.
+- **Item rows** have any other `media_type` and add an item to the list named in `list_name`.
+
+| Column Title     | Required? | Example Value       | Notes                                                                                                                                |
+| ---------------- | --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| list_name        | **Yes**   | Comfort watches     | Matched by name against the lists you own.                                                                                           |
+| list_description | No        | For sick days       | Only used on list rows.                                                                                                              |
+| media_id         | No        | 12345               | ID of the item on the chosen provider. Leave blank to let YamTrack fetch the title from the provider automatically with the `title`. |
+| source           | Cond.     | tmdb                | Required when media_type is not `list`. Same values as in the [Yamtrack CSV format](#yamtrack-csv-format).                           |
+| media_type       | **Yes**   | movie               | `list` for list rows, otherwise same values as in the [Yamtrack CSV format](#yamtrack-csv-format).                                   |
+| title            | No        | Inception           | Leave blank to let YamTrack fetch the title from the provider automatically with the `media_id`.                                     |
+| image            | No        | <https://image.url> | Public poster/cover URL. Leave blank to auto-fetch from the provider automatically with the `media_id` or `title`.                   |
+| season_number    | Cond.     | 2                   | Required when `media_type = season`; also required (together with `episode_number`) when `media_type = episode`.                     |
+| episode_number   | Cond.     | 5                   | Required when `media_type = episode`.                                                                                                |

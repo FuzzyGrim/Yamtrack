@@ -21,6 +21,7 @@ from integrations.imports import (
     steam,
     trakt,
     yamtrack,
+    yamtrack_lists,
 )
 
 logger = logging.getLogger(__name__)
@@ -140,6 +141,12 @@ def import_kitsu(username, user_id, mode):
 def import_yamtrack(file, user_id, mode):
     """Celery task for importing media data from Yamtrack."""
     return import_media(yamtrack.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from Yamtrack Lists")
+def import_yamtrack_lists(file, user_id, mode):
+    """Celery task for importing custom lists from Yamtrack."""
+    return import_media(yamtrack_lists.importer, file, user_id, mode)
 
 
 @shared_task(name="Import from HowLongToBeat")

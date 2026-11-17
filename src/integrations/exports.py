@@ -6,8 +6,12 @@ from django.db.models import Field, Prefetch
 
 from app import helpers
 from app.models import Episode, Item, MediaTypes, Season
+from lists.models import CustomList
 
 logger = logging.getLogger(__name__)
+
+# media_type value of the rows describing a list instead of an item in it
+LIST_ROW_TYPE = "list"
 
 
 class Echo:
@@ -80,6 +84,30 @@ def generate_rows(user):
             yield writer.writerow(row)
 
         logger.debug("Finished streaming %ss to CSV", media_type)
+
+
+def generate_list_rows(user):
+    """Generate CSV rows of the user's lists, each followed by its items."""
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer, quoting=csv.QUOTE_ALL)
+
+    item_fields = get_model_fields(Item)
+
+    # Yield header row
+    yield writer.writerow(["list_name", "list_description", "date_added", *item_fields])
+
+    # Yield data rows
+    for custom_list in CustomList.objects.filter(owner=user):
+        yield writer.writerow(
+            [custom_list.name, custom_list.description, ""]
+            + [LIST_ROW_TYPE if field == "media_type" else "" for field in item_fields],
+        )
+
+        for list_item in custom_list.customlistitem_set.select_related("item"):
+            yield writer.writerow(
+                [custom_list.name, "", list_item.date_added]
+                + [getattr(list_item.item, field) for field in item_fields],
+            )
 
 
 def get_model_fields(model):
