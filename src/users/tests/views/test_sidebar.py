@@ -15,6 +15,8 @@ class SidebarViewTests(TestCase):
 
     def setUp(self):
         """Create user for the tests."""
+        # Requests activate a language that would otherwise leak into later tests
+        self.addCleanup(translation.deactivate)
         self.watch_regions_patcher = patch(
             "users.views.tmdb.watch_provider_regions",
             return_value=[("UNSET", "Disabled"), ("US", "United States")],
@@ -213,7 +215,6 @@ class SidebarViewTests(TestCase):
 
     def test_post_updates_language_valid(self):
         """Posting a configured language saves it and confirms in that language."""
-        self.addCleanup(translation.deactivate)
         self.assertEqual(self.user.language, "en")
         response = self.client.post(
             reverse("preferences"),
