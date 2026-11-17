@@ -120,9 +120,11 @@ def get_public_list_for_item(list_reference, item):
 
 
 def _get_completed_item_ids(user, item_ids):
-    """Return the subset of item_ids that the user has marked Completed in any media type."""
-    if not item_ids:
-        return set()
+    """Return the subset of item_ids that the user has marked Completed in any media type.
+
+    ``item_ids`` may be a subquery of ids (``values("item_id")``), which keeps
+    the queries the same size however long the list is.
+    """
     completed = set()
     for media_type in MediaTypes.values:
         if media_type == MediaTypes.EPISODE.value:
