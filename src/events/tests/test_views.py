@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from app.models import Item, MediaTypes, Sources
+from events.calendar.helpers import date_parser
 from events.models import Event
 from users.models import WeekStartDayChoices
 
@@ -262,6 +263,37 @@ class CalendarViewTests(TestCase):
         self.assertEqual(len(release_dict), 2)  # Two days with events
         self.assertEqual(len(release_dict[15]), 2)  # Two events on the 15th
         self.assertEqual(len(release_dict[20]), 1)  # One event on the 20th
+
+    @patch("events.models.Event.objects.get_user_events")
+    @patch.object(get_user_model(), "update_preference")
+    def test_calendar_hides_sentinel_time(
+        self,
+        mock_update_preference,
+        mock_get_user_events,
+    ):
+        """A release with no known time is listed without a time."""
+        item = Item(
+            id=1,
+            media_id="123",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Test Show 1",
+            image="https://example.com/image1.jpg",
+        )
+        today = timezone.localdate()
+        event = Event(
+            item=item,
+            content_number=2,
+            datetime=date_parser(f"{today.year}-{today.month:02d}-15"),
+        )
+        mock_get_user_events.return_value = [event]
+
+        for layout in ("month", "list"):
+            with self.subTest(layout=layout):
+                mock_update_preference.return_value = layout
+                response = self.client.get(reverse("calendar"))
+                self.assertContains(response, "Test Show 1")
+                self.assertNotContains(response, "11:59")
 
     @patch("events.tasks.reload_calendar.delay")
     def test_reload_calendar(self, mock_reload_task):

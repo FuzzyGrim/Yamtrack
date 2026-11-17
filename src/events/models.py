@@ -40,6 +40,16 @@ class SentinelDatetime:
     MICROSECOND = 999999
 
     @classmethod
+    def is_sentinel_time(cls, value):
+        """Check if a datetime carries the sentinel time of day."""
+        return (
+            value.hour == cls.HOUR
+            and value.minute == cls.MINUTE
+            and value.second == cls.SECOND
+            and value.microsecond == cls.MICROSECOND
+        )
+
+    @classmethod
     def max_datetime(cls):
         """Return the far-future sentinel used for unknown release dates.
 
@@ -264,12 +274,7 @@ class Event(models.Model):
     @property
     def is_sentinel_time(self):
         """Check if the event time is sentinel time."""
-        return (
-            self.datetime.hour == SentinelDatetime.HOUR
-            and self.datetime.minute == SentinelDatetime.MINUTE
-            and self.datetime.second == SentinelDatetime.SECOND
-            and self.datetime.microsecond == SentinelDatetime.MICROSECOND
-        )
+        return SentinelDatetime.is_sentinel_time(self.datetime)
 
     @property
     def is_max_datetime(self):

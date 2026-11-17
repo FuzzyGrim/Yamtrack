@@ -1,3 +1,4 @@
+import datetime as dt
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
@@ -385,6 +386,10 @@ class AppTagsTests(TestCase):
                 app_tags.natural_day(further, mock_user),
                 "2025-04-10 15:00",
             )
+
+            # A release with no known time keeps only the day
+            sentinel = timezone.datetime(2025, 3, 30, 11, 59, 59, 999999, tzinfo=dt.UTC)
+            self.assertEqual(app_tags.natural_day(sentinel, mock_user), "Tomorrow")
 
     def test_media_url(self):
         """Test the media_url filter."""
