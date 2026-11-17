@@ -59,6 +59,34 @@ def refresh_discover_rows(
     return result
 
 
+@shared_task(name="Refresh Discover Feed Row")
+def refresh_discover_feed_row(
+    user_id: int,
+    media_type: str,
+    row_key: str,
+    skip_planning: bool,
+    skip_collected: bool,
+):
+    """Build the row a Discover RSS link serves, off the request path."""
+    from app.discover.feeds import feed_row_key, store_feed_row
+
+    try:
+        user = get_user_model().objects.filter(id=user_id).first()
+        if user is None:
+            return {"stored": False, "reason": "missing_user"}
+        entry = store_feed_row(
+            user,
+            media_type,
+            row_key,
+            skip_planning=skip_planning,
+            skip_collected=skip_collected,
+        )
+        return {"stored": entry is not None}
+    finally:
+        key = feed_row_key(user_id, media_type, row_key, skip_planning, skip_collected)
+        cache.delete(f"{key}:refreshing")
+
+
 def _refresh_rows(user_id, media_type, row_keys, show_more):
     from app.discover import tab_cache as discover_tab_cache
     from app.discover.service import refresh_rows_for_user
