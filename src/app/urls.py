@@ -440,6 +440,11 @@ urlpatterns = [
         name="artist_delete",
     ),
     path(
+        "music/album/<int:album_id>/track-rows/",
+        views.music_album_track_rows,
+        name="music_album_track_rows",
+    ),
+    path(
         "music/album/<int:album_id>/track_modal/",
         views.album_track_modal,
         name="album_track_modal",

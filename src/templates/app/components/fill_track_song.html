@@ -77,21 +77,16 @@
                   {% endif %}
                 {% endwith %}
               {% else %}
-                {# For music, count all history records #}
-                {% if music.history.count > 0 %}
+                {# For music, count all history records. The album page passes  #}
+                {# play_count, read for every track in one grouped query.        #}
+                {% if play_count is None %}
                   {% with listen_count=music.history.count %}
-                    <p id="modal-listen-count-{{ music.id }}" class="text-sm text-[var(--color-text-muted)] mt-1">
-                      {% if listen_count == 1 %}
-                        {% translate "Listened once" %}
-                      {% else %}
-                        {% blocktranslate trimmed with value_1=listen_count %}Listened {{ value_1 }} times{% endblocktranslate %}
-                      {% endif %}
-                    </p>
+                    {% include "app/components/fill_track_song_listen_count.html" %}
                   {% endwith %}
                 {% else %}
-                  <p id="modal-listen-count-{{ music.id }}" class="text-sm text-[var(--color-text-muted)] mt-1">
-                    {% translate "Not listened yet" %}
-                  </p>
+                  {% with listen_count=play_count %}
+                    {% include "app/components/fill_track_song_listen_count.html" %}
+                  {% endwith %}
                 {% endif %}
               {% endif %}
             {% else %}
@@ -157,8 +152,10 @@
               <div class="border-t border-gray-600 my-6"></div>
             {% endif %}
           {% else %}
-            {# For music, check all history records #}
-            {% if music.history.count > 0 %}
+            {# For music, check all history records. The album page (which passes #}
+            {# play_count) leaves this list out: the React form hides this       #}
+            {# fallback, and each row's History button loads the plays on demand. #}
+            {% if play_count is None and music.history.count > 0 %}
               <div>
                 <label class="block text-sm font-medium text-[var(--color-text-secondary)] mb-3">
                   {% translate "Previous Listens" %}
@@ -192,7 +189,7 @@
         <form id="{% if song_form %}{{ song_form.formId }}{% endif %}"
               data-track-form-legacy
               method="post"
-              action="{% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}{% url 'podcast_save' %}{% else %}{% url 'song_save' %}{% endif %}?next={{ request.path }}"
+              action="{% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}{% url 'podcast_save' %}{% else %}{% url 'song_save' %}{% endif %}?next={{ return_url|default:request.path }}"
               @submit="closeTrackModal($el)"
               {% if music and music.item and music.item.media_type == 'podcast' or track.episode_uuid %}
               hx-post="{% url 'podcast_save' %}"
