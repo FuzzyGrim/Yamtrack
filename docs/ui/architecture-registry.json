@@ -4189,6 +4189,27 @@
         }
       }
     },
+    "frontend/ui/historyFirstView.js": {
+      "components": [
+        "HISTORY_FIRST_VIEW_ENTRIES",
+        "firstViewDayCount"
+      ],
+      "register": "HISTORY",
+      "verification": {
+        "web": {
+          "status": "verified",
+          "evidence": "PENDING_WEB"
+        },
+        "ios": {
+          "status": "unverified",
+          "evidence": "PENDING_IOS"
+        },
+        "android": {
+          "status": "unverified",
+          "evidence": "PENDING_ANDROID"
+        }
+      }
+    },
     "frontend/ui/homeTransportCore.js": {
       "components": [
         "createRemoteHomeActions",

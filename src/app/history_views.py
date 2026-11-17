@@ -1059,7 +1059,30 @@ def _prepare_history_day_page(day, user, filters, offset=0):
     return annotated_day
 
 
-HISTORY_EAGER_MONTH_DAYS = 5
+# About two screens of cards render with the page; later days wait as
+# placeholders and load as the reader scrolls near them. Whole days only. The
+# browser and Expo feeds share the same rule (frontend/ui/historyFirstView.js).
+HISTORY_FIRST_VIEW_ENTRIES = 36
+
+
+def _first_view_day_count(history_days, budget=HISTORY_FIRST_VIEW_ENTRIES):
+    """Return how many leading days render in the first response.
+
+    The first day always renders; each later day renders while the running
+    entry count still fits the budget, and every day after the first that does
+    not fit waits.
+    """
+    if not history_days:
+        return 0
+    total = len(history_days[0].get("entries") or [])
+    count = 1
+    for day in history_days[1:]:
+        entries = len(day.get("entries") or [])
+        if total + entries > budget:
+            break
+        total += entries
+        count += 1
+    return count
 
 
 def _history_day_fragment_query(request, offset):
@@ -1835,7 +1858,7 @@ def history(request):
             # several MB of cards, and the day fragment renders the same markup
             # (it takes the day from the request path, so date bounds and the
             # anniversary pick need no handling there).
-            for day in history_days[HISTORY_EAGER_MONTH_DAYS:]:
+            for day in history_days[_first_view_day_count(history_days):]:
                 day["lazy"] = True
                 day["lazy_query"] = _history_day_fragment_query(request, 0)
 
