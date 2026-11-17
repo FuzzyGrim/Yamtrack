@@ -356,12 +356,13 @@ class HistoryCalendarFeedTests(TestCase):
             self.assertLessEqual(len(line.encode()), 75)
 
     def test_feed_is_cached_per_selection(self):
-        """A second poll reuses the feed, and another selection builds its own."""
+        """A repeat poll reuses the feed until a play is added, then shows it."""
         self._movie("Dune", self.when)
         first = self._feed()
-        self._book("Added Later", self.when)
 
         self.assertEqual(self._feed(), first)
+        self._book("Added Later", self.when)
+        self.assertIn("Added Later", self._feed())
         self.assertIn("Added Later", self._feed(media_types=["book"]))
 
 
