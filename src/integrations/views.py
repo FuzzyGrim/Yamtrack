@@ -33,13 +33,15 @@ def trakt_oauth(request):
         request,
         reverse("import_trakt_private"),
     )
-    url = "https://trakt.tv/oauth/authorize"
+    url = "https://auth.trakt.tv/oauth/authorize"
     state = {
         "mode": request.POST["mode"],
         "frequency": request.POST["frequency"],
         "time": request.POST["time"],
         "redirect_uri": redirect_uri,
     }
+    code_verifier, code_challenge = trakt.generate_pkce_pair()
+    state["code_verifier"] = code_verifier
     state_token = secrets.token_urlsafe(32)
     request.session[state_token] = state
     return redirect(
@@ -50,6 +52,8 @@ def trakt_oauth(request):
                     'redirect_uri': redirect_uri,
                     'response_type': 'code',
                     'state': state_token,
+                    'code_challenge': code_challenge,
+                    'code_challenge_method': 'S256',
                 }
             )
         }",
@@ -73,7 +77,11 @@ def import_trakt_private(request):
         request,
         reverse("import_trakt_private"),
     )
-    oauth_callback = trakt.handle_oauth_callback(request, redirect_uri=redirect_uri)
+    oauth_callback = trakt.handle_oauth_callback(
+        request,
+        redirect_uri=redirect_uri,
+        code_verifier=state.get("code_verifier"),
+    )
     enc_token = helpers.encrypt(oauth_callback["refresh_token"])
 
     frequency = state["frequency"]
