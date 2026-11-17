@@ -29,7 +29,13 @@ test('a session sign-in uses the web typeahead; a token sign-in keeps the media 
   const session = createRemoteSearchActions(request, { suggestionsViaWeb: true, serverUrl: 'https://floppy.example' });
   const rows = await session.searchSuggestions({ search: 'col', mediaType: 'tv' });
   assert.equal(rows.length, 2);
-  assert.deepEqual(calls[0], { path: '/search/suggestions', query: { q: 'col', media_type: 'tv', format: 'json' } });
+  const { sid, ...query } = calls[0].query;
+  assert.equal(calls[0].path, '/search/suggestions');
+  assert.deepEqual(query, { q: 'col', media_type: 'tv', format: 'json' });
+  // One id per search box, so the server can stop the request a newer one replaced.
+  assert.match(sid, /^[A-Za-z0-9-]{8,64}$/);
+  await session.searchSuggestions({ search: 'colu', mediaType: 'tv' });
+  assert.equal(calls[1].query.sid, sid);
 
   const token = createRemoteSearchActions(request);
   assert.equal(token.searchSuggestions, undefined);

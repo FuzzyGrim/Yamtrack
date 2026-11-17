@@ -70,6 +70,29 @@ not end in `flush_media_change_side_effects`.
 of write paths clears. It also fails if any module outside `cache_utils.py`
 calls the per-view clear functions directly.
 
+## Token feeds
+
+The calendar links (`events.views.download_calendar`,
+`download_history_calendar`) and the Discover RSS link
+(`app.discover.feeds.discover_row_feed`) are polled all day by calendar apps
+and Radarr/Sonarr, so each answers an unchanged poll from a validator it can
+compute without building the body (`app/feed_validation.py`). The user's side
+is the Statistics sync state (`StatisticsSyncState`), which every tracking and
+play write already marks; the release dates are `events.release_marker`,
+bumped by every path that creates, moves or deletes an `Event` (and only when
+something really changed). The validator also holds the link's token, its
+options, the day and, for the upcoming link, the enabled types and region. A
+matching `If-None-Match` gets a 304; otherwise the rendered calendar is kept
+for an hour under that validator, so a change can never serve an old body.
+The RSS link never builds a Discover row in the request: it serves a row
+built by `Refresh Discover Feed Row` (or by the settings preview), rebuilds
+it in the background when the user's library, Discover activity or the
+row's hour-long lifetime moves, and answers 503 with `Retry-After` until the
+first build lands, because an empty list can make arr list cleaning remove
+films. All three send `Cache-Control: private, max-age=900`. Item retitles and
+cross-provider duplicate mappings are not markers; the daily validator change
+picks them up.
+
 ## Not covered here
 
 History (`app.history_cache`), Statistics (`docs/architecture/statistics-sync.md`)

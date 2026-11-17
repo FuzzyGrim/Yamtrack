@@ -488,12 +488,14 @@ def _aggregate_minutes_per_media_type_from_days(
     *,
     build_missing=False,
     build_days=None,
+    missing_days=None,
 ):
     """Add up ``minutes_by_type`` across the range's day payloads.
 
     ``build_days(days)`` builds and caches a batch of missing days, as in
     ``_walk_days``; without it a missing day is built alone when
-    ``build_missing`` is set.
+    ``build_missing`` is set. Days still without a payload are appended to
+    ``missing_days`` when given.
     """
     minutes_by_type = defaultdict(float)
     if not day_list:
@@ -515,6 +517,8 @@ def _aggregate_minutes_per_media_type_from_days(
             if not day_stats and build_missing:
                 day_stats = build_stats_for_day(user.id, day)
             if not day_stats:
+                if missing_days is not None:
+                    missing_days.append(day)
                 continue
 
             for media_type, minutes in (
@@ -918,10 +922,12 @@ def _walk_days(
     build_days,
     clock,
     timings,
+    missing_days=None,
 ):
     """Read the range's day payloads 50 at a time and merge each into ``acc``.
 
-    Returns the credit backfill hints of the days it had to build.
+    Returns the credit backfill hints of the days it had to build. Days with
+    no payload (not built yet) are appended to ``missing_days`` when given.
     """
     credit_backfill_hints = 0
     # Day payloads built moments ago by the caller (e.g. a full refresh) are
@@ -955,6 +961,8 @@ def _walk_days(
                         day_stats.get("backfill", {}).get("missing_credits") or 0,
                     )
             if not day_stats:
+                if missing_days is not None:
+                    missing_days.append(day)
                 continue
             _merge_day(acc, day, day_stats)
         clock.mark("day_merge")
@@ -2888,6 +2896,7 @@ def _aggregate_statistics_from_days(
     timings: dict | None = None,
     pass_memo: dict | None = None,
     build_days=None,
+    missing_days: list | None = None,
 ):
     """Build one range's statistics from its cached day payloads.
 
@@ -2902,7 +2911,8 @@ def _aggregate_statistics_from_days(
     per pass and handed to each range as copies). It is never cached or
     published. ``build_days(days)`` builds and caches a batch of missing days
     and returns their credit hints; with it a missing day is found by the read
-    that would have fetched it anyway.
+    that would have fetched it anyway. ``missing_days`` collects the days that
+    still had no payload, so a caller need not read the range again to ask.
     """
     clock = _PhaseClock(timings)
     pass_memo = {} if pass_memo is None else pass_memo
@@ -2923,6 +2933,7 @@ def _aggregate_statistics_from_days(
         build_days=build_days,
         clock=clock,
         timings=timings,
+        missing_days=missing_days,
     )
 
     active_types = _active_media_types(user, acc)

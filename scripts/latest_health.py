@@ -8,7 +8,10 @@ Two things test every push to latest:
   pull requests must pass. The publish gate leaves them out on purpose, so
   without this nothing ran them on latest.
 - gate: the publish gate in docker-image.yml runs every other test. It already
-  went red within about 20 minutes of a bad push, but nobody was told.
+  went red within about 20 minutes of a bad push, but nobody was told. A daily
+  scheduled run of latest-health.yml runs the same tests again with no push,
+  because some breaks come from the calendar, not a commit (Discover's holiday
+  window opened on 15 November and three tests failed on every branch).
 
 Each report is about one source and one commit. The issue body carries the
 state of both sources in a hidden JSON comment. The issue is opened when a
@@ -47,7 +50,7 @@ STATE_RE = re.compile(r"<!-- latest-health-state (\{.*?\}) -->", re.DOTALL)
 SOURCES = ("browser", "gate")
 SOURCE_NAMES = {
     "browser": "Browser tests (Latest Health)",
-    "gate": "Other tests (publish gate)",
+    "gate": "Other tests (publish gate or daily run)",
 }
 HEALTH_WORKFLOW = "latest-health.yml"
 GATE_WORKFLOW = "docker-image.yml"
@@ -59,6 +62,10 @@ BROWSER_STEP = "Run browser tests"
 GATE_JOB = re.compile(r"(^|/ )test \([^,()]+, 3\.\d+\)$")
 GATE_STEP = "Run Tests"
 GATE_ROLLUP = re.compile(r"(^|/ )test \(3\.\d+\)$")
+# "Release quality gates / Reuse PR test result?": says which pull request
+# run the gate reused, and when that run started.
+REUSE_JOB = re.compile(r"(^|/ )Reuse PR test result\?$")
+REUSE_STARTED = re.compile(r"\| run started \| `([0-9T:Z.+-]+)` \|")
 # Pull request shard jobs: "test (app, 3.12)".
 PR_JOB = re.compile(r"^test \([^,()]+, 3\.\d+\)$")
 
@@ -87,6 +94,21 @@ class Result:
     status: str  # "pass", "fail" or "unknown"
     tests: list[str] = field(default_factory=list)
     reason: str = ""
+    # Set when the gate passed by reusing a pull request's earlier run: when
+    # that run started ("" if it could not be read). None for a real run.
+    reused_started: str | None = None
+
+
+def reuse_started(jobs: list[dict], logs) -> str:
+    """Return when the pull request run the gate reused started, or ""."""
+    for job in jobs:
+        if REUSE_JOB.search(job.get("name", "")):
+            try:
+                match = REUSE_STARTED.search(logs(job))
+            except Exception:  # an unreadable log only loses the time
+                return ""
+            return match.group(1) if match else ""
+    return ""
 
 
 def classify(
@@ -102,12 +124,13 @@ def classify(
     rollup = [
         job for job in jobs if rollup_re and rollup_re.search(job.get("name", ""))
     ]
-    if not matching:
+    if not any(job.get("conclusion") != "skipped" for job in matching):
         # When the gate reuses the pull request's result, the shards are one
         # skipped job named "test (${{ matrix.suite }}, ...)" and the roll-up
-        # passes: the same tree already passed every shard.
+        # passes: the same tree already passed every shard, but at the time of
+        # that pull request run, which matters for date-dependent tests.
         if rollup and all(job.get("conclusion") == "success" for job in rollup):
-            return Result("pass")
+            return Result("pass", reused_started=reuse_started(jobs, logs))
         return Result("unknown", reason="the test jobs did not run")
     failed_tests: set[str] = set()
     unclear = []
@@ -193,7 +216,13 @@ def render_body(state: dict, repo: str) -> str:
         if status == "fail":
             lines.append(f"Failing at {commit} ({run}).")
             first_bad, last_good = entry.get("first_bad"), entry.get("last_good")
-            if first_bad and last_good:
+            if first_bad and first_bad == last_good:
+                lines.append(
+                    f"First seen at {_short(first_bad)}, which passed earlier. No commit "
+                    "caused this: most likely the date (a seasonal or calendar rule) or "
+                    "something outside the repository changed."
+                )
+            elif first_bad and last_good:
                 lines.append(
                     f"First seen at {_short(first_bad)}. Last passed at {_short(last_good)}. "
                     f"[Commits that could have caused it]"
@@ -302,6 +331,24 @@ def plan_report(
         )
     quiet = "persist" if closed else "none"
 
+    if (
+        result.status == "pass"
+        and result.reused_started is not None
+        and entry.get("status") == "fail"
+        and not _after(result.reused_started, entry.get("failing_since"))
+    ):
+        # The gate reused a pull request run from before these tests started
+        # failing. The tree is the same, but a test that broke with the date
+        # would pass then and fail now, so this proves nothing either way.
+        when = result.reused_started or "an unknown time"
+        result = Result(
+            "unknown",
+            reason=(
+                f"it reused a pull request run that started at {when}, before "
+                "these tests started failing"
+            ),
+        )
+
     if result.status == "unknown":
         if entry.get("unknown_at") == sha:
             return Plan("none", state, note="already recorded as unknown")
@@ -327,6 +374,7 @@ def plan_report(
         entry["tests"] = result.tests
         if previous_status != "fail" or not issue:
             entry["first_bad"] = sha
+            entry["failing_since"] = now
             entry["last_good"] = (
                 previous_sha if previous_status == "pass" else None
             ) or last_good_fallback()
@@ -356,6 +404,7 @@ def plan_report(
     entry["tests"] = []
     entry.pop("first_bad", None)
     entry.pop("last_good", None)
+    entry.pop("failing_since", None)
     state["sources"][source] = entry
     if not issue:
         return Plan(quiet, state, note="passing, no issue open")
@@ -383,6 +432,14 @@ def plan_report(
         f"Every test passes on latest again at {_short(sha)}. Closing. [Run]({run_url})"
     )
     return Plan("close", state, comment=comment, note="closed")
+
+
+def _after(started: str, since: str | None) -> bool:
+    """Return True when the ISO time started is after since; unreadable is False."""
+    try:
+        return datetime.fromisoformat(started) > datetime.fromisoformat(since or "")
+    except (TypeError, ValueError):
+        return False
 
 
 def pr_note(pr_failures: list[str], baseline: dict | None, error: str = "") -> str:

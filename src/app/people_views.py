@@ -2,7 +2,7 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.db.models import Q
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
@@ -183,6 +183,8 @@ def _people_person_contract(context):
         "canViewHistory": hero["canViewHistory"],
         "showBiography": hero["showBiography"],
         "isAuthor": bool(context.get("is_author")),
+        # The play totals are still building: ask again shortly.
+        "talentPending": bool(context.get("talent_pending")),
         "source": context.get("source"),
         "personId": str(person.get("person_id") or ""),
         "sourceUrl": context.get("source_url") or "",
@@ -217,6 +219,23 @@ def _people_studio_contract(context):
             for entry in context.get("credited_titles") or []
         ],
     }
+
+
+# The web page asks every 3 s while totals build; after about two minutes it
+# stops and the numbers appear on the next visit.
+PERSON_TALENT_POLL_LIMIT = 40
+
+
+def _talent_poll_attempt(request, source_config):
+    """Return the poll attempt for a talent poll request, else None."""
+    if request.GET.get("talent") != "1" or not request.headers.get("HX-Request"):
+        return None
+    if source_config["is_author"] or not request.user.is_authenticated:
+        return None
+    try:
+        return max(1, int(request.GET.get("attempt", "1")))
+    except ValueError:
+        return 1
 
 
 @require_GET
@@ -296,6 +315,21 @@ def person_detail(request, source, person_id, name):
     source_config = source_dispatch.get(source)
     if not source_config:
         return HttpResponseBadRequest("Person pages are not available for this source.")
+
+    talent_poll = _talent_poll_attempt(request, source_config)
+    if talent_poll is not None:
+        _totals, pending = statistics_cache.get_ready_person_talent_totals(
+            request.user, source, str(person_id)
+        )
+        if pending:
+            # Cache reads only: no provider call, no library scan.
+            if talent_poll >= PERSON_TALENT_POLL_LIMIT:
+                return HttpResponse("")
+            return render(
+                request,
+                "app/components/person_talent_poller.html",
+                {"person_detail_url": request.path, "attempt": talent_poll + 1},
+            )
 
     # A viewer is waiting: a rate-limited provider fails fast instead of
     # holding the request through long retry waits.
@@ -453,11 +487,16 @@ def person_detail(request, source, person_id, name):
     watched_media_keys = set()
     watched_person_minutes_by_media_key = {}
     person_talent_totals = None
+    talent_pending = False
     if request.user.is_authenticated and not is_author:
-        person_talent_totals = statistics_cache.get_person_talent_totals(
-            request.user,
-            source,
-            person_id_str,
+        # Stored totals only. Building them scans every play in the library,
+        # which is background work (build_person_talent_context_task).
+        person_talent_totals, talent_pending = (
+            statistics_cache.get_ready_person_talent_totals(
+                request.user,
+                source,
+                person_id_str,
+            )
         )
         watched_person_minutes_by_media_key = (
             person_talent_totals.get("minutes_by_media_key", {})
@@ -892,9 +931,12 @@ def person_detail(request, source, person_id, name):
         "filter_data": filter_data,
         "supports_critic_rating_sort": not is_author,
         "person_detail_url": request.path,
+        "talent_pending": talent_pending,
     }
     if request.GET.get("format") == "json":
         return JsonResponse(_people_person_contract(context))
+    if talent_poll is not None:
+        return render(request, "app/components/person_talent_ready.html", context)
     if request.headers.get("HX-Request"):
         return render(
             request, "app/components/person_filmography_fragment.html", context

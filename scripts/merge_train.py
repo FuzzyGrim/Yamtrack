@@ -48,7 +48,6 @@ import re
 import subprocess
 import sys
 import time
-from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -194,9 +193,9 @@ def judge(pr: dict, behind: int | None, now: datetime) -> tuple[str, str]:
     marker = _attempt_marker(pr)
     old_failure = _old_non_migration_failure(pr)
     if behind > 0 and old_failure:
-        if marker and marker[0] == latest_oid:
-            if marker[1] == "refused":
-                return "skip", "GitHub refused the branch update (HTTP 403 or equivalent); the contributor has to merge latest into the branch themselves"
+        # A refusal (":refused", written by older versions) means no refresh
+        # happened, so it does not use up the one retry for this base.
+        if marker and marker[0] == latest_oid and marker[1] != "refused":
             return "skip", "branch refresh already attempted for this base; failed checks still need attention"
         return "update", f"required check failed before latest advanced; refreshing {behind} commits"
     reason = _failure_reason(pr, now)
@@ -259,10 +258,7 @@ def _manual_skip(pr: dict, reason: str) -> bool:
     That is a healthy manual handoff. Failed checks, conflicts, API errors and
     unknown states remain actionable automation failures.
     """
-    return pr["isCrossRepository"] and (
-        "fork branch that maintainers may not update" in reason
-        or "GitHub refused the branch update (HTTP 403 or equivalent)" in reason
-    )
+    return pr["isCrossRepository"] and "fork branch that maintainers may not update" in reason
 
 
 def plan(
@@ -345,17 +341,6 @@ def _fetch(owner: str, name: str) -> tuple[list[dict], str]:
     return prs, latest["oid"]
 
 
-def _record_attempt(owner: str, name: str, pr: dict, refused: bool = False) -> None:
-    body = pr.get("body") or ""
-    marker = f"<!-- merge-train-base:{pr['_latest_oid']}{':refused' if refused else ''} -->"
-    body = ATTEMPT_MARKER.sub("", body).rstrip()
-    updated = f"{body}\n\n{marker}" if body else marker
-    _gh(
-        "api", "-X", "PATCH", f"repos/{owner}/{name}/pulls/{pr['number']}",
-        "-f", f"body={updated}",
-    )
-
-
 def _touches_migrations(paths: list[str]) -> bool:
     return any(MIGRATION_PATH.match(path) for path in paths)
 
@@ -384,11 +369,18 @@ def _compare(owner: str, name: str, latest: str, head: str) -> tuple[int | None,
     return behind, truncated or _touches_migrations(data.get("files") or [])
 
 
+def _github_message(stderr: str) -> str:
+    """GitHub's own reason from gh's error output (no credentials appear there)."""
+    first = next((line for line in stderr.splitlines() if line.strip()), "")
+    return first.removeprefix("gh: ").strip()[:200]
+
+
 def _refusal(stderr: str) -> str:
     if "HTTP 403" in stderr:
         return (
-            "GitHub will not let the token update the head repository (HTTP 403); "
-            "the contributor has to merge latest into the branch themselves"
+            "GitHub will not let the token update the head repository "
+            f"(GitHub said: {_github_message(stderr)}); retrying on the next run. "
+            "If it keeps failing, the contributor has to merge latest into the branch"
         )
     if "HTTP 422" in stderr or "HTTP 409" in stderr:
         return f"merge conflict while updating; its author has to resolve it: {stderr}"
@@ -429,25 +421,14 @@ def _update(owner: str, name: str, pr: dict) -> str | None:
     fork (a manual handoff). Raise UpdateError for refusals that are real errors.
     """
     number = pr["number"]
-    retrying_failed_checks = _old_non_migration_failure(pr)
-    if retrying_failed_checks:
-        try:
-            _record_attempt(owner, name, pr)
-        except subprocess.CalledProcessError as error:
-            message = (
-                f"#{number} skipped: could not record the one-time update attempt: "
-                f"{error.stderr.strip()}"
-            )
-            raise UpdateError(message) from error
     try:
         _gh(
             "api", "-X", "PUT", f"repos/{owner}/{name}/pulls/{number}/update-branch",
             "-f", f"expected_head_sha={pr['headRefOid']}",
         )
     except subprocess.CalledProcessError as error:
-        if retrying_failed_checks:
-            with suppress(subprocess.CalledProcessError):
-                _record_attempt(owner, name, pr, refused=True)
+        # Nothing was refreshed, so nothing is recorded: the PR is retried on
+        # the next run instead of being parked until latest moves again.
         failure = f"#{number} skipped: {_refusal(error.stderr.strip())}"
         if pr["isCrossRepository"] and "HTTP 403" in error.stderr:
             return failure

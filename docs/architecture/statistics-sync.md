@@ -95,6 +95,12 @@ database upsert per range to avoid a read-then-write lock upgrade.
    sweep every day payload the cache is missing (a missing
    `stats:sync:day_epoch:{uid}` key, written without a TTL, means the cache was
    flushed). Clear each slice's dirty rows as it lands.
+   Within a slice, days no more than `PREFETCH_MAX_GAP_DAYS` (31) apart share
+   one prefetch, built when the first of them is reached
+   (`statistics_day_builder.SpanPrefetches`). A prefetch reads every row
+   between its first and last day, so a save on a day four years back used to
+   read four years of plays just to rebuild it alongside today: on a
+   40,000-play library 1.8 s and 28 MiB, against 0.08 s and 0.2 MiB now.
 4. Publish ranges that trail: the hot ranges (Today … Last 30 Days) on every
    pass — a scrobble reaches them in seconds. The heavy ranges (Last 90 Days …
    All Time, the user's default first among them) wait until changes have been
@@ -277,6 +283,24 @@ database). Stale → `ensure_sync` (gated, idempotent) and serve it anyway. None
 → an empty payload with `statistics_building=True`, and an urgent sync.
 `/api/cache-status/` reports the snapshot and never touches a running sync.
 
+A **custom range** (any dates that are not a predefined range, on web and in
+`/api/v1/statistics/overview/`) has no snapshot. It is added up from its day
+payloads, which for a full history at 10k items is seconds of web CPU, so
+`statistics_cache._custom_range_result` remembers the result for 15 minutes
+under a token made of what makes a snapshot stale: the change generation, the
+local day and timezone, the snapshot and day schema versions, plus the dates
+and the user preferences the aggregate reads. Any mark (`mark_days`,
+`mark_aggregate`, preference changes) therefore reaches the next load with no
+invalidation of its own. The comparison period's minutes are remembered the
+same way. A result is not kept when a day payload was missing (the background
+build that fills it in marks nothing), while a bulk import runs (its marks
+are deferred) or while a full sweep is pending (it rebuilds day payloads
+without a mark). Each user keeps one entry per kind, so a new range replaces the
+last. A second request for the same range while the first is computing waits
+for it (`cache_utils.wait_for_build`) instead of computing it again. The walk
+also reports the days it found missing, so scheduling their background build
+no longer reads the whole range a second time.
+
 Eager/test mode (`CELERY_TASK_ALWAYS_EAGER` or `TESTING`) has no worker, so the
 read path rebuilds the requested range inline and `ensure_sync` is a no-op.
 Custom ranges and the comparison-period minutes build their missing days the
@@ -288,6 +312,23 @@ from about 9,000 queries to under 500. The prefetch also carries audiobook
 listening minutes, so a prefetched day issues no query of its own. Tests that exercise the real queueing override both settings and patch
 `app.tasks_interactive.statistics_sync_task.apply_async`
 (`app/tests/test_statistics_sync.py`).
+
+### Person pages
+
+A person page shows "N tracked plays" and the time watched per title. Those
+come from one watched-item context per user: every play in the library, built
+by `statistics_talent._build_person_talent_context`. The page renders what is
+stored and never waits for background work.
+`statistics_cache.get_ready_person_talent_totals` reads the totals, or the
+context for the current history version, from the cache. When that context is
+missing it queues `Build person talent context` once per history version and
+uses the last built context instead, so the numbers trail a new play by one
+build. With nothing built yet the page shows "Counting plays"; the web page asks
+again every 3 s (`?talent=1`, cache reads only, at most 40 times) and swaps in
+the hero and credits once ready, and the Expo screen re-requests on
+`talentPending`. Before this, the page built the context inline: 30 to 220 s on
+a large library on spinning disks, almost all of it SQLite reading rows, which
+the request timer now reports as `db_fetch_ms`.
 
 ## Manual refresh
 

@@ -50,6 +50,26 @@ def refresh_statistics_talent_fragment_task(
     )
 
 
+# A full scan of the viewer's plays. Pages queue it once per history version
+# and never wait for it; the hard limit frees the slot if SQLite is wedged.
+@shared_task(
+    name="Build person talent context",
+    ignore_result=True,
+    soft_time_limit=600,
+    time_limit=660,
+)
+def build_person_talent_context_task(user_id: int):
+    """Store the all-time watched context that person pages read their totals from."""
+    from django.contrib.auth import get_user_model
+
+    from app import statistics_cache
+
+    user = get_user_model().objects.filter(pk=user_id).first()
+    if user is None:
+        return
+    statistics_cache.get_person_talent_context(user)
+
+
 @shared_task(name="app.tasks.mark_credits_statistics_refresh", ignore_result=True)
 def mark_credits_statistics_refresh(user_id: int):
     """Record the credits change left behind by a coalesced backfill batch."""
