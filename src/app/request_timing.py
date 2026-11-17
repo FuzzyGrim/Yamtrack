@@ -119,6 +119,37 @@ def _wrap_boundary(cls, method, name):
     setattr(cls, method, wrapped)
 
 
+def _install_db_fetch_boundary():
+    """Time row fetches, which the execute wrapper behind db_ms never sees.
+
+    ``QuerySet.iterator()`` and chunked reads execute once, then step SQLite
+    through ``fetchmany``. On a large scan that stepping is most of the wait
+    (person pages spent a minute there), and it used to land in
+    ``unclassified_ms``. Django's CursorWrapper forwards these methods through
+    ``__getattr__``, so they are defined on the class here.
+    """
+    from django.db.backends.utils import CursorWrapper
+
+    for method in ("fetchone", "fetchmany", "fetchall"):
+        existing = CursorWrapper.__dict__.get(method)
+        if getattr(existing, "_request_timing_boundary", False):
+            continue
+
+        def make(name):
+            def fetch(self, *args, **kwargs):
+                forwarded = CursorWrapper.__getattr__(self, name)
+                if _tally.get() is None:
+                    return forwarded(*args, **kwargs)
+                with boundary("db_fetch"):
+                    return forwarded(*args, **kwargs)
+
+            fetch.__name__ = name
+            fetch._request_timing_boundary = True
+            return fetch
+
+        setattr(CursorWrapper, method, make(method))
+
+
 def install_boundaries():
     """Time shared I/O boundaries, including sessions and task publication.
 
@@ -138,6 +169,7 @@ def install_boundaries():
     _wrap_boundary(Task, "apply_async", "broker")
     _wrap_boundary(BaseDatabaseWrapper, "connect", "db_connect")
     _wrap_boundary(Template, "render", "render")
+    _install_db_fetch_boundary()
     _wrap_boundary(ConnectionPool, "get_connection", "redis_pool")
     _wrap_boundary(Connection, "send_packed_command", "redis_send")
     _wrap_boundary(Connection, "read_response", "redis_read")

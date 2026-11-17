@@ -402,6 +402,8 @@ Status: `Partial / coexisting`
 
 GlobalSearch and SearchResults retain the accepted menu/results geometry and theme accent. Browser keyboard overlap stays in keyboardOverlap.web.js; the native adapter supplies its own overlap hook and WindowedRail. Token results, manual-entry navigation and streaming provider rows remain. Existing ownership and fallback retirement conditions are unchanged; native runtime remains separately verified.
 
+Suggestion requests (2026-11-16): `GlobalSearch` cancels the superseded request with an `AbortController` and passes `signal` to the platform loader; web loads through `frontend/ui/webRequest.web.js`, Expo through `searchTransportCore` and `authTransportCore` `send`. Both send a per-box `sid` (made in `GlobalSearch.web.jsx`, and per transport by `searchBoxId` in `searchTransportCore`) that `search_views.suggestion_superseded_check` uses to stop older All-media requests early.
+
 ParentPicker's native manual-entry consumer opts into an unframed search field. The web create-entry template places each island's configuration within the host parent required by the loader, and the adapter explicitly imports shared presentation rather than resolving itself; its fallback remains. The mounted web picker retains its plain input, overlaid results and original result IDs. The TV manual-entry browser acceptance test covers parent search and selection; both web roots mounted and Expo also selected Deep Field. Ownership remains partial/coexisting and retirement still requires complete parity and web adoption. iOS and Android not verified.
 
 - `src/templates/app/icons/magnifying-glass.svg` (connected SVG shared by GlobalSearch, CollectionBrowser, ProviderDirectoryView and remaining server-template search controls; shared SearchIcon is mapped under SHELL)
@@ -734,6 +736,9 @@ PeopleView's native full-page grid uses canonical MediaCard models and a render-
 - `src/templates/app/components/person_card_inline.html` (pre-mount fallback for the cast/crew `PeopleView` rail on media detail and episode pages; links come from `_people_cast_props`, #1953)
 - `src/templates/app/components/person_filmography_card.html`
 - `src/templates/app/components/person_filmography_fragment.html`
+- `src/templates/app/components/person_hero.html` (person hero island and its fallback, shared by the page and the talent fill-in)
+- `src/templates/app/components/person_talent_poller.html` (asks every 3 s while play totals build)
+- `src/templates/app/components/person_talent_ready.html` (out-of-band hero and credits once totals are built)
 - `src/templates/app/components/person_media_strip_card.html`
 - `src/templates/app/components/person_media_strip_row.html`
 - `src/templates/app/components/youtube_player.html`

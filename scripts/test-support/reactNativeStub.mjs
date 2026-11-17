@@ -11,10 +11,16 @@ export const ScrollView = host('div');
 export const Image = Object.assign(host('img'), { prefetch: () => Promise.resolve() });
 export const ActivityIndicator = host('div');
 export const Modal = host('div');
+// Text fields expose their latest handlers so a test can type into them.
+export const TextInput = React.forwardRef(function TextInput({ onChangeText, onKeyPress, onSubmitEditing, testID, accessibilityLabel }, ref) {
+  globalThis.__textInputs = globalThis.__textInputs || {};
+  globalThis.__textInputs[testID || accessibilityLabel || 'input'] = { onChangeText, onKeyPress, onSubmitEditing };
+  return React.createElement('input', { ref, 'data-testid': testID, 'aria-label': accessibilityLabel });
+});
 export const StyleSheet = { create: s => s, flatten: s => (Array.isArray(s) ? Object.assign({}, ...s.flat().filter(Boolean)) : s || {}), absoluteFill: {}, hairlineWidth: 1 };
 export const Platform = { OS: 'ios', select: o => o.ios ?? o.native ?? o.default };
 export const PanResponder = { create: () => ({ panHandlers: {} }) };
-export const AccessibilityInfo = { announceForAccessibility() {} };
+export const AccessibilityInfo = { announceForAccessibility() {}, isReduceMotionEnabled: () => Promise.resolve(false), addEventListener: () => ({ remove() {} }) };
 export const Animated = { View: host('div'), Value: class { constructor(v) { this.v = v; } setValue() {} }, timing: () => ({ start() {} }) };
 export function useWindowDimensions() { return { width: 1200, height: 800, scale: 2, fontScale: 1 }; }
 export const PixelRatio = { get: () => 2 };

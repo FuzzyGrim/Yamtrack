@@ -1,0 +1,9 @@
+{% comment %}Answer to the talent poller once the totals are built: the hero
+   with the play counts and the credits with time watched, swapped out of band.
+   The poller itself is replaced by nothing, which stops it.{% endcomment %}
+<div id="person-hero" hx-swap-oob="true">
+  {% include "app/components/person_hero.html" %}
+</div>
+<div id="filmography-content" hx-swap-oob="true">
+  {% include "app/components/person_filmography_fragment.html" %}
+</div>

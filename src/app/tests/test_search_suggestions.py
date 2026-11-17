@@ -203,3 +203,71 @@ class SearchSuggestionsViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"suggestions": []})
+
+    def _enable_two_types(self):
+        """Give the user a saved show, so All media has a second type to search."""
+        show = Item.objects.create(
+            media_id="show-all", source=Sources.TMDB.value, media_type=MediaTypes.TV.value,
+            title="The Godfather Saga",
+        )
+        TV.objects.create(item=show, user=self.user, status=Status.COMPLETED.value)
+
+    def test_all_media_request_stops_once_the_same_box_asks_again(self):
+        """The browser cancels a replaced request; the server stops it before its next type."""
+        from django.core.cache import cache
+
+        from app.search_views import suggestion_superseded_check
+
+        cache.clear()
+        self._enable_two_types()
+        older = suggestion_superseded_check(self.user, "box-12345678")
+        newer = suggestion_superseded_check(self.user, "box-12345678")
+
+        with CaptureQueriesContext(connection) as queries:
+            self.assertEqual(get_saved_suggestions(self.user, "all", "godfather", superseded=older), [])
+        self.assertFalse([query for query in queries if 'FROM "app_item"' in query["sql"]])
+
+        titles = [row["title"] for row in get_saved_suggestions(self.user, "all", "godfather", superseded=newer)]
+        self.assertEqual(titles, ["The Godfather Saga", "The Godfather"])
+
+    def test_superseded_check_is_per_box_and_needs_a_valid_id(self):
+        from django.core.cache import cache
+
+        from app.search_views import suggestion_superseded_check
+
+        cache.clear()
+        first = suggestion_superseded_check(self.user, "box-aaaaaaaa")
+        # Another tab or device has its own id and does not stop this one.
+        suggestion_superseded_check(self.user, "box-bbbbbbbb")
+        self.assertFalse(first())
+        for missing in (None, "", "short", "has spaces in it", "x" * 65):
+            self.assertIsNone(suggestion_superseded_check(self.user, missing))
+
+    def test_json_suggestions_accept_the_search_box_id(self):
+        response = self.client.get(
+            reverse("search_suggestions"),
+            {"q": "godfa", "media_type": "all", "format": "json", "sid": "box-12345678"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["title"] for row in response.json()["suggestions"]], ["The Godfather"])
+
+    def test_api_suggestions_accept_the_search_box_id(self):
+        response = self.client.get(
+            "/api/v1/search/suggestions/",
+            {"q": "godfa", "media_type": "all", "sid": "box-12345678"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["title"] for row in response.json()["suggestions"]], ["The Godfather"])
+
+    def test_suggestions_turn_off_postgres_jit(self):
+        """JIT compiling cost more than the query itself; suggestions run without it."""
+        from app.search_views import without_postgres_jit
+
+        ran = []
+        with without_postgres_jit():
+            ran.append(True)
+            if connection.vendor == "postgresql":
+                with connection.cursor() as cursor:
+                    cursor.execute("SHOW jit")
+                    self.assertEqual(cursor.fetchone()[0], "off")
+        self.assertEqual(ran, [True])

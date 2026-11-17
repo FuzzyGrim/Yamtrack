@@ -1,0 +1,126 @@
+{% comment %}Person hero: the shared React hero island with its server markup fallback.
+   Rendered by person_detail.html and again, out of band, when the talent
+   totals finish building (person_talent_ready.html).{% endcomment %}
+{% load i18n %}
+{% load app_tags %}
+{% load user_tags %}
+{% load ui_tags %}
+{% people_hero "person" %}
+<div class="flex flex-col md:flex-row gap-8 md:gap-10 mb-10 md:mb-8">
+  <div class="w-full md:w-1/4 max-w-[250px] mx-auto md:mx-0">
+    <img
+      src="{{ person.image|default:IMG_NONE|image_url }}"
+      alt="{{ person.name }}"
+      class="w-full rounded-lg shadow-lg bg-[var(--color-surface)] object-cover">
+
+    <div class="mt-4 p-3 bg-[var(--color-surface)] rounded-lg">
+      <a
+        href="{{ history_filter_url }}"
+        class="w-full inline-flex items-center justify-center rounded-md bg-amber-600 px-3 py-2 text-sm text-white transition-colors hover:bg-amber-700">
+        {% if is_author %}{% translate "View Reads in History" %}{% else %}{% translate "View Plays in History" %}{% endif %}
+      </a>
+    </div>
+  </div>
+
+  <div class="w-full md:w-3/4">
+    <h1 class="text-3xl font-bold mb-4 text-center md:text-start">{{ person.name }}</h1>
+
+    <div class="flex flex-wrap gap-2 mb-4">
+      {% if person.known_for_department %}
+        <span class="px-3 py-1 bg-indigo-600 text-white rounded-full text-sm">
+          {{ person.known_for_department }}
+        </span>
+      {% endif %}
+      {% if tracked_plays_count is not None %}
+        {% if is_author %}
+          <span class="px-3 py-1 bg-[var(--color-surface)] text-[var(--color-text-secondary)] rounded-full text-sm">
+            {% blocktranslate trimmed with value_1=watched_book_count count count=watched_book_count %}{{ value_1 }} book{% plural %}{{ value_1 }} books{% endblocktranslate %}
+          </span>
+        {% else %}
+          <span class="px-3 py-1 bg-[var(--color-surface)] text-[var(--color-text-secondary)] rounded-full text-sm">
+            {% blocktranslate trimmed with value_1=watched_movie_count count count=watched_movie_count %}{{ value_1 }} movie{% plural %}{{ value_1 }} movies{% endblocktranslate %}
+          </span>
+          <span class="px-3 py-1 bg-[var(--color-surface)] text-[var(--color-text-secondary)] rounded-full text-sm">
+            {% blocktranslate trimmed with value_1=watched_show_count count count=watched_show_count %}{{ value_1 }} show{% plural %}{{ value_1 }} shows{% endblocktranslate %}
+          </span>
+        {% endif %}
+        {% if talent_pending %}
+          <span class="px-3 py-1 bg-[var(--color-surface)] text-[var(--color-text-secondary)] rounded-full text-sm">
+            {% translate "Counting plays" %}
+          </span>
+        {% else %}
+          <span class="px-3 py-1 bg-[var(--color-surface)] text-[var(--color-text-secondary)] rounded-full text-sm">
+            {% if is_author %}{% blocktranslate count count=tracked_plays_count %}{{ count }} tracked read{% plural %}{{ count }} tracked reads{% endblocktranslate %}{% else %}{% blocktranslate count count=tracked_plays_count %}{{ count }} tracked play{% plural %}{{ count }} tracked plays{% endblocktranslate %}{% endif %}
+          </span>
+          {% if tracked_hours_count %}
+            <span class="px-3 py-1 bg-[var(--color-surface)] text-[var(--color-text-secondary)] rounded-full text-sm">
+              {{ tracked_hours_count }}
+            </span>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="bg-[var(--color-surface)] p-4 rounded-lg mb-6"
+         {% detail_section_attrs user "person" "hero" "biography" %}>
+      {% if person.biography %}
+        <div
+          x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.bioText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
+          x-init="$nextTick(() => checkClamp())">
+          <p
+            x-ref="bioText"
+            :class="isExpanded ? '' : 'line-clamp-5'"
+            class="text-[var(--color-text-secondary)] text-pretty">
+            {{ person.biography|linebreaksbr|safe }}
+          </p>
+          <button
+            x-show="isClamped"
+            @click="isExpanded = !isExpanded"
+            class="text-[var(--color-link)] hover:text-[var(--color-link-hover)] text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
+            {% translate "Show less" as media_i18n_0 %}{% translate "Show more" as media_i18n_1 %}<span x-text="isExpanded ? '{{ media_i18n_0|escapejs }}' : '{{ media_i18n_1|escapejs }}'"></span>
+          </button>
+        </div>
+      {% else %}
+        <p class="text-[var(--color-text-muted)]">{% translate "No biography available." %}</p>
+      {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {% if person.birth_date %}
+        <div class="bg-[var(--color-surface)] rounded-lg p-3">
+          <h3 class="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">{% translate "Born" %}</h3>
+          <p class="text-sm text-[var(--color-text-secondary)] mt-1">{{ person.birth_date|user_date_format:user }}</p>
+        </div>
+      {% endif %}
+      {% if person.death_date %}
+        <div class="bg-[var(--color-surface)] rounded-lg p-3">
+          <h3 class="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">{% translate "Died" %}</h3>
+          <p class="text-sm text-[var(--color-text-secondary)] mt-1">{{ person.death_date|user_date_format:user }}</p>
+        </div>
+      {% endif %}
+      {% if person.place_of_birth %}
+        <div class="bg-[var(--color-surface)] rounded-lg p-3">
+          <h3 class="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">{% translate "Place of Birth" %}</h3>
+          <p class="text-sm text-[var(--color-text-secondary)] mt-1 line-clamp-2">{{ person.place_of_birth }}</p>
+        </div>
+      {% endif %}
+      <div class="bg-[var(--color-surface)] rounded-lg p-3">
+        <h3 class="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">{% translate "Source" %}</h3>
+        <p class="text-sm mt-1">
+          {% if source_url %}
+            <a
+              href="{{ source_url }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-[var(--color-text-secondary)] hover:text-indigo-500 transition-colors duration-200">
+              {{ source|source_readable }}
+            </a>
+          {% else %}
+            <span class="text-[var(--color-text-secondary)]">{{ source|source_readable }}</span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endpeople_hero %}
