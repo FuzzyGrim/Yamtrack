@@ -378,6 +378,48 @@ def _filter_backfill_item_ids(item_ids, field: str):
     return [item_id for item_id in item_ids if item_id not in blocked_ids]
 
 
+# How many due state rows one retry pass may look at, per item it can queue.
+DUE_RETRY_WINDOW_FACTOR = 4
+
+
+def due_backfill_retry_item_ids(field: str, still_missing, batch_size: int) -> list[int]:
+    """Return up to ``batch_size`` item ids whose retry for ``field`` is due.
+
+    Asks the state table alone first, oldest retry first, then checks only that
+    window's items against ``still_missing`` (an ``Item`` queryset of items that
+    still lack the field). The single joined query this replaces had to read the
+    item row of every due state row to find the few still missing it, and rows
+    whose item was filled some other way stay due forever, so on a long-lived
+    library every tick read more of the library to queue nothing.
+
+    Window rows whose item no longer needs the field are moved to the back of the
+    queue (the pending cap, two weeks) so they cannot hold the front of it.
+    """
+    now = timezone.now()
+    window = list(
+        MetadataBackfillState.objects.filter(
+            field=field,
+            give_up=False,
+            last_success_at__isnull=True,
+        )
+        .filter(Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=now))
+        .order_by("next_retry_at", "item_id")
+        .values_list("item_id", flat=True)[: batch_size * DUE_RETRY_WINDOW_FACTOR]
+    )
+    if not window:
+        return []
+    missing = set(still_missing.filter(id__in=window).values_list("id", flat=True))
+    satisfied = [item_id for item_id in window if item_id not in missing]
+    if satisfied:
+        MetadataBackfillState.objects.filter(
+            field=field, item_id__in=satisfied
+        ).update(
+            next_retry_at=now
+            + timedelta(seconds=METADATA_BACKFILL_PENDING_MAX_DELAY_SECONDS)
+        )
+    return [item_id for item_id in window if item_id in missing][:batch_size]
+
+
 def _add_user_day_key(user_day_keys, user_id, day_key):
     if not user_id or not day_key:
         return
