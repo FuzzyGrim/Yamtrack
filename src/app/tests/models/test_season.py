@@ -243,6 +243,14 @@ class SeasonModel(TestCase):
 
         self.assertEqual(self.season.episodes.count(), 24)
 
+    def test_paused_status_marks_tv_paused(self):
+        """Test setting status to PAUSED marks the related TV as paused."""
+        self.season.status = Status.PAUSED.value
+        self.season.save(update_fields=["status"])
+
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.PAUSED.value)
+
     @patch("app.models.Season.get_episode_item")
     def test_watch_method(self, mock_get_episode_item):
         """Test the watch method of the Season model."""
