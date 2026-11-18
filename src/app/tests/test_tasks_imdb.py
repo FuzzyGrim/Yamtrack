@@ -175,6 +175,10 @@ class SyncImdbRatingsTaskTests(TestCase):
         self.assertEqual(show.imdb_rating_count, 2000)
         self.assertEqual(episode.imdb_rating, 9.0)
         self.assertEqual(episode.imdb_rating_count, 500)
+        self.assertEqual(
+            episode.provider_external_ids["imdb_id"],
+            "tt0000003",
+        )
         self.assertEqual(season.imdb_rating, 9.0)
         self.assertEqual(season.imdb_rating_count, 500)
         self.assertEqual(
@@ -185,6 +189,45 @@ class SyncImdbRatingsTaskTests(TestCase):
                 "seasons_updated": 1,
             },
         )
+
+    def test_episode_sync_stores_tconst_when_rating_is_unchanged(self):
+        """An episode whose rating predates the imdb_id column write still gets
+        its tconst stored, so the detail chip can link out on the next pass.
+        """
+        Item.objects.create(
+            media_id="tmdb-4",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="A Show",
+            provider_external_ids={"imdb_id": "tt0000010"},
+        )
+        episode = Item.objects.create(
+            media_id="tmdb-4",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Pilot",
+            season_number=1,
+            episode_number=1,
+            imdb_rating=9.0,
+            imdb_rating_count=500,
+        )
+
+        with (
+            patch(
+                "app.providers.imdb_datasets.download_ratings",
+                side_effect=[{}, {"tt0000011": (9.0, 500)}],
+            ),
+            patch(
+                "app.providers.imdb_datasets.download_episode_map",
+                return_value={"tt0000010": {(1, 1): "tt0000011"}},
+            ),
+        ):
+            result = sync_imdb_ratings_from_datasets()
+
+        episode.refresh_from_db()
+        self.assertEqual(episode.provider_external_ids["imdb_id"], "tt0000011")
+        # The rating itself did not move, so it is not counted as updated.
+        self.assertEqual(result["episodes_updated"], 0)
 
 
 class SyncImdbRatingsMemoryTests(TestCase):

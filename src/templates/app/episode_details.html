@@ -201,7 +201,7 @@
         <div class="order-2 mt-0 mb-5 flex w-full items-center justify-between gap-0.5 sm:order-1 sm:mt-4 sm:flex-wrap sm:justify-start sm:gap-2">
           {# TMDB provider score chip #}
           {% if episode_metadata.score_count %}
-            <div class="inline-flex h-[1.875rem] shrink-0 items-center gap-0.5 rounded-full border border-cyan-400/18 bg-cyan-500/[0.07] pl-0 pr-1.5 text-[12px] text-white shadow-sm sm:h-8 sm:gap-2 sm:pr-3 sm:text-sm">
+            <{% if tmdb_episode_url %}a href="{{ tmdb_episode_url }}" target="_blank" rel="noopener noreferrer" aria-label="{% translate 'Open TMDB episode page' %}"{% else %}div{% endif %} class="inline-flex h-[1.875rem] shrink-0 items-center gap-0.5 rounded-full border border-cyan-400/18 bg-cyan-500/[0.07] pl-0 pr-1.5 text-[12px] text-white shadow-sm sm:h-8 sm:gap-2 sm:pr-3 sm:text-sm">
               <span class="sr-only">{% translate "TMDB score" %}</span>
               <span class="-my-px -ml-px flex h-[1.875rem] w-[1.875rem] shrink-0 items-center justify-center rounded-full border border-cyan-400/28 bg-cyan-500/14 sm:h-8 sm:w-8">
                 <img src="{% static 'img/tmdb-logo.png' %}" alt="" aria-hidden="true" class="h-3 w-3 object-contain sm:h-3.5 sm:w-3.5">
@@ -213,11 +213,11 @@
               {% endif %}
               <span class="text-[12px] text-[var(--color-text-muted)] sm:text-sm">|</span>
               <span class="text-[12px] text-[var(--color-text-secondary)] sm:text-sm">{% blocktranslate trimmed with value_1=episode_metadata.score_count|intcomma count count=episode_metadata.score_count|safe_count %}{{ value_1 }} vote{% plural %}{{ value_1 }} votes{% endblocktranslate %}</span>
-            </div>
+            </{% if tmdb_episode_url %}a{% else %}div{% endif %}>
           {% endif %}
           {# IMDb rating chip #}
           {% if imdb_score %}
-            <div class="inline-flex h-[1.875rem] shrink-0 items-center gap-0.5 rounded-full border border-amber-400/18 bg-amber-500/[0.07] pl-0 pr-1.5 text-[12px] text-white shadow-sm sm:h-8 sm:gap-2 sm:pr-3 sm:text-sm">
+            <{% if imdb_episode_url %}a href="{{ imdb_episode_url }}" target="_blank" rel="noopener noreferrer" aria-label="{% translate 'Open IMDb episode page' %}"{% else %}div{% endif %} class="inline-flex h-[1.875rem] shrink-0 items-center gap-0.5 rounded-full border border-amber-400/18 bg-amber-500/[0.07] pl-0 pr-1.5 text-[12px] text-white shadow-sm sm:h-8 sm:gap-2 sm:pr-3 sm:text-sm">
               <span class="sr-only">{% translate "IMDb score" %}</span>
               <span class="-my-px -ml-px flex h-[1.875rem] w-[1.875rem] shrink-0 items-center justify-center rounded-full border border-amber-400/28 bg-amber-500/14 sm:h-8 sm:w-8">
                 <img src="{% static 'img/imdb-logo.png' %}" alt="" aria-hidden="true" class="h-3.5 w-3.5 object-contain sm:h-4 sm:w-4">
@@ -229,7 +229,7 @@
               {% endif %}
               <span class="text-[12px] text-[var(--color-text-muted)] sm:text-sm">|</span>
               <span class="text-[12px] text-[var(--color-text-secondary)] sm:text-sm">{% blocktranslate trimmed with value_1=imdb_score.rating_count|intcomma count count=imdb_score.rating_count %}{{ value_1 }} rating{% plural %}{{ value_1 }} ratings{% endblocktranslate %}</span>
-            </div>
+            </{% if imdb_episode_url %}a{% else %}div{% endif %}>
           {% endif %}
           {# User episode rating chip — always-present slot so it can be OOB-swapped into place on first watch without a page refresh. #}
           {% if not public_view and episode %}

@@ -8030,6 +8030,69 @@ class MediaDetailsViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    @patch("app.views.tmdb.episode")
+    @patch("app.providers.services.get_media_metadata")
+    @patch("app.providers.tmdb.process_episodes")
+    def test_episode_details_score_chips_link_to_source_pages(
+        self,
+        mock_process_episodes,
+        mock_get_metadata,
+        mock_episode,
+    ):
+        """The TMDB and IMDb score pills link to the episode's page on each site."""
+        Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Pilot",
+            season_number=1,
+            episode_number=1,
+            imdb_rating=8.2,
+            imdb_rating_count=1355,
+            provider_external_ids={"imdb_id": "tt2306295"},
+        )
+        mock_get_metadata.side_effect = lambda *_args, **_kwargs: {
+            "title": "Test TV Show",
+            "media_id": "1668",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.TV.value,
+            "image": "http://example.com/image.jpg",
+            "season/1": {
+                "title": "Season 1",
+                "season_title": "Season 1",
+                "media_id": "1668",
+                "media_type": MediaTypes.SEASON.value,
+                "source": Sources.TMDB.value,
+                "image": "http://example.com/season.jpg",
+                "episodes": [],
+            },
+        }
+        mock_process_episodes.return_value = []
+        mock_episode.return_value = {"score": 7.1, "score_count": 15}
+
+        response = self.client.get(
+            reverse(
+                "episode_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_id": "1668",
+                    "title": "test-tv-show",
+                    "season_number": 1,
+                    "episode_number": 1,
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'href="https://www.themoviedb.org/tv/1668/season/1/episode/1"',
+        )
+        self.assertContains(
+            response,
+            'href="https://www.imdb.com/title/tt2306295/"',
+        )
+
     @patch("app.views.tmdb.episode", return_value={})
     @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.tmdb.process_episodes")

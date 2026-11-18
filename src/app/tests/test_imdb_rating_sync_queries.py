@@ -47,6 +47,13 @@ class ImdbRatingSyncQueryCountTests(TestCase):
                         title=f"Show {show}",
                         season_number=season,
                         episode_number=episode,
+                        # Episodes carry their own tconst after the first sync
+                        # pass. provider_external_ids is a sync-identity field:
+                        # rewriting it every run would invalidate every tracked
+                        # item's media-server sync context nightly.
+                        provider_external_ids={
+                            "imdb_id": f"tt{media_id}-{season}-{episode}"
+                        },
                     )
                     for episode in range(1, EPISODES + 1)
                 )

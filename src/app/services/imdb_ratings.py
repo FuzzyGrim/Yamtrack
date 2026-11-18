@@ -82,7 +82,9 @@ def sync_episode_ratings() -> int:
     Resolves each show's episode tconsts via the public title.episode
     dataset (keyed by season/episode number), then looks up ratings for
     those tconsts and matches them back to Episode-typed Items by
-    media_id/source/season_number/episode_number.
+    media_id/source/season_number/episode_number. The resolved tconst is
+    kept on the episode item's ``provider_external_ids["imdb_id"]`` so the
+    detail page can link the rating chip to the IMDb episode page.
 
     Returns the number of Items updated.
     """
@@ -130,12 +132,20 @@ def sync_episode_ratings() -> int:
         return 0
 
     updated = []
+    imdb_id_backfill = []
     media_ids = {media_id for media_id, _ in show_tconst_by_key}
     for media_id_chunk in _chunks(media_ids):
         episode_items = Item.objects.filter(
             media_id__in=media_id_chunk,
             media_type=MediaTypes.EPISODE.value,
-        ).only("media_id", "source", "season_number", "episode_number", *_RATING_FIELDS)
+        ).only(
+            "media_id",
+            "source",
+            "season_number",
+            "episode_number",
+            "provider_external_ids",
+            *_RATING_FIELDS,
+        )
         for episode_item in episode_items.iterator(chunk_size=2000):
             parent_tconst = show_tconst_by_key.get(
                 (episode_item.media_id, episode_item.source),
@@ -157,15 +167,28 @@ def sync_episode_ratings() -> int:
             if rating is None:
                 continue
             average_rating, num_votes = rating
-            if (
+            rating_changed = not (
                 episode_item.imdb_rating == average_rating
                 and episode_item.imdb_rating_count == num_votes
-            ):
-                continue
-            episode_item.imdb_rating = average_rating
-            episode_item.imdb_rating_count = num_votes
-            updated.append(episode_item)
+            )
+            # Keep the resolved tconst on the item so the episode page can
+            # link to IMDb. A separate bulk_update so steady-state rating
+            # writes don't touch provider_external_ids, a sync-identity field
+            # whose updates invalidate media-server sync contexts.
+            external_ids = dict(episode_item.provider_external_ids or {})
+            if external_ids.get("imdb_id") != tconst:
+                external_ids["imdb_id"] = tconst
+                episode_item.provider_external_ids = external_ids
+                imdb_id_backfill.append(episode_item)
+            if rating_changed:
+                episode_item.imdb_rating = average_rating
+                episode_item.imdb_rating_count = num_votes
+                updated.append(episode_item)
 
+    if imdb_id_backfill:
+        Item.objects.bulk_update(
+            imdb_id_backfill, ["provider_external_ids"], batch_size=500
+        )
     if updated:
         Item.objects.bulk_update(
             updated, ["imdb_rating", "imdb_rating_count"], batch_size=500

@@ -645,7 +645,7 @@ pending. These checks do not establish complete page parity.
 - Purpose/usage: episode/season/comic detail and child lists.
 - Status: `Partial / coexisting`. Season/episode/issue rows still use server templates and Alpine in the browser. Expo now renders the shared React Native `DetailChildren` with seasons, episodes/issues, pagination, TV watch/rating actions and related identity navigation. Spoiler obfuscation, full unwatch/drop/history/collection actions and browser scroll restoration remain server-owned.
 - Native readiness: `Primitives`. Expo renders the child rows through shared React Native components; runtime behavior on iOS and Android remains unverified.
-- Implementation: `src/templates/app/episode_details.html`, `comic_issue_details.html`, episode/issue/season/action/obfuscation/scroll fragments.
+- Implementation: `src/templates/app/episode_details.html`, `comic_issue_details.html`, episode/issue/season/action/obfuscation/scroll fragments. The web episode page's provider score chips (TMDB, IMDb) stay legacy and now wrap in outbound links to the episode's page on each provider; the native episode page still shows no provider score (`DetailPage.jsx`).
 - Contract: ordering, watch/unwatch/drop, score/ownership/history, spoiler obfuscation and correct row/hero/scroll restoration.
 - Data: detail/save/score handlers and source/media/season/episode coordinates.
 - Reuse/blockers: shared row/actions; medium operations/order explicit. Depends on tracking/rating/collection parity.
