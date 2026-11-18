@@ -364,8 +364,19 @@ class TraktImporter:
                 raise MediaImportUnexpectedError(msg) from e
 
     def _get_date(self, date_str):
-        """Parse a Trakt watched_at timestamp and strip seconds/microseconds."""
+        """Parse a Trakt watched_at timestamp and strip seconds/microseconds.
+
+        Plays added on Trakt with an unknown date have a null watched_at.
+        """
+        if not date_str:
+            return None
         return parse_datetime(date_str).replace(second=0, microsecond=0)
+
+    def _get_history_date(self, date_str):
+        """Get the history date of a watch, falling back to now if it is unknown."""
+        if date_str:
+            return parse_datetime(date_str)
+        return timezone.now()
 
     def _get_tmdb_id(self, entry_data):
         """Extract TMDB ID from entry data."""
@@ -551,7 +562,7 @@ class TraktImporter:
             status=Status.COMPLETED.value,
             progress=1,
         )
-        movie_obj._history_date = parse_datetime(watched_at)
+        movie_obj._history_date = self._get_history_date(watched_at)
 
         self.media_instances[MediaTypes.MOVIE.value][key].append(movie_obj)
         self.bulk_media[MediaTypes.MOVIE.value].append(movie_obj)
@@ -670,7 +681,7 @@ class TraktImporter:
             related_season=season_obj,
             end_date=end_date,
         )
-        episode_obj._history_date = parse_datetime(watched_at)
+        episode_obj._history_date = self._get_history_date(watched_at)
         self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
         self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
 
@@ -706,7 +717,7 @@ class TraktImporter:
                 user=self.user,
                 status=Status.IN_PROGRESS.value,
             )
-            tv_obj._history_date = parse_datetime(watched_at)
+            tv_obj._history_date = self._get_history_date(watched_at)
             self.bulk_media[MediaTypes.TV.value].append(tv_obj)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         else:
@@ -754,7 +765,7 @@ class TraktImporter:
                 related_tv=tv_obj,
                 status=Status.IN_PROGRESS.value,
             )
-            season_obj._history_date = parse_datetime(watched_at)
+            season_obj._history_date = self._get_history_date(watched_at)
             self.bulk_media[MediaTypes.SEASON.value].append(season_obj)
             self.media_instances[MediaTypes.SEASON.value][season_key] = [season_obj]
         else:
