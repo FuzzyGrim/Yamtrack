@@ -95,6 +95,13 @@ class QuickWatchDateChoices(models.TextChoices):
     NO_DATE = "no_date", _("No Date")
 
 
+class DefaultEditEntryDateChoices(models.TextChoices):
+    """Choices for default end date when adding media to the tracker."""
+
+    CURRENT_DATE = "current_date", "Current Date"
+    NO_DATE = "no_date", "No End Date"
+
+
 class DateFormatChoices(models.TextChoices):
     """Choices for date format display."""
 
@@ -323,6 +330,12 @@ class User(AbstractUser):
         default=QuickWatchDateChoices.CURRENT_DATE,
         choices=QuickWatchDateChoices,
         help_text=_("Date to use when bulk-marking media as completed"),
+    )
+    default_edit_entry_date = models.CharField(
+        max_length=20,
+        default=DefaultEditEntryDateChoices.CURRENT_DATE,
+        choices=DefaultEditEntryDateChoices,
+        help_text="Default end date when opening the edit entry dialog",
     )
 
     date_format = models.CharField(
@@ -562,6 +575,12 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="quick_watch_date_valid",
                 condition=models.Q(quick_watch_date__in=QuickWatchDateChoices.values),
+            ),
+            models.CheckConstraint(
+                name="default_edit_entry_date_valid",
+                condition=models.Q(
+                    default_edit_entry_date__in=DefaultEditEntryDateChoices.values,
+                ),
             ),
             models.CheckConstraint(
                 name="week_start_day_valid",
