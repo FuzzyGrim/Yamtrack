@@ -53,6 +53,66 @@ class ImportTrakt(TestCase):
             datetime(2023, 1, 2, 10, 4, 0, tzinfo=UTC),
         )
 
+    def test_get_date_unknown(self):
+        """Plays with an unknown date have a null watched_at."""
+        trakt_importer = TraktImporter("test", self.user, "new")
+        self.assertIsNone(trakt_importer._get_date(None))
+
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_process_watched_movie_unknown_date(self, mock_get_metadata):
+        """A movie play with an unknown date is imported without an end date."""
+        movie_entry = {
+            "type": "movie",
+            "movie": {"title": "Test Movie", "ids": {"tmdb": 67890}},
+            "watched_at": None,
+        }
+        mock_get_metadata.return_value = {
+            "title": "Test Movie",
+            "image": "movie_image.jpg",
+        }
+
+        trakt_importer = TraktImporter("test", self.user, "new")
+        trakt_importer.process_watched_movie(movie_entry)
+
+        movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]
+        self.assertIsNone(movie_obj.end_date)
+        self.assertEqual(movie_obj.status, Status.COMPLETED.value)
+        self.assertIsNotNone(movie_obj._history_date)
+
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_process_watched_episode_unknown_date(self, mock_get_metadata):
+        """An episode play with an unknown date is imported without an end date."""
+        episode_entry = {
+            "type": "episode",
+            "episode": {"season": 1, "number": 1, "title": "Pilot"},
+            "show": {"title": "Test Show", "ids": {"tmdb": 12345}},
+            "watched_at": None,
+        }
+
+        def mock_metadata_side_effect(media_type, _, __, ___=None):
+            if media_type == MediaTypes.TV.value:
+                return {
+                    "title": "Test Show",
+                    "image": "tv_image.jpg",
+                    "last_episode_season": 1,
+                    "max_progress": 1,
+                }
+            return {
+                "title": "Season 1",
+                "image": "season_image.jpg",
+                "episodes": [{"episode_number": 1, "still_path": "/still.jpg"}],
+                "max_progress": 1,
+            }
+
+        mock_get_metadata.side_effect = mock_metadata_side_effect
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.process_watched_episode(episode_entry)
+
+        episode_obj = trakt_importer.bulk_media[MediaTypes.EPISODE.value][0]
+        self.assertIsNone(episode_obj.end_date)
+        self.assertIsNotNone(episode_obj._history_date)
+
     @patch("integrations.imports.trakt.TraktImporter._get_metadata")
     def test_process_watched_movie(self, mock_get_metadata):
         """Test processing a movie entry."""
