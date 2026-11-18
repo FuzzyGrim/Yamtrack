@@ -33,6 +33,7 @@ urlpatterns = [
     path("import/yamtrack", views.import_yamtrack, name="import_yamtrack"),
     path("import/hltb", views.import_hltb, name="import_hltb"),
     path("import/steam", views.import_steam, name="import_steam"),
+    path("import/hardcover", views.import_hardcover, name="import_hardcover"),
     path("import/imdb", views.import_imdb, name="import_imdb"),
     path("import/goodreads", views.import_goodreads, name="import_goodreads"),
     path("export/csv", views.export_csv, name="export_csv"),
