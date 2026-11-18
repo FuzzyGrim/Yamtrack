@@ -431,3 +431,115 @@ class TVStatusTests(TestCase):
 
         season1 = Season.objects.get(pk=self.season1.pk)
         self.assertEqual(season1.status, original_season1_status)
+
+    def _season_statuses(self):
+        """Return the stored status of every season by season number."""
+        return {
+            season.item.season_number: season.status
+            for season in Season.objects.filter(related_tv=self.tv).select_related(
+                "item",
+            )
+        }
+
+    def test_paused_status_cascades_to_seasons_sharing_old_status(self):
+        """Pausing a show pauses only its in-progress seasons (#3)."""
+        # season1 pushed the show to in progress when it was created
+        self.tv.refresh_from_db()
+
+        self.tv.status = Status.PAUSED.value
+        self.tv.save()
+
+        self.assertEqual(
+            self._season_statuses(),
+            {1: Status.PAUSED.value, 2: Status.PLANNING.value},
+        )
+
+    def test_planning_status_cascades_to_seasons_sharing_old_status(self):
+        """Moving a show back to planning follows for its in-progress seasons."""
+        self.tv.refresh_from_db()
+
+        self.tv.status = Status.PLANNING.value
+        self.tv.save()
+
+        self.assertEqual(
+            self._season_statuses(),
+            {1: Status.PLANNING.value, 2: Status.PLANNING.value},
+        )
+
+    def test_paused_status_leaves_completed_seasons_alone(self):
+        """Pausing a show never reopens seasons that are already finished."""
+        Season.objects.filter(pk=self.season2.pk).update(
+            status=Status.COMPLETED.value,
+        )
+        self.tv.refresh_from_db()
+
+        self.tv.status = Status.PAUSED.value
+        self.tv.save()
+
+        self.assertEqual(
+            self._season_statuses(),
+            {1: Status.PAUSED.value, 2: Status.COMPLETED.value},
+        )
+
+    def test_dropped_status_drops_started_seasons(self):
+        """Dropping a show abandons every season underway, paused included."""
+        season3_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=3,
+        )
+        Season.save_base(
+            Season(
+                item=season3_item,
+                user=self.user,
+                related_tv=self.tv,
+                status=Status.PAUSED.value,
+            ),
+        )
+        season4_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=4,
+        )
+        Season.save_base(
+            Season(
+                item=season4_item,
+                user=self.user,
+                related_tv=self.tv,
+                status=Status.COMPLETED.value,
+            ),
+        )
+        self.tv.refresh_from_db()
+
+        self.tv.status = Status.DROPPED.value
+        self.tv.save()
+
+        self.assertEqual(
+            self._season_statuses(),
+            {
+                1: Status.DROPPED.value,  # was in progress
+                2: Status.PLANNING.value,  # never started
+                3: Status.DROPPED.value,  # was paused
+                4: Status.COMPLETED.value,  # already finished
+            },
+        )
+
+    def test_dropped_to_paused_cascades_to_dropped_seasons(self):
+        """A show leaving dropped takes its dropped seasons with it."""
+        Season.objects.filter(related_tv=self.tv).update(status=Status.DROPPED.value)
+        TV.objects.filter(pk=self.tv.pk).update(status=Status.DROPPED.value)
+        self.tv.refresh_from_db()
+
+        self.tv.status = Status.PAUSED.value
+        self.tv.save()
+
+        self.assertEqual(
+            self._season_statuses(),
+            {1: Status.PAUSED.value, 2: Status.PAUSED.value},
+        )
