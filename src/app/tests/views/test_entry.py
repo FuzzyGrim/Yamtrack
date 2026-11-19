@@ -21,6 +21,8 @@ class CreateEntryViewTests(TestCase):
 
     def setUp(self):
         """Create a user and log in."""
+        # Requests activate a language that would otherwise leak into later tests
+        self.addCleanup(translation.deactivate)
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
