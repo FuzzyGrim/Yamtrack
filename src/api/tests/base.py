@@ -25,6 +25,8 @@ from app.models import (
 from events.models import Event
 from lists.models import CustomList, CustomListItem
 
+from .schema_validation import assert_response_matches_schema
+
 
 class YamtrackApiTestCase(APITestCase):
     """Shared setup and request helpers for API endpoint tests."""
@@ -50,7 +52,7 @@ class YamtrackApiTestCase(APITestCase):
         self.addCleanup(self._fetch_releases_patcher.stop)
 
         self._metadata_patcher = patch(
-            "api.views.services.get_media_metadata",
+            "app.providers.services.get_media_metadata",
             return_value={
                 "max_progress": None,
                 "related": {"seasons": [], "recommendations": []},
@@ -379,7 +381,6 @@ class YamtrackApiTestCase(APITestCase):
             )
         ]
 
-
         self._build_lists_fixtures()
 
         self._build_changes_history_fixtures()
@@ -545,9 +546,21 @@ class YamtrackApiTestCase(APITestCase):
         }
 
     def call_api(
-        self, method, url_name, args=(), params=None, payload=None, headers=None
+        self,
+        method,
+        url_name,
+        args=(),
+        params=None,
+        payload=None,
+        headers=None,
+        *,
+        validate_schema=True,
     ):
-        """Call an API endpoint using a named URL and optional payload."""
+        """Call an API endpoint using a named URL and optional payload.
+
+        The response is validated against the OpenAPI schema, unless
+        `validate_schema` is False.
+        """
         request_method = getattr(self.client, method.lower())
         request_kwargs = dict(headers or {})
 
@@ -559,4 +572,7 @@ class YamtrackApiTestCase(APITestCase):
             request_kwargs["data"] = payload
             request_kwargs["content_type"] = "application/json"
 
-        return request_method(url, **request_kwargs)
+        response = request_method(url, **request_kwargs)
+        if validate_schema:
+            assert_response_matches_schema(self, response)
+        return response

@@ -99,11 +99,11 @@ def get_endpoint_cases() -> list[EndpointCase]:
         EndpointCase("get", "api_media_lists", args=("movie", "tmdb", 1)),
         EndpointCase(
             "put",
-            "api_media_lists",
+            "api_media_list_detail",
             args=("movie", "tmdb", 1, 1),
             payload={},
         ),
-        EndpointCase("delete", "api_media_lists", args=("movie", "tmdb", 1, 1)),
+        EndpointCase("delete", "api_media_list_detail", args=("movie", "tmdb", 1, 1)),
         EndpointCase(
             "get",
             "api_media_recommendations",

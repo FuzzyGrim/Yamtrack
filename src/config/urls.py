@@ -15,7 +15,6 @@ from django.urls import include, path
 from django.utils import timezone
 from django.views.decorators.http import last_modified
 from django.views.i18n import JavaScriptCatalog
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from health_check.views import HealthCheckView
 from redis.asyncio import Redis as RedisClient
 
@@ -58,12 +57,6 @@ urlpatterns = [
         ),
     ),
     path("api/v1/", include("api.urls")),
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path(
-        "api/docs/",
-        SpectacularSwaggerView.as_view(url_name="schema"),
-        name="swagger-ui",
-    ),
 ]
 
 # Build the accounts URLs
