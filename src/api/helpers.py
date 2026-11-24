@@ -292,6 +292,49 @@ def fetch_episode_metadata(media_id, source, season_number, episode_number):
     return media_metadata, episode, None
 
 
+def get_user_season(user, media_id, source, season_number):
+    """Get the user season if it's already tracked."""
+    season = Season.objects.filter(
+        user=user,
+        item__media_id=media_id,
+        item__source=source,
+        item__season_number=season_number,
+        item__episode_number=None,
+    ).first()
+    if season is None:
+        return None, Response(
+            {"detail": "Season not found or not tracked."},
+            status=HTTP.NOT_FOUND,
+        )
+    return season, None
+
+
+def get_or_create_provider_season(user, media_id, source, season_number, metadata):
+    """Get or create the user season."""
+    season = Season.objects.filter(
+        user=user,
+        item__media_id=media_id,
+        item__source=source,
+        item__season_number=season_number,
+        item__episode_number=None,
+    ).first()
+    if season is not None:
+        return season
+
+    season_item, _ = Item.objects.get_or_create(
+        media_id=media_id,
+        source=source,
+        media_type=MediaTypes.SEASON.value,
+        season_number=season_number,
+        defaults={"title": metadata.get("title"), "image": metadata.get("image")},
+    )
+    return Season.objects.create(
+        item=season_item,
+        user=user,
+        status=Status.IN_PROGRESS.value,
+    )
+
+
 def build_item_id(item):
     """Build the item_id string for the given item."""
     if not item:
