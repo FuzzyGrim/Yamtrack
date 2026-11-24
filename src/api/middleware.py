@@ -107,7 +107,11 @@ class ApiJsonErrorMiddleware:
         if not path.startswith("/api/"):
             return None
 
-        logger.exception("Unhandled exception during API request: %s", path)
+        logger.error(
+            "Unhandled exception during API request: %s",
+            path,
+            exc_info=exception,
+        )
 
         detail = str(exception) if settings.DEBUG else "Internal server error."
 

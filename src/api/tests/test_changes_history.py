@@ -227,6 +227,7 @@ class ChangesHistoryTests(YamtrackApiTestCase):
             headers=self.auth_headers,
         )
         self.assertEqual(delete_response.status_code, 204)
+        self.assertEqual(delete_response.content, b"")
 
         get_response = self.call_api(
             "get",
@@ -273,3 +274,16 @@ class ChangesHistoryTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(delete_response.status_code, 404)
+
+    def test_changes_history_detail_non_numeric_id_returns_404(self):
+        """Changes-history detail should return 404 for a non numeric id."""
+        for method in ("get", "delete"):
+            with self.subTest(method=method):
+                response = self.call_api(
+                    method,
+                    "api_media_changes_history_detail",
+                    args=("movie", "abc"),
+                    headers=self.auth_headers,
+                )
+
+                self.assertEqual(response.status_code, 404)

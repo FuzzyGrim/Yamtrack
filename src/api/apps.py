@@ -9,4 +9,4 @@ class ApiConfig(AppConfig):
 
     def ready(self):
         """Import signals when the app is ready."""
-        import api.schema  # noqa: F401, PLC0415
+        import api.schemas  # noqa: F401, PLC0415
