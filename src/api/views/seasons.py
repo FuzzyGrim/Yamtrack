@@ -2,6 +2,8 @@ from http import HTTPStatus as HTTP  # noqa: N814
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -29,6 +31,7 @@ from api.helpers import (
     error_response,
     get_item_lists,
     get_lists_by_number,
+    get_user_season,
     paginate_data,
     parse_limit_offset,
     require_update_fields,
@@ -59,6 +62,7 @@ from api.serializers import (
     PaginatedHistoryResponseSerializer,
     PaginatedListsMinimizedResponseSerializer,
     UpdateSeasonSerializer,
+    WatchSeasonSerializer,
 )
 from app.models import BasicMedia, Item, MediaTypes
 from app.providers import services, tmdb
@@ -569,6 +573,115 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
         ).data
         paginated_data["results"] = consumptions
         return Response(paginated_data, status=HTTP.OK)
+
+    @staticmethod
+    def _resolve_episode_numbers(media_metadata, requested):
+        """Return ``(episode_numbers, error_response)`` for a season watch."""
+        available = [
+            ep["episode_number"] for ep in (media_metadata or {}).get("episodes") or []
+        ]
+        if not available:
+            return None, Response(
+                {"detail": "Season not found."},
+                status=HTTP.NOT_FOUND,
+            )
+
+        episode_numbers = requested or available
+        unknown = sorted(set(episode_numbers) - set(available))
+        if unknown:
+            return None, Response(
+                {"detail": f"Episodes not found: {unknown}."},
+                status=HTTP.NOT_FOUND,
+            )
+        return sorted(set(episode_numbers)), None
+
+    @extend_schema(
+        operation_id="season_consumption_history_post",
+        summary="Add season consumption history entries",
+        description=(
+            "Records a new watch entry for every episode of the season (or only "
+            "for `episode_numbers` when given). Calling it again adds another "
+            "entry per episode (re-watch). The season must already be tracked, "
+            "otherwise 404."
+        ),
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        request=WatchSeasonSerializer,
+        responses={
+            201: OpenApiResponse(
+                HistorySerializer(many=True),
+                description="Consumptions added successfully",
+                examples=[CONSUMPTION_EXAMPLE],
+            ),
+            400: BadRequestResponse,
+            404: NotFoundResponse,
+        },
+    )
+    def post(self, request, media_type, source, media_id, season_number):
+        """Add a new watch entry for each episode of a season."""
+        error = validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.SEASON.value,
+        )
+        if error is not None:
+            return error
+
+        serializer = WatchSeasonSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        season, error = get_user_season(
+            request.user,
+            media_id,
+            source,
+            season_number,
+        )
+        if error is not None:
+            return error
+
+        try:
+            media_metadata = services.get_media_metadata(
+                MediaTypes.SEASON.value,
+                media_id,
+                source,
+                [season_number],
+            )
+        except Exception as e:  # noqa: BLE001
+            return error_response(
+                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
+            )
+
+        episode_numbers, error = self._resolve_episode_numbers(
+            media_metadata,
+            data.get("episode_numbers"),
+        )
+        if error is not None:
+            return error
+
+        end_date = data.get("end_date", timezone.now())
+        notes = data.get("notes") or ""
+        try:
+            # If a watch fails, everything is rolled back
+            with transaction.atomic():
+                episodes = [
+                    season.watch(number, end_date, notes) for number in episode_numbers
+                ]
+        except Exception as e:  # noqa: BLE001
+            return error_response(
+                "An error occurred while adding the watch.",
+                HTTP.INTERNAL_SERVER_ERROR,
+                e,
+            )
+
+        return Response(
+            HistorySerializer(episodes, many=True).data,
+            status=HTTP.CREATED,
+        )
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/history/[consumption_id]/  # noqa: E501, W505

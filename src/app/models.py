@@ -1701,7 +1701,7 @@ class Season(Media):
             logger.info("No more episodes to watch.")
 
     def watch(self, episode_number, end_date, notes=""):
-        """Create or add a repeat to an episode of the season."""
+        """Create or add a repeat to an episode of the season and return it."""
         item = self.get_episode_item(episode_number)
 
         episode = Episode.objects.create(
@@ -1714,6 +1714,7 @@ class Season(Media):
             "%s created successfully.",
             episode,
         )
+        return episode
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""

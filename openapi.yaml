@@ -3717,6 +3717,146 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+    post:
+      operationId: episode_consumption_history_post
+      description: Records a new, distinct watch of the episode. Calling it again
+        adds another entry (re-watch) instead of updating the existing one. The parent
+        season must already be tracked, otherwise 404.
+      summary: Add an episode consumption history entry
+      parameters:
+      - in: path
+        name: episode_number
+        schema:
+          type: integer
+        description: Episode number for the specified media item.
+        required: true
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchEpisodeRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+              examples:
+                Consumption:
+                  value:
+                    consumption_id: 312
+                    created: '2026-03-19T10:31:55.747255Z'
+                    score: 10.0
+                    progress: 26
+                    progressed_at: '2026-03-19T10:41:00Z'
+                    status: 1
+                    start_date: '2026-03-19T10:31:00Z'
+                    end_date: '2026-03-19T10:41:00Z'
+                    notes: Watched with friends
+                  summary: Consumption
+          description: Consumption added successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/{episode_number}/history/{consumption_id}/:
     get:
       operationId: episode_consumption_entry_get
@@ -5161,6 +5301,142 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+    post:
+      operationId: season_consumption_history_post
+      description: Records a new watch entry for every episode of the season (or only
+        for `episode_numbers` when given). Calling it again adds another entry per
+        episode (re-watch). The season must already be tracked, otherwise 404.
+      summary: Add season consumption history entries
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchSeasonRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/History'
+              examples:
+                Consumption:
+                  value:
+                  - consumption_id: 312
+                    created: '2026-03-19T10:31:55.747255Z'
+                    score: 10.0
+                    progress: 26
+                    progressed_at: '2026-03-19T10:41:00Z'
+                    status: 1
+                    start_date: '2026-03-19T10:31:00Z'
+                    end_date: '2026-03-19T10:41:00Z'
+                    notes: Watched with friends
+                  summary: Consumption
+          description: Consumptions added successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/history/{consumption_id}/:
     get:
       operationId: season_consumption_entry_get
@@ -6336,6 +6612,136 @@ paths:
                       notes: Watched with friends
                   summary: Consumption history
           description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    post:
+      operationId: media_consumption_history_post
+      description: Records a new, distinct consumption (e.g. a re-watch, re-read or
+        re-play) instead of updating the existing one. Defaults to status Completed
+        with `end_date` set to now. The media must already be tracked (track it first
+        with the media type list POST), otherwise 404. Not available for `tv` (record
+        seasons or episodes).
+      summary: Add a media consumption history entry
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchMediaRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+              examples:
+                Consumption:
+                  value:
+                    consumption_id: 312
+                    created: '2026-03-19T10:31:55.747255Z'
+                    score: 10.0
+                    progress: 26
+                    progressed_at: '2026-03-19T10:41:00Z'
+                    status: 1
+                    start_date: '2026-03-19T10:31:00Z'
+                    end_date: '2026-03-19T10:41:00Z'
+                    notes: Watched with friends
+                  summary: Consumption
+          description: Consumption added successfully
         '400':
           content:
             application/json:
@@ -9193,6 +9599,12 @@ components:
         Unified payload for creating media items. Use `source: manual` for manual items
         (omit `media_id`) or set a provider `source` and `media_id` to create from a
         provider. When using a media provider, all media data will be overwritten.
+
+        Provider seasons need `season_number`; provider episodes need `season_number`
+        and `episode_number`, and record the first watch of the episode (only
+        `end_date`, default now, and `notes` are used). The parent season and show
+        are created when not tracked yet. Tracking something already tracked returns
+        409: add re-watches with the history endpoints.
       properties:
         source:
           allOf:
@@ -9261,6 +9673,60 @@ components:
       required:
       - id
       - username
+    WatchEpisodeRequest:
+      type: object
+      description: Serializer for adding a watch entry to an episode.
+      properties:
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+    WatchMediaRequest:
+      type: object
+      description: Serializer for adding a watch entry to a media item.
+      properties:
+        score:
+          type: number
+          format: double
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MediaStatusEnum'
+          nullable: true
+        progress:
+          type: integer
+          nullable: true
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+    WatchSeasonRequest:
+      type: object
+      description: Serializer for adding a watch entry to every episode of a season.
+      properties:
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        episode_numbers:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+          description: Only record these episodes. Defaults to the whole season.
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
