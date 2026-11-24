@@ -32,6 +32,7 @@ from api.helpers import (
     paginate_data,
     parse_limit_offset,
     require_update_fields,
+    save_validated_fields,
     validate_media_path,
 )
 from api.schemas import (
@@ -303,17 +304,9 @@ class MediaSeasonDetailView(drf_views.APIView):
                 HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
             )
 
-        apply_validated_fields(media, data)
-
-        try:
-            media.save()
-        except Exception:  # noqa: BLE001
-            return Response(
-                {"detail": "Failed to update season."},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        media.refresh_from_db()
+        error = save_validated_fields(media, data, "Failed to update season.")
+        if error is not None:
+            return error
 
         lists = get_item_lists(
             user,

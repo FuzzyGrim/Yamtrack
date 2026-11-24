@@ -547,7 +547,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             "title": "Pride",
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/rnahKduAA2VZFgrXemu97Fh6OD2.jpg",
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "genres": ["Drama"],
             "score": 7.8,
             "score_count": 30,
@@ -667,7 +667,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/mxkKDJNZg9z9WHC98qTGALPHlKL.jpg",
                         "media_id": 42893,
-                        "title": "Hotaru no Hikari: It's Only a Little Light in My Life",
+                        "title": "Hotaru no Hikari: It's Only a Little Light in My...",
                     },
                     {
                         "source": "tmdb",
@@ -688,7 +688,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/5k7bkqolsaJVCj321gLkuikk2Ax.jpg",
                         "media_id": 232926,
-                        "title": "7th Time Loop: The Villainess Enjoys a Carefree Life Married to Her Worst Enemy!",
+                        "title": "7th Time Loop: The Villainess Enjoys a Carefree...",
                     },
                     {
                         "source": "tmdb",
@@ -809,7 +809,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             "title": "Pride",
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/rnahKduAA2VZFgrXemu97Fh6OD2.jpg",
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "genres": ["Drama"],
             "score": 7.8,
             "score_count": 30,
@@ -929,7 +929,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/mxkKDJNZg9z9WHC98qTGALPHlKL.jpg",
                         "media_id": 42893,
-                        "title": "Hotaru no Hikari: It's Only a Little Light in My Life",
+                        "title": "Hotaru no Hikari: It's Only a Little Light in My...",
                     },
                     {
                         "source": "tmdb",
@@ -950,7 +950,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/5k7bkqolsaJVCj321gLkuikk2Ax.jpg",
                         "media_id": 232926,
-                        "title": "7th Time Loop: The Villainess Enjoys a Carefree Life Married to Her Worst Enemy!",
+                        "title": "7th Time Loop: The Villainess Enjoys a Carefree...",
                     },
                     {
                         "source": "tmdb",
@@ -1374,7 +1374,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             self.assertEqual(response.status_code, 404)
 
     def test_media_consumption_entry_detail_invalid_consumption_id_methods(self):
-        """Entry-detail endpoints should return not found for unknown consumption ids."""
+        """Entry-detail endpoints return not found for unknown consumption ids."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
         invalid_consumption_id = 999999
 
@@ -1533,7 +1533,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             check_minimized_lists_structure(self, item)
 
     def test_media_lists_get_invalid_media_id_returns_empty_results(self):
-        """Media list relation endpoint should return empty results for unknown media."""
+        """Media list relation endpoint return empty results for unknown media."""
         response = self.call_api(
             "get",
             "api_media_lists",

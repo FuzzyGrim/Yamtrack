@@ -22,10 +22,12 @@ from api.examples import (
 from api.helpers import (
     apply_validated_fields,
     error_response,
+    fetch_episode_metadata,
     get_item_lists,
     paginate_data,
     parse_limit_offset,
     require_update_fields,
+    save_validated_fields,
     validate_media_path,
 )
 from api.schemas import (
@@ -53,7 +55,6 @@ from api.serializers import (
     UpdateEpisodeSerializer,
 )
 from app.models import BasicMedia, Item, MediaTypes
-from app.providers import services
 from lists.models import CustomList, CustomListItem
 
 from .seasons import MediaSeasonSyncView
@@ -153,7 +154,6 @@ class MediaEpisodeDetailView(drf_views.APIView):
     def get(self, request, media_type, source, media_id, season_number, episode_number):
         """Retrieve details of a specific episode for the authenticated user."""
         user = request.user
-        episode = None
 
         error = validate_media_path(
             media_type,
@@ -163,40 +163,14 @@ class MediaEpisodeDetailView(drf_views.APIView):
         if error is not None:
             return error
 
-        try:
-            media_metadata = services.get_media_metadata(
-                MediaTypes.SEASON.value,
-                media_id,
-                source,
-                [season_number],
-            )
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                "An error occurred while fetching media metadata.",
-                HTTP.INTERNAL_SERVER_ERROR,
-                e,
-            )
-
-        if not media_metadata:
-            return Response(
-                {"detail": "Episode not found."},
-                status=HTTP.NOT_FOUND,
-            )
-        if "episodes" in media_metadata and media_metadata["episodes"] is not None:
-            episode = next(
-                (
-                    obj
-                    for obj in media_metadata["episodes"]
-                    if obj["episode_number"] == int(episode_number)
-                ),
-                None,
-            )
-
-        if not episode:
-            return Response(
-                {"detail": "Episode not found."},
-                status=HTTP.NOT_FOUND,
-            )
+        media_metadata, episode, error = fetch_episode_metadata(
+            media_id,
+            source,
+            season_number,
+            episode_number,
+        )
+        if error is not None:
+            return error
 
         try:
             user_medias = BasicMedia.objects.filter_media_prefetch(
@@ -269,7 +243,6 @@ class MediaEpisodeDetailView(drf_views.APIView):
     ):
         """Update a tracked episode item."""
         user = request.user
-        episode = None
 
         error = validate_media_path(
             media_type,
@@ -310,46 +283,18 @@ class MediaEpisodeDetailView(drf_views.APIView):
         data = serializer.validated_data
         require_update_fields(data)
 
-        try:
-            media_metadata = services.get_media_metadata(
-                MediaTypes.SEASON.value,
-                media_id,
-                source,
-                [season_number],
-            )
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                HTTP.INTERNAL_SERVER_ERROR.phrase, HTTP.INTERNAL_SERVER_ERROR, e
-            )
-
-        if not media_metadata:
-            return Response(
-                {"detail": "Episode not found."},
-                status=HTTP.NOT_FOUND,
-            )
-
-        episode = next(
-            (
-                obj
-                for obj in media_metadata.get("episodes") or []
-                if obj["episode_number"] == int(episode_number)
-            ),
-            None,
+        media_metadata, episode, error = fetch_episode_metadata(
+            media_id,
+            source,
+            season_number,
+            episode_number,
         )
-        if not episode:
-            return Response(
-                {"detail": "Episode not found."},
-                status=HTTP.NOT_FOUND,
-            )
+        if error is not None:
+            return error
 
-        apply_validated_fields(media, data)
-
-        try:
-            media.save()
-        except Exception as e:  # noqa: BLE001
-            return error_response(HTTP.BAD_REQUEST.phrase, HTTP.BAD_REQUEST, e)
-
-        media.refresh_from_db()
+        error = save_validated_fields(media, data, HTTP.BAD_REQUEST.phrase)
+        if error is not None:
+            return error
 
         lists = get_item_lists(
             user,
@@ -552,6 +497,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         media_id,
         season_number,
         episode_number,
+        *,
         consumption_id,
     ):
         """Delete a specific consumption history entry for a specific episode."""
@@ -622,6 +568,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         media_id,
         season_number,
         episode_number,
+        *,
         consumption_id,
     ):
         """Retrieve a specific consumption history entry for a specific episode."""
@@ -694,6 +641,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         media_id,
         season_number,
         episode_number,
+        *,
         consumption_id,
     ):
         """Update a specific consumption history entry for a specific episode."""
@@ -842,6 +790,7 @@ class MediaEpisodeListDetailView(drf_views.APIView):
         media_id,
         season_number,
         episode_number,
+        *,
         list_id,
     ):
         """Remove a specific episode from a specific list."""
@@ -926,6 +875,7 @@ class MediaEpisodeListDetailView(drf_views.APIView):
         media_id,
         season_number,
         episode_number,
+        *,
         list_id,
     ):
         """Add a specific episode to a specific list."""

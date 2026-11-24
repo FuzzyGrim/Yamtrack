@@ -176,7 +176,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/nCcGD18HmDFunCl8KBigqUPlIi8.jpg",
             "season_number": 1,
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "score": 8.8,
             "score_count": 8,
             "details": {
@@ -545,7 +545,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/nCcGD18HmDFunCl8KBigqUPlIi8.jpg",
             "season_number": 1,
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "score": 8.8,
             "score_count": 8,
             "details": {

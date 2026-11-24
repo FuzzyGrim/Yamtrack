@@ -507,11 +507,12 @@ class YamtrackApiTestCase(APITestCase):
         episode_number,
         title,
         image,
-        synopsis="episode synopsis",
-        score=8.5,
-        score_count=50,
+        **overrides,
     ):
         """Build season metadata payload containing one episode entry."""
+        synopsis = overrides.get("synopsis", "episode synopsis")
+        score = overrides.get("score", 8.5)
+        score_count = overrides.get("score_count", 50)
         return {
             "media_id": tv_item.media_id,
             "source": tv_item.source,

@@ -239,6 +239,59 @@ def apply_validated_fields(instance, validated_data):
         raise ValidationError(errors)
 
 
+def save_validated_fields(instance, validated_data, detail):
+    """Apply validated fields to an instance, save it and refresh from the DB.
+
+    Return None on success, or an error response with the given detail.
+    """
+    apply_validated_fields(instance, validated_data)
+    try:
+        instance.save()
+    except Exception as e:  # noqa: BLE001
+        return error_response(detail, HTTP.BAD_REQUEST, e)
+    instance.refresh_from_db()
+    return None
+
+
+def fetch_episode_metadata(media_id, source, season_number, episode_number):
+    """Fetch season metadata and locate one episode in it."""
+    try:
+        media_metadata = services.get_media_metadata(
+            MediaTypes.SEASON.value,
+            media_id,
+            source,
+            [season_number],
+        )
+    except Exception as e:  # noqa: BLE001
+        return (
+            None,
+            None,
+            error_response(
+                "An error occurred while fetching media metadata.",
+                HTTP.INTERNAL_SERVER_ERROR,
+                e,
+            ),
+        )
+
+    episode = None
+    if media_metadata:
+        episode = next(
+            (
+                obj
+                for obj in media_metadata.get("episodes") or []
+                if obj["episode_number"] == int(episode_number)
+            ),
+            None,
+        )
+    if not episode:
+        return (
+            None,
+            None,
+            Response({"detail": "Episode not found."}, status=HTTP.NOT_FOUND),
+        )
+    return media_metadata, episode, None
+
+
 def build_item_id(item):
     """Build the item_id string for the given item."""
     if not item:

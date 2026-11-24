@@ -49,6 +49,7 @@ from api.helpers import (
     parse_sort_filter,
     parse_status_param,
     require_update_fields,
+    save_validated_fields,
     validate_media_path,
 )
 from api.schemas import (
@@ -340,56 +341,64 @@ class MediaTypeListView(drf_views.APIView):
         source = data.get("source", Sources.MANUAL.value)
 
         if source == Sources.MANUAL.value:
-            form = ManualItemForm(data, user=request.user)
-            if not form.is_valid():
-                return Response(
-                    {
-                        "detail": "Invalid form data.",
-                        "errors": form.errors,
-                    },
-                    status=HTTP.BAD_REQUEST,
-                )
+            return self._track_manual(request, data)
+        return self._track_provider(request, data, media_type, source)
 
-            try:
-                item = form.save()
-            except IntegrityError:
-                media_name = form.cleaned_data.get("title", "item")
-                if form.cleaned_data.get("season_number"):
-                    media_name += f" - Season {form.cleaned_data['season_number']}"
-                if form.cleaned_data.get("episode_number"):
-                    media_name += f" - Episode {form.cleaned_data['episode_number']}"
-                return Response(
-                    {"detail": f"Conflict. {media_name} already exists."},
-                    status=HTTP.CONFLICT,
-                )
+    @staticmethod
+    def _track_manual(request, data):
+        """Track a manually created media item."""
+        form = ManualItemForm(data, user=request.user)
+        if not form.is_valid():
+            return Response(
+                {
+                    "detail": "Invalid form data.",
+                    "errors": form.errors,
+                },
+                status=HTTP.BAD_REQUEST,
+            )
 
-            media_data = dict(data)
-            media_data.update({"source": item.source, "media_id": item.media_id})
-            media_form = get_form_class(item.media_type)(media_data)
-            if not media_form.is_valid():
-                item.delete()
-                return Response(
-                    {
-                        "detail": "Invalid media data.",
-                        "errors": media_form.errors,
-                    },
-                    status=HTTP.BAD_REQUEST,
-                )
+        try:
+            item = form.save()
+        except IntegrityError:
+            media_name = form.cleaned_data.get("title", "item")
+            if form.cleaned_data.get("season_number"):
+                media_name += f" - Season {form.cleaned_data['season_number']}"
+            if form.cleaned_data.get("episode_number"):
+                media_name += f" - Episode {form.cleaned_data['episode_number']}"
+            return Response(
+                {"detail": f"Conflict. {media_name} already exists."},
+                status=HTTP.CONFLICT,
+            )
 
-            media_form.instance.user = request.user
-            media_form.instance.item = item
-            if item.media_type == MediaTypes.SEASON.value:
-                media_form.instance.related_tv = form.cleaned_data.get("parent_tv")
-            elif item.media_type == MediaTypes.EPISODE.value:
-                media_form.instance.related_season = form.cleaned_data.get(
-                    "parent_season",
-                )
+        media_data = dict(data)
+        media_data.update({"source": item.source, "media_id": item.media_id})
+        media_form = get_form_class(item.media_type)(media_data)
+        if not media_form.is_valid():
+            item.delete()
+            return Response(
+                {
+                    "detail": "Invalid media data.",
+                    "errors": media_form.errors,
+                },
+                status=HTTP.BAD_REQUEST,
+            )
 
-            media_form.save()
-            serialized_data = MediaSerializer(media_form.instance).data
-            return Response(serialized_data, status=HTTP.CREATED)
+        media_form.instance.user = request.user
+        media_form.instance.item = item
+        if item.media_type == MediaTypes.SEASON.value:
+            media_form.instance.related_tv = form.cleaned_data.get("parent_tv")
+        elif item.media_type == MediaTypes.EPISODE.value:
+            media_form.instance.related_season = form.cleaned_data.get(
+                "parent_season",
+            )
 
-        media_id = data.get("media_id")
+        media_form.save()
+        serialized_data = MediaSerializer(media_form.instance).data
+        return Response(serialized_data, status=HTTP.CREATED)
+
+    @staticmethod
+    def _validate_provider_request(media_type, source, media_id):
+        """Return an error response if a provider tracking request is invalid."""
         if not media_id:
             return Response(
                 {
@@ -411,9 +420,11 @@ class MediaTypeListView(drf_views.APIView):
                 },
                 status=HTTP.BAD_REQUEST,
             )
+        return None
 
-        season_number = data.get("season_number")
-
+    @staticmethod
+    def _get_or_create_provider_item(media_type, media_id, source, season_number):
+        """Fetch provider metadata and return ``(item, error_response)``."""
         try:
             metadata = services.get_media_metadata(
                 media_type,
@@ -422,7 +433,7 @@ class MediaTypeListView(drf_views.APIView):
                 [season_number],
             )
         except Exception as e:  # noqa: BLE001
-            return error_response(
+            return None, error_response(
                 "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
 
@@ -438,9 +449,26 @@ class MediaTypeListView(drf_views.APIView):
         try:
             item.save()
         except Exception as e:  # noqa: BLE001
-            return error_response(
+            return None, error_response(
                 "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
             )
+        return item, None
+
+    def _track_provider(self, request, data, media_type, source):
+        """Track a media item coming from a provider."""
+        media_id = data.get("media_id")
+        error = self._validate_provider_request(media_type, source, media_id)
+        if error is not None:
+            return error
+
+        item, error = self._get_or_create_provider_item(
+            media_type,
+            media_id,
+            source,
+            data.get("season_number"),
+        )
+        if error is not None:
+            return error
 
         model = MEDIA_TYPE_COMPLETE_MODEL_MAP.get(media_type)
         if model is None:
@@ -449,11 +477,12 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        instance = model(item=item, user=request.user)
-
         media_data = dict(data)
         media_data.update({"source": item.source, "media_id": item.media_id})
-        media_form = get_form_class(media_type)(media_data, instance=instance)
+        media_form = get_form_class(media_type)(
+            media_data,
+            instance=model(item=item, user=request.user),
+        )
         if not media_form.is_valid():
             return Response(
                 {
@@ -621,6 +650,25 @@ class MediaDetailView(drf_views.APIView):
         ).data
         return Response(serialized, status=HTTP.OK)
 
+    @staticmethod
+    def _update_media(media, data, media_type, media_id, source):
+        """Fetch metadata and save validated fields.
+
+        Return a ``(media_metadata, error_response)`` tuple; one of them is None.
+        """
+        try:
+            media_metadata = services.get_media_metadata(media_type, media_id, source)
+        except Exception as e:  # noqa: BLE001
+            return None, error_response(
+                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
+            )
+
+        return media_metadata, save_validated_fields(
+            media,
+            data,
+            "Failed to update media.",
+        )
+
     @extend_schema(
         operation_id="media_detail_patch",
         summary="Update media",
@@ -684,21 +732,15 @@ class MediaDetailView(drf_views.APIView):
         data = serializer.validated_data
         require_update_fields(data)
 
-        try:
-            media_metadata = services.get_media_metadata(media_type, media_id, source)
-        except Exception as e:  # noqa: BLE001
-            return error_response(
-                "Internal Server Error.", HTTP.INTERNAL_SERVER_ERROR, e
-            )
-
-        apply_validated_fields(media, data)
-
-        try:
-            media.save()
-        except Exception as e:  # noqa: BLE001
-            return error_response("Failed to update media.", HTTP.BAD_REQUEST, e)
-
-        media.refresh_from_db()
+        media_metadata, error = self._update_media(
+            media,
+            data,
+            media_type,
+            media_id,
+            source,
+        )
+        if error is not None:
+            return error
 
         if (
             "related" in media_metadata
@@ -1379,6 +1421,30 @@ class MediaSeasonsView(drf_views.APIView):
 
     serializer_class = PaginatedMediaSerializer
 
+    @staticmethod
+    def _get_tracked_by_number(user, media_id, source, season_numbers):
+        """Map season number to the user's first tracked season entry."""
+        tracked_by_number = {}
+        if not season_numbers:
+            return tracked_by_number
+
+        tracked_seasons = BasicMedia.objects.get_serie_seasons(
+            user,
+            media_id,
+            source,
+            season_numbers=season_numbers,
+        )
+        for tracked in tracked_seasons:
+            item = getattr(tracked, "item", None)
+            tracked_number = getattr(item, "season_number", None)
+            if (
+                tracked_number is not None
+                and tracked_number in season_numbers
+                and tracked_number not in tracked_by_number
+            ):
+                tracked_by_number[tracked_number] = tracked
+        return tracked_by_number
+
     @extend_schema(
         operation_id="media_seasons_get",
         summary="Get media seasons",
@@ -1447,23 +1513,12 @@ class MediaSeasonsView(drf_views.APIView):
             )
         }
 
-        tracked_by_number = {}
-        if season_numbers:
-            tracked_seasons = BasicMedia.objects.get_serie_seasons(
-                user,
-                media_id,
-                source,
-                season_numbers=season_numbers,
-            )
-            for tracked in tracked_seasons:
-                item = getattr(tracked, "item", None)
-                tracked_number = getattr(item, "season_number", None)
-                if (
-                    tracked_number is not None
-                    and tracked_number in season_numbers
-                    and tracked_number not in tracked_by_number
-                ):
-                    tracked_by_number[tracked_number] = tracked
+        tracked_by_number = self._get_tracked_by_number(
+            user,
+            media_id,
+            source,
+            season_numbers,
+        )
 
         season_media_entries = []
         for season in paginated_data["results"]:
