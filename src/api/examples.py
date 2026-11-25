@@ -270,6 +270,11 @@ MEDIA_DETAILS_EXAMPLE = _example(
                 ),
             ],
         },
+        "external_links": {
+            "IMDb": "https://www.imdb.com/title/tt0068152/",
+            "TVDB": "https://www.thetvdb.com/dereferrer/series/78290",
+        },
+        "time_to_beat": None,
         "item_id": "tv/tmdb/12345",
         "parent_id": None,
         "tracked": True,
@@ -331,6 +336,11 @@ SEASON_DETAILS_EXAMPLE = _example(
                 ),
             ],
         },
+        "external_links": {
+            "IMDb": "https://www.imdb.com/title/tt12590266/",
+            "TVDB": "https://www.thetvdb.com/dereferrer/series/384541",
+        },
+        "time_to_beat": None,
         "item_id": "tv/tmdb/105248/1",
         "parent_id": "tv/tmdb/105248",
         "tracked": True,
@@ -541,4 +551,438 @@ EPISODE_CHANGES_HISTORY_EXAMPLE = _example(
             },
         ],
     ),
+)
+
+WATCH_PROVIDERS_EXAMPLE = _example(
+    "Watch providers",
+    {
+        "region": "US",
+        "link": "https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US",
+        "no_charge": [
+            {
+                "provider_id": 8,
+                "provider_name": "Netflix",
+                "image": "https://image.tmdb.org/t/p/w500/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg",
+                "display_priority": 0,
+            },
+        ],
+        "paid": [
+            {
+                "provider_id": 2,
+                "provider_name": "Apple TV",
+                "image": "https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg",
+                "display_priority": 4,
+            },
+        ],
+    },
+)
+
+CAST_EXAMPLE = _example(
+    "Cast",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "person_id": 6384,
+                "name": "Keanu Reeves",
+                "character": "Thomas A. Anderson / Neo",
+                "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                "order": 0,
+                "episode_count": None,
+            },
+        ],
+    },
+)
+
+CREW_EXAMPLE = _example(
+    "Crew",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "person_id": 9340,
+                "name": "Lana Wachowski",
+                "department": "Directing",
+                "jobs": ["Director"],
+                "image": "https://image.tmdb.org/t/p/w500/2wfpFCe3nT4d3RnmL6kSHnYWJ6j.jpg",
+                "episode_count": None,
+            },
+        ],
+    },
+)
+
+CREATORS_EXAMPLE = _example(
+    "Creators",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "id": "40439",
+                "name": "Scott Snyder",
+                "roles": [],
+                "image": None,
+                "issue_count": 52,
+                "source_url": "https://comicvine.gamespot.com/scott-snyder/4040-40439/",
+            },
+        ],
+    },
+)
+
+CHARACTERS_EXAMPLE = _example(
+    "Characters",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "id": "1699",
+                "name": "Batman",
+                "roles": [],
+                "image": None,
+                "issue_count": 52,
+                "source_url": "https://comicvine.gamespot.com/batman/4005-1699/",
+            },
+        ],
+    },
+)
+
+COMPANIES_EXAMPLE = _example(
+    "Companies",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "company_id": 908,
+                "name": "CD Projekt RED",
+                "logo": "https://images.igdb.com/igdb/image/upload/t_logo_med/cl6np.png",
+                "roles": ["developer", "publisher"],
+            },
+        ],
+    },
+)
+
+IMAGES_EXAMPLE = _example(
+    "Images",
+    {
+        "posters": [
+            {
+                "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                "original": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                "width": 2000,
+                "height": 3000,
+                "aspect_ratio": 0.667,
+                "language": "en",
+                "source": "tmdb",
+                "vote_average": 5.8,
+                "vote_count": 20,
+            },
+        ],
+        "backdrops": [
+            {
+                "image": "https://image.tmdb.org/t/p/w500/ncEsesgOJDNrTUED89hYbA117wo.jpg",
+                "original": "https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg",
+                "width": 3840,
+                "height": 2160,
+                "aspect_ratio": 1.778,
+                "language": None,
+                "source": "tmdb",
+                "vote_average": 5.6,
+                "vote_count": 12,
+            },
+        ],
+        "screenshots": [],
+        "logos": [],
+    },
+)
+
+COVER_EXAMPLE = _example(
+    "Cover",
+    {
+        "image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+        "custom_image": "https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+    },
+)
+
+SEARCH_PEOPLE_EXAMPLE = _example(
+    "Search people",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "person_id": 6384,
+                "source": "tmdb",
+                "name": "Keanu Reeves",
+                "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                "known_for_department": "Acting",
+                "known_for": [
+                    {
+                        "source": "tmdb",
+                        "media_type": "movie",
+                        "media_id": "603",
+                        "title": "The Matrix",
+                        "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                    },
+                ],
+            },
+        ],
+    },
+)
+
+PERSON_EXAMPLE = _example(
+    "Person",
+    {
+        "person_id": 6384,
+        "source": "tmdb",
+        "source_url": "https://www.themoviedb.org/person/6384",
+        "name": "Keanu Reeves",
+        "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+        "biography": "Keanu Charles Reeves is a Canadian actor.",
+        "birthday": "1964-09-02",
+        "deathday": None,
+        "place_of_birth": "Beirut, Lebanon",
+        "known_for_department": "Acting",
+        "also_known_as": ["Keanu Charles Reeves"],
+        "homepage": None,
+        "external_links": {
+            "IMDb": "https://www.imdb.com/name/nm0000206/",
+            "Wikidata": "https://www.wikidata.org/wiki/Q43416",
+        },
+    },
+)
+
+PERSON_IMAGES_EXAMPLE = _example(
+    "Person images",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "image": "https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                "original": "https://image.tmdb.org/t/p/original/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg",
+                "width": 1000,
+                "height": 1500,
+                "aspect_ratio": 0.667,
+                "vote_average": 5.522,
+                "vote_count": 4,
+            },
+        ],
+    },
+)
+
+KNOWN_FOR_EXAMPLE = _example(
+    "Known for",
+    {
+        "pagination": {
+            "total": 1,
+            "limit": 20,
+            "offset": 0,
+            "next": None,
+            "previous": None,
+        },
+        "results": [
+            {
+                "source": "tmdb",
+                "media_type": "movie",
+                "media_id": "603",
+                "title": "The Matrix",
+                "image": "https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg",
+                "character": "Thomas A. Anderson / Neo",
+                "departments": ["Acting"],
+                "jobs": [],
+                "release_date": "1999-03-31",
+                "episode_count": None,
+            },
+        ],
+    },
+)
+
+TRACKED_SEASON_EXAMPLE = _example(
+    "Tracked season",
+    {
+        "id": 3600,
+        "consumption_id": 323,
+        "item": {
+            "media_id": "12345",
+            "source": "tmdb",
+            "media_type": "season",
+            "title": "Van der Valk",
+            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+            "season_number": 1,
+            "episode_number": None,
+        },
+        "item_id": "season/tmdb/12345/1",
+        "parent_id": "tv/tmdb/12345",
+        "tracked": True,
+        "created_at": "2026-05-11T17:20:38.252187Z",
+        "score": None,
+        "status": 0,
+        "progress": 0,
+        "progressed_at": None,
+        "start_date": None,
+        "end_date": None,
+        "notes": "",
+        "lists": [],
+    },
+)
+
+TRACKED_EPISODE_EXAMPLE = _example(
+    "Tracked episode",
+    {
+        "id": 3601,
+        "consumption_id": 324,
+        "item": {
+            "media_id": "12345",
+            "source": "tmdb",
+            "media_type": "episode",
+            "title": "Van der Valk",
+            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+            "season_number": 1,
+            "episode_number": 1,
+        },
+        "item_id": "episode/tmdb/12345/1/1",
+        "parent_id": "season/tmdb/12345/1",
+        "tracked": True,
+        "created_at": "2026-05-11T17:20:38.252187Z",
+        "score": None,
+        "status": 3,
+        "progress": 1,
+        "progressed_at": "2026-05-11T00:00:00Z",
+        "start_date": "2026-05-11T17:20:38.252187Z",
+        "end_date": "2026-05-11T00:00:00Z",
+        "notes": None,
+        "lists": [],
+    },
+)
+
+
+_MEDIA_TYPE_PREFERENCES = {
+    media_type: {
+        f"{media_type}_enabled": True,
+        f"{media_type}_layout": layout,
+        f"{media_type}_sort": "score",
+        f"{media_type}_status": "All",
+    }
+    for media_type, layout in (
+        ("tv", "grid"),
+        ("season", "grid"),
+        ("movie", "grid"),
+        ("anime", "table"),
+        ("manga", "table"),
+        ("game", "grid"),
+        ("book", "grid"),
+        ("comic", "grid"),
+        ("boardgame", "grid"),
+    )
+}
+
+PREFERENCES = {
+    **{f"{media_type}_enabled": True for media_type in _MEDIA_TYPE_PREFERENCES},
+    "week_start_day": "monday",
+    "watch_provider_region": "IT",
+}
+
+WEBUI_PREFERENCES = {
+    "home_sort": "upcoming",
+    "home_hide_unreleased": False,
+    **{
+        key: value
+        for preferences in _MEDIA_TYPE_PREFERENCES.values()
+        for key, value in preferences.items()
+        if not key.endswith("_enabled")
+    },
+    "clickable_media_cards": False,
+    "obfuscate_unseen_episodes": False,
+    "quick_watch_date": "current_date",
+    "date_format": "Y-m-d",
+    "time_format": "H:i",
+    "progress_bar": True,
+    "hide_completed_recommendations": False,
+    "hide_zero_rating": False,
+    "calendar_layout": "grid",
+    "lists_sort": "last_item_added",
+    "list_detail_sort": "date_added",
+    "list_detail_status": "All",
+}
+
+PREFERENCES_EXAMPLE = _example("Preferences", PREFERENCES)
+
+WEBUI_PREFERENCES_EXAMPLE = _example("Web UI preferences", WEBUI_PREFERENCES)
+
+ME_EXAMPLE = _example(
+    "Current user",
+    {
+        "id": 1,
+        "username": "alice",
+        "is_demo": False,
+        "profile_private": True,
+        "enabled_media_types": [
+            "tv",
+            "season",
+            "movie",
+            "anime",
+            "manga",
+            "game",
+            "book",
+            "comic",
+            "boardgame",
+        ],
+        "preferences": PREFERENCES,
+    },
+)
+
+TOKEN_EXAMPLE = _example(
+    "Regenerated token",
+    {"token": "Zk3j9wq1rXb7T0fU5mYcLdE2aHnOvS4p"},
+)
+
+PASSWORD_CHANGED_EXAMPLE = _example(
+    "Password changed",
+    {"detail": "Password changed. Web sessions were signed out."},
+)
+
+SEARCH_CACHE_CLEARED_EXAMPLE = _example("Search cache cleared", {"deleted": 12})
+
+PUBLIC_PROFILE_EXAMPLE = _example(
+    "Public profile",
+    {"username": "alice", "enabled_media_types": ["tv", "movie", "anime"]},
 )

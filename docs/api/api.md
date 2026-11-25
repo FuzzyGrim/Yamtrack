@@ -37,9 +37,11 @@ curl -H "X-API-Key: <your_api_key>" http://localhost:8000/api/v1/your_endpoint/
 
 You can get your token using the web interface. Go to the `Integrations` section of the `Settings` page.
 
+You can also regenerate it with `POST /api/v1/me/token/`: the previous token stops working immediately, so use the returned one for the next requests.
+
 ### Authentication errors
 
-Requests with a missing or invalid token return a `401 Unauthorized` response, while `403 Forbidden` is returned when the authenticated user can't access a resource (e.g. another user's list).
+Requests with a missing or invalid token return a `401 Unauthorized` response, while `403 Forbidden` is returned when the authenticated user can't access a resource (e.g. another user's list). Profiles set as private answer `404 Not Found` on the `/users/{username}/` endpoints, as if the user didn't exist.
 
 ## Endpoints
 
@@ -129,6 +131,6 @@ These are some possible next additions to the API, in no particular order:
 - Rate limiting
 - Expand filters
 - Expand sorting
-- Administration endpoints (e.g., user management, system settings, token management)
+- Administration endpoints (e.g., user management, system settings)
 - Provider integrations
 - Statistics endpoint

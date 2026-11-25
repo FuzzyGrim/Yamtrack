@@ -428,6 +428,9 @@ SPECTACULAR_SETTINGS = {
         "SourceCompleteEnum": "api.helpers.SOURCES_COMPLETE_VALID_LIST",
         "MediaTypeEnum": "api.helpers.MEDIA_TYPE_VALID_LIST",
         "MediaTypeCompleteEnum": "api.helpers.MEDIA_TYPE_COMPLETE_VALID_LIST",
+        "PreferenceLayoutEnum": "users.models.LayoutChoices",
+        "PreferenceSortEnum": "users.models.MediaSortChoices",
+        "PreferenceStatusEnum": "users.models.MediaStatusChoices",
     },
 }
 
@@ -455,6 +458,9 @@ TVDB_API = config(
         "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
     ),
 )
+
+# Optional, enables extra artwork from Fanart.tv when set
+FANART_API = config("FANART_API", default=secret("FANART_API_FILE", ""))
 
 MAL_API = config(
     "MAL_API",

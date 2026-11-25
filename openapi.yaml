@@ -1290,6 +1290,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt12590266/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/384541
+                    time_to_beat: null
                     item_id: tv/tmdb/105248/1
                     parent_id: tv/tmdb/105248
                     tracked: true
@@ -1452,6 +1456,746 @@ paths:
                   summary: Not found example
                   description: Not found example
           description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/:
+    get:
+      operationId: me_get
+      description: Return the profile and the preferences of the authenticated user.
+      summary: Get the authenticated user
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+              examples:
+                CurrentUser:
+                  value:
+                    id: 1
+                    username: alice
+                    is_demo: false
+                    profile_private: true
+                    enabled_media_types:
+                    - tv
+                    - season
+                    - movie
+                    - anime
+                    - manga
+                    - game
+                    - book
+                    - comic
+                    - boardgame
+                    preferences:
+                      tv_enabled: true
+                      season_enabled: true
+                      movie_enabled: true
+                      anime_enabled: true
+                      manga_enabled: true
+                      game_enabled: true
+                      book_enabled: true
+                      comic_enabled: true
+                      boardgame_enabled: true
+                      week_start_day: monday
+                      watch_provider_region: IT
+                  summary: Current user
+          description: Successful response
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    patch:
+      operationId: me_patch
+      description: Update the username and/or the profile visibility.
+      summary: Update the username or the profile visibility
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+              examples:
+                CurrentUser:
+                  value:
+                    id: 1
+                    username: alice
+                    is_demo: false
+                    profile_private: true
+                    enabled_media_types:
+                    - tv
+                    - season
+                    - movie
+                    - anime
+                    - manga
+                    - game
+                    - book
+                    - comic
+                    - boardgame
+                    preferences:
+                      tv_enabled: true
+                      season_enabled: true
+                      movie_enabled: true
+                      anime_enabled: true
+                      manga_enabled: true
+                      game_enabled: true
+                      book_enabled: true
+                      comic_enabled: true
+                      boardgame_enabled: true
+                      week_start_day: monday
+                      watch_provider_region: IT
+                  summary: Current user
+          description: User updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/password/:
+    post:
+      operationId: me_password_post
+      description: The API token isn't changed, but all the web login sessions are
+        signed out.
+      summary: Change the password
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiMessageResponse'
+              examples:
+                PasswordChanged:
+                  value:
+                    detail: Password changed. Web sessions were signed out.
+                  summary: Password changed
+          description: Password changed
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/preferences/:
+    get:
+      operationId: me_preferences_get
+      description: Return the preferences of the authenticated user.
+      summary: Get the general preferences
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+              examples:
+                Preferences:
+                  value:
+                    tv_enabled: true
+                    season_enabled: true
+                    movie_enabled: true
+                    anime_enabled: true
+                    manga_enabled: true
+                    game_enabled: true
+                    book_enabled: true
+                    comic_enabled: true
+                    boardgame_enabled: true
+                    week_start_day: monday
+                    watch_provider_region: IT
+                  summary: Preferences
+          description: Successful response
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    patch:
+      operationId: me_preferences_patch
+      description: Preferences that apply to the whole application. Only the sent
+        fields are updated. Invalid values are rejected, unlike the web UI which ignores
+        them.
+      summary: Update the general preferences
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPreferencesRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+              examples:
+                Preferences:
+                  value:
+                    tv_enabled: true
+                    season_enabled: true
+                    movie_enabled: true
+                    anime_enabled: true
+                    manga_enabled: true
+                    game_enabled: true
+                    book_enabled: true
+                    comic_enabled: true
+                    boardgame_enabled: true
+                    week_start_day: monday
+                    watch_provider_region: IT
+                  summary: Preferences
+          description: Preferences updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/preferences/webui/:
+    get:
+      operationId: me_preferences_webui_get
+      description: Preferences that only change how the web UI looks or behaves.
+      summary: Get the web UI preferences
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebUIPreferences'
+              examples:
+                WebUIPreferences:
+                  value:
+                    home_sort: upcoming
+                    home_hide_unreleased: false
+                    tv_layout: grid
+                    tv_sort: score
+                    tv_status: All
+                    season_layout: grid
+                    season_sort: score
+                    season_status: All
+                    movie_layout: grid
+                    movie_sort: score
+                    movie_status: All
+                    anime_layout: table
+                    anime_sort: score
+                    anime_status: All
+                    manga_layout: table
+                    manga_sort: score
+                    manga_status: All
+                    game_layout: grid
+                    game_sort: score
+                    game_status: All
+                    book_layout: grid
+                    book_sort: score
+                    book_status: All
+                    comic_layout: grid
+                    comic_sort: score
+                    comic_status: All
+                    boardgame_layout: grid
+                    boardgame_sort: score
+                    boardgame_status: All
+                    clickable_media_cards: false
+                    obfuscate_unseen_episodes: false
+                    quick_watch_date: current_date
+                    date_format: Y-m-d
+                    time_format: H:i
+                    progress_bar: true
+                    hide_completed_recommendations: false
+                    hide_zero_rating: false
+                    calendar_layout: grid
+                    lists_sort: last_item_added
+                    list_detail_sort: date_added
+                    list_detail_status: All
+                  summary: Web UI preferences
+          description: Successful response
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    patch:
+      operationId: me_preferences_webui_patch
+      description: Only the sent fields are updated. Invalid values are rejected,
+        unlike the web UI which ignores them.
+      summary: Update the web UI preferences
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWebUIPreferencesRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebUIPreferences'
+              examples:
+                WebUIPreferences:
+                  value:
+                    home_sort: upcoming
+                    home_hide_unreleased: false
+                    tv_layout: grid
+                    tv_sort: score
+                    tv_status: All
+                    season_layout: grid
+                    season_sort: score
+                    season_status: All
+                    movie_layout: grid
+                    movie_sort: score
+                    movie_status: All
+                    anime_layout: table
+                    anime_sort: score
+                    anime_status: All
+                    manga_layout: table
+                    manga_sort: score
+                    manga_status: All
+                    game_layout: grid
+                    game_sort: score
+                    game_status: All
+                    book_layout: grid
+                    book_sort: score
+                    book_status: All
+                    comic_layout: grid
+                    comic_sort: score
+                    comic_status: All
+                    boardgame_layout: grid
+                    boardgame_sort: score
+                    boardgame_status: All
+                    clickable_media_cards: false
+                    obfuscate_unseen_episodes: false
+                    quick_watch_date: current_date
+                    date_format: Y-m-d
+                    time_format: H:i
+                    progress_bar: true
+                    hide_completed_recommendations: false
+                    hide_zero_rating: false
+                    calendar_layout: grid
+                    lists_sort: last_item_added
+                    list_detail_sort: date_added
+                    list_detail_status: All
+                  summary: Web UI preferences
+          description: Preferences updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/search-cache/:
+    delete:
+      operationId: me_search_cache_delete
+      description: Delete all the cached search entries.
+      summary: Clear the search cache
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchCacheResponse'
+              examples:
+                SearchCacheCleared:
+                  value:
+                    deleted: 12
+                  summary: Search cache cleared
+          description: Search cache cleared
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/me/token/:
+    post:
+      operationId: me_token_post
+      description: The previous token stops working immediately, so the following
+        requests have to use the returned one.
+      summary: Regenerate the API token
+      tags:
+      - me
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                RegeneratedToken:
+                  value:
+                    token: Zk3j9wq1rXb7T0fU5mYcLdE2aHnOvS4p
+                  summary: Regenerated token
+          description: Token regenerated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoPermissionExample:
+                  value:
+                    detail: Forbidden
+                  summary: No permission example
+                  description: No permission example
+          description: Forbidden
         '500':
           content:
             application/json:
@@ -2125,6 +2869,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt0068152/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/78290
+                    time_to_beat: null
                     item_id: tv/tmdb/12345
                     parent_id: null
                     tracked: true
@@ -2309,6 +3057,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt0068152/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/78290
+                    time_to_beat: null
                     item_id: tv/tmdb/12345
                     parent_id: null
                     tracked: true
@@ -2595,6 +3347,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt12590266/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/384541
+                    time_to_beat: null
                     item_id: tv/tmdb/105248/1
                     parent_id: tv/tmdb/105248
                     tracked: true
@@ -2655,6 +3411,163 @@ paths:
                   summary: Not found example
                   description: Not found example
           description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    post:
+      operationId: media_season_detail_post
+      description: Track a season of a tv serie for the authenticated user.
+      summary: Track a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSeasonRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+              examples:
+                TrackedSeason:
+                  value:
+                    id: 3600
+                    consumption_id: 323
+                    item:
+                      media_id: '12345'
+                      source: tmdb
+                      media_type: season
+                      title: Van der Valk
+                      image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
+                      season_number: 1
+                      episode_number: null
+                    item_id: season/tmdb/12345/1
+                    parent_id: tv/tmdb/12345
+                    tracked: true
+                    created_at: '2026-05-11T17:20:38.252187Z'
+                    score: null
+                    status: 0
+                    progress: 0
+                    progressed_at: null
+                    start_date: null
+                    end_date: null
+                    notes: ''
+                    lists: []
+                  summary: Tracked season
+          description: Season tracked successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                AlreadyTrackedExample:
+                  value:
+                    detail: Conflict. Breaking Bad is already tracked.
+                  summary: Already tracked example
+                  description: Already tracked example
+          description: Conflict
         '500':
           content:
             application/json:
@@ -2783,6 +3696,10 @@ paths:
                         end_date: null
                         notes: null
                         lists: []
+                    external_links:
+                      IMDb: https://www.imdb.com/title/tt12590266/
+                      TVDB: https://www.thetvdb.com/dereferrer/series/384541
+                    time_to_beat: null
                     item_id: tv/tmdb/105248/1
                     parent_id: tv/tmdb/105248
                     tracked: true
@@ -3074,6 +3991,157 @@ paths:
                     lists: []
                   summary: Episode details
           description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    post:
+      operationId: media_episode_detail_post
+      description: Track an episode of a tv serie for the authenticated user.
+      summary: Track an episode
+      parameters:
+      - in: path
+        name: episode_number
+        schema:
+          type: integer
+        description: Episode number for the specified media item.
+        required: true
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEpisodeRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Episode'
+              examples:
+                TrackedEpisode:
+                  value:
+                    id: 3601
+                    consumption_id: 324
+                    item:
+                      media_id: '12345'
+                      source: tmdb
+                      media_type: episode
+                      title: Van der Valk
+                      image: https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg
+                      season_number: 1
+                      episode_number: 1
+                    item_id: episode/tmdb/12345/1/1
+                    parent_id: season/tmdb/12345/1
+                    tracked: true
+                    created_at: '2026-05-11T17:20:38.252187Z'
+                    score: null
+                    status: 3
+                    progress: 1
+                    progressed_at: '2026-05-11T00:00:00Z'
+                    start_date: '2026-05-11T17:20:38.252187Z'
+                    end_date: '2026-05-11T00:00:00Z'
+                    notes: null
+                    lists: []
+                  summary: Tracked episode
+          description: Episode tracked successfully
         '400':
           content:
             application/json:
@@ -3664,6 +4732,146 @@ paths:
                       notes: Watched with friends
                   summary: Consumption history
           description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    post:
+      operationId: episode_consumption_history_post
+      description: Records a new, distinct watch of the episode. Calling it again
+        adds another entry (re-watch) instead of updating the existing one. The parent
+        season must already be tracked, otherwise 404.
+      summary: Add an episode consumption history entry
+      parameters:
+      - in: path
+        name: episode_number
+        schema:
+          type: integer
+        description: Episode number for the specified media item.
+        required: true
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchEpisodeRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+              examples:
+                Consumption:
+                  value:
+                    consumption_id: 312
+                    created: '2026-03-19T10:31:55.747255Z'
+                    score: 10.0
+                    progress: 26
+                    progressed_at: '2026-03-19T10:41:00Z'
+                    status: 1
+                    start_date: '2026-03-19T10:31:00Z'
+                    end_date: '2026-03-19T10:41:00Z'
+                    notes: Watched with friends
+                  summary: Consumption
+          description: Consumption added successfully
         '400':
           content:
             application/json:
@@ -4850,6 +6058,373 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/cover/:
+    get:
+      operationId: season_cover_get
+      description: Get the current cover of a season.
+      summary: Get the current cover of a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                Cover:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    put:
+      operationId: season_cover_put
+      description: Set a custom cover for a season.
+      summary: Set a custom cover for a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoverUpdateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                Cover:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    delete:
+      operationId: season_cover_delete
+      description: Reset the cover of a season to the provider image.
+      summary: Reset the cover of a season
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                Cover:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/episodes/:
     get:
       operationId: season_episodes_get
@@ -5108,6 +6683,142 @@ paths:
                       notes: Watched with friends
                   summary: Consumption history
           description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    post:
+      operationId: season_consumption_history_post
+      description: Records a new watch entry for every episode of the season (or only
+        for `episode_numbers` when given). Calling it again adds another entry per
+        episode (re-watch). The season must already be tracked, otherwise 404.
+      summary: Add season consumption history entries
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchSeasonRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/History'
+              examples:
+                Consumption:
+                  value:
+                  - consumption_id: 312
+                    created: '2026-03-19T10:31:55.747255Z'
+                    score: 10.0
+                    progress: 26
+                    progressed_at: '2026-03-19T10:41:00Z'
+                    status: 1
+                    start_date: '2026-03-19T10:31:00Z'
+                    end_date: '2026-03-19T10:41:00Z'
+                    notes: Watched with friends
+                  summary: Consumption
+          description: Consumptions added successfully
         '400':
           content:
             application/json:
@@ -5496,6 +7207,159 @@ paths:
       responses:
         '204':
           description: Consumption entry deleted successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/images/:
+    get:
+      operationId: season_images_get
+      description: Retrieve the posters of a specific season of a tv serie.
+      summary: Get season images
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - backdrops
+          - logos
+          - posters
+          - screenshots
+        description: 'Only return images of this type, others are empty (default:
+          all). Backdrops are only available for movies, tv series and games, screenshots
+          only for games and logos only for movies and tv series.'
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaImagesResponse'
+              examples:
+                Images:
+                  value:
+                    posters:
+                    - image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      original: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      width: 2000
+                      height: 3000
+                      aspect_ratio: 0.667
+                      language: en
+                      source: tmdb
+                      vote_average: 5.8
+                      vote_count: 20
+                    backdrops:
+                    - image: https://image.tmdb.org/t/p/w500/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      original: https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      width: 3840
+                      height: 2160
+                      aspect_ratio: 1.778
+                      language: null
+                      source: tmdb
+                      vote_average: 5.6
+                      vote_count: 12
+                    screenshots: []
+                    logos: []
+                  summary: Images
+          description: Successful response
         '400':
           content:
             application/json:
@@ -5960,6 +7824,143 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/providers/:
+    get:
+      operationId: season_providers_get
+      description: Retrieve no charge and paid watch providers for a tv serie season.
+      summary: Get season watch providers
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: region
+        schema:
+          type: string
+        description: 'ISO 3166-1 country code to get watch providers for (default:
+          user''s watch provider region).'
+      - in: path
+        name: season_number
+        schema:
+          type: integer
+        description: Season number for the specified media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProvidersResponse'
+              examples:
+                WatchProviders:
+                  value:
+                    region: US
+                    link: https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US
+                    no_charge:
+                    - provider_id: 8
+                      provider_name: Netflix
+                      image: https://image.tmdb.org/t/p/w500/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg
+                      display_priority: 0
+                    paid:
+                    - provider_id: 2
+                      provider_name: Apple TV
+                      image: https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg
+                      display_priority: 4
+                  summary: Watch providers
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/{season_number}/sync/:
     post:
       operationId: season_sync_post
@@ -6080,6 +8081,163 @@ paths:
                   summary: Sync too soon example
                   description: Sync too soon example
           description: Too Many Requests
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/cast/:
+    get:
+      operationId: media_cast_get
+      description: Retrieve the cast of a specific movie, tv serie or anime.
+      summary: Get media cast
+      parameters:
+      - in: query
+        name: language
+        schema:
+          type: string
+          enum:
+          - english
+          - french
+          - german
+          - hebrew
+          - hungarian
+          - italian
+          - japanese
+          - korean
+          - portuguese
+          - spanish
+        description: 'Language of the voice actors, only for anime (default: japanese).
+          Characters without a voice actor in that language are left out.'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCast'
+              examples:
+                Cast:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - person_id: 6384
+                      name: Keanu Reeves
+                      character: Thomas A. Anderson / Neo
+                      image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      order: 0
+                      episode_count: null
+                  summary: Cast
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
         '500':
           content:
             application/json:
@@ -6246,6 +8404,932 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/characters/:
+    get:
+      operationId: media_characters_get
+      description: Retrieve the characters of an anime, manga or comic.
+      summary: Get media characters
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCredits'
+              examples:
+                Characters:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - id: '1699'
+                      name: Batman
+                      roles: []
+                      image: null
+                      issue_count: 52
+                      source_url: https://comicvine.gamespot.com/batman/4005-1699/
+                  summary: Characters
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/companies/:
+    get:
+      operationId: media_companies_get
+      description: Retrieve the companies involved in a game or board game.
+      summary: Get media companies
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - developer
+          - porting
+          - publisher
+          - supporting
+        description: 'Only return companies with this role (default: all).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCompanies'
+              examples:
+                Companies:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - company_id: 908
+                      name: CD Projekt RED
+                      logo: https://images.igdb.com/igdb/image/upload/t_logo_med/cl6np.png
+                      roles:
+                      - developer
+                      - publisher
+                  summary: Companies
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/cover/:
+    get:
+      operationId: media_cover_get
+      description: Get the current cover of a media.
+      summary: Get the current cover of a media
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                Cover:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    put:
+      operationId: media_cover_put
+      description: Set a custom cover for a media.
+      summary: Set a custom cover for a media
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoverUpdateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                Cover:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    delete:
+      operationId: media_cover_delete
+      description: Reset the cover of a media to the provider image.
+      summary: Reset the cover of a media
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cover'
+              examples:
+                Cover:
+                  value:
+                    image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                    custom_image: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Cover
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/creators/:
+    get:
+      operationId: media_creators_get
+      description: Retrieve the creators of a manga, book, comic or board game.
+      summary: Get media creators
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCredits'
+              examples:
+                Creators:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - id: '40439'
+                      name: Scott Snyder
+                      roles: []
+                      image: null
+                      issue_count: 52
+                      source_url: https://comicvine.gamespot.com/scott-snyder/4040-40439/
+                  summary: Creators
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/crew/:
+    get:
+      operationId: media_crew_get
+      description: Retrieve the crew of a specific movie, tv serie or anime.
+      summary: Get media crew
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+        description: Only return crew of this department, case-insensitive (e.g. Directing,
+          Writing, Production, Sound, Camera). Anime staff have no department.
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCrew'
+              examples:
+                Crew:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - person_id: 9340
+                      name: Lana Wachowski
+                      department: Directing
+                      jobs:
+                      - Director
+                      image: https://image.tmdb.org/t/p/w500/2wfpFCe3nT4d3RnmL6kSHnYWJ6j.jpg
+                      episode_count: null
+                  summary: Crew
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/history/:
     get:
       operationId: media_consumption_history_get
@@ -6336,6 +9420,136 @@ paths:
                       notes: Watched with friends
                   summary: Consumption history
           description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+    post:
+      operationId: media_consumption_history_post
+      description: Records a new, distinct consumption (e.g. a re-watch, re-read or
+        re-play) instead of updating the existing one. Defaults to status Completed
+        with `end_date` set to now. The media must already be tracked (track it first
+        with the media type list POST), otherwise 404. Not available for `tv` (record
+        seasons or episodes).
+      summary: Add a media consumption history entry
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchMediaRequest'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+              examples:
+                Consumption:
+                  value:
+                    consumption_id: 312
+                    created: '2026-03-19T10:31:55.747255Z'
+                    score: 10.0
+                    progress: 26
+                    progressed_at: '2026-03-19T10:41:00Z'
+                    status: 1
+                    start_date: '2026-03-19T10:31:00Z'
+                    end_date: '2026-03-19T10:41:00Z'
+                    notes: Watched with friends
+                  summary: Consumption
+          description: Consumption added successfully
         '400':
           content:
             application/json:
@@ -6706,6 +9920,153 @@ paths:
       responses:
         '204':
           description: Consumption entry deleted successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/images/:
+    get:
+      operationId: media_images_get
+      description: Retrieve the images of a media.
+      summary: Get media images
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - backdrops
+          - logos
+          - posters
+          - screenshots
+        description: 'Only return images of this type, others are empty (default:
+          all). Backdrops are only available for movies, tv series and games, screenshots
+          only for games and logos only for movies and tv series.'
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaImagesResponse'
+              examples:
+                Images:
+                  value:
+                    posters:
+                    - image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      original: https://image.tmdb.org/t/p/original/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      width: 2000
+                      height: 3000
+                      aspect_ratio: 0.667
+                      language: en
+                      source: tmdb
+                      vote_average: 5.8
+                      vote_count: 20
+                    backdrops:
+                    - image: https://image.tmdb.org/t/p/w500/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      original: https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg
+                      width: 3840
+                      height: 2160
+                      aspect_ratio: 1.778
+                      language: null
+                      source: tmdb
+                      vote_average: 5.6
+                      vote_count: 12
+                    screenshots: []
+                    logos: []
+                  summary: Images
+          description: Successful response
         '400':
           content:
             application/json:
@@ -7152,6 +10513,137 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/media/{media_type}/{source}/{media_id}/providers/:
+    get:
+      operationId: media_providers_get
+      description: Retrieve no charge and paid watch providers for a specific media.
+      summary: Get media watch providers
+      parameters:
+      - in: path
+        name: media_id
+        schema:
+          type: string
+        description: ID of the media item.
+        required: true
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - game
+          - manga
+          - movie
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: region
+        schema:
+          type: string
+        description: 'ISO 3166-1 country code to get watch providers for (default:
+          user''s watch provider region).'
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - anilist
+          - bgg
+          - comicvine
+          - hardcover
+          - igdb
+          - mal
+          - mangaupdates
+          - manual
+          - openlibrary
+          - tmdb
+        description: Source of the media item data.
+        required: true
+      tags:
+      - media
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProvidersResponse'
+              examples:
+                WatchProviders:
+                  value:
+                    region: US
+                    link: https://www.themoviedb.org/movie/603-the-matrix/watch?locale=US
+                    no_charge:
+                    - provider_id: 8
+                      provider_name: Netflix
+                      image: https://image.tmdb.org/t/p/w500/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg
+                      display_priority: 0
+                    paid:
+                    - provider_id: 2
+                      provider_name: Apple TV
+                      image: https://image.tmdb.org/t/p/w500/9ghgSC0MA082EL6HLCW3GalykFD.jpg
+                      display_priority: 4
+                  summary: Watch providers
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/media/{media_type}/{source}/{media_id}/recommendations/:
     get:
       operationId: media_recommendations_get
@@ -7556,6 +11048,472 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/people/{source}/{person_id}/:
+    get:
+      operationId: person_detail_get
+      description: Retrieve the details of a specific person.
+      summary: Get person
+      parameters:
+      - in: path
+        name: person_id
+        schema:
+          type: string
+        description: ID of the person.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: Source of person data.
+        required: true
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+              examples:
+                Person:
+                  value:
+                    person_id: 6384
+                    source: tmdb
+                    source_url: https://www.themoviedb.org/person/6384
+                    name: Keanu Reeves
+                    image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                    biography: Keanu Charles Reeves is a Canadian actor.
+                    birthday: '1964-09-02'
+                    deathday: null
+                    place_of_birth: Beirut, Lebanon
+                    known_for_department: Acting
+                    also_known_as:
+                    - Keanu Charles Reeves
+                    homepage: null
+                    external_links:
+                      IMDb: https://www.imdb.com/name/nm0000206/
+                      Wikidata: https://www.wikidata.org/wiki/Q43416
+                  summary: Person
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/people/{source}/{person_id}/images/:
+    get:
+      operationId: person_images_get
+      description: Retrieve the profile images of a specific person.
+      summary: Get person images
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: person_id
+        schema:
+          type: string
+        description: ID of the person.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: Source of person data.
+        required: true
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPersonImages'
+              examples:
+                PersonImages:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      original: https://image.tmdb.org/t/p/original/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      width: 1000
+                      height: 1500
+                      aspect_ratio: 0.667
+                      vote_average: 5.522
+                      vote_count: 4
+                  summary: Person images
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/people/{source}/{person_id}/known_for/:
+    get:
+      operationId: person_known_for_get
+      description: Retrieve the movies and tv series a person is known for as cast
+        or crew.
+      summary: Get person known for
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+        description: 'Only return credits of this department, case-insensitive (e.g.
+          Acting, Directing, Writing, Production) (default: all).'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: query
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - movie
+          - tv
+        description: 'Only return media of this type (default: all).'
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: path
+        name: person_id
+        schema:
+          type: string
+        description: ID of the person.
+        required: true
+      - in: path
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: Source of person data.
+        required: true
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKnownFor'
+              examples:
+                KnownFor:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - source: tmdb
+                      media_type: movie
+                      media_id: '603'
+                      title: The Matrix
+                      image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                      character: Thomas A. Anderson / Neo
+                      departments:
+                      - Acting
+                      jobs: []
+                      release_date: '1999-03-31'
+                      episode_count: null
+                  summary: Known for
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/people/search/:
+    get:
+      operationId: people_search_get
+      description: Search for people using the specified provider.
+      summary: Search for people
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search query
+        required: true
+      - in: query
+        name: source
+        schema:
+          type: string
+          enum:
+          - tmdb
+        description: 'Source of person data (default: tmdb).'
+      tags:
+      - people
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchPeopleResponse'
+              examples:
+                SearchPeople:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - person_id: 6384
+                      source: tmdb
+                      name: Keanu Reeves
+                      image: https://image.tmdb.org/t/p/w500/4D0PpNI0kmP58hgrwGC3wCjxhnm.jpg
+                      known_for_department: Acting
+                      known_for:
+                      - source: tmdb
+                        media_type: movie
+                        media_id: '603'
+                        title: The Matrix
+                        image: https://image.tmdb.org/t/p/w500/p96dm7sCMn4VYAStA6siNz30G1r.jpg
+                  summary: Search people
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NoAuthenticationExample:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: No authentication example
+                  description: No authentication example
+                InvalidTokenExample:
+                  value:
+                    detail: Invalid token
+                  summary: Invalid token example
+                  description: Invalid token example
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
   /api/v1/search/{media_type}/:
     get:
       operationId: search_get
@@ -7736,6 +11694,240 @@ paths:
                   summary: Internal server error
                   description: Internal server error
           description: Internal server error
+  /api/v1/users/{username}/:
+    get:
+      operationId: user_profile_get
+      description: Private profiles answer 404, as if the user didn't exist.
+      summary: Get a public profile
+      parameters:
+      - in: path
+        name: username
+        schema:
+          type: string
+        description: Username of the user.
+        required: true
+      tags:
+      - users
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProfile'
+              examples:
+                PublicProfile:
+                  value:
+                    username: alice
+                    enabled_media_types:
+                    - tv
+                    - movie
+                    - anime
+                  summary: Public profile
+          description: Successful response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
+  /api/v1/users/{username}/media/{media_type}/:
+    get:
+      operationId: user_media_type_list_get
+      description: Private profiles and media types the user disabled answer 404.
+        The lists the media belongs to aren't exposed.
+      summary: List the media of a public profile
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          default: 20
+        description: 'Maximum number of results to return (default: 20).'
+      - in: path
+        name: media_type
+        schema:
+          type: string
+          enum:
+          - anime
+          - boardgame
+          - book
+          - comic
+          - episode
+          - game
+          - manga
+          - movie
+          - season
+          - tv
+        description: Type of media item.
+        required: true
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: 'Number of results to skip before returning items (default: 0).'
+      - in: query
+        name: sort
+        schema:
+          type: string
+          enum:
+          - added
+          - added_asc
+          - added_desc
+          - end_date
+          - end_date_asc
+          - end_date_desc
+          - episode_number
+          - episode_number_asc
+          - episode_number_desc
+          - id
+          - id_asc
+          - id_desc
+          - itemid
+          - itemid_asc
+          - itemid_desc
+          - media_id
+          - media_id_asc
+          - media_id_desc
+          - media_type
+          - media_type_asc
+          - media_type_desc
+          - progress
+          - progress_asc
+          - progress_desc
+          - score
+          - score_asc
+          - score_desc
+          - season_number
+          - season_number_asc
+          - season_number_desc
+          - source
+          - source_asc
+          - source_desc
+          - start_date
+          - start_date_asc
+          - start_date_desc
+          - title
+          - title_asc
+          - title_desc
+          - updated
+          - updated_asc
+          - updated_desc
+        description: 'Sort field, optionally followed by `_asc` or `_desc` (default:
+          ascending). Episodes only support a subset of the sorts: added, end_date,
+          episode_number, id, itemid, season_number, title.'
+      - in: path
+        name: username
+        schema:
+          type: string
+        description: Username of the user.
+        required: true
+      tags:
+      - users
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMedia'
+              examples:
+                MediaList:
+                  value:
+                    pagination:
+                      total: 1
+                      limit: 20
+                      offset: 0
+                      next: null
+                      previous: null
+                    results:
+                    - id: 1
+                      consumption_id: 1
+                      item:
+                        media_id: '100088'
+                        source: tmdb
+                        media_type: tv
+                        title: The Last of Us
+                        image: https://image.tmdb.org/t/p/original//dmo6TYuuJgaYinXBPjrgG9mB5od.jpg
+                        season_number: null
+                        episode_number: null
+                      item_id: tv/tmdb/100088
+                      parent_id: null
+                      tracked: true
+                      created_at: '2026-01-15T15:33:03.209328Z'
+                      score: null
+                      status: 0
+                      progress: 0
+                      progressed_at: null
+                      start_date: null
+                      end_date: null
+                      notes: ''
+                      lists:
+                      - list_id: 1
+                        list_item_id: 10
+                  summary: Media list
+          description: Successful response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InvalidRequestExample:
+                  value:
+                    detail: Invalid request.
+                  summary: Invalid request example
+                  description: Invalid request example
+          description: Bad request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                NotFoundExample:
+                  value:
+                    detail: Not found.
+                  summary: Not found example
+                  description: Not found example
+          description: Not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                InternalServerErrorExample:
+                  value:
+                    detail: Internal server error.
+                  summary: Internal server error
+                  description: Internal server error
+          description: Internal server error
 components:
   schemas:
     ApiErrorResponse:
@@ -7764,6 +11956,42 @@ components:
           type: string
       required:
       - detail
+    CalendarLayoutEnum:
+      enum:
+      - grid
+      - list
+      type: string
+      description: |-
+        * `grid` - Grid
+        * `list` - List
+    CastMember:
+      type: object
+      description: Serializer for a single cast member.
+      properties:
+        person_id:
+          type: integer
+        name:
+          type: string
+        character:
+          type: string
+          nullable: true
+        image:
+          type: string
+          format: uri
+          nullable: true
+        order:
+          type: integer
+          nullable: true
+        episode_count:
+          type: integer
+          nullable: true
+      required:
+      - character
+      - episode_count
+      - image
+      - name
+      - order
+      - person_id
     ChangesHistoryChange:
       type: object
       description: Serializer for a single change in a history entry.
@@ -7797,6 +12025,27 @@ components:
           readOnly: true
       required:
       - changes
+    Company:
+      type: object
+      description: Serializer for a company involved in a media.
+      properties:
+        company_id:
+          type: integer
+        name:
+          type: string
+        logo:
+          type: string
+          format: uri
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+      required:
+      - company_id
+      - logo
+      - name
+      - roles
     CompleteEpisode:
       type: object
       description: Serializer that builds a CompleteEpisode response.
@@ -7946,6 +12195,18 @@ components:
           additionalProperties: {}
           description: Return the raw provider related payload.
           readOnly: true
+        external_links:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+          description: Links to other sites (e.g. IMDb, TVDB, Wikidata, Letterboxd),
+            only for movies, tv series and seasons.
+        time_to_beat:
+          allOf:
+          - $ref: '#/components/schemas/TimeToBeat'
+          nullable: true
+          description: Time to beat the game in seconds, only for games.
         item_id:
           type: string
         parent_id:
@@ -7967,6 +12228,7 @@ components:
       - consumptions
       - consumptions_number
       - details
+      - external_links
       - genres
       - id
       - image
@@ -7980,8 +12242,112 @@ components:
       - score_count
       - source_url
       - synopsis
+      - time_to_beat
       - title
       - tracked
+    Cover:
+      type: object
+      description: Serializer for the cover of a media.
+      properties:
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Cover shown for the media, the custom one if set.
+        custom_image:
+          type: string
+          format: uri
+          nullable: true
+          description: Custom cover chosen for the media, null if none.
+      required:
+      - custom_image
+      - image
+    CoverUpdateRequest:
+      type: object
+      description: Serializer for setting a custom cover.
+      properties:
+        image:
+          type: string
+          format: uri
+          minLength: 1
+          description: URL of one of the images returned by the media images endpoint,
+            either its `image` or `original` URL.
+      required:
+      - image
+    Credit:
+      type: object
+      description: Serializer for a creator or character of a media.
+      properties:
+        id:
+          type: string
+          nullable: true
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        issue_count:
+          type: integer
+          nullable: true
+        source_url:
+          type: string
+          format: uri
+          nullable: true
+      required:
+      - id
+      - image
+      - issue_count
+      - name
+      - roles
+      - source_url
+    CrewMember:
+      type: object
+      description: Serializer for a single crew member.
+      properties:
+        person_id:
+          type: integer
+        name:
+          type: string
+        department:
+          type: string
+          nullable: true
+        jobs:
+          type: array
+          items:
+            type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        episode_count:
+          type: integer
+          nullable: true
+      required:
+      - department
+      - episode_count
+      - image
+      - jobs
+      - name
+      - person_id
+    DateFormatEnum:
+      enum:
+      - Y-m-d
+      - d/m/Y
+      - m/d/Y
+      - M j, Y
+      - j M, Y
+      type: string
+      description: |-
+        * `Y-m-d` - 2026-01-18 (ISO)
+        * `d/m/Y` - 18/01/2026 (EU)
+        * `m/d/Y` - 01/18/2026 (US)
+        * `M j, Y` - Jan 18, 2026
+        * `j M, Y` - 18 Jan, 2026
     Episode:
       type: object
       description: Serializer used for tracked episodes and episodes from the provider
@@ -8231,6 +12597,20 @@ components:
       - progressed_at
       - score
       - start_date
+    HomeSortEnum:
+      enum:
+      - upcoming
+      - recent
+      - completion
+      - episodes_left
+      - title
+      type: string
+      description: |-
+        * `upcoming` - Upcoming
+        * `recent` - Recent
+        * `completion` - Completion
+        * `episodes_left` - Episodes Left
+        * `title` - Title
     Info:
       type: object
       description: Serializer for the info endpoint.
@@ -8342,6 +12722,53 @@ components:
         * `comicvine` - Comic Vine
         * `bgg` - BoardGameGeek
         * `manual` - Manual
+    KnownFor:
+      type: object
+      description: Serializer for a media a person is known for.
+      properties:
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          nullable: true
+        media_type:
+          allOf:
+          - $ref: '#/components/schemas/MediaTypeEnum'
+          nullable: true
+        media_id:
+          type: string
+        title:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        character:
+          type: string
+          nullable: true
+        departments:
+          type: array
+          items:
+            type: string
+        jobs:
+          type: array
+          items:
+            type: string
+        release_date:
+          type: string
+          format: date
+          nullable: true
+        episode_count:
+          type: integer
+          nullable: true
+      required:
+      - character
+      - departments
+      - episode_count
+      - image
+      - jobs
+      - media_id
+      - release_date
+      - title
     List:
       type: object
       description: Serializer used for custom lists.
@@ -8401,6 +12828,16 @@ components:
           description: List of username ids allowed to collaborate on this list.
       required:
       - name
+    ListDetailSortEnum:
+      enum:
+      - date_added
+      - title
+      - media_type
+      type: string
+      description: |-
+        * `date_added` - Date Added
+        * `title` - Title
+        * `media_type` - Media Type
     ListMinimized:
       type: object
       description: Serializer for minimized list information.
@@ -8451,6 +12888,18 @@ components:
       - latest_update
       - name
       - owner
+    ListsSortEnum:
+      enum:
+      - last_item_added
+      - name
+      - items_count
+      - newest_first
+      type: string
+      description: |-
+        * `last_item_added` - Last Item Added
+        * `name` - Name
+        * `items_count` - Items Count
+        * `newest_first` - Newest First
     Media:
       type: object
       description: Serializer used for media items.
@@ -8518,6 +12967,75 @@ components:
       - score
       - start_date
       - tracked
+    MediaImage:
+      type: object
+      description: Serializer for a single media image.
+      properties:
+        image:
+          type: string
+          format: uri
+        original:
+          type: string
+          format: uri
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        aspect_ratio:
+          type: number
+          format: double
+          nullable: true
+        vote_average:
+          type: number
+          format: double
+          nullable: true
+        vote_count:
+          type: integer
+          nullable: true
+        language:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: 'Where the image comes from: the media source, or an extra
+            artwork source (fanart, anilist, mangadex).'
+      required:
+      - aspect_ratio
+      - height
+      - image
+      - language
+      - original
+      - source
+      - vote_average
+      - vote_count
+      - width
+    MediaImagesResponse:
+      type: object
+      description: Serializer for media images endpoint.
+      properties:
+        posters:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
+        backdrops:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
+        screenshots:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
+        logos:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaImage'
+      required:
+      - backdrops
+      - logos
+      - posters
+      - screenshots
     MediaStatusEnum:
       enum:
       - 0
@@ -8576,6 +13094,19 @@ components:
         * `book` - book
         * `comic` - comic
         * `boardgame` - boardgame
+    PaginatedCast:
+      type: object
+      description: Paginated response serializer for cast members.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CastMember'
+      required:
+      - pagination
+      - results
     PaginatedChangesHistoryResponse:
       type: object
       description: Paginated changes history serializer.
@@ -8586,6 +13117,45 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChangesHistoryEntry'
+      required:
+      - pagination
+      - results
+    PaginatedCompanies:
+      type: object
+      description: Paginated response serializer for companies.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Company'
+      required:
+      - pagination
+      - results
+    PaginatedCredits:
+      type: object
+      description: Paginated response serializer for creators or characters.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Credit'
+      required:
+      - pagination
+      - results
+    PaginatedCrew:
+      type: object
+      description: Paginated response serializer for crew members.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrewMember'
       required:
       - pagination
       - results
@@ -8625,6 +13195,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/History'
+      required:
+      - pagination
+      - results
+    PaginatedKnownFor:
+      type: object
+      description: Paginated response serializer for known for media.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnownFor'
       required:
       - pagination
       - results
@@ -8680,6 +13263,19 @@ components:
       required:
       - pagination
       - results
+    PaginatedPersonImages:
+      type: object
+      description: Paginated response serializer for person images.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonImage'
+      required:
+      - pagination
+      - results
     Pagination:
       type: object
       description: Common pagination metadata serializer.
@@ -8702,6 +13298,21 @@ components:
       - offset
       - previous
       - total
+    PasswordChangeRequest:
+      type: object
+      description: Serializer to change the password of the authenticated user.
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - new_password
+      - old_password
     PatchedHistoryUpdateRequestRequest:
       anyOf:
       - $ref: '#/components/schemas/PatchedUpdateAnimeRequest'
@@ -8726,6 +13337,41 @@ components:
           items:
             type: integer
           description: List of username ids allowed to collaborate on this list.
+    PatchedPreferencesRequest:
+      type: object
+      description: Serializer for the preferences that apply to the whole application.
+      properties:
+        tv_enabled:
+          type: boolean
+        season_enabled:
+          type: boolean
+        movie_enabled:
+          type: boolean
+        anime_enabled:
+          type: boolean
+        manga_enabled:
+          type: boolean
+        game_enabled:
+          type: boolean
+        book_enabled:
+          type: boolean
+        comic_enabled:
+          type: boolean
+        boardgame_enabled:
+          type: boolean
+        week_start_day:
+          allOf:
+          - $ref: '#/components/schemas/WeekStartDayEnum'
+          description: |-
+            First day of the week
+
+            * `monday` - Monday
+            * `sunday` - Sunday
+        watch_provider_region:
+          type: string
+          description: TMDB watch provider region code, an empty string to disable
+            them or `UNSET` if it was never set.
+          maxLength: 5
     PatchedUpdateAnimeRequest:
       type: object
       description: Serializer for updating anime media items.
@@ -8945,6 +13591,331 @@ components:
         notes:
           type: string
           nullable: true
+    PatchedUserUpdateRequest:
+      type: object
+      description: Serializer to update username and profile visibility.
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        profile_private:
+          type: boolean
+          description: Toggle profile visibility to anonymous users
+    PatchedWebUIPreferencesRequest:
+      type: object
+      description: Serializer for the preferences that only affect the web UI.
+      properties:
+        home_sort:
+          $ref: '#/components/schemas/HomeSortEnum'
+        home_hide_unreleased:
+          type: boolean
+          description: Hide unreleased media from the home page
+        tv_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        tv_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        tv_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        season_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        season_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        season_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        movie_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        movie_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        movie_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        anime_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        anime_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        anime_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        manga_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        manga_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        manga_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        game_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        game_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        game_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        book_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        book_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        book_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        comic_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        comic_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        comic_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        boardgame_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        boardgame_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        boardgame_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        clickable_media_cards:
+          type: boolean
+          description: Hide hover overlay on touch devices
+        obfuscate_unseen_episodes:
+          type: boolean
+          description: Blur unseen episode images and descriptions
+        quick_watch_date:
+          allOf:
+          - $ref: '#/components/schemas/QuickWatchDateEnum'
+          description: |-
+            Date to use when bulk-marking media as completed
+
+            * `current_date` - Current Date
+            * `release_date` - Release Date
+            * `no_date` - No Date
+        date_format:
+          allOf:
+          - $ref: '#/components/schemas/DateFormatEnum'
+          description: |-
+            Preferred date display format
+
+            * `Y-m-d` - 2026-01-18 (ISO)
+            * `d/m/Y` - 18/01/2026 (EU)
+            * `m/d/Y` - 01/18/2026 (US)
+            * `M j, Y` - Jan 18, 2026
+            * `j M, Y` - 18 Jan, 2026
+        time_format:
+          allOf:
+          - $ref: '#/components/schemas/TimeFormatEnum'
+          description: |-
+            Preferred time display format
+
+            * `H:i` - 14:30 (24-hour)
+            * `g:i A` - 2:30 PM (12-hour)
+        progress_bar:
+          type: boolean
+          description: Show progress bar
+        hide_completed_recommendations:
+          type: boolean
+          description: Hide completed media in recommendations
+        hide_zero_rating:
+          type: boolean
+          description: Hide zero ratings from media cards
+        calendar_layout:
+          $ref: '#/components/schemas/CalendarLayoutEnum'
+        lists_sort:
+          $ref: '#/components/schemas/ListsSortEnum'
+        list_detail_sort:
+          $ref: '#/components/schemas/ListDetailSortEnum'
+        list_detail_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+    Person:
+      type: object
+      description: Serializer for person details.
+      properties:
+        person_id:
+          type: integer
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          nullable: true
+        source_url:
+          type: string
+          format: uri
+        name:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        biography:
+          type: string
+          nullable: true
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        deathday:
+          type: string
+          format: date
+          nullable: true
+        place_of_birth:
+          type: string
+          nullable: true
+        known_for_department:
+          type: string
+          nullable: true
+        also_known_as:
+          type: array
+          items:
+            type: string
+        homepage:
+          type: string
+          format: uri
+          nullable: true
+        external_links:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+      required:
+      - also_known_as
+      - biography
+      - birthday
+      - deathday
+      - external_links
+      - homepage
+      - image
+      - known_for_department
+      - name
+      - person_id
+      - place_of_birth
+      - source_url
+    PersonImage:
+      type: object
+      description: Serializer for a single person image.
+      properties:
+        image:
+          type: string
+          format: uri
+        original:
+          type: string
+          format: uri
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        aspect_ratio:
+          type: number
+          format: double
+          nullable: true
+        vote_average:
+          type: number
+          format: double
+          nullable: true
+        vote_count:
+          type: integer
+          nullable: true
+      required:
+      - aspect_ratio
+      - height
+      - image
+      - original
+      - vote_average
+      - vote_count
+      - width
+    PreferenceLayoutEnum:
+      enum:
+      - grid
+      - table
+      type: string
+      description: |-
+        * `grid` - Grid
+        * `table` - Table
+    PreferenceSortEnum:
+      enum:
+      - score
+      - title
+      - progress
+      - start_date
+      - end_date
+      type: string
+      description: |-
+        * `score` - Rating
+        * `title` - Title
+        * `progress` - Progress
+        * `start_date` - Start Date
+        * `end_date` - End Date
+    PreferenceStatusEnum:
+      enum:
+      - All
+      - Completed
+      - In progress
+      - Planning
+      - Paused
+      - Dropped
+      type: string
+      description: |-
+        * `All` - All
+        * `Completed` - Completed
+        * `In progress` - In Progress
+        * `Planning` - Planning
+        * `Paused` - Paused
+        * `Dropped` - Dropped
+    Preferences:
+      type: object
+      description: Serializer for the preferences that apply to the whole application.
+      properties:
+        tv_enabled:
+          type: boolean
+        season_enabled:
+          type: boolean
+        movie_enabled:
+          type: boolean
+        anime_enabled:
+          type: boolean
+        manga_enabled:
+          type: boolean
+        game_enabled:
+          type: boolean
+        book_enabled:
+          type: boolean
+        comic_enabled:
+          type: boolean
+        boardgame_enabled:
+          type: boolean
+        week_start_day:
+          allOf:
+          - $ref: '#/components/schemas/WeekStartDayEnum'
+          description: |-
+            First day of the week
+
+            * `monday` - Monday
+            * `sunday` - Sunday
+        watch_provider_region:
+          type: string
+          description: TMDB watch provider region code, an empty string to disable
+            them or `UNSET` if it was never set.
+          maxLength: 5
+      required:
+      - watch_provider_region
+    PublicProfile:
+      type: object
+      description: Serializer for the public information of a user.
+      properties:
+        username:
+          type: string
+        enabled_media_types:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/MediaTypeCompleteEnum'
+            nullable: true
+      required:
+      - enabled_media_types
+      - username
+    QuickWatchDateEnum:
+      enum:
+      - current_date
+      - release_date
+      - no_date
+      type: string
+      description: |-
+        * `current_date` - Current Date
+        * `release_date` - Release Date
+        * `no_date` - No Date
     RelatedResponse:
       type: object
       description: Serializer for related media endpoint.
@@ -8969,6 +13940,15 @@ components:
       - image
       - media_id
       - title
+    SearchCacheResponse:
+      type: object
+      description: Serializer for the result of clearing the search cache.
+      properties:
+        deleted:
+          type: integer
+          description: Number of cache entries deleted.
+      required:
+      - deleted
     SearchMedia:
       type: object
       description: Serializer for individual media items in search results.
@@ -8990,6 +13970,48 @@ components:
       - media_type
       - source
       - title
+    SearchPeopleResponse:
+      type: object
+      description: Serializer for people search endpoint results.
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchPerson'
+      required:
+      - pagination
+      - results
+    SearchPerson:
+      type: object
+      description: Serializer for individual people in search results.
+      properties:
+        person_id:
+          type: integer
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          nullable: true
+        name:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        known_for_department:
+          type: string
+          nullable: true
+        known_for:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedResponse'
+      required:
+      - image
+      - known_for
+      - known_for_department
+      - name
+      - person_id
     SearchResponse:
       type: object
       description: Serializer for search endpoint results.
@@ -9119,6 +14141,27 @@ components:
       - status_pie_chart_data
       - timeline
       - top_rated
+    TimeFormatEnum:
+      enum:
+      - H:i
+      - g:i A
+      type: string
+      description: |-
+        * `H:i` - 14:30 (24-hour)
+        * `g:i A` - 2:30 PM (12-hour)
+    TimeToBeat:
+      type: object
+      description: Serializer for the time to beat a game, in seconds.
+      properties:
+        hastily:
+          type: integer
+          nullable: true
+        normally:
+          type: integer
+          nullable: true
+        completely:
+          type: integer
+          nullable: true
     TimelineItem:
       type: object
       description: Compact serializer used for timeline entries to reduce payload
@@ -9185,6 +14228,14 @@ components:
       - score
       - start_date
       - title
+    TokenResponse:
+      type: object
+      description: Serializer for the regenerated API token.
+      properties:
+        token:
+          type: string
+      required:
+      - token
     TrackMediaRequest:
       type: object
       description: |-
@@ -9193,6 +14244,12 @@ components:
         Unified payload for creating media items. Use `source: manual` for manual items
         (omit `media_id`) or set a provider `source` and `media_id` to create from a
         provider. When using a media provider, all media data will be overwritten.
+
+        Provider seasons need `season_number`; provider episodes need `season_number`
+        and `episode_number`, and record the first watch of the episode (only
+        `end_date`, default now, and `notes` are used). The parent season and show
+        are created when not tracked yet. Tracking something already tracked returns
+        409: add re-watches with the history endpoints.
       properties:
         source:
           allOf:
@@ -9250,6 +14307,31 @@ components:
           nullable: true
           description: '`consumption_id` of the manual season the episode belongs
             to, required for manual episodes.'
+    UpdateEpisodeRequest:
+      type: object
+      description: Serializer for updating episode media items.
+      properties:
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+    UpdateSeasonRequest:
+      type: object
+      description: Serializer for updating season media items.
+      properties:
+        score:
+          type: number
+          format: double
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MediaStatusEnum'
+          nullable: true
+        notes:
+          type: string
+          nullable: true
     User:
       type: object
       description: Serializer for user information.
@@ -9261,6 +14343,261 @@ components:
       required:
       - id
       - username
+    UserProfile:
+      type: object
+      description: Serializer for the authenticated user.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+        is_demo:
+          type: boolean
+          readOnly: true
+        profile_private:
+          type: boolean
+          readOnly: true
+          description: Toggle profile visibility to anonymous users
+        enabled_media_types:
+          type: array
+          items:
+            type: string
+          description: Return media types the user has enabled.
+          readOnly: true
+        preferences:
+          allOf:
+          - $ref: '#/components/schemas/Preferences'
+          readOnly: true
+      required:
+      - enabled_media_types
+      - id
+      - is_demo
+      - preferences
+      - profile_private
+      - username
+    WatchEpisodeRequest:
+      type: object
+      description: Serializer for adding a watch entry to an episode.
+      properties:
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+    WatchMediaRequest:
+      type: object
+      description: Serializer for adding a watch entry to a media item.
+      properties:
+        score:
+          type: number
+          format: double
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MediaStatusEnum'
+          nullable: true
+        progress:
+          type: integer
+          nullable: true
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+    WatchProvider:
+      type: object
+      description: Serializer for a single watch provider.
+      properties:
+        provider_id:
+          type: integer
+        provider_name:
+          type: string
+        image:
+          type: string
+          format: uri
+          nullable: true
+        display_priority:
+          type: integer
+          nullable: true
+      required:
+      - display_priority
+      - image
+      - provider_id
+      - provider_name
+    WatchProvidersResponse:
+      type: object
+      description: Serializer for watch providers endpoint.
+      properties:
+        region:
+          type: string
+        link:
+          type: string
+          format: uri
+          nullable: true
+        no_charge:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchProvider'
+        paid:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchProvider'
+      required:
+      - link
+      - no_charge
+      - paid
+      - region
+    WatchSeasonRequest:
+      type: object
+      description: Serializer for adding a watch entry to every episode of a season.
+      properties:
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        episode_numbers:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+          description: Only record these episodes. Defaults to the whole season.
+    WebUIPreferences:
+      type: object
+      description: Serializer for the preferences that only affect the web UI.
+      properties:
+        home_sort:
+          $ref: '#/components/schemas/HomeSortEnum'
+        home_hide_unreleased:
+          type: boolean
+          description: Hide unreleased media from the home page
+        tv_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        tv_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        tv_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        season_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        season_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        season_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        movie_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        movie_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        movie_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        anime_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        anime_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        anime_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        manga_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        manga_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        manga_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        game_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        game_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        game_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        book_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        book_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        book_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        comic_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        comic_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        comic_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        boardgame_layout:
+          $ref: '#/components/schemas/PreferenceLayoutEnum'
+        boardgame_sort:
+          $ref: '#/components/schemas/PreferenceSortEnum'
+        boardgame_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+        clickable_media_cards:
+          type: boolean
+          description: Hide hover overlay on touch devices
+        obfuscate_unseen_episodes:
+          type: boolean
+          description: Blur unseen episode images and descriptions
+        quick_watch_date:
+          allOf:
+          - $ref: '#/components/schemas/QuickWatchDateEnum'
+          description: |-
+            Date to use when bulk-marking media as completed
+
+            * `current_date` - Current Date
+            * `release_date` - Release Date
+            * `no_date` - No Date
+        date_format:
+          allOf:
+          - $ref: '#/components/schemas/DateFormatEnum'
+          description: |-
+            Preferred date display format
+
+            * `Y-m-d` - 2026-01-18 (ISO)
+            * `d/m/Y` - 18/01/2026 (EU)
+            * `m/d/Y` - 01/18/2026 (US)
+            * `M j, Y` - Jan 18, 2026
+            * `j M, Y` - 18 Jan, 2026
+        time_format:
+          allOf:
+          - $ref: '#/components/schemas/TimeFormatEnum'
+          description: |-
+            Preferred time display format
+
+            * `H:i` - 14:30 (24-hour)
+            * `g:i A` - 2:30 PM (12-hour)
+        progress_bar:
+          type: boolean
+          description: Show progress bar
+        hide_completed_recommendations:
+          type: boolean
+          description: Hide completed media in recommendations
+        hide_zero_rating:
+          type: boolean
+          description: Hide zero ratings from media cards
+        calendar_layout:
+          $ref: '#/components/schemas/CalendarLayoutEnum'
+        lists_sort:
+          $ref: '#/components/schemas/ListsSortEnum'
+        list_detail_sort:
+          $ref: '#/components/schemas/ListDetailSortEnum'
+        list_detail_status:
+          $ref: '#/components/schemas/PreferenceStatusEnum'
+    WeekStartDayEnum:
+      enum:
+      - monday
+      - sunday
+      type: string
+      description: |-
+        * `monday` - Monday
+        * `sunday` - Sunday
   securitySchemes:
     ApiKeyAuth:
       type: apiKey

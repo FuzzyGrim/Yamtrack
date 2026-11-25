@@ -68,13 +68,9 @@ class SearchProviderView(drf_views.APIView):
         """Search for media using the specified provider."""
         search = request.GET.get("search", "")
         source = request.GET.get("source", None)
-        limit, offset, err = parse_limit_offset(request)
-        if err:
-            return err
+        limit, offset = parse_limit_offset(request)
 
-        error = validate_media_path(media_type, source or None, complete=True)
-        if error is not None:
-            return error
+        validate_media_path(media_type, source or None, complete=True)
         if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
             # Since data of seasons and episodes (title, author, description,
             # etc.) is not saved in the db but retrieved every time, it's not
@@ -88,22 +84,15 @@ class SearchProviderView(drf_views.APIView):
 
         presliced = source == Sources.MANUAL.value
 
-        try:
-            results, total = fetch_search_results(
-                media_type,
-                search,
-                source,
-                limit,
-                offset,
-                request.user,
-                presliced=presliced,
-            )
-        except Exception:  # noqa: BLE001
-            return Response(
-                {"detail": HTTP.INTERNAL_SERVER_ERROR.phrase},
-                status=HTTP.INTERNAL_SERVER_ERROR,
-            )
-
+        results, total = fetch_search_results(
+            media_type,
+            search,
+            source,
+            limit,
+            offset,
+            request.user,
+            presliced=presliced,
+        )
         paginated_data = paginate_data(
             request,
             results,

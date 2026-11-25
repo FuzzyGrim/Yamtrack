@@ -85,6 +85,9 @@ def check_complete_media_structure(test_case, item):
     check_details_structure(test_case, item["media_type"], item["details"])
     test_case.assertIn("related", item)
     check_related_structure(test_case, item["media_type"], item["related"])
+    test_case.assertIn("external_links", item)
+    test_case.assertIsInstance(item["external_links"], dict)
+    test_case.assertIn("time_to_beat", item)
     test_case.assertIn("item_id", item)
     check_item_id_structure(test_case, item["item_id"])
     test_case.assertIn("parent_id", item)
@@ -447,3 +450,60 @@ def _check_tv_related_structure(test_case, related):
     test_case.assertIn("seasons", related)
     for season in related["seasons"]:
         check_media_structure(test_case, season)
+
+
+WATCH_PROVIDERS_RESPONSE = {
+    "US": {
+        "link": "https://www.themoviedb.org/movie/1/watch?locale=US",
+        "flatrate": [
+            {
+                "provider_id": 8,
+                "provider_name": "Netflix",
+                "logo_path": "/netflix.jpg",
+                "display_priority": 1,
+            },
+        ],
+        "free": [
+            {
+                "provider_id": 73,
+                "provider_name": "Tubi TV",
+                "logo_path": "/tubi.jpg",
+                "display_priority": 0,
+            },
+        ],
+        "ads": [
+            {
+                "provider_id": 8,
+                "provider_name": "Netflix",
+                "logo_path": "/netflix.jpg",
+                "display_priority": 1,
+            },
+        ],
+        "buy": [
+            {
+                "provider_id": 2,
+                "provider_name": "Apple TV",
+                "logo_path": "/apple.jpg",
+                "display_priority": 4,
+            },
+        ],
+        "rent": [
+            {
+                "provider_id": 2,
+                "provider_name": "Apple TV",
+                "logo_path": "/apple.jpg",
+                "display_priority": 4,
+            },
+        ],
+    },
+    "IT": {
+        "flatrate": [
+            {
+                "provider_id": 119,
+                "provider_name": "Amazon Prime Video",
+                "logo_path": "/prime.jpg",
+                "display_priority": 2,
+            },
+        ],
+    },
+}

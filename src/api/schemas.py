@@ -80,6 +80,19 @@ BadRequestResponse = OpenApiResponse(
     ],
 )
 
+ConflictResponse = OpenApiResponse(
+    ApiErrorResponseSerializer,
+    description="Conflict",
+    examples=[
+        OpenApiExample(
+            "Already tracked example",
+            description="Already tracked example",
+            summary="Already tracked example",
+            value={"detail": "Conflict. Season is already tracked."},
+        )
+    ],
+)
+
 ForbiddenResponse = OpenApiResponse(
     ApiErrorResponseSerializer,
     description="Forbidden",
@@ -249,6 +262,8 @@ MediaTypeCompleteQueryParam = OpenApiParameter(
     enum=MEDIA_TYPE_COMPLETE_VALID_LIST,
 )
 
+UsernameParam = _path_param("username", "Username of the user.")
+
 MediaIdParam = _path_param("media_id", "ID of the media item.")
 
 SourceParam = _path_param(
@@ -273,6 +288,102 @@ EpisodeNumberParam = _path_param(
     "episode_number",
     "Episode number for the specified media item.",
     param_type=OpenApiTypes.INT,
+)
+
+WatchProviderRegionParam = OpenApiParameter(
+    name="region",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "ISO 3166-1 country code to get watch providers for "
+        "(default: user's watch provider region)."
+    ),
+    required=False,
+)
+
+PersonIdParam = _path_param("person_id", "ID of the person.")
+
+PersonSourceParam = _path_param(
+    "source",
+    "Source of person data.",
+    enum=["tmdb"],
+)
+
+KnownForMediaTypeParam = OpenApiParameter(
+    name="media_type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Only return media of this type (default: all).",
+    required=False,
+    enum=["movie", "tv"],
+)
+
+CrewDepartmentParam = OpenApiParameter(
+    name="department",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return crew of this department, case-insensitive "
+        "(e.g. Directing, Writing, Production, Sound, Camera). "
+        "Anime staff have no department."
+    ),
+    required=False,
+)
+
+KnownForDepartmentParam = OpenApiParameter(
+    name="department",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return credits of this department, case-insensitive "
+        "(e.g. Acting, Directing, Writing, Production) (default: all)."
+    ),
+    required=False,
+)
+
+MediaImageTypeParam = OpenApiParameter(
+    name="type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Only return images of this type, others are empty (default: all). "
+        "Backdrops are only available for movies, tv series and games, "
+        "screenshots only for games and logos only for movies and tv series."
+    ),
+    required=False,
+    enum=["posters", "backdrops", "screenshots", "logos"],
+)
+
+CompanyRoleParam = OpenApiParameter(
+    name="role",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Only return companies with this role (default: all).",
+    required=False,
+    enum=["developer", "publisher", "porting", "supporting"],
+)
+
+VoiceActorLanguageParam = OpenApiParameter(
+    name="language",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description=(
+        "Language of the voice actors, only for anime (default: japanese). "
+        "Characters without a voice actor in that language are left out."
+    ),
+    required=False,
+    enum=[
+        "japanese",
+        "english",
+        "korean",
+        "italian",
+        "spanish",
+        "portuguese",
+        "french",
+        "german",
+        "hebrew",
+        "hungarian",
+    ],
 )
 
 

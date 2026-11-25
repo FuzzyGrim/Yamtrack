@@ -83,6 +83,8 @@ class Item(CalendarTriggerMixin, models.Model):
     )
     title = models.TextField()
     image = models.URLField()  # if add default, custom media entry will show the value
+    # Cover chosen by a user, shown instead of the provider image when set
+    custom_image = models.URLField(blank=True, default="")
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -170,6 +172,16 @@ class Item(CalendarTriggerMixin, models.Model):
             if self.episode_number is not None:
                 name += f"E{self.episode_number}"
         return name
+
+    def save(self, *args, **kwargs):
+        """Keep the custom cover as the image when one is set."""
+        # Metadata syncs overwrite the image with the provider one
+        if self.custom_image:
+            self.image = self.custom_image
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, "image"}
+        super().save(*args, **kwargs)
 
     @classmethod
     def generate_manual_id(cls):
@@ -1701,7 +1713,7 @@ class Season(Media):
             logger.info("No more episodes to watch.")
 
     def watch(self, episode_number, end_date, notes=""):
-        """Create or add a repeat to an episode of the season."""
+        """Create or add a repeat to an episode of the season and return it."""
         item = self.get_episode_item(episode_number)
 
         episode = Episode.objects.create(
@@ -1714,6 +1726,7 @@ class Season(Media):
             "%s created successfully.",
             episode,
         )
+        return episode
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
