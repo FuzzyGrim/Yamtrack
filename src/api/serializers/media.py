@@ -162,6 +162,35 @@ class UpdateEpisodeSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True)
 
 
+class WatchMediaSerializer(serializers.Serializer):
+    """Serializer for adding a watch entry to a media item."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField(required=False)
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = UTCDateTimeField(required=False, allow_null=True)
+    end_date = UTCDateTimeField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class WatchEpisodeSerializer(serializers.Serializer):
+    """Serializer for adding a watch entry to an episode."""
+
+    end_date = UTCDateTimeField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class WatchSeasonSerializer(WatchEpisodeSerializer):
+    """Serializer for adding a watch entry to every episode of a season."""
+
+    episode_numbers = serializers.ListField(
+        child=serializers.IntegerField(min_value=0),
+        required=False,
+        allow_empty=False,
+        help_text="Only record these episodes. Defaults to the whole season.",
+    )
+
+
 class UpdateGameSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating game media items."""
 
@@ -264,6 +293,12 @@ class TrackMediaSerializer(serializers.Serializer):
     Unified payload for creating media items. Use `source: manual` for manual items
     (omit `media_id`) or set a provider `source` and `media_id` to create from a
     provider. When using a media provider, all media data will be overwritten.
+
+    Provider seasons need `season_number`; provider episodes need `season_number`
+    and `episode_number`, and record the first watch of the episode (only
+    `end_date`, default now, and `notes` are used). The parent season and show
+    are created when not tracked yet. Tracking something already tracked returns
+    409: add re-watches with the history endpoints.
     """
 
     source = MediaSourceCompleteChoiceField()

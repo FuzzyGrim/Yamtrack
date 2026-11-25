@@ -1,4 +1,3 @@
-import calendar
 import datetime
 import logging
 from collections import defaultdict
@@ -10,8 +9,10 @@ from django.db.models import (
     Prefetch,
     Q,
 )
-from django.utils import timezone
+from django.utils import formats, timezone
 from django.utils.dateparse import parse_date
+from django.utils.dates import WEEKDAYS, WEEKDAYS_ABBR
+from django.utils.translation import npgettext
 
 from app import config
 from app.models import TV, BasicMedia, Episode, MediaManager, MediaTypes, Season, Status
@@ -370,13 +371,14 @@ def get_status_color(status):
         return "rgba(201, 203, 207)"
 
 
-def _consumed_value_and_unit(media_type, queryset, item_count):
-    """Return the consumed amount and its sub-unit noun for one media type.
+def _consumed_value(media_type, queryset, item_count):
+    """Return the consumed amount for one media type.
 
-    The sub-unit is ``None`` when the media type is counted as whole items
-    (movies). Returns ``None`` when nothing has been consumed. TV is excluded
-    by the caller: its episodes are tallied through seasons and its
-    ``progress`` is a computed property rather than an aggregatable column.
+    The amount is counted in the media type's sub-unit (episodes, chapters,
+    pages, ...), in hours for games, or in whole items for movies. Returns
+    ``None`` when nothing has been consumed. TV is excluded by the caller: its
+    episodes are tallied through seasons and its ``progress`` is a computed
+    property rather than an aggregatable column.
     """
     if media_type == MediaTypes.SEASON.value:
         # ``episodes`` are prefetched in get_user_media, so this reuses the
@@ -388,45 +390,49 @@ def _consumed_value_and_unit(media_type, queryset, item_count):
     else:
         value = queryset.aggregate(total=models.Sum("progress"))["total"] or 0
 
-    if not value:
-        return None
-
     if media_type == MediaTypes.GAME.value:
-        # ``progress`` is stored in minutes for games; "hour" is a unit of
-        # time here, not a media-type name.
+        # ``progress`` is stored in minutes for games.
         value = round(value / 60)
-        if not value:
-            return None
-        return value, "hour"
 
-    # Sub-unit (Episode, Chapter, Page, ...) when the media type has one;
-    # otherwise it is counted as whole items (movies).
-    unit = config.get_config(media_type).get("unit")
-    return value, unit[1].lower() if unit else None
+    return value or None
 
 
-def _consumption_label(media_type):
-    """Human media type name for a consumption card (season data is TV)."""
-    if media_type == MediaTypes.SEASON.value:
-        # Season rows aggregate TV episode watches; "TV" reads better than the
-        # "TV Season" label and is derived from the enum rather than hardcoded.
-        return MediaTypes.TV.value.upper()
-    return MediaTypes(media_type).label
+# Each media type has its own whole phrase so translations can agree in gender
+# and number. Season rows aggregate TV episode watches, so they read as "TV".
+CONSUMPTION_DESCRIPTORS = {
+    MediaTypes.SEASON.value: lambda n: npgettext(
+        "consumption statistic", "TV episode watched", "TV episodes watched", n
+    ),
+    MediaTypes.EPISODE.value: lambda n: npgettext(
+        "consumption statistic", "Episode watched", "Episodes watched", n
+    ),
+    MediaTypes.MOVIE.value: lambda n: npgettext(
+        "consumption statistic", "Movie watched", "Movies watched", n
+    ),
+    MediaTypes.ANIME.value: lambda n: npgettext(
+        "consumption statistic", "Anime episode watched", "Anime episodes watched", n
+    ),
+    MediaTypes.MANGA.value: lambda n: npgettext(
+        "consumption statistic", "Manga chapter read", "Manga chapters read", n
+    ),
+    MediaTypes.GAME.value: lambda n: npgettext(
+        "consumption statistic", "Game hour played", "Game hours played", n
+    ),
+    MediaTypes.BOOK.value: lambda n: npgettext(
+        "consumption statistic", "Book page read", "Book pages read", n
+    ),
+    MediaTypes.COMIC.value: lambda n: npgettext(
+        "consumption statistic", "Comic issue read", "Comic issues read", n
+    ),
+    MediaTypes.BOARDGAME.value: lambda n: npgettext(
+        "consumption statistic", "Boardgame play", "Boardgame plays", n
+    ),
+}
 
 
-def _consumption_descriptor(media_type, value, unit_noun):
+def _consumption_descriptor(media_type, value):
     """Build a descriptor like "TV episodes watched" or "Movies watched"."""
-    label = _consumption_label(media_type)
-    verb = config.get_verb(media_type, past_tense=True)
-    plural = "" if value == 1 else "s"
-
-    if unit_noun is None:
-        # Whole items are counted, so the media type name is the noun.
-        return f"{label}{plural} {verb}"
-    if verb.startswith(unit_noun):
-        # Avoid stutter such as "plays played".
-        return f"{label} {unit_noun}{plural}"
-    return f"{label} {unit_noun}{plural} {verb}"
+    return CONSUMPTION_DESCRIPTORS[media_type](value)
 
 
 def get_consumption_stats(user_media, media_count):
@@ -442,19 +448,14 @@ def get_consumption_stats(user_media, media_count):
     for media_type, queryset in user_media.items():
         if media_type == MediaTypes.TV.value:
             continue
-        computed = _consumed_value_and_unit(
-            media_type,
-            queryset,
-            media_count[media_type],
-        )
-        if computed is None:
+        value = _consumed_value(media_type, queryset, media_count[media_type])
+        if value is None:
             continue
-        value, unit_noun = computed
         results.append(
             {
                 "media_type": media_type,
                 "value": value,
-                "descriptor": _consumption_descriptor(media_type, value, unit_noun),
+                "descriptor": _consumption_descriptor(media_type, value),
                 "color": config.get_stats_color(media_type),
             },
         )
@@ -466,12 +467,13 @@ def _build_month_labels(date_range, week_start_weekday):
     """Build month labels and their corresponding week counts for the activity grid."""
     months = []
     weeks_per_month = []
-    current_month = date_range[0].strftime("%b")
+    # "M" is the translated abbreviated month name, e.g. "Jan" or "Gen"
+    current_month = formats.date_format(date_range[0], "M")
     week_count = 0
 
     for current_date in date_range:
         if current_date.weekday() == week_start_weekday:
-            month = current_date.strftime("%b")
+            month = formats.date_format(current_date, "M")
 
             if current_month != month:
                 if current_month is not None:
@@ -558,7 +560,7 @@ def get_activity_data(user, start_date, end_date):
     months, weeks_per_month = _build_month_labels(date_range, week_start_weekday)
 
     # Weekday labels depend on week start day
-    days = list(calendar.day_abbr)
+    days = [str(WEEKDAYS_ABBR[weekday]) for weekday in range(7)]
     weekday_labels = [days[6], *days[0:6]] if week_start_sunday else days
 
     return {
@@ -641,8 +643,7 @@ def calculate_day_of_week_stats(date_counts, start_date):
         if date < start_date:
             continue
         if date_counts[date] > 0:
-            day_name = date.strftime("%A")  # Get full day name
-            day_counts[day_name] += 1
+            day_counts[date.weekday()] += 1
             total_active_days += 1
 
     if not total_active_days:
@@ -652,7 +653,7 @@ def calculate_day_of_week_stats(date_counts, start_date):
     most_active_day = max(day_counts.items(), key=lambda x: x[1])
     percentage = (most_active_day[1] / total_active_days) * 100
 
-    return most_active_day[0], round(percentage)
+    return str(WEEKDAYS[most_active_day[0]]), round(percentage)
 
 
 def calculate_streaks(date_counts, end_date):

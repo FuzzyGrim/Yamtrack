@@ -9,6 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.dates import MONTHS_ALT, WEEKDAYS_ABBR
+from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -65,10 +67,10 @@ def calendar(request):
     )
     c = cal.Calendar(firstweekday=first_weekday)
     calendar_format = c.monthdayscalendar(year, month)
-    month_name = cal.month_name[month]
+    month_name = MONTHS_ALT[month]
 
     # Build weekday headers based on user preference
-    days = list(cal.day_abbr)
+    days = [WEEKDAYS_ABBR[weekday] for weekday in range(7)]
     sunday = 6
     weekday_headers = (
         [days[sunday], *days[0:sunday]] if first_weekday == sunday else days
@@ -88,6 +90,15 @@ def calendar(request):
 
     # Get today's date for highlighting
     today = timezone.localdate()
+    today_day = today.day if (year, month) == (today.year, today.month) else None
+    # list view only renders days with releases, so the Today button scrolls to
+    # the first one from today on
+    list_anchor_day = None
+    if today_day:
+        list_anchor_day = min(
+            (day for day in release_dict if day >= today_day),
+            default=None,
+        )
 
     context = {
         "calendar": calendar_format,
@@ -101,6 +112,8 @@ def calendar(request):
         "next_year": next_year,
         "release_dict": release_dict,
         "today": today,
+        "today_day": today_day,
+        "list_anchor_day": list_anchor_day,
         "view_type": view_type,
     }
     return render(request, "events/calendar.html", context)
@@ -110,7 +123,7 @@ def calendar(request):
 def reload_calendar(request):
     """Refresh the calendar with the latest dates."""
     tasks.reload_calendar.delay(request.user)
-    messages.info(request, "The task to refresh upcoming releases has been queued.")
+    messages.info(request, _("The task to refresh upcoming releases has been queued."))
     return redirect("calendar")
 
 

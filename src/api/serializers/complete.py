@@ -165,6 +165,32 @@ class CompleteMediaSerializer(serializers.Serializer):
             season_number=media_metadata.get("season_number"),
         )
 
+    @staticmethod
+    def _build_details(media_metadata):
+        """Build the details dict, moving and normalizing provider-specific fields."""
+        details = media_metadata.get("details", {})
+        for key in (
+            "tvdb_id",
+            "last_episode_season",
+            "next_episode_season",
+            "last_issue_id",
+        ):
+            if key in media_metadata:
+                details[key] = media_metadata.pop(key)
+
+        converters = {
+            "year": int,
+            "players": lambda v: v.strip(" players").split("-"),
+            "playtime": lambda v: int(v.strip(" min")),
+            "min_age": lambda v: int(v.strip("+")),
+            "designers": lambda v: v.split(", "),
+            "publishers": lambda v: v.split(", "),
+        }
+        for key, convert in converters.items():
+            if key in details:
+                details[key] = convert(details[key])
+        return details
+
     def to_representation(self, instance):
         """Serialize the media metadata with the user consumptions and lists."""
         media_metadata = instance.get("media_metadata", {})
@@ -179,27 +205,7 @@ class CompleteMediaSerializer(serializers.Serializer):
         media_metadata = self._apply_custom_cover(media_metadata)
         temp_media = type("TempMedia", (), media_metadata)()
 
-        details = media_metadata.get("details", {})
-        if "tvdb_id" in media_metadata:
-            details["tvdb_id"] = media_metadata.pop("tvdb_id")
-        if "last_episode_season" in media_metadata:
-            details["last_episode_season"] = media_metadata.pop("last_episode_season")
-        if "next_episode_season" in media_metadata:
-            details["next_episode_season"] = media_metadata.pop("next_episode_season")
-        if "last_issue_id" in media_metadata:
-            details["last_issue_id"] = media_metadata.pop("last_issue_id")
-        if "year" in details:
-            details["year"] = int(details["year"])
-        if "players" in details:
-            details["players"] = details["players"].strip(" players").split("-")
-        if "playtime" in details:
-            details["playtime"] = int(details["playtime"].strip(" min"))
-        if "min_age" in details:
-            details["min_age"] = int(details["min_age"].strip("+"))
-        if "designers" in details:
-            details["designers"] = details["designers"].split(", ")
-        if "publishers" in details:
-            details["publishers"] = details["publishers"].split(", ")
+        details = self._build_details(media_metadata)
         max_progress = media_metadata.get("max_progress")
 
         return super().to_representation(

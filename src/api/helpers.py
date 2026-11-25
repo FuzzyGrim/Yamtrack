@@ -16,6 +16,7 @@ from django.db.models import Count, F, OrderBy, OuterRef, Subquery
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.timezone import is_naive, localdate, make_aware, now
 from rest_framework.exceptions import (
+    NotFound,
     ParseError,
     PermissionDenied,
     Throttled,
@@ -345,6 +346,72 @@ def apply_validated_fields(instance, validated_data):
 
     if errors:
         raise ValidationError(errors)
+
+
+def fetch_episode_metadata(media_id, source, season_number, episode_number):
+    """Return the season metadata and its episode with the episode number.
+
+    Raise a NotFound error if the season has no such episode.
+    """
+    media_metadata = services.get_media_metadata(
+        MediaTypes.SEASON.value,
+        media_id,
+        source,
+        [season_number],
+    )
+    episode = next(
+        (
+            obj
+            for obj in (media_metadata or {}).get("episodes") or []
+            if obj["episode_number"] == int(episode_number)
+        ),
+        None,
+    )
+    if not episode:
+        msg = "Episode not found."
+        raise NotFound(msg)
+    return media_metadata, episode
+
+
+def get_user_season(user, media_id, source, season_number):
+    """Return the user's tracked season, raise a NotFound error if it isn't."""
+    season = Season.objects.filter(
+        user=user,
+        item__media_id=media_id,
+        item__source=source,
+        item__season_number=season_number,
+        item__episode_number=None,
+    ).first()
+    if season is None:
+        msg = "Season not found or not tracked."
+        raise NotFound(msg)
+    return season
+
+
+def get_or_create_provider_season(user, media_id, source, season_number, metadata):
+    """Get or create the user season."""
+    season = Season.objects.filter(
+        user=user,
+        item__media_id=media_id,
+        item__source=source,
+        item__season_number=season_number,
+        item__episode_number=None,
+    ).first()
+    if season is not None:
+        return season
+
+    season_item, _ = Item.objects.get_or_create(
+        media_id=media_id,
+        source=source,
+        media_type=MediaTypes.SEASON.value,
+        season_number=season_number,
+        defaults={"title": metadata.get("title"), "image": metadata.get("image")},
+    )
+    return Season.objects.create(
+        item=season_item,
+        user=user,
+        status=Status.IN_PROGRESS.value,
+    )
 
 
 def build_item_id(item):

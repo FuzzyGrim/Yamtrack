@@ -1,5 +1,6 @@
 from http import HTTPStatus as HTTP  # noqa: N814
 
+from django.utils import timezone
 from django.utils.timezone import localdate
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -24,7 +25,9 @@ from api.examples import (
 from api.helpers import (
     MEDIA_TYPE_COMPLETE_MODEL_MAP,
     apply_validated_fields,
+    fetch_episode_metadata,
     get_item_lists,
+    get_user_season,
     paginate_data,
     parse_limit_offset,
     require_update_fields,
@@ -54,6 +57,7 @@ from api.serializers import (
     PaginatedHistoryResponseSerializer,
     PaginatedListsMinimizedResponseSerializer,
     UpdateEpisodeSerializer,
+    WatchEpisodeSerializer,
 )
 from app.forms import get_form_class
 from app.models import BasicMedia, Item, MediaTypes
@@ -548,6 +552,62 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
         ).data
         paginated_data["results"] = consumptions
         return Response(paginated_data, status=HTTP.OK)
+
+    @extend_schema(
+        operation_id="episode_consumption_history_post",
+        summary="Add an episode consumption history entry",
+        description=(
+            "Records a new, distinct watch of the episode. Calling it again adds "
+            "another entry (re-watch) instead of updating the existing one. "
+            "The parent season must already be tracked, otherwise 404."
+        ),
+        parameters=[
+            MediaTypeParam,
+            SourceCompleteParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+        ],
+        request=WatchEpisodeSerializer,
+        responses={
+            201: OpenApiResponse(
+                HistorySerializer,
+                description="Consumption added successfully",
+                examples=[CONSUMPTION_EXAMPLE],
+            ),
+            400: BadRequestResponse,
+            404: NotFoundResponse,
+        },
+    )
+    def post(
+        self,
+        request,
+        media_type,
+        source,
+        media_id,
+        season_number,
+        episode_number,
+    ):
+        """Add a new watch entry for an episode."""
+        validate_media_path(
+            media_type,
+            source,
+            child_type=MediaTypes.EPISODE.value,
+        )
+
+        serializer = WatchEpisodeSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        season = get_user_season(request.user, media_id, source, season_number)
+        fetch_episode_metadata(media_id, source, season_number, episode_number)
+
+        episode = season.watch(
+            episode_number,
+            data.get("end_date", timezone.now()),
+            data.get("notes") or "",
+        )
+        return Response(HistorySerializer(episode).data, status=HTTP.CREATED)
 
 
 # /api/v1/media/[media_type]/[source]/[media_id]/[season_number]/[episode_number]/history/[consumption_id]/  # noqa: E501, W505

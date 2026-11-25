@@ -6,6 +6,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext as _
 
 import app
 from app import helpers as app_helpers
@@ -47,7 +48,7 @@ def get_token(request):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid SIMKL secret key."
+            msg = _("Invalid SIMKL secret key.")
             raise MediaImportError(msg) from error
         raise
 
@@ -72,7 +73,7 @@ def get_username(token):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid SIMKL secret key."
+            msg = _("Invalid SIMKL secret key.")
             raise MediaImportError(msg) from error
         raise
 
@@ -275,12 +276,15 @@ class SimklImporter:
                 try:
                     tmdb_id = tv["show"]["ids"]["tmdb"]
                 except KeyError:
-                    self.warnings.append(f"{title}: No TMDB ID found")
+                    self.warnings.append(
+                        _("%(title)s: No TMDB ID found") % {"title": title}
+                    )
                     continue
 
                 if tmdb_id in existing_tv_ids:
                     self.warnings.append(
-                        f"{title} ({tmdb_id}) already present in the import list",
+                        _("%(title)s (%(tmdb_id)s) already present in the import list")
+                        % {"title": title, "tmdb_id": tmdb_id}
                     )
                     continue
 
@@ -315,7 +319,7 @@ class SimklImporter:
                         continue
                     raise
 
-                tv_item, _ = app.models.Item.objects.get_or_create(
+                tv_item, _created = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
                     source=Sources.TMDB.value,
                     media_type=MediaTypes.TV.value,
@@ -336,7 +340,7 @@ class SimklImporter:
                     )
 
             except Exception as error:
-                msg = f"Error processing entry: {tv}"
+                msg = _("Error processing entry: %(tv)s") % {"tv": tv}
                 raise MediaImportUnexpectedError(msg) from error
 
         logger.info("Processed %d tv shows", len(tv_list))
@@ -377,7 +381,7 @@ class SimklImporter:
             if existing_season and not new_episodes:
                 continue
 
-            season_item, _ = app.models.Item.objects.get_or_create(
+            season_item, _created = app.models.Item.objects.get_or_create(
                 media_id=tmdb_id,
                 source=Sources.TMDB.value,
                 media_type=MediaTypes.SEASON.value,
@@ -420,7 +424,7 @@ class SimklImporter:
             # Process episodes
             for episode in new_episodes:
                 ep_img = self._get_episode_image(episode, season_number, metadata)
-                episode_item, _ = app.models.Item.objects.get_or_create(
+                episode_item, _created = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
                     source=Sources.TMDB.value,
                     media_type=MediaTypes.EPISODE.value,
@@ -467,12 +471,15 @@ class SimklImporter:
                 try:
                     tmdb_id = movie["movie"]["ids"]["tmdb"]
                 except KeyError:
-                    self.warnings.append(f"{title}: No TMDB ID found")
+                    self.warnings.append(
+                        _("%(title)s: No TMDB ID found") % {"title": title}
+                    )
                     continue
 
                 if tmdb_id in existing_movie_ids:
                     self.warnings.append(
-                        f"{title} ({tmdb_id}) already present in the import list",
+                        _("%(title)s (%(tmdb_id)s) already present in the import list")
+                        % {"title": title, "tmdb_id": tmdb_id}
                     )
                     continue
 
@@ -509,13 +516,17 @@ class SimklImporter:
                 except services.ProviderAPIError as error:
                     if error.status_code == requests.codes.not_found:
                         self.warnings.append(
-                            f"{title}: not found in {Sources.TMDB.label} "
-                            f"with ID {tmdb_id}.",
+                            _("%(title)s: not found in %(source)s with ID %(tmdb_id)s.")
+                            % {
+                                "title": title,
+                                "source": Sources.TMDB.label,
+                                "tmdb_id": tmdb_id,
+                            }
                         )
                         continue
                     raise
 
-                movie_item, _ = app.models.Item.objects.get_or_create(
+                movie_item, _created = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
                     source=Sources.TMDB.value,
                     media_type=MediaTypes.MOVIE.value,
@@ -540,7 +551,7 @@ class SimklImporter:
                 existing_movie_ids.add(tmdb_id)
 
             except Exception as error:
-                msg = f"Error processing entry: {movie}"
+                msg = _("Error processing entry: %(movie)s") % {"movie": movie}
                 raise MediaImportUnexpectedError(msg) from error
 
         logger.info("Processed %d movies", len(movie_list))
@@ -600,12 +611,15 @@ class SimklImporter:
                 try:
                     mal_id = anime["show"]["ids"]["mal"]
                 except KeyError:
-                    self.warnings.append(f"{title}: No MyAnimeList ID found")
+                    self.warnings.append(
+                        _("%(title)s: No MyAnimeList ID found") % {"title": title}
+                    )
                     continue
 
                 if mal_id in existing_anime_ids:
                     self.warnings.append(
-                        f"{title} ({mal_id}) already present in the import list",
+                        _("%(title)s (%(mal_id)s) already present in the import list")
+                        % {"title": title, "mal_id": mal_id}
                     )
                     continue
 
@@ -636,13 +650,17 @@ class SimklImporter:
                 except services.ProviderAPIError as error:
                     if error.status_code == requests.codes.not_found:
                         self.warnings.append(
-                            f"{title}: not found in {Sources.MAL.label} "
-                            f"with ID {mal_id}.",
+                            _("%(title)s: not found in %(source)s with ID %(mal_id)s.")
+                            % {
+                                "title": title,
+                                "source": Sources.MAL.label,
+                                "mal_id": mal_id,
+                            }
                         )
                         continue
                     raise
 
-                anime_item, _ = app.models.Item.objects.get_or_create(
+                anime_item, _created = app.models.Item.objects.get_or_create(
                     media_id=mal_id,
                     source=Sources.MAL.value,
                     media_type=MediaTypes.ANIME.value,

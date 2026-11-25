@@ -38,10 +38,14 @@ def process_anime_bulk(items, events_bulk):
     if not items:
         return
 
-    anime_data = get_anime_schedule_bulk([item.media_id for item in items])
+    anime_data = {}
+    for source in (Sources.MAL.value, Sources.ANILIST.value):
+        media_ids = [item.media_id for item in items if item.source == source]
+        if media_ids:
+            anime_data[source] = get_anime_schedule_bulk(media_ids, source)
 
     for item in items:
-        episodes = anime_data.get(item.media_id)
+        episodes = anime_data.get(item.source, {}).get(item.media_id)
 
         if episodes:
             for episode in episodes:
@@ -68,18 +72,21 @@ def process_anime_bulk(items, events_bulk):
             process_other(item, events_bulk)
 
 
-def _collect_airing_schedule_pages(query, url, media_ids, page):
+def _collect_airing_schedule_pages(query, url, media_ids, source, page):
     media_by_id = {}
     airing_page = 1
+    # AniList filters by null variables, so only the used id filter is sent
+    ids_variable = "malIds" if source == Sources.MAL.value else "ids"
+    id_field = "idMal" if source == Sources.MAL.value else "id"
 
     while True:
         variables = {
-            "ids": media_ids,
+            ids_variable: media_ids,
             "page": page,
             "airingPage": airing_page,
         }
         response = services.api_request(
-            "ANILIST",
+            Sources.ANILIST.value,
             "POST",
             url,
             params={"query": query, "variables": variables},
@@ -87,9 +94,9 @@ def _collect_airing_schedule_pages(query, url, media_ids, page):
 
         has_next_airing_page = False
         for media in response["data"]["Page"]["media"]:
-            mal_id = str(media["idMal"])
+            media_id = str(media[id_field])
             media_data = media_by_id.setdefault(
-                mal_id,
+                media_id,
                 {
                     "endDate": media["endDate"],
                     "episodes": media["episodes"],
@@ -119,7 +126,7 @@ def _get_mal_total_episodes(mal_id):
     return mal_metadata["max_progress"]
 
 
-def _process_anilist_media_schedule(mal_id, media):
+def _process_anilist_media_schedule(media_id, media, source):
     airing_schedule = media["airingSchedule"]
     total_episodes = media["episodes"]
 
@@ -136,8 +143,9 @@ def _process_anilist_media_schedule(mal_id, media):
 
         if original_length > len(airing_schedule):
             logger.info(
-                "Filtered episodes for MAL ID %s - keep only %s episodes",
-                mal_id,
+                "Filtered episodes for %s ID %s - keep only %s episodes",
+                Sources(source).label,
+                media_id,
                 total_episodes,
             )
 
@@ -146,20 +154,22 @@ def _process_anilist_media_schedule(mal_id, media):
         or not airing_schedule
         or airing_schedule[-1]["episode"] < total_episodes
     ):
-        mal_total_episodes = _get_mal_total_episodes(mal_id)
+        # AniList can lag behind MAL on the episode count of MAL items
+        if source == Sources.MAL.value:
+            mal_total_episodes = _get_mal_total_episodes(media_id)
 
-        if (
-            mal_total_episodes
-            and total_episodes
-            and mal_total_episodes > total_episodes
-        ):
-            logger.info(
-                "MAL ID %s - MAL has %s episodes, AniList has %s",
-                mal_id,
-                mal_total_episodes,
-                total_episodes,
-            )
-            return None
+            if (
+                mal_total_episodes
+                and total_episodes
+                and mal_total_episodes > total_episodes
+            ):
+                logger.info(
+                    "MAL ID %s - MAL has %s episodes, AniList has %s",
+                    media_id,
+                    mal_total_episodes,
+                    total_episodes,
+                )
+                return None
 
         if not total_episodes or (
             airing_schedule and airing_schedule[-1]["episode"] >= total_episodes
@@ -167,8 +177,9 @@ def _process_anilist_media_schedule(mal_id, media):
             return airing_schedule
 
         logger.info(
-            "Adding final episode for MAL ID %s - Ep %s",
-            mal_id,
+            "Adding final episode for %s ID %s - Ep %s",
+            Sources(source).label,
+            media_id,
             total_episodes,
         )
         end_date_timestamp = anilist_date_parser(media["endDate"])
@@ -179,18 +190,22 @@ def _process_anilist_media_schedule(mal_id, media):
     return airing_schedule
 
 
-def get_anime_schedule_bulk(media_ids):
-    """Get the airing schedule for multiple anime items from AniList API."""
+def get_anime_schedule_bulk(media_ids, source=Sources.MAL.value):
+    """Get the airing schedule for multiple anime items from AniList API.
+
+    The media IDs are MAL IDs or AniList IDs depending on the source.
+    """
     all_data = {}
     page = 1
     url = "https://graphql.anilist.co"
     query = """
-    query ($ids: [Int], $page: Int, $airingPage: Int) {
+    query ($ids: [Int], $malIds: [Int], $page: Int, $airingPage: Int) {
       Page(page: $page) {
         pageInfo {
           hasNextPage
         }
-        media(idMal_in: $ids, type: ANIME) {
+        media(id_in: $ids, idMal_in: $malIds, type: ANIME) {
+          id
           idMal
           endDate {
             year
@@ -217,13 +232,18 @@ def get_anime_schedule_bulk(media_ids):
             query,
             url,
             media_ids,
+            source,
             page,
         )
 
-        for mal_id, media in media_by_id.items():
-            airing_schedule = _process_anilist_media_schedule(mal_id, media)
+        for media_id, media in media_by_id.items():
+            airing_schedule = _process_anilist_media_schedule(
+                media_id,
+                media,
+                source,
+            )
             if airing_schedule:
-                all_data[mal_id] = airing_schedule
+                all_data[media_id] = airing_schedule
 
         if not has_next_page:
             break

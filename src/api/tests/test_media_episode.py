@@ -369,6 +369,106 @@ class MediaEpisodeTests(YamtrackApiTestCase):
         self.assertIsNone(payload["consumptions"][0]["end_date"])
         self.assertEqual(payload["consumptions"][0]["notes"], "updated episode notes")
 
+    def test_episode_detail_post_adds_new_watch_entry(self):
+        """Episode POST should add a distinct watch entry each time (re-watch)."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+
+        def _metadata_side_effect(media_type, *_args, **_kwargs):
+            if media_type == "tv_with_seasons":
+                return {
+                    f"season/{season_item.season_number}": {"episodes": [{}, {}]},
+                    "related": {
+                        "seasons": [{"season_number": season_item.season_number}]
+                    },
+                }
+            if media_type == "season":
+                return self.build_episode_metadata(
+                    tv_item=tv_item,
+                    season_number=season_item.season_number,
+                    episode_number=episode_item.episode_number,
+                    title=episode_item.title,
+                    image=episode_item.image,
+                )
+            return {}
+
+        args = (
+            MediaTypes.TV.value,
+            tv_item.source,
+            tv_item.media_id,
+            season_item.season_number,
+            episode_item.episode_number,
+        )
+        before = Episode.objects.filter(item=episode_item).count()
+
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            side_effect=_metadata_side_effect,
+        ):
+            for _ in range(2):
+                response = self.call_api(
+                    "post",
+                    "api_media_episode_consumption_history",
+                    args=args,
+                    payload={"notes": "rewatch"},
+                    headers=self.auth_headers,
+                )
+                self.assertEqual(response.status_code, 201)
+
+        self.assertEqual(Episode.objects.filter(item=episode_item).count(), before + 2)
+
+    def test_episode_detail_post_untracked_season_returns_404(self):
+        """Episode POST should fail, and track nothing, if the season is untracked."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+
+        response = self.call_api(
+            "post",
+            "api_media_episode_consumption_history",
+            args=(
+                MediaTypes.TV.value,
+                tv_item.source,
+                tv_item.media_id,
+                season_item.season_number,
+                episode_item.episode_number,
+            ),
+            headers=self.auth_headers2,
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(
+            Episode.objects.filter(related_season__user=self.user2).exists(),
+        )
+
+    def test_episode_detail_post_untracked_manual_season_returns_404(self):
+        """Episode POST should not create manual seasons."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        metadata = self.build_episode_metadata(
+            tv_item=tv_item,
+            season_number=1,
+            episode_number=1,
+            title="Manual episode",
+            image="https://example.com/episode.jpg",
+        )
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            return_value=metadata,
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_episode_consumption_history",
+                args=(MediaTypes.TV.value, Sources.MANUAL.value, "999999", 1, 1),
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(
+            Episode.objects.filter(item__source=Sources.MANUAL.value).exists(),
+        )
+
     @patch("app.providers.services.get_media_metadata")
     def test_episode_detail_delete_tracked_episode_returns_204(self, mock_metadata):
         """Episode detail DELETE should remove tracked episode."""

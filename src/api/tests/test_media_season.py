@@ -227,7 +227,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/nCcGD18HmDFunCl8KBigqUPlIi8.jpg",
             "season_number": 1,
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "score": 8.8,
             "score_count": 8,
             "details": {
@@ -596,7 +596,7 @@ class MediaSeasonTests(YamtrackApiTestCase):
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/nCcGD18HmDFunCl8KBigqUPlIi8.jpg",
             "season_number": 1,
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "score": 8.8,
             "score_count": 8,
             "details": {
@@ -1788,3 +1788,181 @@ class MediaSeasonTests(YamtrackApiTestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_season_detail_post_adds_watch_for_each_episode(self):
+        """Season POST should add a new watch entry per episode (re-watch)."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_item = self.items_by_type[MediaTypes.SEASON.value][0]
+        episode_item = self.items_by_type[MediaTypes.EPISODE.value][0]
+
+        def _metadata_side_effect(media_type, *_args, **_kwargs):
+            if media_type == "tv_with_seasons":
+                return {
+                    f"season/{season_item.season_number}": {"episodes": [{}, {}]},
+                    "related": {
+                        "seasons": [{"season_number": season_item.season_number}]
+                    },
+                }
+            return self.build_episode_metadata(
+                tv_item=tv_item,
+                season_number=season_item.season_number,
+                episode_number=episode_item.episode_number,
+                title=episode_item.title,
+                image=episode_item.image,
+            )
+
+        args = (
+            MediaTypes.TV.value,
+            tv_item.source,
+            tv_item.media_id,
+            season_item.season_number,
+        )
+        before = Episode.objects.filter(item=episode_item).count()
+
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            side_effect=_metadata_side_effect,
+        ):
+            for _ in range(2):
+                response = self.call_api(
+                    "post",
+                    "api_media_season_consumption_history",
+                    args=args,
+                    payload={"notes": "season rewatch"},
+                    headers=self.auth_headers,
+                )
+                self.assertEqual(response.status_code, 201)
+
+            response = self.call_api(
+                "post",
+                "api_media_season_consumption_history",
+                args=args,
+                payload={"episode_numbers": [999]},
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 404)
+
+        self.assertEqual(Episode.objects.filter(item=episode_item).count(), before + 2)
+
+    def _two_episode_season_metadata(self, tv_item, season_number):
+        """Return a metadata side effect for a season with episodes 1 and 2."""
+        season_metadata = self.build_episode_metadata(
+            tv_item=tv_item,
+            season_number=season_number,
+            episode_number=1,
+            title="Episode",
+            image="https://example.com/episode.jpg",
+        )
+        season_metadata["episodes"].append(
+            {**season_metadata["episodes"][0], "episode_number": 2},
+        )
+
+        def _side_effect(media_type, *_args, **_kwargs):
+            if media_type == "tv_with_seasons":
+                return {
+                    f"season/{season_number}": season_metadata,
+                    "related": {"seasons": [{"season_number": season_number}]},
+                }
+            return season_metadata
+
+        return _side_effect
+
+    def test_season_detail_post_untracked_season_returns_404(self):
+        """Season POST should fail, and track nothing, for an untracked season."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season_number = self.items_by_type[MediaTypes.SEASON.value][0].season_number
+
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            side_effect=self._two_episode_season_metadata(tv_item, season_number),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_season_consumption_history",
+                args=(
+                    MediaTypes.TV.value,
+                    tv_item.source,
+                    tv_item.media_id,
+                    season_number,
+                ),
+                headers=self.auth_headers2,
+            )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Season.objects.filter(user=self.user2).exists())
+        self.assertFalse(
+            Episode.objects.filter(related_season__user=self.user2).exists(),
+        )
+
+    def test_season_detail_post_episode_numbers_subset(self):
+        """Season POST should only record the requested episodes."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season = self.season_medias[0]
+        season_number = season.item.season_number
+        before = season.episodes.count()
+        before_ep2 = season.episodes.filter(item__episode_number=2).count()
+
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            side_effect=self._two_episode_season_metadata(tv_item, season_number),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_season_consumption_history",
+                args=(
+                    MediaTypes.TV.value,
+                    tv_item.source,
+                    tv_item.media_id,
+                    season_number,
+                ),
+                payload={"episode_numbers": [2]},
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(season.episodes.count(), before + 1)
+        self.assertEqual(
+            season.episodes.filter(item__episode_number=2).count(),
+            before_ep2 + 1,
+        )
+
+    def test_season_detail_post_rolls_back_on_failure(self):
+        """Season POST should save no episode when one of them fails."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        season = self.season_medias[0]
+        season_number = season.item.season_number
+        before = season.episodes.count()
+        original_watch = Season.watch
+        calls = []
+        failing_call = 2
+
+        def _failing_watch(season, *args, **kwargs):
+            calls.append(args)
+            if len(calls) == failing_call:
+                msg = "boom"
+                raise RuntimeError(msg)
+            return original_watch(season, *args, **kwargs)
+
+        with (
+            patch(
+                "app.models.providers.services.get_media_metadata",
+                side_effect=self._two_episode_season_metadata(tv_item, season_number),
+            ),
+            patch.object(Season, "watch", _failing_watch),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_season_consumption_history",
+                args=(
+                    MediaTypes.TV.value,
+                    tv_item.source,
+                    tv_item.media_id,
+                    season_number,
+                ),
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(len(calls), failing_call)
+        self.assertEqual(season.episodes.count(), before)

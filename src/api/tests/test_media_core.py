@@ -519,10 +519,15 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    def test_media_type_list_post_provider_rejects_season_and_episode(self):
-        """Tracking seasons and episodes from a provider isn't supported yet."""
-        for media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
-            with self.subTest(media_type=media_type):
+    def test_media_type_list_post_provider_season_episode_require_numbers(self):
+        """Provider seasons and episodes should require their numbers."""
+        cases = (
+            (MediaTypes.SEASON.value, {}),
+            (MediaTypes.EPISODE.value, {"season_number": 1}),
+            (MediaTypes.EPISODE.value, {"episode_number": 1}),
+        )
+        for media_type, numbers in cases:
+            with self.subTest(media_type=media_type, numbers=numbers):
                 response = self.call_api(
                     "post",
                     "api_media_type_list",
@@ -530,13 +535,184 @@ class MediaCoreTests(YamtrackApiTestCase):
                     payload={
                         "source": Sources.TMDB.value,
                         "media_id": "1001",
-                        "season_number": 1,
-                        "episode_number": 1,
+                        **numbers,
                     },
                     headers=self.auth_headers,
                 )
 
                 self.assertEqual(response.status_code, 400)
+
+    def _provider_season_metadata(self, tv_item, season_number, episode_count=2):
+        """Return a metadata side effect for a provider season."""
+        season_metadata = self.build_episode_metadata(
+            tv_item=tv_item,
+            season_number=season_number,
+            episode_number=1,
+            title=tv_item.title,
+            image=tv_item.image,
+        )
+        first = season_metadata["episodes"][0]
+        season_metadata["episodes"] = [
+            {**first, "episode_number": number}
+            for number in range(1, episode_count + 1)
+        ]
+        season_metadata["details"] = {"seasons": 1}
+
+        def _side_effect(media_type, *_args, **_kwargs):
+            if media_type == "tv_with_seasons":
+                return {
+                    f"season/{season_number}": season_metadata,
+                    "related": {"seasons": [{"season_number": season_number}]},
+                }
+            return season_metadata
+
+        return _side_effect
+
+    def test_media_type_list_post_provider_season(self):
+        """Tracking a provider season should create it with its show."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        payload = {
+            "source": tv_item.source,
+            "media_id": tv_item.media_id,
+            "season_number": 1,
+        }
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            side_effect=self._provider_season_metadata(tv_item, 1),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.SEASON.value,),
+                payload=payload,
+                headers=self.auth_headers2,
+            )
+            self.assertEqual(response.status_code, 201, response.content)
+
+            season = Season.objects.get(
+                user=self.user2,
+                item__media_id=tv_item.media_id,
+                item__season_number=1,
+            )
+            self.assertEqual(season.status, Status.PLANNING.value)
+            self.assertEqual(season.related_tv.user, self.user2)
+
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.SEASON.value,),
+                payload=payload,
+                headers=self.auth_headers2,
+            )
+            self.assertEqual(response.status_code, 409)
+
+        self.assertEqual(Season.objects.filter(user=self.user2).count(), 1)
+
+    def test_media_type_list_post_provider_episode(self):
+        """Tracking a provider episode should record a watch and its season."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        payload = {
+            "source": tv_item.source,
+            "media_id": tv_item.media_id,
+            "season_number": 1,
+            "episode_number": 1,
+            "notes": "first watch",
+        }
+
+        with patch(
+            "app.providers.services.get_media_metadata",
+            side_effect=self._provider_season_metadata(tv_item, 1),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.EPISODE.value,),
+                payload=payload,
+                headers=self.auth_headers2,
+            )
+            self.assertEqual(response.status_code, 201, response.content)
+
+            season = Season.objects.get(user=self.user2, item__season_number=1)
+            self.assertEqual(season.status, Status.IN_PROGRESS.value)
+            episode = season.episodes.get()
+            self.assertEqual(episode.item.episode_number, 1)
+            self.assertEqual(episode.notes, "first watch")
+            self.assertIsNotNone(episode.end_date)
+
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.EPISODE.value,),
+                payload=payload,
+                headers=self.auth_headers2,
+            )
+            self.assertEqual(response.status_code, 409)
+
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.EPISODE.value,),
+                payload={**payload, "episode_number": 99},
+                headers=self.auth_headers2,
+            )
+            self.assertEqual(response.status_code, 404)
+
+        self.assertEqual(season.episodes.count(), 1)
+
+    def test_media_type_list_post_provider_episode_rolls_back_season(self):
+        """A failed episode watch should not leave a new season behind."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+
+        with (
+            patch(
+                "app.providers.services.get_media_metadata",
+                side_effect=self._provider_season_metadata(tv_item, 1),
+            ),
+            patch.object(Season, "watch", side_effect=RuntimeError("boom")),
+        ):
+            response = self.call_api(
+                "post",
+                "api_media_type_list",
+                args=(MediaTypes.EPISODE.value,),
+                payload={
+                    "source": tv_item.source,
+                    "media_id": tv_item.media_id,
+                    "season_number": 1,
+                    "episode_number": 1,
+                },
+                headers=self.auth_headers2,
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(Season.objects.filter(user=self.user2).exists())
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_type_list_post_provider_movie_already_tracked_returns_conflict(
+        self,
+        mock_metadata,
+    ):
+        """Tracking an already tracked provider movie should return 409."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        mock_metadata.return_value = {
+            "title": movie_item.title,
+            "image": movie_item.image,
+        }
+        before = Movie.objects.filter(item=movie_item, user=self.user1).count()
+
+        response = self.call_api(
+            "post",
+            "api_media_type_list",
+            args=(MediaTypes.MOVIE.value,),
+            payload={"source": movie_item.source, "media_id": movie_item.media_id},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            Movie.objects.filter(item=movie_item, user=self.user1).count(),
+            before,
+        )
 
     def test_media_type_list_post_provider_already_tracked_returns_conflict(self):
         """Tracking again a media allowed only once per user should return 409."""
@@ -654,7 +830,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             "title": "Pride",
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/rnahKduAA2VZFgrXemu97Fh6OD2.jpg",
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "genres": ["Drama"],
             "score": 7.8,
             "score_count": 30,
@@ -774,7 +950,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/mxkKDJNZg9z9WHC98qTGALPHlKL.jpg",
                         "media_id": 42893,
-                        "title": "Hotaru no Hikari: It's Only a Little Light in My Life",
+                        "title": "Hotaru no Hikari: It's Only a Little Light in My...",
                     },
                     {
                         "source": "tmdb",
@@ -795,7 +971,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/5k7bkqolsaJVCj321gLkuikk2Ax.jpg",
                         "media_id": 232926,
-                        "title": "7th Time Loop: The Villainess Enjoys a Carefree Life Married to Her Worst Enemy!",
+                        "title": "7th Time Loop: The Villainess Enjoys a Carefree...",
                     },
                     {
                         "source": "tmdb",
@@ -967,6 +1143,86 @@ class MediaCoreTests(YamtrackApiTestCase):
 
         self.assertEqual(response.status_code, 500)
 
+    def test_media_detail_post_adds_new_history_entry(self):
+        """Media detail POST should add a distinct entry each time (re-watch)."""
+        created = self._post_manual(
+            MediaTypes.MOVIE.value,
+            {"title": "Rewatch Movie", "status": 3},
+        ).json()
+        media_id = created["item"]["media_id"]
+
+        for _ in range(2):
+            response = self.call_api(
+                "post",
+                "api_media_consumption_history",
+                args=(MediaTypes.MOVIE.value, "manual", media_id),
+                payload={"notes": "again"},
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, 201, response.content)
+            self.assertEqual(response.json()["notes"], "again")
+
+        entries = Movie.objects.filter(item__media_id=media_id, user=self.user1)
+        self.assertEqual(entries.count(), 3)
+        self.assertEqual(entries.filter(notes="again").count(), 2)
+        self.assertEqual(
+            entries.filter(notes="again", status=Status.COMPLETED.value).count(),
+            2,
+        )
+
+    def test_media_detail_post_untracked_media_returns_404(self):
+        """Media detail POST should fail, and track nothing, if not tracked."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+
+        response = self.call_api(
+            "post",
+            "api_media_consumption_history",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            headers=self.auth_headers2,
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Movie.objects.filter(user=self.user2).exists())
+
+    def test_media_detail_post_tracked_provider_media_defaults(self):
+        """Media detail POST should default to Completed, also for a null status."""
+        movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
+        before = Movie.objects.filter(item=movie_item, user=self.user1).count()
+
+        response = self.call_api(
+            "post",
+            "api_media_consumption_history",
+            args=(MediaTypes.MOVIE.value, movie_item.source, movie_item.media_id),
+            payload={"status": None},
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+        entries = Movie.objects.filter(item=movie_item, user=self.user1)
+        self.assertEqual(entries.count(), before + 1)
+        entry = entries.get(id=response.json()["consumption_id"])
+        self.assertEqual(entry.status, Status.COMPLETED.value)
+        self.assertIsNotNone(entry.end_date)
+
+    def test_media_detail_post_rejects_tv_and_unknown_manual(self):
+        """Media detail POST should reject tv and unknown manual media."""
+        tv_item = self.items_by_type[MediaTypes.TV.value][0]
+        response = self.call_api(
+            "post",
+            "api_media_consumption_history",
+            args=(MediaTypes.TV.value, tv_item.source, tv_item.media_id),
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.call_api(
+            "post",
+            "api_media_consumption_history",
+            args=(MediaTypes.MOVIE.value, "manual", str(UUID(int=1))),
+            headers=self.auth_headers,
+        )
+        self.assertEqual(response.status_code, 404)
+
     @patch("app.providers.services.get_media_metadata")
     def test_media_detail_patch_updates_media_fields(self, mock_metadata):
         """Media detail PATCH should update mutable media fields."""
@@ -982,7 +1238,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             "title": "Pride",
             "max_progress": 11,
             "image": "https://image.tmdb.org/t/p/w500/rnahKduAA2VZFgrXemu97Fh6OD2.jpg",
-            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star athlete who stakes everything on hockey but can only consider love as a game. Aki Murase is a woman who has been waiting for her lover who went abroad two years ago. These two persons start a relationship while frankly admitting to each other that it is only a love game. …The result is the unfolding of a drama of people with their respective pasts and with their pride as individuals.",
+            "synopsis": "Haru Satonaka is the captain of an ice-hockey team, a star...",
             "genres": ["Drama"],
             "score": 7.8,
             "score_count": 30,
@@ -1102,7 +1358,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/mxkKDJNZg9z9WHC98qTGALPHlKL.jpg",
                         "media_id": 42893,
-                        "title": "Hotaru no Hikari: It's Only a Little Light in My Life",
+                        "title": "Hotaru no Hikari: It's Only a Little Light in My...",
                     },
                     {
                         "source": "tmdb",
@@ -1123,7 +1379,7 @@ class MediaCoreTests(YamtrackApiTestCase):
                         "media_type": "tv",
                         "image": "https://image.tmdb.org/t/p/w500/5k7bkqolsaJVCj321gLkuikk2Ax.jpg",
                         "media_id": 232926,
-                        "title": "7th Time Loop: The Villainess Enjoys a Carefree Life Married to Her Worst Enemy!",
+                        "title": "7th Time Loop: The Villainess Enjoys a Carefree...",
                     },
                     {
                         "source": "tmdb",
@@ -1594,7 +1850,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             self.assertEqual(response.status_code, 404)
 
     def test_media_consumption_entry_detail_invalid_consumption_id_methods(self):
-        """Entry-detail endpoints should return not found for unknown consumption ids."""
+        """Entry-detail endpoints return not found for unknown consumption ids."""
         movie_item = self.items_by_type[MediaTypes.MOVIE.value][0]
         invalid_consumption_id = 999999
 
@@ -1753,7 +2009,7 @@ class MediaCoreTests(YamtrackApiTestCase):
             check_minimized_lists_structure(self, item)
 
     def test_media_lists_get_invalid_media_id_returns_empty_results(self):
-        """Media list relation endpoint should return empty results for unknown media."""
+        """Media list relation endpoint return empty results for unknown media."""
         response = self.call_api(
             "get",
             "api_media_lists",
